@@ -7,7 +7,7 @@ use crate::dct1::{read_dct1, write_dct1, Dct1Table, DCT1_MAGIC};
 use crate::ftr4::{Ftr4, FTR4_LEN};
 use crate::ledger::{read_ldg1, write_ldg1, LedgerBlob, LDG1_MAGIC};
 use anyhow::{ensure, Context, Result};
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 
 pub const IDX3_MAGIC: [u8; 4] = *b"IDX3";
 
@@ -17,6 +17,18 @@ pub struct TailFrameParts {
     pub idx3_bytes: Vec<u8>,
     pub ldg1: Option<LedgerBlob>,
     pub footer: Ftr4,
+}
+
+fn component_slice(frame_bytes: &[u8], start: u64, len: u64) -> Result<&[u8]> {
+    let end = start.checked_add(len).context("component range overflow")?;
+    ensure!(
+        end <= frame_bytes.len() as u64,
+        "component range extends past tail frame bytes"
+    );
+
+    let start = usize::try_from(start).context("component start offset too large")?;
+    let end = usize::try_from(end).context("component end offset too large")?;
+    Ok(&frame_bytes[start..end])
 }
 
 pub fn assemble_tail_frame(
@@ -107,7 +119,7 @@ pub fn parse_tail_frame(frame_bytes: &[u8]) -> Result<TailFrameParts> {
             "DCT1 overlaps IDX3 or exceeds layout"
         );
 
-        let slice = &frame_bytes[rel as usize..end as usize];
+        let slice = component_slice(frame_bytes, rel, footer.dct_len)?;
         ensure!(slice.starts_with(&DCT1_MAGIC), "DCT1: bad magic");
         let table = read_dct1(Cursor::new(slice))?;
         dct1 = Some(table);
@@ -148,19 +160,17 @@ pub fn parse_tail_frame(frame_bytes: &[u8]) -> Result<TailFrameParts> {
         );
         ensure!(idx_end <= ldg_rel, "IDX3 overlaps LDG1");
 
-        let slice = &frame_bytes[ldg_rel as usize..ldg_end as usize];
+        let slice = component_slice(frame_bytes, ldg_rel, footer.ledger_len)?;
         ensure!(slice.starts_with(&LDG1_MAGIC), "LDG1: bad magic");
-        let mut blob = read_ldg1(Cursor::new(slice))?;
+        let mut rdr = Cursor::new(slice);
+        let mut blob = read_ldg1(&mut rdr)?;
         ensure!(
             blob.hash == footer.ledger_hash,
             "LDG1 hash mismatch vs footer"
         );
 
         // Ensure reader consumed exactly the component and there are no extra bytes in the slice.
-        let mut rdr = Cursor::new(slice);
-        let _ = read_ldg1(&mut rdr)?;
-        let mut leftover = [0u8; 1];
-        ensure!(rdr.read(&mut leftover)? == 0, "LDG1 trailing bytes");
+        ensure!(rdr.position() as usize == slice.len(), "LDG1 trailing bytes");
 
         // Preserve parsed blob.
         blob.hash = footer.ledger_hash;

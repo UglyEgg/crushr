@@ -76,3 +76,10 @@
 - Fixed `crushr/src/dict.rs` regressions that blocked `cargo check -p crushr`.
 - Imported `walkdir::WalkDir`, restored valid function separation, and updated `zstd::dict::from_continuous` to pass sample sizes.
 - Added explicit empty-sample guard for progress-based dictionary training.
+
+
+## 2026-03-08 — Phase 0, Step 0.9 (fix iteration 3)
+
+- Cleaned `crushr-format` tail frame parsing internals to remove unchecked narrowing casts and keep deterministic bounds checks for component slices.
+- Removed duplicate LDG1 parsing pass in trailing-byte detection by validating exact reader consumption directly.
+- Re-ran and passed `cargo test -p crushr-format` and `cargo clippy -p crushr-format --all-targets -- -D warnings`.

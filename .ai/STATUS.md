@@ -6,7 +6,7 @@
 
 - Phase: 0
 - Step: 0.9
-- Fix iteration: 2
+- Fix iteration: 3
 
 ## Current Objective
 
@@ -14,8 +14,9 @@ Continue the integrity-first implementation path by wiring real archive parsing 
 
 ## What Changed (since last Step)
 
-- Fixed `crushr/src/dict.rs` compile errors blocking `cargo check -p crushr` (imported `WalkDir`, repaired function boundary, and updated zstd `from_continuous` call signature).
-- Added tracked sample-size accounting for dictionary training progress path and explicit empty-sample rejection before dict training.
+- Hardened `crates/crushr-format/src/tailframe.rs` with checked component slicing to avoid unchecked integer casts when deriving DCT1/LDG1 sub-slices from footer offsets.
+- Simplified LDG1 trailing-byte validation to reuse a single parser pass (`Cursor::position`) while keeping strict full-consumption semantics.
+- Verified `crushr-format` is test-clean and clippy-clean with `-D warnings`.
 
 ## What Remains (next actions)
 
