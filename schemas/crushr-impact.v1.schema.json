@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "crushr impact report v1",
+  "type": "object",
+  "required": ["schema_version", "corrupted_blocks", "affected_files", "unaffected_files"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "corrupted_blocks": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+    "affected_files": {"type": "array"},
+    "unaffected_files": {"type": "array"}
+  }
+}

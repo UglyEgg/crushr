@@ -1,0 +1,56 @@
+# .ai/CHANGELOG.md
+
+## 2026-02-17 — Phase 0, Step 0.1 (migration)
+
+- Created canonical repo root from prime scaffold.
+- Imported `crushr` crate sources, docs, and dev tooling.
+- Preserved legacy continuity documents under `.ai/imported_crushr/` and `docs/legacy/`.
+
+## 2026-02-17 — Phase 0, Step 0.2 (spec + architecture lock-in)
+
+- Replaced `SPEC.md` with Archive Format v1.0 (BLK3/DCT1/IDX3/FTR4).
+- Preserved prior spec as `docs/legacy/SPEC_pre_v1.md`.
+- Added `docs/ARCHITECTURE.md` (crate graph, tool suite, no-IPC rule).
+- Converted repo to a Cargo workspace and introduced `crushr-format` and `crushr-core` crate skeletons.
+
+## 2026-02-17 — Phase 0, Step 0.3 (TUI live/snapshot contract skeleton)
+
+- Documented the TUI dual-mode data pipeline (live + snapshot) and merge rules in `docs/ARCHITECTURE.md`.
+- Added normative snapshot contract: `docs/SNAPSHOT_FORMAT.md`.
+- Added snapshot schema placeholders under `schemas/`.
+- Added workspace skeleton crates: `crushr-cli-common` and `crushr-tui`.
+- Added `crushr-core::snapshot` envelope types (v1 skeleton).
+
+## 2026-02-17 — Phase 0, Step 0.4 (Ledger framing + snapshot fingerprint)
+
+- Implemented `LDG1` ledger framing in `crushr-format` with canonical JSON serialization and BLAKE3 verification.
+- Added unit tests for canonicalization and LDG1 round-trip.
+- Introduced typed `ArchiveFingerprint` and deterministic derivation helper in `crushr-core::snapshot`.
+- Added snapshot serialization tests.
+
+## 2026-02-17 — Phase 0, Step 0.5 (BLK3 primitives)
+
+- Added `crushr-format::blk3` defining BLK3 header layout, strict v1 validation, and read/write helpers.
+- Enforced v1 rules: unknown flags rejected; dict flag/id consistency; reserved bytes must be zero.
+- Added unit tests covering round-trips and invalid encodings.
+- Updated `.ai/PHASE_PLAN.md` and `.ai/BACKLOG.md` with the near-future step plan and decision gates.
+
+## 2026-02-17 — Phase 0, Step 0.6 (DCT1 primitives)
+
+- Added `crushr-format::dct1` defining the DCT1 dictionary table layout.
+- Implemented strict read/write with corruption guards (max count/size) and mandatory BLAKE3 dict hash verification.
+- Added unit tests for multi-dict round-trips, duplicate dict_id rejection, and hash mismatch detection.
+
+## 2026-02-17 — Phase 0, Step 0.7 (FTR4 primitives)
+
+- Added `crushr-format::ftr4` defining the FTR4 footer layout.
+- Implemented strict read/write with presence rules for optional sections (DCT/LEDGER), reserved-zero enforcement, overflow guards, and footer hash verification.
+- Added unit tests for round-trip encoding/decoding, reserved-byte corruption, footer hash mismatch, and ledger presence invariants.
+
+- p0s0.8f0: added contracts package, gated roadmap, and project-definition docs
+
+- p0s0.9f0: added failure-domain validation phase and corruption harness skeleton
+
+- p0s0.10f0: added formal failure-domain docs, impact schema, and decompression-free impact enumeration model
+
+- p0s0.10f1: added Codex control-layer docs and first task packet

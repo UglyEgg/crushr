@@ -1,0 +1,38 @@
+.TH CRUSHR-FORMAT 5 "February 2026" "crushr 0.1.0" "File Formats"
+.SH NAME
+crushr-format \- on-disk .crs archive format
+.SH OVERVIEW
+A .crs file is a sequence of compressed data blocks followed by an index and a footer.
+Blocks are zstd frames; the index describes files and maps file extents to blocks.
+The footer contains offsets/lengths and cryptographic hashes for verification.
+.SH LAYOUT
+.nf
+[block 0][block 1]...[block N][index][footer]
+.fi
+.PP
+Readers locate the footer at end-of-file, verify the index hash, then can
+random-access file extents by seeking into the referenced blocks.
+.SH BLOCKS
+Each block has a small header and a zstd frame payload. Blocks are independent:
+a reader can seek to a block boundary and decompress only that block.
+.SH INDEX
+The index is a zstd-compressed blob containing:
+.IP \(bu 2
+a file table (path, mode, mtime, uid/gid, size, xattr references)
+.IP \(bu
+an extent table mapping file ranges to (block_id, offsets, lengths)
+.IP \(bu
+optional dictionary metadata
+.PP
+The index is hashed with BLAKE3 and recorded in the footer.
+.SH FOOTER
+The footer records:
+.IP \(bu 2
+offset/length of the index
+.IP \(bu
+end offset of the last block
+.IP \(bu
+BLAKE3 hash of the index (and other sections as the format evolves)
+.SH VERSIONING
+crushr is expected to add new footer and block header versions while preserving
+read compatibility with older archives where practical.

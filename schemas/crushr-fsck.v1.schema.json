@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "crushr-fsck snapshot v1",
+  "type": "object",
+  "required": ["schema_version", "tool", "tool_version", "generated_at_utc", "archive_fingerprint", "payload"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "tool": {"type": "string", "const": "crushr-fsck"},
+    "tool_version": {"type": "string"},
+    "generated_at_utc": {"type": "string"},
+    "archive_fingerprint": {"type": "string"},
+    "payload": {"type": "object"}
+  },
+  "additionalProperties": true
+}

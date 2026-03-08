@@ -1,0 +1,23 @@
+[project]
+name = "crushr"
+crate_dir = "."
+binary = "crushr"
+
+[output]
+dist_dir = "dist"
+docs = ["README.md", "SPEC.md", "LICENSE"]
+
+[container.musl]
+image_tag = "crushr-build:musl"
+containerfile = "dev/Containerfile.build"
+target = "x86_64-unknown-linux-musl"
+
+[container.glibc]
+image_tag = "crushr-build:glibc"
+containerfile = "dev/Containerfile.build.debian"
+target = "x86_64-unknown-linux-gnu"
+
+[build]
+profile = "release" # "dev" or "release"
+strip = true
+rpath = false

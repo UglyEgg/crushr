@@ -1,0 +1,14 @@
+[package]
+name = "crushr-tui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+description = "Interactive inspector for crushr archives (live + snapshot modes)."
+
+[dependencies]
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+crushr-core = { path = "../crushr-core" }
+crushr = { path = "../crushr" }
