@@ -9,6 +9,9 @@ Start with:
 6. `SPEC.md` and `docs/CONTRACTS/*`
 
 Current shape:
+- `crushr-fsck` binary now exists at `crates/crushr/src/bin/crushr-fsck.rs` and emits real JSON snapshots from parsed archive metadata.
+- `crushr-core::snapshot` now provides typed fsck snapshot mapping helpers and clean-impact emission through `ImpactReportV1`.
+- `crushr-core` snapshot tests now include real `crushr-fsck --json` success/failure binary-path coverage over synthetic valid/corrupt archives.
 - `OpenArchiveV1`/`InfoSummaryV1` now carry explicit footer metadata so info snapshots include footer offset/length/presence directly.
 - `crushr-core` now has a real binary-path test that feeds synthetic v1 bytes to `crushr-info --json` via temp file + `cargo run`.
 - `crushr-core` snapshot tests now validate parsed JSON field values (not just string contains), keeping envelope/payload assertions strict and deterministic.

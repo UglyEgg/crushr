@@ -18,7 +18,7 @@
 - [x] Step 0.9: `crushr-core` open path (read-only): locate last valid tail frame
 - [x] Step 0.10: Minimal `crushr-info` snapshot emission (read-only)
 - [ ] Step 0.11: Minimal pack path with BLK3 (no dicts yet)
-- [ ] Step 0.12: `crushr-fsck` verify (detect+isolate baseline)
+- [x] Step 0.12: `crushr-fsck` verify (detect+isolate baseline)
 - [ ] Step 0.13: Blast-zone dump implementation
 
 ## Phase F — Failure-Domain Validation

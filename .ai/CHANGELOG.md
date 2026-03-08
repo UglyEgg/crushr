@@ -102,3 +102,9 @@
 - Added explicit footer metadata to the open/snapshot mapping path (`footer_offset`, `footer_len`, `has_footer`) so `InfoSnapshotV1` emits footer presence/details from parsed archive state.
 - Added `crushr-core` test coverage for the real `crushr-info --json` binary path using synthetic valid archive bytes written to a temp file.
 - Re-ran `cargo fmt --all`, `cargo test -p crushr-core`, and `cargo test -p crushr --no-run`.
+
+## 2026-03-08 — Phase 0, Step 0.12 (real fsck JSON metadata path)
+
+- Added `crushr-fsck` binary with real `--json` output over opened archives and deterministic nonzero exit on structural parse/validation failure.
+- Extended `crushr-core::snapshot` with typed fsck payload mapping and clean `ImpactReportV1` emission for currently supported metadata validation scope.
+- Added synthetic-archive tests covering fsck valid success JSON, deterministic JSON, corrupted-footer failure, and corrupted-IDX3-hash failure.

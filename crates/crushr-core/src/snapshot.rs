@@ -2,6 +2,7 @@
 //!
 //! The normative JSON contract is documented in `docs/SNAPSHOT_FORMAT.md`.
 
+use crate::impact::{enumerate_impact_v1, ImpactReportV1};
 use crate::open::OpenArchiveV1;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -167,15 +168,69 @@ pub fn serialize_snapshot_json<T: Serialize>(value: &T) -> serde_json::Result<St
     serde_json::to_string_pretty(value)
 }
 
-/// Minimal fsck snapshot payload (v1 skeleton).
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FsckVerifyV1 {
+    pub status: String,
+    pub has_footer: bool,
+    pub has_tail_frame: bool,
+    pub has_valid_idx3_hash: bool,
+    pub has_valid_ldg1_hash: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FsckBlastRadiusV1 {
+    pub structural_components_untrusted: Vec<String>,
+    pub impact: ImpactReportV1,
+}
+
+/// Minimal fsck snapshot payload (v1, read-only metadata validation path).
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FsckSnapshotV1 {
-    pub verify: serde_json::Value,
-    pub blast_radius: serde_json::Value,
+    pub verify: FsckVerifyV1,
+    pub blast_radius: FsckBlastRadiusV1,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub salvage_plan: Option<serde_json::Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dump_paths: Option<serde_json::Value>,
+}
+
+pub fn fsck_clean_report() -> ImpactReportV1 {
+    enumerate_impact_v1(&Default::default(), &[])
+}
+
+pub fn fsck_snapshot_from_open_archive(open: &OpenArchiveV1) -> FsckSnapshotV1 {
+    FsckSnapshotV1 {
+        verify: FsckVerifyV1 {
+            status: "ok".to_string(),
+            has_footer: open.footer_len > 0,
+            has_tail_frame: open.tail_frame_len > 0,
+            has_valid_idx3_hash: true,
+            has_valid_ldg1_hash: true,
+        },
+        blast_radius: FsckBlastRadiusV1 {
+            structural_components_untrusted: Vec::new(),
+            impact: fsck_clean_report(),
+        },
+        salvage_plan: None,
+        dump_paths: None,
+    }
+}
+
+pub fn fsck_envelope_from_open_archive(
+    open: &OpenArchiveV1,
+    tool_version: &str,
+    generated_at_utc: &str,
+) -> SnapshotEnvelope<FsckSnapshotV1> {
+    SnapshotEnvelope::new(
+        "crushr-fsck",
+        tool_version,
+        generated_at_utc,
+        ArchiveFingerprint::from_tail_hashes(
+            open.tail.footer.index_hash,
+            open.tail.footer.footer_hash,
+        ),
+        fsck_snapshot_from_open_archive(open),
+    )
 }
 
 #[cfg(test)]
@@ -361,5 +416,151 @@ mod tests {
         assert_eq!(value["schema_version"], 1);
         assert_eq!(value["tool"], "crushr-info");
         assert_eq!(value["payload"]["summary"]["raw_idx3_len"], 6);
+    }
+
+    #[test]
+    fn crushr_fsck_binary_emits_clean_json_for_synthetic_archive() {
+        let bytes = build_archive(24, None, b"IDX3\x33\x44", None);
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("crushr-fsck-synth-valid-{unique}.crs"));
+        fs::write(&path, &bytes).unwrap();
+
+        let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(std::path::Path::parent)
+            .unwrap();
+
+        let output = Command::new("cargo")
+            .current_dir(workspace_root)
+            .args([
+                "run",
+                "-q",
+                "-p",
+                "crushr",
+                "--bin",
+                "crushr-fsck",
+                "--",
+                path.to_str().unwrap(),
+                "--json",
+            ])
+            .output()
+            .unwrap();
+
+        let _ = fs::remove_file(&path);
+
+        assert!(
+            output.status.success(),
+            "stdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(value["schema_version"], 1);
+        assert_eq!(value["tool"], "crushr-fsck");
+        assert_eq!(value["payload"]["verify"]["status"], "ok");
+        assert_eq!(
+            value["payload"]["blast_radius"]["impact"]["corrupted_blocks"]
+                .as_array()
+                .unwrap()
+                .len(),
+            0
+        );
+    }
+
+    #[test]
+    fn crushr_fsck_binary_fails_cleanly_for_corrupt_footer() {
+        let mut bytes = build_archive(24, None, b"IDX3\x33\x44", None);
+        let last = bytes.len() - 1;
+        bytes[last] ^= 0x01;
+
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("crushr-fsck-synth-ftr-{unique}.crs"));
+        fs::write(&path, &bytes).unwrap();
+
+        let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(std::path::Path::parent)
+            .unwrap();
+
+        let output = Command::new("cargo")
+            .current_dir(workspace_root)
+            .args([
+                "run",
+                "-q",
+                "-p",
+                "crushr",
+                "--bin",
+                "crushr-fsck",
+                "--",
+                path.to_str().unwrap(),
+                "--json",
+            ])
+            .output()
+            .unwrap();
+
+        let _ = fs::remove_file(&path);
+
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+    }
+
+    #[test]
+    fn crushr_fsck_binary_fails_cleanly_for_corrupt_idx3_hash() {
+        let mut bytes = build_archive(24, None, b"IDX3\x10\x20\x30", None);
+        bytes[25] ^= 0x01;
+
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("crushr-fsck-synth-idx-{unique}.crs"));
+        fs::write(&path, &bytes).unwrap();
+
+        let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(std::path::Path::parent)
+            .unwrap();
+
+        let output = Command::new("cargo")
+            .current_dir(workspace_root)
+            .args([
+                "run",
+                "-q",
+                "-p",
+                "crushr",
+                "--bin",
+                "crushr-fsck",
+                "--",
+                path.to_str().unwrap(),
+                "--json",
+            ])
+            .output()
+            .unwrap();
+
+        let _ = fs::remove_file(&path);
+
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+    }
+
+    #[test]
+    fn fsck_serialization_is_deterministic_for_identical_archive_bytes() {
+        let bytes = build_archive(24, None, b"IDX3\x90\x91", None);
+        let open_a = open_from_bytes(bytes.clone());
+        let open_b = open_from_bytes(bytes);
+
+        let env_a = fsck_envelope_from_open_archive(&open_a, "0.2.2", "1970-01-01T00:00:00Z");
+        let env_b = fsck_envelope_from_open_archive(&open_b, "0.2.2", "1970-01-01T00:00:00Z");
+
+        let json_a = serialize_snapshot_json(&env_a).unwrap();
+        let json_b = serialize_snapshot_json(&env_b).unwrap();
+        assert_eq!(json_a, json_b);
     }
 }

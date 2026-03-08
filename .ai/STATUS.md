@@ -5,36 +5,28 @@
 ## Current Phase / Step
 
 - Phase: 0
-- Step: 0.10
-- Fix iteration: 2
+- Step: 0.12
+- Fix iteration: 0
 
 ## Current Objective
 
-Implement the first real read-only archive open + `crushr-info --json` snapshot emission path via `crushr-core`.
+Implement the first real read-only `crushr-fsck --json` impact-reporting path via the existing open parser + impact model.
 
 ## What Changed (since last Step)
 
-- Added `crushr-core::open::open_archive_v1` over `ReadAt + Len`, using the real `crushr-format` FTR4/tail-frame parser path.
-- Replaced `InfoSnapshotV1` skeleton `serde_json::Value` placeholders with typed snapshot metadata structures and added `info_snapshot_from_open_archive`/envelope serialization helpers.
-- Added a minimal `crushr-info` binary (`crates/crushr/src/bin/crushr-info.rs`) supporting `crushr-info <archive> --json` and emitting a populated info snapshot envelope.
-- Added `crushr-core` unit tests for:
-  1. minimal archive snapshot emission,
-  2. DCT1+LDG1 presence reporting,
-  3. deterministic JSON serialization,
-  4. clean invalid-archive failure.
-- Hardened `crushr-core` info snapshot test coverage to assert parsed JSON envelope/payload fields (`schema_version`, `tool_version`, fingerprint presence, summary/tail offsets) instead of substring checks.
-- Confirmed current `crushr` pack path still emits legacy archives, so a `crushr-info` CLI end-to-end JSON test remains deferred until pack is wired to the v1 tail-frame format.
-
-- Extended `OpenArchiveV1` + `InfoSummaryV1` with explicit footer metadata (`footer_offset`, `footer_len`, `has_footer`) and mapped those fields into real `InfoSnapshotV1` emission.
-- Added a `crushr-core` test that writes synthetic valid v1 archive bytes to a temp file and exercises the real `crushr-info --json` binary path via `cargo run -p crushr --bin crushr-info -- <file> --json`.
+- Added a real `crushr-fsck` binary (`crates/crushr/src/bin/crushr-fsck.rs`) supporting `crushr-fsck <archive> --json`, reusing `open_archive_v1` and returning deterministic exit codes (`1` usage/flags, `2` structural corruption/open failures).
+- Extended `crushr-core::snapshot` with typed fsck report mapping (`FsckVerifyV1`, `FsckBlastRadiusV1`, `FsckSnapshotV1`) and helpers (`fsck_clean_report`, `fsck_snapshot_from_open_archive`, `fsck_envelope_from_open_archive`).
+- Wired fsck clean success output through `ImpactReportV1` (`schema_version=1`, empty corrupted blocks/affected files when metadata path validates).
+- Added fsck tests covering valid JSON emission, deterministic fsck JSON for identical bytes, corrupted footer failure, and corrupted IDX3 hash failure using synthetic archives + temp files.
 
 ## What Remains (next actions)
 
 1. Extend open path to locate the last valid tail frame when trailing/corrupt tails exist (recovery scanning behavior).
-2. Wire real `crushr-fsck --json` verify/impact snapshot emission from parsed archives.
+2. Expand fsck verification beyond metadata/tail structure into block-level integrity once scope authorizes it.
 3. Run and record the first end-to-end corruption experiment.
 
 ## How to Build / Test (best known)
 
+- `cargo fmt --all`
 - `cargo test -p crushr-core`
 - `cargo test -p crushr --no-run`
