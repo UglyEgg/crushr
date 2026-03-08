@@ -114,3 +114,10 @@
 - Added `crushr-pack` binary implementing the first bounded v1 writer path using `crushr-format` BLK3 and tailframe helpers.
 - New pack path writes BLK3 blocks (one per file), IDX3 payload bytes, and a valid `FTR4` tail frame (without DCT1/LDG1 for now).
 - Added integration tests covering single-file and tiny-directory pack flows with successful `open_archive_v1`, `crushr-info --json`, and `crushr-fsck --json` reads, plus deterministic output checks.
+
+## 2026-03-08 — Phase F, Step F.3 (first real e2e corruption experiment path)
+
+- Extended `crushr-lab corrupt` with deterministic corruption controls (`--model`, `--seed`, optional `--offset`) and richer corruption metadata (`input_len` + touched offsets).
+- Added integration test `crates/crushr-core/tests/first_corruption_experiment.rs` covering real single-file pack/corrupt/info/fsck loop and determinism checks.
+- Recorded first true experiment artifacts at `docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip/`.
+- Updated `docs/RESEARCH/RESULTS.md` with the initial recorded result and explicit limitation language.

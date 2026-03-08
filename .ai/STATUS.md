@@ -1,38 +1,42 @@
-# .ai/STATUS.md
-
 **This is the single source of truth for current state.**
 
 ## Current Phase / Step
 
-- Phase: 0
-- Step: 0.11
+- Phase: F
+- Step: F.3
 - Fix iteration: 0
 
 ## Current Objective
 
-Implement the first minimal v1 `crushr-pack` output path that writes BLK3 blocks plus a valid tail frame/FTR4 readable by `open_archive_v1`, `crushr-info --json`, and `crushr-fsck --json`.
+Implement the first real end-to-end corruption experiment loop over a produced v1 archive (pack -> deterministic corrupt -> fsck/info) and record an initial empirical result artifact.
 
 ## What Changed (since last Step)
 
-- Added a new `crushr-pack` binary (`crates/crushr/src/bin/crushr-pack.rs`) implementing a bounded minimal v1 pack path:
-  - accepts one or more file/dir inputs and `-o/--output`
-  - writes one BLK3 block per file using zstd payloads and BLAKE3 payload/raw hashes
-  - writes IDX3 bytes via existing `crushr::index_codec::encode_index`
-  - assembles/writes tail frame with `crushr_format::tailframe::assemble_tail_frame` (no DCT1/LDG1 yet)
-- Added `crushr-format` dependency to `crates/crushr/Cargo.toml` so `crushr-pack` reuses canonical BLK3/tailframe helpers instead of duplicating format logic.
-- Added integration tests (`crates/crushr-core/tests/minimal_pack_v1.rs`) that validate:
-  - single-file pack -> `open_archive_v1` + `crushr-info --json` + `crushr-fsck --json` success
-  - tiny-directory pack -> deterministic archive bytes for identical inputs
-  - produced archive footer region contains `FTR4` and parsed IDX3/tail metadata is valid
+- Extended `crushr-lab corrupt` argument handling to support deterministic corruption metadata capture with explicit `--model`, `--seed`, and optional `--offset`, while preserving the bounded byteflip-only model for now.
+- Added integration coverage in `crates/crushr-core/tests/first_corruption_experiment.rs` for:
+  - full single-file loop (`crushr-pack` -> `crushr-lab` -> `crushr-info`/`crushr-fsck`)
+  - clean archive success expectations
+  - corrupted archive failure expectations
+  - corruption determinism (same seed/model/offset yields identical output + log)
+  - doc/artifact linkage assertion for the recorded experiment id.
+- Recorded the first real experiment artifacts at:
+  - `docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip/`
+  - includes `clean.info.json`, `clean.fsck.json`, `corrupt.corrupt.json`, stderr/exit-code captures, and `experiment_manifest.json`.
+- Updated `docs/RESEARCH/RESULTS.md` with experiment identifier, fixture, corruption model, reproducibility details (seed/offset), observed clean/corrupt behavior, and explicit scope limitation.
 
 ## What Remains (next actions)
 
-1. Advance to Step 0.13 blast-zone dump implementation (detect+isolate path expansion).
-2. Extend open path recovery behavior to locate the last valid tail frame when trailing/corrupt tails exist.
-3. Expand fsck verification from metadata path into block-level integrity checks when authorized.
+1. Add additional controlled fixture classes for Phase F.3 (many-small and mixed datasets) while keeping deterministic corruption metadata.
+2. Extend corruption model coverage incrementally (truncate/tail overwrite) without changing format or product contracts.
+3. Prepare bounded Phase F.4 baseline-comparison packet once explicit approval is provided.
 
 ## How to Build / Test (best known)
 
 - `cargo fmt --all`
-- `cargo test -p crushr-core`
-- `cargo test -p crushr --no-run`
+- `cargo test -p crushr-core --test first_corruption_experiment`
+- `cargo test -p crushr-core --test minimal_pack_v1`
+
+## Active constraints / gotchas
+
+- `crushr-info` currently returns exit code `1` on parse failures while `crushr-fsck` maps structural corruption to exit code `2`; this inconsistency is pre-existing and not changed in this Step.
+- Current experiment is intentionally single-path and structural only (no decompression/salvage/repair claims).

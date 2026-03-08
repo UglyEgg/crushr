@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "tool": "crushr-fsck",
+  "tool_version": "0.2.2",
+  "generated_at_utc": "1970-01-01T00:00:00Z",
+  "archive_fingerprint": "686437be2c6485274266e7ef3b5c47da85b3ea52d5650edb95aba5acc672d099",
+  "payload": {
+    "verify": {
+      "status": "ok",
+      "has_footer": true,
+      "has_tail_frame": true,
+      "has_valid_idx3_hash": true,
+      "has_valid_ldg1_hash": true
+    },
+    "blast_radius": {
+      "structural_components_untrusted": [],
+      "impact": {
+        "schema_version": 1,
+        "corrupted_blocks": [],
+        "affected_files": [],
+        "unaffected_files": []
+      }
+    }
+  }
+}

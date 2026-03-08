@@ -1,0 +1,19 @@
+{
+  "experiment_id": "crushr_p0s12f0_first_e2e_byteflip",
+  "fixture": "single file fixture.txt with 3 short lines",
+  "commands": {
+    "pack": "crushr-pack fixture.txt -o clean.crs --level 3",
+    "corrupt": "crushr-lab corrupt clean.crs corrupt.crs --model byteflip --seed 1337 --offset <len-1>",
+    "clean_info": "crushr-info clean.crs --json",
+    "clean_fsck": "crushr-fsck clean.crs --json",
+    "corrupt_fsck": "crushr-fsck corrupt.crs --json",
+    "corrupt_info": "crushr-info corrupt.crs --json"
+  },
+  "seed": 1337,
+  "model": "byteflip",
+  "touched_offsets": [
+    416
+  ],
+  "input_blake3": "399c3ddffc730007c8dae0df16b7c97e6431b1fa35871c6de4434bb42d54e05a",
+  "output_blake3": "d4ad0983bb531b12813de195649988706a17c4245c66c470c174042d73cd907b"
+}

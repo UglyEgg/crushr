@@ -9,6 +9,7 @@ Start with:
 6. `SPEC.md` and `docs/CONTRACTS/*`
 
 Current shape:
+- First real e2e corruption experiment is now recorded at `docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip/` and summarized in `docs/RESEARCH/RESULTS.md` (seeded byteflip, clean pass, corrupt parse failure).
 - `crushr-pack` binary now exists at `crates/crushr/src/bin/crushr-pack.rs` and writes minimal self-hosting v1 archives (BLK3 + IDX3 + FTR4 tail frame, no DCT1/LDG1 yet).
 - `crushr-core/tests/minimal_pack_v1.rs` now validates real pack->open/info/fsck interoperability plus deterministic tiny-directory output.
 - `crushr-fsck` binary now exists at `crates/crushr/src/bin/crushr-fsck.rs` and emits real JSON snapshots from parsed archive metadata.
