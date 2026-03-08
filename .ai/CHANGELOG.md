@@ -83,3 +83,10 @@
 - Cleaned `crushr-format` tail frame parsing internals to remove unchecked narrowing casts and keep deterministic bounds checks for component slices.
 - Removed duplicate LDG1 parsing pass in trailing-byte detection by validating exact reader consumption directly.
 - Re-ran and passed `cargo test -p crushr-format` and `cargo clippy -p crushr-format --all-targets -- -D warnings`.
+
+## 2026-03-08 — Phase 0, Step 0.10 (real info snapshot emission)
+
+- Added `crushr-core::open::open_archive_v1` and real tail-frame archive parsing over `ReadAt + Len`.
+- Replaced `InfoSnapshotV1` skeleton fields with typed summary/tail/dict metadata and added mapping from `OpenArchiveV1`.
+- Added deterministic snapshot JSON serialization helper + tests for minimal archives, DCT1/LDG1 presence, deterministic serialization, and clean invalid-input failure.
+- Added minimal `crushr-info` binary path supporting `crushr-info <archive> --json`.

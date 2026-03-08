@@ -7,6 +7,7 @@
 //! `crushr` crate.
 
 pub mod io;
+pub mod open;
 pub mod snapshot;
 
 pub mod impact;
