@@ -54,3 +54,25 @@
 - p0s0.10f0: added formal failure-domain docs, impact schema, and decompression-free impact enumeration model
 
 - p0s0.10f1: added Codex control-layer docs and first task packet
+
+
+## 2026-03-08 — Phase 0, Step 0.8 (tail frame helpers)
+
+- Added `crushr-format::tailframe` assembly helpers for deterministic `DCT1? + IDX3 + LDG1? + FTR4` layout.
+- Added strict parsing helpers that validate footer/component boundaries and BLAKE3 integrity fields.
+- Added round-trip tests (full + minimal) and malformed rejection tests (footer corruption and ledger corruption).
+- Fixed a pre-existing syntax defect in `ftr4` tests to restore successful test/clippy runs for `crushr-format`.
+
+
+## 2026-03-08 — Phase 0, Step 0.9 (fix iteration 1)
+
+- Repaired CLI source parse errors that prevented `cargo fmt --all` from running.
+- Restored `Cmd::Info` to the command `match` in `main.rs`.
+- Fixed `cli_ui` tier-2 sink wiring/type usage and corrected a path separator literal in `pack.rs`.
+
+
+## 2026-03-08 — Phase 0, Step 0.9 (fix iteration 2)
+
+- Fixed `crushr/src/dict.rs` regressions that blocked `cargo check -p crushr`.
+- Imported `walkdir::WalkDir`, restored valid function separation, and updated `zstd::dict::from_continuous` to pass sample sizes.
+- Added explicit empty-sample guard for progress-based dictionary training.

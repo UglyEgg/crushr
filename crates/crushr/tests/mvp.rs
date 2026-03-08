@@ -7,7 +7,9 @@ fn run(cmd: &mut std::process::Command) {
     if !out.status.success() {
         panic!(
             "command failed: {:?}\nstdout:\n{}\nstderr:\n{}",
-            cmd, String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr)
+            cmd,
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
         );
     }
 }
@@ -25,25 +27,37 @@ fn pack_list_extract_roundtrip() {
 
     let archive = td.path().join("test.crs");
 
-    run(std::process::Command::new("cargo").args(["build"]).current_dir(env!("CARGO_MANIFEST_DIR")));
+    run(std::process::Command::new("cargo")
+        .args(["build"])
+        .current_dir(env!("CARGO_MANIFEST_DIR")));
 
     let bin = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/debug/crushr");
 
     run(std::process::Command::new(&bin).args([
-        "pack", in_dir.to_str().unwrap(), "-o", archive.to_str().unwrap(),
-        "--block-mib", "1",
-        "--level", "3",
+        "pack",
+        in_dir.to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+        "--block-mib",
+        "1",
+        "--level",
+        "3",
     ]));
 
-    run(std::process::Command::new(&bin).args([
-        "list", archive.to_str().unwrap()
-    ]));
+    run(std::process::Command::new(&bin).args(["list", archive.to_str().unwrap()]));
 
     fs::create_dir_all(&out_dir).unwrap();
     run(std::process::Command::new(&bin).args([
-        "extract", archive.to_str().unwrap(), "--all", "-o", out_dir.to_str().unwrap()
+        "extract",
+        archive.to_str().unwrap(),
+        "--all",
+        "-o",
+        out_dir.to_str().unwrap(),
     ]));
 
     assert_eq!(fs::read(out_dir.join("a.txt")).unwrap(), b"hello\n");
-    assert_eq!(fs::read(out_dir.join("sub/b.json")).unwrap(), br#"{"k":"v","n":1}"#);
+    assert_eq!(
+        fs::read(out_dir.join("sub/b.json")).unwrap(),
+        br#"{"k":"v","n":1}"#
+    );
 }

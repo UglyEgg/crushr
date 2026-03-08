@@ -61,7 +61,9 @@ fn main() -> Result<()> {
         (None, None, Some(archive_path)) => {
             eprintln!("crushr-tui: live mode requested");
             eprintln!("  archive: {archive_path}");
-            eprintln!("  (UI not implemented yet; planned views are documented in docs/ARCHITECTURE.md)");
+            eprintln!(
+                "  (UI not implemented yet; planned views are documented in docs/ARCHITECTURE.md)"
+            );
             Ok(())
         }
         _ => bail!("invalid arguments\n\n{}", usage()),

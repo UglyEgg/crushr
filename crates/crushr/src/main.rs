@@ -1,12 +1,16 @@
 use anyhow::{bail, Context, Result};
-use std::path::{Path, PathBuf};
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::{generate, shells};
+use std::path::{Path, PathBuf};
 
 fn normalize_abs(p: &std::path::Path) -> anyhow::Result<std::path::PathBuf> {
     // Absolute, lexically-normalized path (no filesystem access, does not resolve symlinks).
     let cwd = std::env::current_dir()?;
-    let joined = if p.is_absolute() { p.to_path_buf() } else { cwd.join(p) };
+    let joined = if p.is_absolute() {
+        p.to_path_buf()
+    } else {
+        cwd.join(p)
+    };
 
     let mut out = std::path::PathBuf::new();
     for c in joined.components() {
@@ -15,7 +19,9 @@ fn normalize_abs(p: &std::path::Path) -> anyhow::Result<std::path::PathBuf> {
             Component::Prefix(px) => out.push(px.as_os_str()),
             Component::RootDir => out.push(std::path::MAIN_SEPARATOR.to_string()),
             Component::CurDir => {}
-            Component::ParentDir => { out.pop(); }
+            Component::ParentDir => {
+                out.pop();
+            }
             Component::Normal(s) => out.push(s),
         }
     }
@@ -40,23 +46,27 @@ mod tune;
 fn read_paths_from(spec: &Option<String>) -> anyhow::Result<Vec<PathBuf>> {
     use anyhow::Context;
     use std::io::Read as _;
-    let Some(s) = spec else { return Ok(Vec::new()); };
+    let Some(s) = spec else {
+        return Ok(Vec::new());
+    };
     let mut buf = String::new();
     if s == "-" {
-        std::io::stdin().read_to_string(&mut buf).context("read stdin")?;
+        std::io::stdin()
+            .read_to_string(&mut buf)
+            .context("read stdin")?;
     } else {
         buf = std::fs::read_to_string(s).with_context(|| format!("read {}", s))?;
     }
     let mut out = Vec::new();
     for line in buf.lines() {
         let t = line.trim();
-        if t.is_empty() { continue; }
+        if t.is_empty() {
+            continue;
+        }
         out.push(PathBuf::from(t));
     }
     Ok(out)
 }
-
-
 
 fn resolve_base_for_inputs(base: &Option<PathBuf>, inputs: &[PathBuf]) -> Result<PathBuf> {
     if let Some(b) = base.as_ref() {
@@ -72,7 +82,9 @@ fn resolve_base_for_inputs(base: &Option<PathBuf>, inputs: &[PathBuf]) -> Result
         let cand = if md.is_dir() {
             p.clone()
         } else {
-            p.parent().unwrap_or_else(|| std::path::Path::new(".")).to_path_buf()
+            p.parent()
+                .unwrap_or_else(|| std::path::Path::new("."))
+                .to_path_buf()
         };
         inferred = match inferred.take() {
             None => Some(cand),
@@ -94,7 +106,11 @@ fn common_prefix(a: &Path, b: &Path) -> PathBuf {
             _ => break,
         }
     }
-    if out.as_os_str().is_empty() { PathBuf::from(std::path::MAIN_SEPARATOR.to_string()) } else { out }
+    if out.as_os_str().is_empty() {
+        PathBuf::from(std::path::MAIN_SEPARATOR.to_string())
+    } else {
+        out
+    }
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
@@ -117,7 +133,7 @@ enum Shell {
   # List-only input (one path per line):
   #   find . -type f | crushr pack -o out.crs --files-from -
 
-"#,
+"#
 )]
 struct Cli {
     #[command(subcommand)]
@@ -250,24 +266,17 @@ enum Cmd {
         paths: Vec<PathBuf>,
     },
 
-
     /// List paths contained in an archive
-    List {
+    List { archive: PathBuf },
+
+    /// Show basic information and size savings for an archive.
+    Info {
+        /// Archive to inspect.
         archive: PathBuf,
     },
-
-/// Show basic information and size savings for an archive.
-Info {
-    /// Archive to inspect.
-    archive: PathBuf,
-},
-
 
     /// Print a single file to stdout
-    Cat {
-        archive: PathBuf,
-        path: PathBuf,
-    },
+    Cat { archive: PathBuf, path: PathBuf },
 
     /// Verify archive integrity (index and optional deep block scan)
     Verify {
@@ -285,10 +294,7 @@ Info {
     },
 
     /// Salvage rebuild: scan embedded EVT frames and rebuild an index even if the tail is unrecoverable
-    Salvage {
-        input: PathBuf,
-        output: PathBuf,
-    },
+    Salvage { input: PathBuf, output: PathBuf },
 
     /// Train a zstd dictionary from the input corpus
     DictTrain {
@@ -333,9 +339,25 @@ fn main() -> Result<()> {
             }
             return Ok(());
         }
-        Cmd::Pack { mut inputs, base, files_from, output, dict, auto, auto_time_ms, auto_dict, auto_dict_kib, auto_dict_max_samples, auto_dict_sample_kib, block_mib, level } => {
+        Cmd::Pack {
+            mut inputs,
+            base,
+            files_from,
+            output,
+            dict,
+            auto,
+            auto_time_ms,
+            auto_dict,
+            auto_dict_kib,
+            auto_dict_max_samples,
+            auto_dict_sample_kib,
+            block_mib,
+            level,
+        } => {
             inputs.extend(read_paths_from(&files_from)?);
-            if inputs.is_empty() { bail!("no input paths provided"); }
+            if inputs.is_empty() {
+                bail!("no input paths provided");
+            }
             let inputs = resolve_inputs_abs(&inputs)?;
             let base = resolve_base_for_inputs(&base, &inputs)?;
             let block_size = block_mib * 1024 * 1024;
@@ -346,42 +368,105 @@ fn main() -> Result<()> {
                 let lvl = tuned.chosen.level;
                 if auto_dict {
                     return pack::pack_paths_with_auto_dicts_with_xattrs_progress(
-                        &inputs, &base, &output, bs, lvl, sink.clone(),
-                        auto_dict_kib, auto_dict_max_samples as usize, (auto_dict_sample_kib as usize) * 1024,
+                        &inputs,
+                        &base,
+                        &output,
+                        bs,
+                        lvl,
+                        sink.clone(),
+                        auto_dict_kib,
+                        auto_dict_max_samples as usize,
+                        (auto_dict_sample_kib as usize) * 1024,
                         &cli.xattr_policy,
                     );
                 }
-                let dict_bytes = if let Some(p) = dict.as_ref() { Some(crate::dict::read_dict(p)?.dict_bytes) } else { None };
+                let dict_bytes = if let Some(p) = dict.as_ref() {
+                    Some(crate::dict::read_dict(p)?.dict_bytes)
+                } else {
+                    None
+                };
                 return pack::pack_paths_with_dict_with_xattrs_progress(
-                    &inputs, &base, &output, bs, lvl, sink.clone(), dict_bytes.as_deref(), &cli.xattr_policy
+                    &inputs,
+                    &base,
+                    &output,
+                    bs,
+                    lvl,
+                    sink.clone(),
+                    dict_bytes.as_deref(),
+                    &cli.xattr_policy,
                 );
             }
 
             if auto_dict {
                 return pack::pack_paths_with_auto_dicts_with_xattrs_progress(
-                    &inputs, &base, &output, block_size, level, sink.clone(),
-                    auto_dict_kib, auto_dict_max_samples as usize, (auto_dict_sample_kib as usize) * 1024,
+                    &inputs,
+                    &base,
+                    &output,
+                    block_size,
+                    level,
+                    sink.clone(),
+                    auto_dict_kib,
+                    auto_dict_max_samples as usize,
+                    (auto_dict_sample_kib as usize) * 1024,
                     &cli.xattr_policy,
                 );
             }
 
-            let dict_bytes = if let Some(p) = dict.as_ref() { Some(crate::dict::read_dict(p)?.dict_bytes) } else { None };
+            let dict_bytes = if let Some(p) = dict.as_ref() {
+                Some(crate::dict::read_dict(p)?.dict_bytes)
+            } else {
+                None
+            };
             pack::pack_paths_with_dict_with_xattrs_progress(
-                &inputs, &base, &output, block_size, level, sink.clone(), dict_bytes.as_deref(), &cli.xattr_policy
+                &inputs,
+                &base,
+                &output,
+                block_size,
+                level,
+                sink.clone(),
+                dict_bytes.as_deref(),
+                &cli.xattr_policy,
             )
         }
-        Cmd::Append { archive, mut inputs, base, files_from, dict, block_mib, level } => {
+        Cmd::Append {
+            archive,
+            mut inputs,
+            base,
+            files_from,
+            dict,
+            block_mib,
+            level,
+        } => {
             inputs.extend(read_paths_from(&files_from)?);
-            if inputs.is_empty() { bail!("no input paths provided"); }
+            if inputs.is_empty() {
+                bail!("no input paths provided");
+            }
             let inputs = resolve_inputs_abs(&inputs)?;
             let base = resolve_base_for_inputs(&base, &inputs)?;
             let block_size = block_mib * 1024 * 1024;
-            let dict_bytes = if let Some(p) = dict.as_ref() { Some(crate::dict::read_dict(p)?.dict_bytes) } else { None };
+            let dict_bytes = if let Some(p) = dict.as_ref() {
+                Some(crate::dict::read_dict(p)?.dict_bytes)
+            } else {
+                None
+            };
             pack::append_paths_with_dict_with_xattrs_progress(
-                &archive, &inputs, &base, block_size, level, sink.clone(), dict_bytes.as_deref(), &cli.xattr_policy
+                &archive,
+                &inputs,
+                &base,
+                block_size,
+                level,
+                sink.clone(),
+                dict_bytes.as_deref(),
+                &cli.xattr_policy,
             )
         }
-        Cmd::Extract { archive, output, all, overwrite, paths } => {
+        Cmd::Extract {
+            archive,
+            output,
+            all,
+            overwrite,
+            paths,
+        } => {
             if all || paths.is_empty() {
                 extract::extract_all_progress(&archive, &output, overwrite, sink.clone())
             } else {
@@ -389,15 +474,71 @@ fn main() -> Result<()> {
             }
         }
         Cmd::List { archive } => {
-            let ar = read::ArchiveReader::open_with_cache(&archive, cli.cache_blocks, cli.cache_mib as u64)?;
+            let ar = read::ArchiveReader::open_with_cache(
+                &archive,
+                cli.cache_blocks,
+                cli.cache_mib as u64,
+            )?;
             for e in ar.index().entries.iter() {
                 println!("{}", e.path);
             }
             return Ok(());
         }
 
+        Cmd::Info { archive } => {
+            let archive_size = std::fs::metadata(&archive)
+                .with_context(|| format!("stat {}", archive.display()))?
+                .len();
+
+            let ar = read::ArchiveReader::open_with_cache(
+                &archive,
+                cli.cache_blocks,
+                cli.cache_mib as u64,
+            )?;
+            let idx = ar.index();
+
+            let entries = idx.entries.len() as u64;
+            let files = idx
+                .entries
+                .iter()
+                .filter(|e| e.kind == crate::format::EntryKind::Regular)
+                .count() as u64;
+            let uncompressed: u64 = idx
+                .entries
+                .iter()
+                .filter(|e| e.kind == crate::format::EntryKind::Regular)
+                .map(|e| e.size)
+                .sum();
+
+            let block_count = ar.block_count() as u64;
+            let blocks_raw = ar.blocks_raw_bytes();
+            let blocks_frame = ar.blocks_frame_bytes();
+
+            let savings = if uncompressed > 0 {
+                1.0 - (archive_size as f64 / uncompressed as f64)
+            } else {
+                0.0
+            };
+
+            println!("Archive: {}", archive.display());
+            println!("Size: {} bytes", archive_size);
+            println!("Entries: {} (files: {})", entries, files);
+            println!("Uncompressed files total: {} bytes", uncompressed);
+            println!(
+                "Blocks: {}  (payload raw: {} bytes, payload+hdr: {} bytes)",
+                block_count, blocks_raw, blocks_frame
+            );
+            println!("Savings vs file bytes: {:.2}%", savings * 100.0);
+
+            return Ok(());
+        }
+
         Cmd::Cat { archive, path } => {
-            let mut ar = read::ArchiveReader::open_with_cache(&archive, cli.cache_blocks, cli.cache_mib as u64)?;
+            let mut ar = read::ArchiveReader::open_with_cache(
+                &archive,
+                cli.cache_blocks,
+                cli.cache_mib as u64,
+            )?;
             let p = path.to_string_lossy().to_string();
             let bytes = ar.read_file(&p)?;
             use std::io::Write;
@@ -405,28 +546,58 @@ fn main() -> Result<()> {
             Ok(())
         }
         Cmd::Verify { archive, deep } => {
-            let mut ar = read::ArchiveReader::open_with_cache(&archive, cli.cache_blocks, cli.cache_mib as u64)?;
+            let mut ar = read::ArchiveReader::open_with_cache(
+                &archive,
+                cli.cache_blocks,
+                cli.cache_mib as u64,
+            )?;
             ar.verify_index()?;
-            if deep { ar.verify_blocks_deep()?; }
+            if deep {
+                ar.verify_blocks_deep()?;
+            }
             println!("OK");
             Ok(())
         }
-        Cmd::Recover { input, output, tail_scan_bytes } => {
-            sink.on_event(progress::ProgressEvent::Start { op: progress::ProgressOp::Recover, phase: progress::ProgressPhase::Other, total_bytes: 0 });
+        Cmd::Recover {
+            input,
+            output,
+            tail_scan_bytes,
+        } => {
+            sink.on_event(progress::ProgressEvent::Start {
+                op: progress::ProgressOp::Recover,
+                phase: progress::ProgressPhase::Other,
+                total_bytes: 0,
+            });
             let r = recovery::repair_archive(&input, &output, tail_scan_bytes);
             sink.on_event(progress::ProgressEvent::Finish { ok: r.is_ok() });
             r
         }
         Cmd::Salvage { input, output } => {
-            sink.on_event(progress::ProgressEvent::Start { op: progress::ProgressOp::Salvage, phase: progress::ProgressPhase::Other, total_bytes: 0 });
+            sink.on_event(progress::ProgressEvent::Start {
+                op: progress::ProgressOp::Salvage,
+                phase: progress::ProgressPhase::Other,
+                total_bytes: 0,
+            });
             let r = recovery::salvage_archive(&input, &output);
             sink.on_event(progress::ProgressEvent::Finish { ok: r.is_ok() });
             r
         }
-        Cmd::DictTrain { inputs, output, dict_kib, max_samples, sample_kib } => {
+        Cmd::DictTrain {
+            inputs,
+            output,
+            dict_kib,
+            max_samples,
+            sample_kib,
+        } => {
             let inputs = resolve_inputs_abs(&inputs)?;
             let base = resolve_base_for_inputs(&None, &inputs)?;
-            let bytes = dict::train_dict_for_paths(&inputs, &base, dict_kib, max_samples as usize, (sample_kib as usize) * 1024)?;
+            let bytes = dict::train_dict_for_paths(
+                &inputs,
+                &base,
+                dict_kib,
+                max_samples as usize,
+                (sample_kib as usize) * 1024,
+            )?;
             std::fs::write(&output, &bytes)?;
             Ok(())
         }
@@ -434,50 +605,11 @@ fn main() -> Result<()> {
             let inputs = resolve_inputs_abs(&inputs)?;
             let base = resolve_base_for_inputs(&None, &inputs)?;
             let tuned = tune::autotune(&inputs, &base, time_ms)?;
-            println!("block_mib={} level={}", tuned.chosen.block_mib, tuned.chosen.level);
+            println!(
+                "block_mib={} level={}",
+                tuned.chosen.block_mib, tuned.chosen.level
+            );
             Ok(())
         }
     }
 }
-
-Cmd::Info { archive } => {
-    let archive_size = std::fs::metadata(&archive)
-        .with_context(|| format!("stat {}", archive.display()))?
-        .len();
-
-    let ar = read::ArchiveReader::open_with_cache(&archive, cli.cache_blocks, cli.cache_mib)?;
-    let idx = ar.index();
-
-    let entries = idx.entries.len() as u64;
-    let files = idx
-        .entries
-        .iter()
-        .filter(|e| e.kind == crate::format::EntryKind::Regular)
-        .count() as u64;
-    let uncompressed: u64 = idx
-        .entries
-        .iter()
-        .filter(|e| e.kind == crate::format::EntryKind::Regular)
-        .map(|e| e.size)
-        .sum();
-
-    let block_count = ar.block_count() as u64;
-    let blocks_raw = ar.blocks_raw_bytes();
-    let blocks_frame = ar.blocks_frame_bytes();
-
-    let savings = if uncompressed > 0 {
-        1.0 - (archive_size as f64 / uncompressed as f64)
-    } else {
-        0.0
-    };
-
-    println!("Archive: {}", archive.display());
-    println!("Size: {} bytes", archive_size);
-    println!("Entries: {} (files: {})", entries, files);
-    println!("Uncompressed files total: {} bytes", uncompressed);
-    println!("Blocks: {}  (payload raw: {} bytes, payload+hdr: {} bytes)", block_count, blocks_raw, blocks_frame);
-    println!("Savings vs file bytes: {:.2}%", savings * 100.0);
-
-    return Ok(());
-}
-

@@ -8,6 +8,6 @@ Start with:
 5. `REPO_SNAPSHOT.md`
 6. `SPEC.md` and `docs/CONTRACTS/*`
 
-Current shape: the repo now contains the latest uploaded codebase (`p0s0.7f0`) plus the later documentation/control/research layer and initial validation scaffolding that had previously existed only in planning notes.
+Current shape: tail frame helpers are implemented in `crushr-format`; additionally, CLI parse regressions blocking `cargo fmt --all` were repaired in `crushr` (Step 0.9 fix iteration 2).
 
-Next likely implementation packet: `TASK_PACKETS/CRUSHR-0.8-A.md`.
+Next likely implementation packet: wire `crushr-core` archive open path (Step 0.9).

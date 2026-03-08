@@ -80,7 +80,11 @@ pub fn read_ldg1<R: Read>(mut r: R) -> Result<LedgerBlob> {
     r.read_exact(&mut len_bytes).context("reading LDG1 len")?;
     let len = u64::from_le_bytes(len_bytes);
     if len > LDG1_MAX_LEN {
-        bail!("ledger length too large: {} bytes (max {})", len, LDG1_MAX_LEN);
+        bail!(
+            "ledger length too large: {} bytes (max {})",
+            len,
+            LDG1_MAX_LEN
+        );
     }
 
     let mut hash = [0u8; 32];

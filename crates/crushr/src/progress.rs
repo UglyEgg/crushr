@@ -32,11 +32,18 @@ pub enum ProgressPhase {
 #[allow(dead_code)]
 pub enum ProgressEvent {
     /// Begin an operation. `total_bytes` is best-effort and may be zero if unknown.
-    Start { op: ProgressOp, phase: ProgressPhase, total_bytes: u64 },
+    Start {
+        op: ProgressOp,
+        phase: ProgressPhase,
+        total_bytes: u64,
+    },
     /// Advance processed bytes.
     AdvanceBytes { bytes: u64 },
     /// Change phase (optionally update total bytes).
-    Phase { phase: ProgressPhase, total_bytes: Option<u64> },
+    Phase {
+        phase: ProgressPhase,
+        total_bytes: Option<u64>,
+    },
     /// Set a status message.
     Message { msg: String },
     /// Finish operation.

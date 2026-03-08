@@ -1,4 +1,6 @@
-use crate::format::{Entry, EntryKind, Index, BLK_MAGIC_V2, CODEC_ZSTD, FTR_MAGIC_V1, FTR_MAGIC_V2};
+use crate::format::{
+    Entry, EntryKind, Index, BLK_MAGIC_V2, CODEC_ZSTD, FTR_MAGIC_V1, FTR_MAGIC_V2,
+};
 use crate::index_codec::decode_index;
 
 use anyhow::{bail, Context, Result};
@@ -7,8 +9,16 @@ use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
-fn read_u32_le(mut r: impl Read) -> Result<u32> { let mut b=[0u8;4]; r.read_exact(&mut b)?; Ok(u32::from_le_bytes(b)) }
-fn read_u64_le(mut r: impl Read) -> Result<u64> { let mut b=[0u8;8]; r.read_exact(&mut b)?; Ok(u64::from_le_bytes(b)) }
+fn read_u32_le(mut r: impl Read) -> Result<u32> {
+    let mut b = [0u8; 4];
+    r.read_exact(&mut b)?;
+    Ok(u32::from_le_bytes(b))
+}
+fn read_u64_le(mut r: impl Read) -> Result<u64> {
+    let mut b = [0u8; 8];
+    r.read_exact(&mut b)?;
+    Ok(u64::from_le_bytes(b))
+}
 
 #[derive(Debug, Clone)]
 struct FooterInfo {
@@ -24,32 +34,42 @@ fn read_footer_info(f: &mut File) -> Result<FooterInfo> {
     // FTR2: magic + blocks_end + index_offset + index_len + hash (60)
     if len >= 60 {
         f.seek(SeekFrom::End(-60))?;
-        let mut magic=[0u8;4];
+        let mut magic = [0u8; 4];
         f.read_exact(&mut magic)?;
         if &magic == FTR_MAGIC_V2 {
             let blocks_end_offset = read_u64_le(&mut *f)?;
             let index_offset = read_u64_le(&mut *f)?;
             let index_len = read_u64_le(&mut *f)?;
-            let mut index_hash=[0u8;32];
+            let mut index_hash = [0u8; 32];
             f.read_exact(&mut index_hash)?;
-            return Ok(FooterInfo{blocks_end_offset,index_offset,index_len,index_hash});
+            return Ok(FooterInfo {
+                blocks_end_offset,
+                index_offset,
+                index_len,
+                index_hash,
+            });
         }
     }
 
     // FTR1: magic + index_offset + index_len + hash (52)
     if len >= 52 {
         f.seek(SeekFrom::End(-52))?;
-        let mut magic=[0u8;4];
+        let mut magic = [0u8; 4];
         f.read_exact(&mut magic)?;
         if &magic != FTR_MAGIC_V1 {
             bail!("unknown footer magic");
         }
         let index_offset = read_u64_le(&mut *f)?;
         let index_len = read_u64_le(&mut *f)?;
-        let mut index_hash=[0u8;32];
+        let mut index_hash = [0u8; 32];
         f.read_exact(&mut index_hash)?;
         // blocks_end_offset unknown in v1; assume index_offset is end of blocks.
-        return Ok(FooterInfo{blocks_end_offset:index_offset,index_offset,index_len,index_hash});
+        return Ok(FooterInfo {
+            blocks_end_offset: index_offset,
+            index_offset,
+            index_len,
+            index_hash,
+        });
     }
 
     bail!("archive too small")
@@ -71,8 +91,9 @@ fn scan_blocks(f: &mut File, blocks_end_offset: u64) -> Result<Vec<BlockHeader>>
 
     while pos < blocks_end_offset {
         f.seek(SeekFrom::Start(pos))?;
-        let mut magic=[0u8;4];
-        f.read_exact(&mut magic).with_context(|| format!("read block magic at {}", pos))?;
+        let mut magic = [0u8; 4];
+        f.read_exact(&mut magic)
+            .with_context(|| format!("read block magic at {}", pos))?;
         if &magic != BLK_MAGIC_V2 {
             bail!("bad block magic at offset {}", pos);
         }
@@ -81,7 +102,13 @@ fn scan_blocks(f: &mut File, blocks_end_offset: u64) -> Result<Vec<BlockHeader>>
         let comp_len = read_u64_le(&mut *f)?;
         let data_off = pos + 4 + 4 + 8 + 8;
         let frame_len = 4 + 4 + 8 + 8 + comp_len;
-        blocks.push(BlockHeader{codec,raw_len,comp_len,data_off,frame_len});
+        blocks.push(BlockHeader {
+            codec,
+            raw_len,
+            comp_len,
+            data_off,
+            frame_len,
+        });
         pos = pos.saturating_add(frame_len);
     }
 
@@ -115,7 +142,7 @@ impl ArchiveReader {
         }
         let index = decode_index(&index_bytes).context("decode index")?;
         let mut map = HashMap::new();
-        for (i,e) in index.entries.iter().enumerate() {
+        for (i, e) in index.entries.iter().enumerate() {
             map.insert(e.path.clone(), i);
         }
         let blocks = scan_blocks(&mut f, footer.blocks_end_offset)?;
@@ -128,18 +155,30 @@ impl ArchiveReader {
             cache_blocks
         };
 
-        Ok(Self{ file: f, index, map, blocks, cache_blocks: effective_blocks, cache: std::collections::VecDeque::new() })
+        Ok(Self {
+            file: f,
+            index,
+            map,
+            blocks,
+            cache_blocks: effective_blocks,
+            cache: std::collections::VecDeque::new(),
+        })
     }
 
-    pub fn open(path: &Path) -> Result<Self> { Self::open_with_cache(path, 8, 0) }
+    pub fn open(path: &Path) -> Result<Self> {
+        Self::open_with_cache(path, 8, 0)
+    }
 
     pub fn get_entry(&self, path: &str) -> Result<&Entry> {
-        let idx = *self.map.get(path).ok_or_else(|| anyhow::anyhow!("not found: {}", path))?;
+        let idx = *self
+            .map
+            .get(path)
+            .ok_or_else(|| anyhow::anyhow!("not found: {}", path))?;
         Ok(&self.index.entries[idx])
     }
 
     fn cache_get(&mut self, block_id: u32) -> Option<Vec<u8>> {
-        if let Some(pos) = self.cache.iter().position(|(id,_)| *id == block_id) {
+        if let Some(pos) = self.cache.iter().position(|(id, _)| *id == block_id) {
             let (id, data) = self.cache.remove(pos).unwrap();
             self.cache.push_front((id, data.clone()));
             return Some(data);
@@ -154,8 +193,13 @@ impl ArchiveReader {
     }
 
     pub fn read_block_uncompressed(&mut self, block_id: u32) -> Result<Vec<u8>> {
-        if let Some(v) = self.cache_get(block_id) { return Ok(v); }
-        let bh = self.blocks.get(block_id as usize).ok_or_else(|| anyhow::anyhow!("bad block_id {}", block_id))?;
+        if let Some(v) = self.cache_get(block_id) {
+            return Ok(v);
+        }
+        let bh = self
+            .blocks
+            .get(block_id as usize)
+            .ok_or_else(|| anyhow::anyhow!("bad block_id {}", block_id))?;
         if bh.codec != CODEC_ZSTD {
             bail!("unsupported codec {}", bh.codec);
         }
@@ -182,7 +226,9 @@ impl ArchiveReader {
                     let block = self.read_block_uncompressed(ex.block_id)?;
                     let start = ex.offset as usize;
                     let end = (ex.offset + ex.len) as usize;
-                    if end > block.len() { bail!("extent out of range"); }
+                    if end > block.len() {
+                        bail!("extent out of range");
+                    }
                     out.extend_from_slice(&block[start..end]);
                 }
                 Ok(out)
@@ -212,7 +258,9 @@ impl ArchiveReader {
                 }
             }
             EntryKind::Regular => {
-                if let Some(parent) = dst.parent() { std::fs::create_dir_all(parent)?; }
+                if let Some(parent) = dst.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
                 let bytes = self.read_entry_bytes(&e)?;
                 std::fs::write(dst, &bytes).with_context(|| format!("write {}", dst.display()))?;
             }
@@ -229,7 +277,8 @@ impl ArchiveReader {
                 for xa in &e.xattrs {
                     let r = xattr::set(dst, &xa.name, &xa.value);
                     if r.is_err() && xattr_policy == "restore" {
-                        return Err(r.err().unwrap()).with_context(|| format!("setxattr {} {}", dst.display(), xa.name));
+                        return Err(r.err().unwrap())
+                            .with_context(|| format!("setxattr {} {}", dst.display(), xa.name));
                     }
                 }
                 Ok(())
@@ -239,25 +288,34 @@ impl ArchiveReader {
         // Index was verified at open() via the footer hash.
     }
 
+    pub fn index(&self) -> &Index {
+        &self.index
+    }
 
-    pub fn index(&self) -> &Index { &self.index }
-
-    pub fn block_count(&self) -> usize { self.blocks.len() }
-    pub fn blocks_raw_bytes(&self) -> u64 { self.blocks.iter().map(|b| b.raw_len).sum() }
-    pub fn blocks_comp_bytes(&self) -> u64 { self.blocks.iter().map(|b| b.comp_len).sum() }
-    pub fn blocks_frame_bytes(&self) -> u64 { self.blocks.iter().map(|b| b.frame_len).sum() }
-
-
+    pub fn block_count(&self) -> usize {
+        self.blocks.len()
+    }
+    pub fn blocks_raw_bytes(&self) -> u64 {
+        self.blocks.iter().map(|b| b.raw_len).sum()
+    }
+    pub fn blocks_comp_bytes(&self) -> u64 {
+        self.blocks.iter().map(|b| b.comp_len).sum()
+    }
+    pub fn blocks_frame_bytes(&self) -> u64 {
+        self.blocks.iter().map(|b| b.frame_len).sum()
+    }
 
     // Index was verified at open() via the footer hash.
-    pub fn verify_index(&self) -> Result<()> { Ok(()) }
+    pub fn verify_index(&self) -> Result<()> {
+        Ok(())
+    }
 
     pub fn verify_blocks_deep(&mut self) -> Result<()> {
         for id in 0..(self.blocks.len() as u32) {
-            let _ = self.read_block_uncompressed(id)
+            let _ = self
+                .read_block_uncompressed(id)
                 .with_context(|| format!("verify block {}", id))?;
         }
         Ok(())
     }
 }
-

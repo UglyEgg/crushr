@@ -63,7 +63,8 @@ impl Blk3Flags {
     }
 
     pub fn unknown_bits(self) -> u16 {
-        let known = Self::HAS_PAYLOAD_HASH | Self::HAS_RAW_HASH | Self::USES_DICT | Self::IS_META_FRAME;
+        let known =
+            Self::HAS_PAYLOAD_HASH | Self::HAS_RAW_HASH | Self::USES_DICT | Self::IS_META_FRAME;
         self.0 & !known
     }
 }
@@ -86,7 +87,10 @@ impl Blk3Header {
     /// Validate v1.0 invariants.
     pub fn validate_v1(&self) -> Result<()> {
         if self.flags.unknown_bits() != 0 {
-            bail!("BLK3: unknown flag bits set: 0x{:04x}", self.flags.unknown_bits());
+            bail!(
+                "BLK3: unknown flag bits set: 0x{:04x}",
+                self.flags.unknown_bits()
+            );
         }
 
         let expected_min = BLK3_FIXED_LEN
@@ -98,7 +102,11 @@ impl Blk3Header {
             bail!("BLK3: header_len too small: {} < {}", hl, expected_min);
         }
         if hl > BLK3_MAX_HEADER_LEN {
-            bail!("BLK3: header_len too large: {} > {}", hl, BLK3_MAX_HEADER_LEN);
+            bail!(
+                "BLK3: header_len too large: {} > {}",
+                hl,
+                BLK3_MAX_HEADER_LEN
+            );
         }
 
         // Dict binding must be consistent.
@@ -152,7 +160,11 @@ pub fn write_blk3_header<W: Write>(mut w: W, h: &Blk3Header) -> Result<()> {
     let written = h.canonical_len_v1();
     let target = h.header_len as usize;
     if target < written {
-        bail!("BLK3: header_len {} smaller than bytes written {}", target, written);
+        bail!(
+            "BLK3: header_len {} smaller than bytes written {}",
+            target,
+            written
+        );
     }
     let pad = target - written;
     if pad > 0 {
@@ -210,12 +222,17 @@ pub fn read_blk3_header<R: Read>(mut r: R) -> Result<Blk3Header> {
         + if flags.has_raw_hash() { 32 } else { 0 };
 
     if hl < consumed {
-        bail!("BLK3: header_len {} smaller than parsed bytes {}", hl, consumed);
+        bail!(
+            "BLK3: header_len {} smaller than parsed bytes {}",
+            hl,
+            consumed
+        );
     }
 
     let mut reserved = vec![0u8; hl - consumed];
     if !reserved.is_empty() {
-        r.read_exact(&mut reserved).context("reading BLK3 reserved")?;
+        r.read_exact(&mut reserved)
+            .context("reading BLK3 reserved")?;
         if reserved.iter().any(|b| *b != 0) {
             bail!("BLK3: reserved/pad bytes must be zero (v1.0)");
         }
@@ -294,7 +311,8 @@ mod tests {
         let mut rh = [0u8; 32];
         rh[0] = 2;
 
-        let flags = Blk3Flags(Blk3Flags::HAS_PAYLOAD_HASH | Blk3Flags::HAS_RAW_HASH | Blk3Flags::USES_DICT);
+        let flags =
+            Blk3Flags(Blk3Flags::HAS_PAYLOAD_HASH | Blk3Flags::HAS_RAW_HASH | Blk3Flags::USES_DICT);
         let canonical_len = BLK3_FIXED_LEN + 32 + 32;
 
         let h = Blk3Header {

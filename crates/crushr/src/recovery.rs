@@ -1,4 +1,4 @@
-use crate::format::{FTR_MAGIC_V3, DCT_MAGIC_V1};
+use crate::format::{DCT_MAGIC_V1, FTR_MAGIC_V3};
 use anyhow::{bail, Context, Result};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom, Write};
@@ -35,7 +35,14 @@ fn parse_footer_at(f: &mut File, pos: u64) -> Result<FooterInfoV3> {
     let index_len = read_u64_le(&mut *f)?;
     let mut index_hash = [0u8; 32];
     f.read_exact(&mut index_hash)?;
-    Ok(FooterInfoV3 { blocks_end_offset, dict_offset, dict_len, index_offset, index_len, index_hash })
+    Ok(FooterInfoV3 {
+        blocks_end_offset,
+        dict_offset,
+        dict_len,
+        index_offset,
+        index_len,
+        index_hash,
+    })
 }
 
 fn validate_footer(f: &mut File, fi: &FooterInfoV3) -> Result<()> {
@@ -52,7 +59,7 @@ fn validate_footer(f: &mut File, fi: &FooterInfoV3) -> Result<()> {
     // verify dict table magic if present
     if fi.dict_len > 0 {
         f.seek(SeekFrom::Start(fi.dict_offset))?;
-        let mut m = [0u8;4];
+        let mut m = [0u8; 4];
         f.read_exact(&mut m)?;
         if &m != DCT_MAGIC_V1 {
             bail!("bad dict table magic");
@@ -83,7 +90,9 @@ pub fn find_latest_valid_footer(path: &Path, tail_scan_bytes: u64) -> Result<Foo
 
     let mut best: Option<FooterInfoV3> = None;
     for i in (0..buf.len().saturating_sub(4)).rev() {
-        if &buf[i..i+4] != FTR_MAGIC_V3 { continue; }
+        if &buf[i..i + 4] != FTR_MAGIC_V3 {
+            continue;
+        }
         let _pos = start + i as u64;
         if let Ok(fi) = parse_footer_at(&mut f, _pos) {
             if validate_footer(&mut f, &fi).is_ok() {
@@ -135,7 +144,7 @@ pub fn repair_archive(input: &Path, output: &Path, tail_scan_bytes: u64) -> Resu
 
     // Compute index hash for fresh footer.
     let h = blake3::hash(&idx);
-    let mut hb = [0u8;32];
+    let mut hb = [0u8; 32];
     hb.copy_from_slice(h.as_bytes());
 
     // Write fresh primary footer (FTR3)
@@ -163,7 +172,6 @@ pub fn repair_archive(input: &Path, output: &Path, tail_scan_bytes: u64) -> Resu
     Ok(())
 }
 
-
 #[derive(Debug, Clone)]
 struct BlockInfo {
     pub block_id: u32,
@@ -175,7 +183,14 @@ fn read_u32_le(mut r: impl Read) -> Result<u32> {
     Ok(u32::from_le_bytes(b))
 }
 
-fn scan_frames_for_salvage(path: &Path) -> Result<(u64, Vec<BlockInfo>, Vec<crate::format::Entry>, Option<Vec<u8>>)> {
+fn scan_frames_for_salvage(
+    path: &Path,
+) -> Result<(
+    u64,
+    Vec<BlockInfo>,
+    Vec<crate::format::Entry>,
+    Option<Vec<u8>>,
+)> {
     use crate::format::{BLK_MAGIC, BLK_MAGIC_V2, CODEC_ZSTD, EVT_MAGIC_V1};
     let mut f = File::open(path)?;
     let mut blocks: Vec<BlockInfo> = Vec::new();
@@ -187,25 +202,40 @@ fn scan_frames_for_salvage(path: &Path) -> Result<(u64, Vec<BlockInfo>, Vec<crat
 
     loop {
         let mut magic = [0u8; 4];
-        if f.read_exact(&mut magic).is_err() { break; }
+        if f.read_exact(&mut magic).is_err() {
+            break;
+        }
         _pos += 4;
 
         if &magic == BLK_MAGIC || &magic == BLK_MAGIC_V2 {
-            let dict_id = if &magic == BLK_MAGIC_V2 { read_u32_le(&mut f)? } else { 0 };
+            let dict_id = if &magic == BLK_MAGIC_V2 {
+                read_u32_le(&mut f)?
+            } else {
+                0
+            };
             let codec = read_u32_le(&mut f)?;
-            if codec != CODEC_ZSTD { bail!("unsupported codec {} during salvage", codec); }
+            if codec != CODEC_ZSTD {
+                bail!("unsupported codec {} during salvage", codec);
+            }
             let comp_len = read_u32_le(&mut f)?;
             let uncomp_len = read_u32_le(&mut f)?;
             // header sizes: BLK1 = 4+4+4+4+32? actually: magic + codec + comp + uncomp + hash
             // BLK2 adds dict_id field after magic.
-            let header_len = if &magic == BLK_MAGIC_V2 { 4 + 4 + 4 + 4 + 4 } else { 4 + 4 + 4 + 4 };
+            let header_len = if &magic == BLK_MAGIC_V2 {
+                4 + 4 + 4 + 4 + 4
+            } else {
+                4 + 4 + 4 + 4
+            };
             // comp bytes
             f.seek(SeekFrom::Current(comp_len as i64))?;
             // hash
             f.seek(SeekFrom::Current(32))?;
             let block_end = f.stream_position()?;
 
-            blocks.push(BlockInfo { block_id: next_block_id, uncomp_len });
+            blocks.push(BlockInfo {
+                block_id: next_block_id,
+                uncomp_len,
+            });
             next_block_id += 1;
             _pos = block_end;
             continue;
@@ -214,7 +244,7 @@ fn scan_frames_for_salvage(path: &Path) -> Result<(u64, Vec<BlockInfo>, Vec<crat
         if &magic == EVT_MAGIC_V1 {
             let kind = read_u32_le(&mut f)?;
             let plen = read_u32_le(&mut f)? as usize;
-            let mut h = [0u8;32];
+            let mut h = [0u8; 32];
             f.read_exact(&mut h)?;
             let mut payload = vec![0u8; plen];
             f.read_exact(&mut payload)?;
@@ -230,35 +260,67 @@ fn scan_frames_for_salvage(path: &Path) -> Result<(u64, Vec<BlockInfo>, Vec<crat
             } else if kind == 1 {
                 // file events
                 let mut off = 0usize;
-                if plen < 4 { continue; }
+                if plen < 4 {
+                    continue;
+                }
                 let cnt = u32::from_le_bytes(payload[0..4].try_into().unwrap()) as usize;
                 off += 4;
                 for _ in 0..cnt {
-                    if off + 4+4+1+4+8+8+4 > plen { break; }
-                    let block_id = u32::from_le_bytes(payload[off..off+4].try_into().unwrap()); off += 4;
-                    let intra = u32::from_le_bytes(payload[off..off+4].try_into().unwrap()); off += 4;
-                    let fkind = payload[off]; off += 1;
-                    let mode = u32::from_le_bytes(payload[off..off+4].try_into().unwrap()); off += 4;
-                    let mtime = i64::from_le_bytes(payload[off..off+8].try_into().unwrap()); off += 8;
-                    let size = u64::from_le_bytes(payload[off..off+8].try_into().unwrap()); off += 8;
+                    if off + 4 + 4 + 1 + 4 + 8 + 8 + 4 > plen {
+                        break;
+                    }
+                    let block_id = u32::from_le_bytes(payload[off..off + 4].try_into().unwrap());
+                    off += 4;
+                    let intra = u32::from_le_bytes(payload[off..off + 4].try_into().unwrap());
+                    off += 4;
+                    let fkind = payload[off];
+                    off += 1;
+                    let mode = u32::from_le_bytes(payload[off..off + 4].try_into().unwrap());
+                    off += 4;
+                    let mtime = i64::from_le_bytes(payload[off..off + 8].try_into().unwrap());
+                    off += 8;
+                    let size = u64::from_le_bytes(payload[off..off + 8].try_into().unwrap());
+                    off += 8;
 
-                    let plen_path = u32::from_le_bytes(payload[off..off+4].try_into().unwrap()) as usize; off += 4;
-                    if off + plen_path > plen { break; }
-                    let path_s = std::str::from_utf8(&payload[off..off+plen_path]).unwrap_or("").to_string(); off += plen_path;
+                    let plen_path =
+                        u32::from_le_bytes(payload[off..off + 4].try_into().unwrap()) as usize;
+                    off += 4;
+                    if off + plen_path > plen {
+                        break;
+                    }
+                    let path_s = std::str::from_utf8(&payload[off..off + plen_path])
+                        .unwrap_or("")
+                        .to_string();
+                    off += plen_path;
 
-                    let plen_link = u32::from_le_bytes(payload[off..off+4].try_into().unwrap()) as usize; off += 4;
-                    if off + plen_link > plen { break; }
-                    let link_s = std::str::from_utf8(&payload[off..off+plen_link]).unwrap_or("").to_string(); off += plen_link;
+                    let plen_link =
+                        u32::from_le_bytes(payload[off..off + 4].try_into().unwrap()) as usize;
+                    off += 4;
+                    if off + plen_link > plen {
+                        break;
+                    }
+                    let link_s = std::str::from_utf8(&payload[off..off + plen_link])
+                        .unwrap_or("")
+                        .to_string();
+                    off += plen_link;
 
                     // Store as Entry with extents filled later by rebuild.
-                    let kind_enum = if fkind == 1 { crate::format::EntryKind::Symlink } else { crate::format::EntryKind::Regular };
+                    let kind_enum = if fkind == 1 {
+                        crate::format::EntryKind::Symlink
+                    } else {
+                        crate::format::EntryKind::Regular
+                    };
                     let e = crate::format::Entry {
                         path: path_s,
                         kind: kind_enum,
                         mode,
                         mtime,
                         size,
-                        extents: vec![crate::format::Extent { block_id, offset: intra as u64, len: size }], // placeholder; expanded later
+                        extents: vec![crate::format::Extent {
+                            block_id,
+                            offset: intra as u64,
+                            len: size,
+                        }], // placeholder; expanded later
                         link_target: if fkind == 1 { Some(link_s) } else { None },
                         xattrs: Vec::new(),
                     };
@@ -277,7 +339,10 @@ fn scan_frames_for_salvage(path: &Path) -> Result<(u64, Vec<BlockInfo>, Vec<crat
     Ok((blocks_end, blocks, entries, dict_table))
 }
 
-fn expand_extents(blocks: &[BlockInfo], mut entries: Vec<crate::format::Entry>) -> Result<Vec<crate::format::Entry>> {
+fn expand_extents(
+    blocks: &[BlockInfo],
+    mut entries: Vec<crate::format::Entry>,
+) -> Result<Vec<crate::format::Entry>> {
     // Convert placeholder extents (start block + intra + size) into real extents spanning blocks.
     let mut blk_uncomp: Vec<u32> = vec![0; blocks.len()];
     for b in blocks {
@@ -292,7 +357,9 @@ fn expand_extents(blocks: &[BlockInfo], mut entries: Vec<crate::format::Entry>) 
             e.size = 0;
             continue;
         }
-        if e.extents.is_empty() { continue; }
+        if e.extents.is_empty() {
+            continue;
+        }
         let start = e.extents[0].clone();
         let mut remaining = e.size;
         let mut bid = start.block_id;
@@ -301,18 +368,26 @@ fn expand_extents(blocks: &[BlockInfo], mut entries: Vec<crate::format::Entry>) 
         e.extents.clear();
         while remaining > 0 {
             let ulen = *blk_uncomp.get(bid as usize).unwrap_or(&0) as u64;
-            if ulen == 0 { bail!("missing block {} during extent expansion", bid); }
-            if intra >= ulen { bail!("intra offset out of range"); }
+            if ulen == 0 {
+                bail!("missing block {} during extent expansion", bid);
+            }
+            if intra >= ulen {
+                bail!("intra offset out of range");
+            }
             let avail = ulen - intra;
             let take = avail.min(remaining);
-            e.extents.push(crate::format::Extent { block_id: bid, offset: intra, len: take });
+            e.extents.push(crate::format::Extent {
+                block_id: bid,
+                offset: intra,
+                len: take,
+            });
             remaining -= take;
             bid += 1;
             intra = 0;
         }
     }
 
-    entries.sort_by(|a,b| a.path.cmp(&b.path));
+    entries.sort_by(|a, b| a.path.cmp(&b.path));
     Ok(entries)
 }
 
@@ -326,7 +401,7 @@ pub fn salvage_archive(input: &Path, output: &Path) -> Result<()> {
     let idx = crate::format::Index { entries };
     let index_bytes = crate::index_codec::encode_index(&idx);
     let index_hash = blake3::hash(&index_bytes);
-    let mut index_hash_bytes = [0u8;32];
+    let mut index_hash_bytes = [0u8; 32];
     index_hash_bytes.copy_from_slice(index_hash.as_bytes());
 
     // Copy blocks region (including EVT frames) verbatim
@@ -334,7 +409,7 @@ pub fn salvage_archive(input: &Path, output: &Path) -> Result<()> {
     let mut out = File::create(output)?;
     src.seek(SeekFrom::Start(0))?;
     let mut remaining = blocks_end_offset;
-    let mut buf = vec![0u8; 1024*1024];
+    let mut buf = vec![0u8; 1024 * 1024];
     while remaining > 0 {
         let n = (buf.len() as u64).min(remaining) as usize;
         src.read_exact(&mut buf[..n])?;

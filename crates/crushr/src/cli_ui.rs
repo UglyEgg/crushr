@@ -1,11 +1,11 @@
-use crate::progress::{ProgressEvent, ProgressSink, ProgressPhase};
+use crate::progress::{ProgressEvent, ProgressSink};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 
 pub fn make_sink(ui: u8, no_color: bool) -> Arc<dyn ProgressSink> {
     match ui {
         0 => Arc::new(NullSink),
-        2 => Arc::new(MockUi2::new(!no_color)),
+        2 => Arc::new(Ui2::new(!no_color)),
         3 => Arc::new(MockUi3::new(!no_color)),
         _ => Arc::new(Ui1::new(!no_color)),
     }
@@ -22,23 +22,37 @@ struct Ui1 {
 }
 impl Ui1 {
     fn new(enabled: bool) -> Self {
-        Self { enabled, inner: Mutex::new(None) }
+        Self {
+            enabled,
+            inner: Mutex::new(None),
+        }
     }
 }
 impl ProgressSink for Ui1 {
     fn on_event(&self, ev: ProgressEvent) {
-        if !self.enabled { return; }
+        if !self.enabled {
+            return;
+        }
         match ev {
-            ProgressEvent::Start { op, phase: _, total_bytes } => {
+            ProgressEvent::Start {
+                op,
+                phase: _,
+                total_bytes,
+            } => {
                 let pb = ProgressBar::new(total_bytes);
-                pb.set_style(ProgressStyle::with_template("{bar:40.cyan/blue} {bytes}/{total_bytes} {msg}").unwrap());
+                pb.set_style(
+                    ProgressStyle::with_template("{bar:40.cyan/blue} {bytes}/{total_bytes} {msg}")
+                        .unwrap(),
+                );
                 pb.set_message(format!("{:?}", op).to_lowercase());
                 *self.inner.lock().unwrap() = Some(pb);
             }
             ProgressEvent::Phase { phase, total_bytes } => {
                 if let Some(pb) = self.inner.lock().unwrap().as_ref() {
                     pb.set_message(format!("{:?}", phase).to_lowercase());
-                    if let Some(t) = total_bytes { pb.set_length(t); }
+                    if let Some(t) = total_bytes {
+                        pb.set_length(t);
+                    }
                 }
             }
             ProgressEvent::AdvanceBytes { bytes } => {
@@ -53,7 +67,11 @@ impl ProgressSink for Ui1 {
             }
             ProgressEvent::Finish { ok } => {
                 if let Some(pb) = self.inner.lock().unwrap().take() {
-                    if ok { pb.finish_with_message("done"); } else { pb.finish_with_message("failed"); }
+                    if ok {
+                        pb.finish_with_message("done");
+                    } else {
+                        pb.finish_with_message("failed");
+                    }
                 }
             }
         }
@@ -61,10 +79,6 @@ impl ProgressSink for Ui1 {
 }
 
 // Mock UI tier 2: multi-progress layout without real metrics (placeholders only).
-
-struct Ui2State {
-    current_phase: ProgressPhase,
-}
 
 struct Ui2 {
     enabled: bool,
@@ -101,49 +115,52 @@ impl Ui2 {
         let index = mk("index", &mp, &style);
         let tail = mk("tail", &mp, &style);
 
-        Self { enabled, mp, overall, scan, dict, comp, index, tail, started: Mutex::nfn on_event(&self, e: ProgressEvent) {
-        use ProgressEvent::*;
-        let mut st = self.state.lock().unwrap();
-        match e {
-            Start { op: _, phase, total_bytes } => {
-                st.current_phase = phase;
-                self.overall.set_length(total_bytes);
-                self.overall.set_position(0);
-                self.overall.set_message(format!("{:?}", phase));
-                self.phase.set_message(format!("{:?}", phase));
-                self.phase.set_length(total_bytes);
-                self.phase.set_position(0);
-                self.phase.enable_steady_tick(std::time::Duration::from_millis(120));
+        Self {
+            enabled,
+            mp,
+            overall,
+            scan,
+            dict,
+            comp,
+            index,
+            tail,
+            started: Mutex::new(false),
+        }
+    }
+}
+
+impl ProgressSink for Ui2 {
+    fn on_event(&self, ev: ProgressEvent) {
+        if !self.enabled {
+            return;
+        }
+        match ev {
+            ProgressEvent::Start { op, .. } => {
+                *self.started.lock().unwrap() = true;
+                self.overall
+                    .set_message(format!("overall: {:?}", op).to_lowercase());
             }
-            Phase { phase, total_bytes } => {
-                st.current_phase = phase;
-                self.phase.set_message(format!("{:?}", phase));
-                if let Some(tb) = total_bytes {
-                    self.phase.set_length(tb);
-                    self.phase.set_position(0);
-                } else {
-                    // Unknown total for this phase: show an indeterminate spinner.
-                    self.phase.set_length(0);
-                    self.phase.set_position(0);
-                }
-                self.overall.set_message(format!("{:?}", phase));
-            }
-            AdvanceBytes { bytes } => {
-                self.overall.inc(bytes);
-                self.phase.inc(bytes);
-            }
-            Message { msg } => {
+            ProgressEvent::Message { msg } => {
                 let _ = self.mp.println(msg);
             }
-            Finish { ok } => {
+            ProgressEvent::Finish { ok } => {
                 if ok {
-                    self.phase.finish_and_clear();
+                    self.scan.finish_with_message("scan: done");
+                    self.dict.finish_with_message("dict: done");
+                    self.comp.finish_with_message("compress: done");
+                    self.index.finish_with_message("index: done");
+                    self.tail.finish_with_message("tail: done");
                     self.overall.finish_with_message("done");
                 } else {
-                    self.phase.abandon_with_message("failed");
+                    self.scan.abandon_with_message("scan: failed");
+                    self.dict.abandon_with_message("dict: failed");
+                    self.comp.abandon_with_message("compress: failed");
+                    self.index.abandon_with_message("index: failed");
+                    self.tail.abandon_with_message("tail: failed");
                     self.overall.abandon_with_message("failed");
                 }
             }
+            ProgressEvent::Phase { .. } | ProgressEvent::AdvanceBytes { .. } => {}
         }
     }
 }
@@ -160,22 +177,41 @@ impl MockUi3 {
         pb.set_style(ProgressStyle::with_template("{spinner} {msg}").unwrap());
         pb.set_message("chart: [mock] blocks/sec: --  ratio: --  cache: --  dict: --");
         pb.enable_steady_tick(std::time::Duration::from_millis(120));
-        Self { enabled, pb, started: Mutex::new(false) }
+        Self {
+            enabled,
+            pb,
+            started: Mutex::new(false),
+        }
     }
 }
 impl ProgressSink for MockUi3 {
     fn on_event(&self, ev: ProgressEvent) {
-        if !self.enabled { return; }
+        if !self.enabled {
+            return;
+        }
         match ev {
             ProgressEvent::Start { op, .. } => {
                 *self.started.lock().unwrap() = true;
-                self.pb.set_message(format!("chart: [mock] op={:?} blocks/sec: -- ratio: -- cache: -- dict: --", op).to_lowercase());
+                self.pb.set_message(
+                    format!(
+                        "chart: [mock] op={:?} blocks/sec: -- ratio: -- cache: -- dict: --",
+                        op
+                    )
+                    .to_lowercase(),
+                );
             }
             ProgressEvent::Phase { phase, .. } => {
-                self.pb.set_message(format!("chart: [mock] phase={:?} blocks/sec: -- ratio: -- cache: -- dict: --", phase).to_lowercase());
+                self.pb.set_message(
+                    format!(
+                        "chart: [mock] phase={:?} blocks/sec: -- ratio: -- cache: -- dict: --",
+                        phase
+                    )
+                    .to_lowercase(),
+                );
             }
             ProgressEvent::Finish { ok } => {
-                self.pb.finish_with_message(if ok { "done" } else { "failed" });
+                self.pb
+                    .finish_with_message(if ok { "done" } else { "failed" });
             }
             _ => {}
         }

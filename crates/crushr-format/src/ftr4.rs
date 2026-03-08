@@ -28,7 +28,7 @@ pub const FTR4_LEN: usize = 4  // magic
     + 32                       // index_hash
     + 32                       // ledger_hash
     + FTR4_RESERVED_LEN        // reserved
-    + 32;                      // footer_hash
+    + 32; // footer_hash
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Ftr4 {
@@ -131,7 +131,11 @@ impl Ftr4 {
 
     /// Validate invariants that do not depend on the overall file length.
     pub fn validate(&self) -> Result<()> {
-        ensure!(self.version == FTR4_VERSION, "unsupported FTR4 version: {}", self.version);
+        ensure!(
+            self.version == FTR4_VERSION,
+            "unsupported FTR4 version: {}",
+            self.version
+        );
 
         // IDX is required.
         ensure!(self.index_offset != 0, "index_offset must be nonzero");
@@ -140,18 +144,36 @@ impl Ftr4 {
 
         // Optional DCT.
         if self.dct_len == 0 {
-            ensure!(self.dct_offset == 0, "dct_offset must be 0 when dct_len is 0");
+            ensure!(
+                self.dct_offset == 0,
+                "dct_offset must be 0 when dct_len is 0"
+            );
         } else {
-            ensure!(self.dct_offset != 0, "dct_offset must be nonzero when dct_len > 0");
+            ensure!(
+                self.dct_offset != 0,
+                "dct_offset must be nonzero when dct_len > 0"
+            );
         }
 
         // Optional ledger.
         if self.ledger_len == 0 {
-            ensure!(self.ledger_offset == 0, "ledger_offset must be 0 when ledger_len is 0");
-            ensure!(is_all_zero(&self.ledger_hash), "ledger_hash must be zero when ledger absent");
+            ensure!(
+                self.ledger_offset == 0,
+                "ledger_offset must be 0 when ledger_len is 0"
+            );
+            ensure!(
+                is_all_zero(&self.ledger_hash),
+                "ledger_hash must be zero when ledger absent"
+            );
         } else {
-            ensure!(self.ledger_offset != 0, "ledger_offset must be nonzero when ledger_len > 0");
-            ensure!(!is_all_zero(&self.ledger_hash), "ledger_hash must be nonzero when ledger present");
+            ensure!(
+                self.ledger_offset != 0,
+                "ledger_offset must be nonzero when ledger_len > 0"
+            );
+            ensure!(
+                !is_all_zero(&self.ledger_hash),
+                "ledger_hash must be nonzero when ledger present"
+            );
         }
 
         // Reserved bytes must be zero.
@@ -164,13 +186,17 @@ impl Ftr4 {
             ("ledger", self.ledger_offset, self.ledger_len),
         ] {
             if len != 0 {
-                off.checked_add(len).with_context(|| format!("{name} offset+len overflow"))?;
+                off.checked_add(len)
+                    .with_context(|| format!("{name} offset+len overflow"))?;
             }
         }
 
         // Compute footer hash and compare.
         let expected = self.compute_footer_hash();
-        ensure!(self.footer_hash == *expected.as_bytes(), "footer_hash mismatch");
+        ensure!(
+            self.footer_hash == *expected.as_bytes(),
+            "footer_hash mismatch"
+        );
 
         // Loose monotonicity constraints (component offsets should be at/after blocks_end_offset).
         for (name, off) in [
@@ -179,7 +205,10 @@ impl Ftr4 {
             ("ledger", self.ledger_offset),
         ] {
             if off != 0 {
-                ensure!(off >= self.blocks_end_offset, "{name}_offset precedes blocks_end_offset");
+                ensure!(
+                    off >= self.blocks_end_offset,
+                    "{name}_offset precedes blocks_end_offset"
+                );
             }
         }
 
@@ -248,9 +277,11 @@ impl Ftr4 {
         write_u64_le(&mut w, self.ledger_offset)?;
         write_u64_le(&mut w, self.ledger_len)?;
         w.write_all(&self.index_hash).context("write index_hash")?;
-        w.write_all(&self.ledger_hash).context("write ledger_hash")?;
+        w.write_all(&self.ledger_hash)
+            .context("write ledger_hash")?;
         w.write_all(&self.reserved).context("write reserved")?;
-        w.write_all(&self.footer_hash).context("write footer_hash")?;
+        w.write_all(&self.footer_hash)
+            .context("write footer_hash")?;
         Ok(())
     }
 
@@ -306,7 +337,7 @@ mod tests {
 
     #[test]
     fn rejects_nonzero_reserved() {
-        let mut f = Ftr4 {
+        let f = Ftr4 {
             blocks_end_offset: 0,
             index_offset: 8,
             index_len: 16,
@@ -320,9 +351,9 @@ mod tests {
         let mut buf = Vec::new();
         f.write_to(&mut buf).unwrap();
         // reserved begins after: magic(4)+ver(4)+flags(4)+56 + 32 + 32 = 164- (32 footer hash?) Let's locate:
-        # We'll just flip a byte near the end but before footer_hash: reserved region starts at offset 132.
-        reserved_start = 4+4+4+56+32+32
-        assert_eq!(reserved_start, 132)
+        // We'll just flip a byte near the end but before footer_hash.
+        let reserved_start = 4 + 4 + 4 + 56 + 32 + 32;
+        assert_eq!(reserved_start, 132);
         buf[reserved_start] = 1;
 
         assert!(Ftr4::read_from(&buf[..]).is_err());

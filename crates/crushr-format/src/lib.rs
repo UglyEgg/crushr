@@ -7,9 +7,10 @@
 //!
 //! It intentionally does **not** perform filesystem IO, directory walking, or CLI/TUI concerns.
 
-pub mod version;
-pub mod ledger;
 pub mod blk3;
 pub mod dct1;
+pub mod ledger;
+pub mod version;
 
 pub mod ftr4;
+pub mod tailframe;

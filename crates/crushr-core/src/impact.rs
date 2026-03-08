@@ -87,19 +87,35 @@ mod tests {
             FileEntryV1 {
                 file_id: 1,
                 path: "README.md".into(),
-                extents: vec![FileExtentV1 { block_id: 1, offset_in_block: 0, len: 10 }],
+                extents: vec![FileExtentV1 {
+                    block_id: 1,
+                    offset_in_block: 0,
+                    len: 10,
+                }],
             },
             FileEntryV1 {
                 file_id: 2,
                 path: "assets/a.bin".into(),
-                extents: vec![FileExtentV1 { block_id: 2, offset_in_block: 0, len: 20 }],
+                extents: vec![FileExtentV1 {
+                    block_id: 2,
+                    offset_in_block: 0,
+                    len: 20,
+                }],
             },
             FileEntryV1 {
                 file_id: 3,
                 path: "assets/b.bin".into(),
                 extents: vec![
-                    FileExtentV1 { block_id: 2, offset_in_block: 20, len: 5 },
-                    FileExtentV1 { block_id: 3, offset_in_block: 0, len: 5 },
+                    FileExtentV1 {
+                        block_id: 2,
+                        offset_in_block: 20,
+                        len: 5,
+                    },
+                    FileExtentV1 {
+                        block_id: 3,
+                        offset_in_block: 0,
+                        len: 5,
+                    },
                 ],
             },
         ];

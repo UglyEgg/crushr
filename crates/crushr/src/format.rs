@@ -66,37 +66,72 @@ pub struct FooterV1 {
 pub fn is_probably_incompressible(path: &str) -> bool {
     let lower = path.to_ascii_lowercase();
     let exts = [
-        ".png", ".jpg", ".jpeg", ".webp", ".gif",
-        ".mp4", ".mkv", ".mov", ".mp3", ".ogg", ".opus", ".flac",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".webp",
+        ".gif",
+        ".mp4",
+        ".mkv",
+        ".mov",
+        ".mp3",
+        ".ogg",
+        ".opus",
+        ".flac",
         ".pdf",
-        ".zip", ".7z", ".rar",
-        ".gz", ".xz", ".bz2", ".zst",
-        ".dwarfs", ".dwarfsx", ".ktc", ".squashfs",
+        ".zip",
+        ".7z",
+        ".rar",
+        ".gz",
+        ".xz",
+        ".bz2",
+        ".zst",
+        ".dwarfs",
+        ".dwarfsx",
+        ".ktc",
+        ".squashfs",
     ];
     exts.iter().any(|e| lower.ends_with(e))
 }
 
 pub fn classify_group(path: &str) -> u8 {
     let p = path.to_ascii_lowercase();
-    if is_probably_incompressible(&p) { return 3; }
-    if p.ends_with(".json") || p.ends_with(".yaml") || p.ends_with(".yml") || p.ends_with(".toml") || p.ends_with(".xml") {
+    if is_probably_incompressible(&p) {
+        return 3;
+    }
+    if p.ends_with(".json")
+        || p.ends_with(".yaml")
+        || p.ends_with(".yml")
+        || p.ends_with(".toml")
+        || p.ends_with(".xml")
+    {
         return 0;
     }
     if p.ends_with(".txt") || p.ends_with(".md") || p.ends_with(".rst") || p.ends_with(".log") {
         return 0;
     }
-    if p.ends_with(".rs") || p.ends_with(".c") || p.ends_with(".cc") || p.ends_with(".cpp") || p.ends_with(".h") || p.ends_with(".hpp")
-        || p.ends_with(".py") || p.ends_with(".sh") || p.ends_with(".bash") || p.ends_with(".zsh")
-        || p.ends_with(".js") || p.ends_with(".ts") || p.ends_with(".css") || p.ends_with(".html") {
+    if p.ends_with(".rs")
+        || p.ends_with(".c")
+        || p.ends_with(".cc")
+        || p.ends_with(".cpp")
+        || p.ends_with(".h")
+        || p.ends_with(".hpp")
+        || p.ends_with(".py")
+        || p.ends_with(".sh")
+        || p.ends_with(".bash")
+        || p.ends_with(".zsh")
+        || p.ends_with(".js")
+        || p.ends_with(".ts")
+        || p.ends_with(".css")
+        || p.ends_with(".html")
+    {
         return 1;
     }
     2
 }
 
-
 // Dictionary table
 pub const DCT_MAGIC_V1: &[u8; 4] = b"DCT1";
-
 
 // Embedded event frames (for salvage)
 pub const EVT_MAGIC_V1: &[u8; 4] = b"EVT1";

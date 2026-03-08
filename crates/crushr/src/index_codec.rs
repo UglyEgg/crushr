@@ -3,31 +3,47 @@ use crate::format::{
 };
 use anyhow::{bail, Result};
 
-fn put_u8(out: &mut Vec<u8>, v: u8) { out.push(v); }
-fn put_u32(out: &mut Vec<u8>, v: u32) { out.extend_from_slice(&v.to_le_bytes()); }
-fn put_u64(out: &mut Vec<u8>, v: u64) { out.extend_from_slice(&v.to_le_bytes()); }
-fn put_i64(out: &mut Vec<u8>, v: i64) { out.extend_from_slice(&v.to_le_bytes()); }
+fn put_u8(out: &mut Vec<u8>, v: u8) {
+    out.push(v);
+}
+fn put_u32(out: &mut Vec<u8>, v: u32) {
+    out.extend_from_slice(&v.to_le_bytes());
+}
+fn put_u64(out: &mut Vec<u8>, v: u64) {
+    out.extend_from_slice(&v.to_le_bytes());
+}
+fn put_i64(out: &mut Vec<u8>, v: i64) {
+    out.extend_from_slice(&v.to_le_bytes());
+}
 
 fn get_u8(input: &[u8], off: &mut usize) -> Result<u8> {
-    if *off + 1 > input.len() { bail!("truncated index"); }
+    if *off + 1 > input.len() {
+        bail!("truncated index");
+    }
     let v = input[*off];
     *off += 1;
     Ok(v)
 }
 fn get_u32(input: &[u8], off: &mut usize) -> Result<u32> {
-    if *off + 4 > input.len() { bail!("truncated index"); }
+    if *off + 4 > input.len() {
+        bail!("truncated index");
+    }
     let v = u32::from_le_bytes(input[*off..*off + 4].try_into().unwrap());
     *off += 4;
     Ok(v)
 }
 fn get_u64(input: &[u8], off: &mut usize) -> Result<u64> {
-    if *off + 8 > input.len() { bail!("truncated index"); }
+    if *off + 8 > input.len() {
+        bail!("truncated index");
+    }
     let v = u64::from_le_bytes(input[*off..*off + 8].try_into().unwrap());
     *off += 8;
     Ok(v)
 }
 fn get_i64(input: &[u8], off: &mut usize) -> Result<i64> {
-    if *off + 8 > input.len() { bail!("truncated index"); }
+    if *off + 8 > input.len() {
+        bail!("truncated index");
+    }
     let v = i64::from_le_bytes(input[*off..*off + 8].try_into().unwrap());
     *off += 8;
     Ok(v)
@@ -39,7 +55,9 @@ fn put_len_bytes(out: &mut Vec<u8>, b: &[u8]) {
 }
 fn get_len_bytes<'a>(input: &'a [u8], off: &mut usize) -> Result<&'a [u8]> {
     let n = get_u32(input, off)? as usize;
-    if *off + n > input.len() { bail!("truncated bytes"); }
+    if *off + n > input.len() {
+        bail!("truncated bytes");
+    }
     let s = &input[*off..*off + n];
     *off += n;
     Ok(s)
@@ -62,7 +80,10 @@ pub fn encode_index(idx: &Index) -> Vec<u8> {
     for e in &idx.entries {
         put_len_bytes(&mut out, e.path.as_bytes());
 
-        let kind = match e.kind { EntryKind::Regular => 0u8, EntryKind::Symlink => 1u8 };
+        let kind = match e.kind {
+            EntryKind::Regular => 0u8,
+            EntryKind::Symlink => 1u8,
+        };
         put_u8(&mut out, kind);
 
         put_u32(&mut out, e.mode);
@@ -95,7 +116,9 @@ pub fn encode_index(idx: &Index) -> Vec<u8> {
 }
 
 pub fn decode_index(bytes: &[u8]) -> Result<Index> {
-    if bytes.len() < 8 { bail!("index too small"); }
+    if bytes.len() < 8 {
+        bail!("index too small");
+    }
     let magic = &bytes[0..4];
 
     if magic == IDX_MAGIC_V3 {
@@ -133,7 +156,11 @@ fn decode_idx3(bytes: &[u8]) -> Result<Index> {
             let block_id = get_u32(bytes, &mut off)?;
             let offset = get_u64(bytes, &mut off)?;
             let len = get_u64(bytes, &mut off)?;
-            extents.push(Extent { block_id, offset, len });
+            extents.push(Extent {
+                block_id,
+                offset,
+                len,
+            });
         }
 
         let link_target_bytes = get_len_bytes(bytes, &mut off)?;
@@ -199,7 +226,11 @@ fn decode_idx2(bytes: &[u8]) -> Result<Index> {
             let block_id = get_u32(bytes, &mut off)?;
             let offset = get_u64(bytes, &mut off)?;
             let len = get_u64(bytes, &mut off)?;
-            extents.push(Extent { block_id, offset, len });
+            extents.push(Extent {
+                block_id,
+                offset,
+                len,
+            });
         }
 
         let link_target_bytes = get_len_bytes(bytes, &mut off)?;
@@ -250,7 +281,11 @@ fn decode_idx1(bytes: &[u8]) -> Result<Index> {
             let block_id = get_u32(bytes, &mut off)?;
             let offset = get_u64(bytes, &mut off)?;
             let len = get_u64(bytes, &mut off)?;
-            extents.push(Extent { block_id, offset, len });
+            extents.push(Extent {
+                block_id,
+                offset,
+                len,
+            });
         }
 
         entries.push(Entry {

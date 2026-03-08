@@ -1,5 +1,5 @@
+use crushr::format::{Entry, EntryKind, Extent, Index};
 use crushr::index_codec::{decode_index, encode_index};
-use crushr::format::{Extent, Index, Entry, EntryKind};
 
 #[test]
 fn idx1_roundtrip() {
@@ -11,7 +11,11 @@ fn idx1_roundtrip() {
                 mode: 0o100644,
                 mtime: 1700000000,
                 size: 5,
-                extents: vec![Extent { block_id: 0, offset: 0, len: 5 }],
+                extents: vec![Extent {
+                    block_id: 0,
+                    offset: 0,
+                    len: 5,
+                }],
                 link_target: None,
                 xattrs: Vec::new(),
             },
@@ -21,7 +25,11 @@ fn idx1_roundtrip() {
                 mode: 0o100644,
                 mtime: 1700000001,
                 size: 10,
-                extents: vec![Extent { block_id: 1, offset: 7, len: 10 }],
+                extents: vec![Extent {
+                    block_id: 1,
+                    offset: 7,
+                    len: 10,
+                }],
                 link_target: None,
                 xattrs: Vec::new(),
             },

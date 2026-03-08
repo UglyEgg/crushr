@@ -31,7 +31,8 @@ pub struct TuneResult {
 }
 
 fn to_rel(base: &Path, p: &Path) -> Result<String> {
-    let rel = p.strip_prefix(base)
+    let rel = p
+        .strip_prefix(base)
         .with_context(|| format!("path {} is not under base {}", p.display(), base.display()))?;
     Ok(rel.to_string_lossy().replace('\\', "/"))
 }
@@ -39,12 +40,14 @@ fn to_rel(base: &Path, p: &Path) -> Result<String> {
 fn collect_files(inputs: &[PathBuf], base: &Path) -> Result<Vec<PathBuf>> {
     let mut out = Vec::new();
     for inp in inputs {
-        let meta = std::fs::symlink_metadata(inp)
-            .with_context(|| format!("stat {}", inp.display()))?;
+        let meta =
+            std::fs::symlink_metadata(inp).with_context(|| format!("stat {}", inp.display()))?;
         if meta.is_dir() {
             for e in walkdir::WalkDir::new(inp).follow_links(false) {
                 let e = e?;
-                if !e.file_type().is_file() { continue; }
+                if !e.file_type().is_file() {
+                    continue;
+                }
                 // ensure under base
                 let _ = to_rel(base, e.path())?;
                 out.push(e.path().to_path_buf());
@@ -54,7 +57,7 @@ fn collect_files(inputs: &[PathBuf], base: &Path) -> Result<Vec<PathBuf>> {
             out.push(inp.clone());
         }
     }
-    out.sort_by(|a,b| a.to_string_lossy().cmp(&b.to_string_lossy()));
+    out.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
     Ok(out)
 }
 fn stratified_sample_order(mut files: Vec<PathBuf>, base: &Path) -> Vec<PathBuf> {
@@ -79,7 +82,9 @@ fn stratified_sample_order(mut files: Vec<PathBuf>, base: &Path) -> Vec<PathBuf>
                 progressed = true;
             }
         }
-        if !progressed { break; }
+        if !progressed {
+            break;
+        }
     }
     out
 }
@@ -93,7 +98,12 @@ fn sample_bytes_for_file(path: &Path, cap: usize) -> Result<Vec<u8>> {
     Ok(buf)
 }
 
-fn simulate_blocks_and_compress(data: &[u8], block_size: usize, level: i32, dict: Option<&[u8]>) -> Result<(u64, u64)> {
+fn simulate_blocks_and_compress(
+    data: &[u8],
+    block_size: usize,
+    level: i32,
+    dict: Option<&[u8]>,
+) -> Result<(u64, u64)> {
     use std::io::Write;
     let start = Instant::now();
     let mut total_c: u64 = 0;
@@ -114,21 +124,29 @@ fn simulate_blocks_and_compress(data: &[u8], block_size: usize, level: i32, dict
 pub fn tune(req: &TuneRequest) -> Result<TuneResult> {
     // Collect files and build a deterministic sample corpus.
     let files = stratified_sample_order(collect_files(&req.inputs, &req.base)?, req.base.as_path());
-    if files.is_empty() { bail!("no files to sample"); }
+    if files.is_empty() {
+        bail!("no files to sample");
+    }
 
     let mut samples: Vec<Vec<u8>> = Vec::new();
     let mut total_in: u64 = 0;
     for p in files.into_iter().take(req.max_samples) {
         let b = sample_bytes_for_file(&p, req.sample_bytes)?;
-        if b.is_empty() { continue; }
+        if b.is_empty() {
+            continue;
+        }
         total_in += b.len() as u64;
         samples.push(b);
     }
-    if samples.is_empty() { bail!("no non-empty samples"); }
+    if samples.is_empty() {
+        bail!("no non-empty samples");
+    }
 
     // Concatenate samples for simulation.
     let mut corpus: Vec<u8> = Vec::with_capacity(total_in as usize);
-    for s in &samples { corpus.extend_from_slice(s); }
+    for s in &samples {
+        corpus.extend_from_slice(s);
+    }
 
     let mut candidates: Vec<TuneCandidate> = Vec::new();
     let deadline = Instant::now() + std::time::Duration::from_millis(req.time_budget_ms);
@@ -136,8 +154,12 @@ pub fn tune(req: &TuneRequest) -> Result<TuneResult> {
     // Pre-train dicts per dict_size.
     let mut dicts: std::collections::HashMap<usize, Vec<u8>> = std::collections::HashMap::new();
     for &ds in &req.dict_sizes {
-        if ds == 0 { continue; }
-        if Instant::now() >= deadline { break; }
+        if ds == 0 {
+            continue;
+        }
+        if Instant::now() >= deadline {
+            break;
+        }
         let dict = crate::dict::train_from_samples(&samples, ds)?;
         dicts.insert(ds, dict);
     }
@@ -145,8 +167,14 @@ pub fn tune(req: &TuneRequest) -> Result<TuneResult> {
     for &block_mib in &req.block_mibs {
         for &level in &req.levels {
             for &ds in &req.dict_sizes {
-                if Instant::now() >= deadline { break; }
-                let dict = if ds == 0 { None } else { dicts.get(&ds).map(|v| v.as_slice()) };
+                if Instant::now() >= deadline {
+                    break;
+                }
+                let dict = if ds == 0 {
+                    None
+                } else {
+                    dicts.get(&ds).map(|v| v.as_slice())
+                };
                 let block_size = (block_mib * 1024 * 1024) as usize;
                 let (cbytes, ms) = simulate_blocks_and_compress(&corpus, block_size, level, dict)?;
                 candidates.push(TuneCandidate {
@@ -161,10 +189,12 @@ pub fn tune(req: &TuneRequest) -> Result<TuneResult> {
         }
     }
 
-    if candidates.is_empty() { bail!("no candidates evaluated"); }
+    if candidates.is_empty() {
+        bail!("no candidates evaluated");
+    }
 
     // Score: balanced => minimize (compressed_bytes * encode_ms) (ratio per time)
-    candidates.sort_by(|a,b| {
+    candidates.sort_by(|a, b| {
         let sa = (a.compressed_bytes as u128) * ((a.encode_ms.max(1)) as u128);
         let sb = (b.compressed_bytes as u128) * ((b.encode_ms.max(1)) as u128);
         sa.cmp(&sb)
@@ -175,7 +205,6 @@ pub fn tune(req: &TuneRequest) -> Result<TuneResult> {
     let top = candidates.iter().take(5).cloned().collect();
     Ok(TuneResult { chosen, top })
 }
-
 
 /// Convenience wrapper used by the CLI. Uses conservative defaults and a time budget.
 pub fn autotune(inputs: &[PathBuf], base: &Path, time_budget_ms: u64) -> Result<TuneResult> {

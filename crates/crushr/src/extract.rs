@@ -2,8 +2,8 @@ use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
 
+use crate::format::EntryKind;
 use crate::read::ArchiveReader;
-use crate::format::{EntryKind};
 
 #[allow(dead_code)]
 pub fn extract_all(archive: &Path, out_dir: &Path, overwrite: bool) -> Result<()> {
@@ -11,14 +11,26 @@ pub fn extract_all(archive: &Path, out_dir: &Path, overwrite: bool) -> Result<()
     extract_all_progress(archive, out_dir, overwrite, sink)
 }
 
-pub fn extract_all_progress(archive: &Path, out_dir: &Path, overwrite: bool, sink: crate::progress::SharedSink) -> Result<()> {
-    sink.on_event(crate::progress::ProgressEvent::Start { op: crate::progress::ProgressOp::Extract, phase: crate::progress::ProgressPhase::Decompress, total_bytes: 0 });
+pub fn extract_all_progress(
+    archive: &Path,
+    out_dir: &Path,
+    overwrite: bool,
+    sink: crate::progress::SharedSink,
+) -> Result<()> {
+    sink.on_event(crate::progress::ProgressEvent::Start {
+        op: crate::progress::ProgressOp::Extract,
+        phase: crate::progress::ProgressPhase::Decompress,
+        total_bytes: 0,
+    });
     let mut ar = ArchiveReader::open(archive)?;
     fs::create_dir_all(out_dir)?;
     let idx = ar.index().clone();
 
     let total: u64 = idx.entries.iter().map(|e| e.size).sum();
-    sink.on_event(crate::progress::ProgressEvent::Phase { phase: crate::progress::ProgressPhase::WriteFiles, total_bytes: Some(total) });
+    sink.on_event(crate::progress::ProgressEvent::Phase {
+        phase: crate::progress::ProgressPhase::WriteFiles,
+        total_bytes: Some(total),
+    });
 
     for e in idx.entries {
         let dest = out_dir.join(&e.path);
@@ -32,10 +44,15 @@ pub fn extract_all_progress(archive: &Path, out_dir: &Path, overwrite: bool, sin
                 {
                     use std::os::unix::fs::symlink;
                     if dest.exists() {
-                        if overwrite { fs::remove_file(&dest).ok(); } else { continue; }
+                        if overwrite {
+                            fs::remove_file(&dest).ok();
+                        } else {
+                            continue;
+                        }
                     }
                     let target = e.link_target.clone().unwrap_or_default();
-                    symlink(target, &dest).with_context(|| format!("symlink {}", dest.display()))?;
+                    symlink(target, &dest)
+                        .with_context(|| format!("symlink {}", dest.display()))?;
                 }
                 #[cfg(not(unix))]
                 {
@@ -48,7 +65,9 @@ pub fn extract_all_progress(archive: &Path, out_dir: &Path, overwrite: bool, sin
                 }
                 let bytes = ar.read_entry_bytes(&e)?;
                 fs::write(&dest, &bytes).with_context(|| format!("write {}", dest.display()))?;
-                sink.on_event(crate::progress::ProgressEvent::AdvanceBytes { bytes: bytes.len() as u64 });
+                sink.on_event(crate::progress::ProgressEvent::AdvanceBytes {
+                    bytes: bytes.len() as u64,
+                });
                 #[cfg(unix)]
                 {
                     use std::os::unix::fs::PermissionsExt;
@@ -81,7 +100,10 @@ pub fn extract_paths_progress(
     fs::create_dir_all(out_dir)?;
 
     let idx = ar.index().clone();
-    let wanted: HashSet<String> = paths.iter().map(|p| p.to_string_lossy().to_string()).collect();
+    let wanted: HashSet<String> = paths
+        .iter()
+        .map(|p| p.to_string_lossy().to_string())
+        .collect();
 
     let total: u64 = idx
         .entries
@@ -110,4 +132,3 @@ pub fn extract_paths_progress(
     sink.on_event(crate::progress::ProgressEvent::Finish { ok: true });
     Ok(())
 }
-
