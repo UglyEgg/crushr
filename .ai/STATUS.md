@@ -5,25 +5,31 @@
 ## Current Phase / Step
 
 - Phase: 0
-- Step: 0.12
+- Step: 0.11
 - Fix iteration: 0
 
 ## Current Objective
 
-Implement the first real read-only `crushr-fsck --json` impact-reporting path via the existing open parser + impact model.
+Implement the first minimal v1 `crushr-pack` output path that writes BLK3 blocks plus a valid tail frame/FTR4 readable by `open_archive_v1`, `crushr-info --json`, and `crushr-fsck --json`.
 
 ## What Changed (since last Step)
 
-- Added a real `crushr-fsck` binary (`crates/crushr/src/bin/crushr-fsck.rs`) supporting `crushr-fsck <archive> --json`, reusing `open_archive_v1` and returning deterministic exit codes (`1` usage/flags, `2` structural corruption/open failures).
-- Extended `crushr-core::snapshot` with typed fsck report mapping (`FsckVerifyV1`, `FsckBlastRadiusV1`, `FsckSnapshotV1`) and helpers (`fsck_clean_report`, `fsck_snapshot_from_open_archive`, `fsck_envelope_from_open_archive`).
-- Wired fsck clean success output through `ImpactReportV1` (`schema_version=1`, empty corrupted blocks/affected files when metadata path validates).
-- Added fsck tests covering valid JSON emission, deterministic fsck JSON for identical bytes, corrupted footer failure, and corrupted IDX3 hash failure using synthetic archives + temp files.
+- Added a new `crushr-pack` binary (`crates/crushr/src/bin/crushr-pack.rs`) implementing a bounded minimal v1 pack path:
+  - accepts one or more file/dir inputs and `-o/--output`
+  - writes one BLK3 block per file using zstd payloads and BLAKE3 payload/raw hashes
+  - writes IDX3 bytes via existing `crushr::index_codec::encode_index`
+  - assembles/writes tail frame with `crushr_format::tailframe::assemble_tail_frame` (no DCT1/LDG1 yet)
+- Added `crushr-format` dependency to `crates/crushr/Cargo.toml` so `crushr-pack` reuses canonical BLK3/tailframe helpers instead of duplicating format logic.
+- Added integration tests (`crates/crushr-core/tests/minimal_pack_v1.rs`) that validate:
+  - single-file pack -> `open_archive_v1` + `crushr-info --json` + `crushr-fsck --json` success
+  - tiny-directory pack -> deterministic archive bytes for identical inputs
+  - produced archive footer region contains `FTR4` and parsed IDX3/tail metadata is valid
 
 ## What Remains (next actions)
 
-1. Extend open path to locate the last valid tail frame when trailing/corrupt tails exist (recovery scanning behavior).
-2. Expand fsck verification beyond metadata/tail structure into block-level integrity once scope authorizes it.
-3. Run and record the first end-to-end corruption experiment.
+1. Advance to Step 0.13 blast-zone dump implementation (detect+isolate path expansion).
+2. Extend open path recovery behavior to locate the last valid tail frame when trailing/corrupt tails exist.
+3. Expand fsck verification from metadata path into block-level integrity checks when authorized.
 
 ## How to Build / Test (best known)
 

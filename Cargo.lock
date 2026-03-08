@@ -232,6 +232,7 @@ dependencies = [
  "clap_complete",
  "console",
  "crushr-core",
+ "crushr-format",
  "indicatif",
  "rayon",
  "serde",
