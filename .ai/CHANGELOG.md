@@ -90,3 +90,15 @@
 - Replaced `InfoSnapshotV1` skeleton fields with typed summary/tail/dict metadata and added mapping from `OpenArchiveV1`.
 - Added deterministic snapshot JSON serialization helper + tests for minimal archives, DCT1/LDG1 presence, deterministic serialization, and clean invalid-input failure.
 - Added minimal `crushr-info` binary path supporting `crushr-info <archive> --json`.
+
+## 2026-03-08 — Phase 0, Step 0.10 (fix iteration 1)
+
+- Tightened `crushr-core` snapshot emission test assertions to validate typed JSON envelope/payload fields rather than substring presence.
+- Re-ran Step 0.10 verification commands (`cargo test -p crushr-core`, `cargo test -p crushr --no-run`) to confirm read-only info snapshot path remains green.
+- Documented that `crushr-info` end-to-end CLI JSON testing remains blocked on the `crushr` pack path still producing legacy (non-FTR4) archives.
+
+## 2026-03-08 — Phase 0, Step 0.10 (fix iteration 2)
+
+- Added explicit footer metadata to the open/snapshot mapping path (`footer_offset`, `footer_len`, `has_footer`) so `InfoSnapshotV1` emits footer presence/details from parsed archive state.
+- Added `crushr-core` test coverage for the real `crushr-info --json` binary path using synthetic valid archive bytes written to a temp file.
+- Re-ran `cargo fmt --all`, `cargo test -p crushr-core`, and `cargo test -p crushr --no-run`.

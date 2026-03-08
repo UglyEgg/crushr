@@ -6,7 +6,7 @@
 
 - Phase: 0
 - Step: 0.10
-- Fix iteration: 0
+- Fix iteration: 2
 
 ## Current Objective
 
@@ -22,6 +22,11 @@ Implement the first real read-only archive open + `crushr-info --json` snapshot 
   2. DCT1+LDG1 presence reporting,
   3. deterministic JSON serialization,
   4. clean invalid-archive failure.
+- Hardened `crushr-core` info snapshot test coverage to assert parsed JSON envelope/payload fields (`schema_version`, `tool_version`, fingerprint presence, summary/tail offsets) instead of substring checks.
+- Confirmed current `crushr` pack path still emits legacy archives, so a `crushr-info` CLI end-to-end JSON test remains deferred until pack is wired to the v1 tail-frame format.
+
+- Extended `OpenArchiveV1` + `InfoSummaryV1` with explicit footer metadata (`footer_offset`, `footer_len`, `has_footer`) and mapped those fields into real `InfoSnapshotV1` emission.
+- Added a `crushr-core` test that writes synthetic valid v1 archive bytes to a temp file and exercises the real `crushr-info --json` binary path via `cargo run -p crushr --bin crushr-info -- <file> --json`.
 
 ## What Remains (next actions)
 

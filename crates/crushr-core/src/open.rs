@@ -9,6 +9,8 @@ pub struct OpenArchiveV1 {
     pub archive_len: u64,
     pub tail_frame_offset: u64,
     pub tail_frame_len: u64,
+    pub footer_offset: u64,
+    pub footer_len: u64,
     pub tail: TailFrameParts,
 }
 
@@ -44,6 +46,8 @@ pub fn open_archive_v1<R: ReadAt + Len>(reader: &R) -> Result<OpenArchiveV1> {
         archive_len,
         tail_frame_offset,
         tail_frame_len,
+        footer_offset,
+        footer_len: FTR4_LEN as u64,
         tail,
     })
 }
@@ -101,6 +105,8 @@ mod tests {
 
         let opened = open_archive_v1(&reader).unwrap();
         assert_eq!(opened.archive_len as usize, reader.bytes.len());
+        assert_eq!(opened.footer_len, FTR4_LEN as u64);
+        assert_eq!(opened.footer_offset + opened.footer_len, opened.archive_len);
         assert_eq!(opened.tail.footer.index_len, idx3.len() as u64);
         assert!(opened.tail.dct1.is_none());
         assert!(opened.tail.ldg1.is_none());

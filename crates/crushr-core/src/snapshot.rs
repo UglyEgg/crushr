@@ -69,6 +69,9 @@ impl<T> SnapshotEnvelope<T> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InfoSummaryV1 {
     pub archive_len: u64,
+    pub footer_offset: u64,
+    pub footer_len: u64,
+    pub has_footer: bool,
     pub tail_frame_offset: u64,
     pub tail_frame_len: u64,
     pub raw_idx3_len: u64,
@@ -112,6 +115,9 @@ pub fn info_snapshot_from_open_archive(open: &OpenArchiveV1) -> InfoSnapshotV1 {
     InfoSnapshotV1 {
         summary: InfoSummaryV1 {
             archive_len: open.archive_len,
+            footer_offset: open.footer_offset,
+            footer_len: open.footer_len,
+            has_footer: true,
             tail_frame_offset: open.tail_frame_offset,
             tail_frame_len: open.tail_frame_len,
             raw_idx3_len: open.tail.idx3_bytes.len() as u64,
@@ -183,6 +189,9 @@ mod tests {
         ledger::LedgerBlob,
         tailframe::assemble_tail_frame,
     };
+    use std::fs;
+    use std::process::Command;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[derive(Clone)]
     struct MemReader {
@@ -240,10 +249,27 @@ mod tests {
 
         let env = info_envelope_from_open_archive(&open, "0.2.2", "1970-01-01T00:00:00Z");
         let json = serialize_snapshot_json(&env).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
 
-        assert!(json.contains("\"schema_version\": 1"));
-        assert!(json.contains("\"tool\": \"crushr-info\""));
-        assert!(json.contains("\"raw_idx3_len\": 7"));
+        assert_eq!(value["schema_version"], 1);
+        assert_eq!(value["tool"], "crushr-info");
+        assert_eq!(value["tool_version"], "0.2.2");
+        assert!(value["archive_fingerprint"].is_string());
+
+        let summary = &value["payload"]["summary"];
+        assert_eq!(summary["archive_len"], open.archive_len);
+        assert_eq!(summary["footer_offset"], open.footer_offset);
+        assert_eq!(summary["footer_len"], open.footer_len);
+        assert_eq!(summary["has_footer"], true);
+        assert_eq!(summary["tail_frame_offset"], open.tail_frame_offset);
+        assert_eq!(summary["tail_frame_len"], open.tail_frame_len);
+        assert_eq!(summary["raw_idx3_len"], idx3.len() as u64);
+        assert_eq!(summary["has_dct1"], false);
+        assert_eq!(summary["has_ldg1"], false);
+
+        let tail = &value["payload"]["tail_frames"][0];
+        assert_eq!(tail["index_len"], open.tail.footer.index_len);
+        assert_eq!(tail["ledger_len"], open.tail.footer.ledger_len);
     }
 
     #[test]
@@ -289,5 +315,51 @@ mod tests {
 
         let msg = format!("{err:#}");
         assert!(msg.contains("archive too short") || msg.contains("parse FTR4"));
+    }
+
+    #[test]
+    fn crushr_info_binary_emits_json_for_synthetic_archive() {
+        let bytes = build_archive(24, None, b"IDX3\x33\x44", None);
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("crushr-info-synth-{unique}.crs"));
+        fs::write(&path, &bytes).unwrap();
+
+        let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(std::path::Path::parent)
+            .unwrap();
+
+        let output = Command::new("cargo")
+            .current_dir(workspace_root)
+            .args([
+                "run",
+                "-q",
+                "-p",
+                "crushr",
+                "--bin",
+                "crushr-info",
+                "--",
+                path.to_str().unwrap(),
+                "--json",
+            ])
+            .output()
+            .unwrap();
+
+        let _ = fs::remove_file(&path);
+
+        assert!(
+            output.status.success(),
+            "stdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(value["schema_version"], 1);
+        assert_eq!(value["tool"], "crushr-info");
+        assert_eq!(value["payload"]["summary"]["raw_idx3_len"], 6);
     }
 }
