@@ -9,6 +9,9 @@ Start with:
 6. `SPEC.md` and `docs/CONTRACTS/*`
 
 Current shape:
+- `crushr-core::verify` now performs read-only BLK3 scan + payload-hash checks across the blocks region; fsck now reports real `corrupted_blocks` when payload bytes are corrupted.
+- `crushr-fsck` snapshot/envelope APIs now require reader access so verification runs against archive bytes while preserving deterministic JSON output.
+- `crates/crushr-core/tests/minimal_pack_v1.rs` now includes a real payload-byte corruption case asserting `corrupted_blocks: [0]` and retained footer-corruption failure behavior.
 - Workspace hygiene pass fixed `crates/crushr/tests/mvp.rs` binary/path assumptions; `cargo test --workspace` now passes in current environment.
 - `crushr-info` now mirrors `crushr-fsck` exit-code policy for open/parse/structural failures (exit `2`), with usage errors at exit `1`; binary-path tests enforce this in `crushr-core::snapshot` tests.
 - First real e2e corruption experiment is now recorded at `docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip/` and summarized in `docs/RESEARCH/RESULTS.md` (seeded byteflip, clean pass, corrupt parse failure).

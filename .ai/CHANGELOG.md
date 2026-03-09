@@ -129,3 +129,11 @@
 - Added/extended binary-path tests in `crushr-core::snapshot` for `crushr-info` structural-failure exit code and info/fsck missing-archive open-failure parity.
 - Clarified the normalized tool behavior in `docs/CONTRACTS/ERROR_MODEL.md`.
 - Re-ran and passed `cargo test --workspace`.
+
+
+## 2026-03-09 — Phase F, Step F.3 (fix iteration 2: BLK3 payload verification path)
+
+- Added `crushr-core::verify` with typed BLK3 scanning and payload-hash verification over stored compressed payload bytes.
+- Integrated verification into `crushr-fsck` snapshot generation so `blast_radius.impact.corrupted_blocks` now reports payload corruption block IDs.
+- Added tests for clean/corrupt payload cases, deterministic fsck JSON for identical bytes, and preserved footer/tail corruption behavior.
+- Re-ran and passed `cargo test -p crushr-core` and `cargo test --workspace`.

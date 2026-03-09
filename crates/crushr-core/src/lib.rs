@@ -11,3 +11,4 @@ pub mod open;
 pub mod snapshot;
 
 pub mod impact;
+pub mod verify;

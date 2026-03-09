@@ -49,8 +49,12 @@ fn run() -> Result<()> {
     };
 
     let opened = open_archive_v1(&reader)?;
-    let snapshot =
-        fsck_envelope_from_open_archive(&opened, env!("CARGO_PKG_VERSION"), "1970-01-01T00:00:00Z");
+    let snapshot = fsck_envelope_from_open_archive(
+        &opened,
+        &reader,
+        env!("CARGO_PKG_VERSION"),
+        "1970-01-01T00:00:00Z",
+    )?;
     println!("{}", serialize_snapshot_json(&snapshot)?);
     Ok(())
 }

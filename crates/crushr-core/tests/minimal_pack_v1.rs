@@ -161,3 +161,85 @@ fn pack_directory_and_output_is_deterministic() {
 
     let _ = fs::remove_dir_all(&root);
 }
+
+#[test]
+fn fsck_reports_corrupted_block_for_payload_byte_flip() {
+    ensure_bins_built();
+
+    let root = unique_dir("crushr-pack-v1-corrupt-payload");
+    fs::create_dir_all(&root).unwrap();
+
+    let input = root.join("hello.txt");
+    fs::write(
+        &input,
+        b"hello minimal v1 payload corruption
+",
+    )
+    .unwrap();
+    let archive = root.join("single.crs");
+
+    let out = run_bin(
+        "crushr-pack",
+        &[
+            input.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--level",
+            "3",
+        ],
+    );
+    assert_ok(&out);
+
+    let reader = FileReader {
+        file: fs::File::open(&archive).unwrap(),
+    };
+    let _opened = open_archive_v1(&reader).unwrap();
+
+    let mut bytes = fs::read(&archive).unwrap();
+    // First block payload byte: [BLK3 header(64)] + payload starts at offset 64.
+    bytes[64] ^= 0x01;
+    let corrupt_archive = root.join("single-corrupt.crs");
+    fs::write(&corrupt_archive, bytes).unwrap();
+
+    let fsck = run_bin(
+        "crushr-fsck",
+        &[corrupt_archive.to_str().unwrap(), "--json"],
+    );
+    assert_ok(&fsck);
+    let fsck_json: serde_json::Value = serde_json::from_slice(&fsck.stdout).unwrap();
+    assert_eq!(fsck_json["tool"], "crushr-fsck");
+    assert_eq!(fsck_json["payload"]["verify"]["status"], "ok");
+    assert_eq!(
+        fsck_json["payload"]["blast_radius"]["impact"]["corrupted_blocks"],
+        serde_json::json!([0])
+    );
+    assert!(
+        fsck_json["payload"]["blast_radius"]["impact"]["affected_files"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+
+    // Deterministic for identical archive bytes + corruption input.
+    let fsck_again = run_bin(
+        "crushr-fsck",
+        &[corrupt_archive.to_str().unwrap(), "--json"],
+    );
+    assert_ok(&fsck_again);
+    assert_eq!(fsck.stdout, fsck_again.stdout);
+
+    // Tail/footer corruption still fails structurally (exit code 2).
+    let mut tail_corrupt = fs::read(&archive).unwrap();
+    let last = tail_corrupt.len() - 1;
+    tail_corrupt[last] ^= 0x01;
+    let footer_corrupt_archive = root.join("single-footer-corrupt.crs");
+    fs::write(&footer_corrupt_archive, tail_corrupt).unwrap();
+
+    let fsck_tail = run_bin(
+        "crushr-fsck",
+        &[footer_corrupt_archive.to_str().unwrap(), "--json"],
+    );
+    assert_eq!(fsck_tail.status.code(), Some(2));
+
+    let _ = fs::remove_dir_all(&root);
+}

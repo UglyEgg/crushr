@@ -3,7 +3,9 @@
 //! The normative JSON contract is documented in `docs/SNAPSHOT_FORMAT.md`.
 
 use crate::impact::{enumerate_impact_v1, ImpactReportV1};
+use crate::io::{Len, ReadAt};
 use crate::open::OpenArchiveV1;
+use crate::verify::verify_block_payloads_v1;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -198,8 +200,13 @@ pub fn fsck_clean_report() -> ImpactReportV1 {
     enumerate_impact_v1(&Default::default(), &[])
 }
 
-pub fn fsck_snapshot_from_open_archive(open: &OpenArchiveV1) -> FsckSnapshotV1 {
-    FsckSnapshotV1 {
+pub fn fsck_snapshot_from_open_archive<R: ReadAt + Len>(
+    open: &OpenArchiveV1,
+    reader: &R,
+) -> anyhow::Result<FsckSnapshotV1> {
+    let corrupted_blocks = verify_block_payloads_v1(reader, open.tail.footer.blocks_end_offset)?;
+
+    Ok(FsckSnapshotV1 {
         verify: FsckVerifyV1 {
             status: "ok".to_string(),
             has_footer: open.footer_len > 0,
@@ -209,19 +216,20 @@ pub fn fsck_snapshot_from_open_archive(open: &OpenArchiveV1) -> FsckSnapshotV1 {
         },
         blast_radius: FsckBlastRadiusV1 {
             structural_components_untrusted: Vec::new(),
-            impact: fsck_clean_report(),
+            impact: enumerate_impact_v1(&corrupted_blocks, &[]),
         },
         salvage_plan: None,
         dump_paths: None,
-    }
+    })
 }
 
-pub fn fsck_envelope_from_open_archive(
+pub fn fsck_envelope_from_open_archive<R: ReadAt + Len>(
     open: &OpenArchiveV1,
+    reader: &R,
     tool_version: &str,
     generated_at_utc: &str,
-) -> SnapshotEnvelope<FsckSnapshotV1> {
-    SnapshotEnvelope::new(
+) -> anyhow::Result<SnapshotEnvelope<FsckSnapshotV1>> {
+    Ok(SnapshotEnvelope::new(
         "crushr-fsck",
         tool_version,
         generated_at_utc,
@@ -229,8 +237,8 @@ pub fn fsck_envelope_from_open_archive(
             open.tail.footer.index_hash,
             open.tail.footer.footer_hash,
         ),
-        fsck_snapshot_from_open_archive(open),
-    )
+        fsck_snapshot_from_open_archive(open, reader)?,
+    ))
 }
 
 #[cfg(test)]
@@ -240,6 +248,7 @@ mod tests {
     use crate::{io::Len, io::ReadAt};
     use anyhow::Result;
     use crushr_format::{
+        blk3::{write_blk3_header, Blk3Flags, Blk3Header},
         dct1::{Dct1Entry, Dct1Table},
         ledger::LedgerBlob,
         tailframe::assemble_tail_frame,
@@ -285,6 +294,28 @@ mod tests {
         let tail = assemble_tail_frame(blocks_end_offset, dct1, idx3, ledger).unwrap();
         bytes.extend_from_slice(&tail);
         bytes
+    }
+
+    fn build_archive_with_real_block(payload: &[u8]) -> Vec<u8> {
+        let mut blocks = Vec::new();
+        let header = Blk3Header {
+            header_len: 68,
+            flags: Blk3Flags(Blk3Flags::HAS_PAYLOAD_HASH),
+            codec: 1,
+            level: 3,
+            dict_id: 0,
+            raw_len: payload.len() as u64,
+            comp_len: payload.len() as u64,
+            payload_hash: Some(*blake3::hash(payload).as_bytes()),
+            raw_hash: None,
+        };
+        write_blk3_header(&mut blocks, &header).unwrap();
+        blocks.extend_from_slice(payload);
+
+        let blocks_end_offset = blocks.len() as u64;
+        let tail = assemble_tail_frame(blocks_end_offset, None, b"IDX33D", None).unwrap();
+        blocks.extend_from_slice(&tail);
+        blocks
     }
 
     #[test]
@@ -374,7 +405,7 @@ mod tests {
 
     #[test]
     fn crushr_info_binary_emits_json_for_synthetic_archive() {
-        let bytes = build_archive(24, None, b"IDX3\x33\x44", None);
+        let bytes = build_archive_with_real_block(b"payload");
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -420,7 +451,7 @@ mod tests {
 
     #[test]
     fn crushr_fsck_binary_emits_clean_json_for_synthetic_archive() {
-        let bytes = build_archive(24, None, b"IDX3\x33\x44", None);
+        let bytes = build_archive_with_real_block(b"payload");
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -473,7 +504,7 @@ mod tests {
 
     #[test]
     fn crushr_fsck_binary_fails_cleanly_for_corrupt_footer() {
-        let mut bytes = build_archive(24, None, b"IDX3\x33\x44", None);
+        let mut bytes = build_archive_with_real_block(b"payload");
         let last = bytes.len() - 1;
         bytes[last] ^= 0x01;
 
@@ -513,8 +544,13 @@ mod tests {
 
     #[test]
     fn crushr_fsck_binary_fails_cleanly_for_corrupt_idx3_hash() {
-        let mut bytes = build_archive(24, None, b"IDX3\x10\x20\x30", None);
-        bytes[25] ^= 0x01;
+        let mut bytes = build_archive_with_real_block(b"payload");
+        let open = open_archive_v1(&MemReader {
+            bytes: bytes.clone(),
+        })
+        .unwrap();
+        let idx_off = open.tail.footer.index_offset as usize;
+        bytes[idx_off + 1] ^= 0x01;
 
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -552,7 +588,7 @@ mod tests {
 
     #[test]
     fn crushr_info_binary_fails_cleanly_for_corrupt_footer() {
-        let mut bytes = build_archive(24, None, b"IDX3\x33\x44", None);
+        let mut bytes = build_archive_with_real_block(b"payload");
         let last = bytes.len() - 1;
         bytes[last] ^= 0x01;
 
@@ -643,12 +679,21 @@ mod tests {
 
     #[test]
     fn fsck_serialization_is_deterministic_for_identical_archive_bytes() {
-        let bytes = build_archive(24, None, b"IDX3\x90\x91", None);
+        let bytes = build_archive_with_real_block(b"payload");
         let open_a = open_from_bytes(bytes.clone());
-        let open_b = open_from_bytes(bytes);
+        let open_b = open_from_bytes(bytes.clone());
 
-        let env_a = fsck_envelope_from_open_archive(&open_a, "0.2.2", "1970-01-01T00:00:00Z");
-        let env_b = fsck_envelope_from_open_archive(&open_b, "0.2.2", "1970-01-01T00:00:00Z");
+        let reader_a = MemReader {
+            bytes: bytes.clone(),
+        };
+        let reader_b = MemReader { bytes };
+
+        let env_a =
+            fsck_envelope_from_open_archive(&open_a, &reader_a, "0.2.2", "1970-01-01T00:00:00Z")
+                .unwrap();
+        let env_b =
+            fsck_envelope_from_open_archive(&open_b, &reader_b, "0.2.2", "1970-01-01T00:00:00Z")
+                .unwrap();
 
         let json_a = serialize_snapshot_json(&env_a).unwrap();
         let json_b = serialize_snapshot_json(&env_b).unwrap();
