@@ -167,3 +167,11 @@
 - Kept strict extraction behavior unchanged: unaffected files still extract, refused files are still skipped and deterministically reported.
 - Extended extraction integration tests to cover clean archives in both modes, selective-refusal exit `0`/`3` split by policy, structural-failure exit `2` in both modes, and stable refusal reporting.
 - Updated `docs/CONTRACTS/ERROR_MODEL.md` and `PROJECT_STATE.md` for the new policy-controlled exit contract.
+
+## 2026-03-09 — Phase 0, Step 0.14 (fix iteration 2: strict extraction JSON reporting)
+
+- Added `--json` to `crushr-extract` for deterministic strict extraction result reporting.
+- JSON reports now include `overall_status`, deterministic `extracted_files`, and `refused_files` entries with stable refusal reason `corrupted_required_blocks`.
+- Preserved existing strict behavior and refusal-exit semantics (`success` => exit `0` on refusals, `partial-failure` => exit `3`, structural failures => exit `2`) while adding JSON error envelopes for non-success cases.
+- Extended `minimal_pack_v1` integration tests to cover clean JSON success, partial-refusal JSON under both refusal policies, structural-failure JSON behavior, and deterministic output for identical inputs.
+- Updated `docs/CONTRACTS/ERROR_MODEL.md`, `docs/ARCHITECTURE.md`, and `PROJECT_STATE.md` accordingly.

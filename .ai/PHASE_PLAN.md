@@ -20,7 +20,7 @@
 - [x] Step 0.11: Minimal pack path with BLK3 (no dicts yet)
 - [x] Step 0.12: `crushr-fsck` verify (detect+isolate baseline)
 - [ ] Step 0.13: Blast-zone dump implementation
-- [x] Step 0.14: Strict minimal-v1 extraction path (regular files only, corruption-aware refusal, strict mode only; fix iteration 1 adds policy-controlled refusal-exit semantics)
+- [x] Step 0.14: Strict minimal-v1 extraction path (regular files only, corruption-aware refusal, strict mode only; fix iteration 1 adds policy-controlled refusal-exit semantics; fix iteration 2 adds deterministic `--json` extraction reporting)
 
 ## Phase F — Failure-Domain Validation
 

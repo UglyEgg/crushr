@@ -10,7 +10,7 @@ Implemented:
 - BLK3 / DCT1 / FTR4 format primitives
 - snapshot envelope types
 - initial impact enumeration model
-- strict minimal-v1 extraction path (`crushr-extract`) for regular files with corruption refusal by verified block health and policy-controlled refusal exit semantics (`--refusal-exit`)
+- strict minimal-v1 extraction path (`crushr-extract`) for regular files with corruption refusal by verified block health, policy-controlled refusal exit semantics (`--refusal-exit`), and deterministic machine-readable extraction reporting (`--json`)
 - contracts / research scaffolding
 
 Not yet complete:

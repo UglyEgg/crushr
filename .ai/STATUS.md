@@ -4,18 +4,19 @@
 
 - Phase: 0
 - Step: 0.14
-- Fix iteration: 1
+- Fix iteration: 2
 
 ## Current Objective
 
-Deliver the first strict extraction path for minimal v1 archives: clean extraction for regular files, deterministic refusal of files requiring corrupted blocks, and explicit failure on invalid archive structure.
+Add deterministic machine-readable JSON extraction result reporting to strict minimal-v1 extraction without changing strict extraction/refusal semantics.
 
 ## What Changed (since last Step)
 
-- Added a policy-controlled refusal exit flag to `crushr-extract`: `--refusal-exit <success|partial-failure>` with default `success`.
-- Strict extraction behavior is preserved: unaffected files still extract, refused files are still reported deterministically on stderr, and refusal reporting remains stable.
-- Added integration coverage for both refusal policies on clean archives, selective-refusal archives, and structurally invalid archives.
-- Updated contract/state docs to record exit code `3` semantics for policy-requested partial extraction refusal signaling in strict extraction.
+- Added `--json` mode to `crushr-extract` for strict extraction with deterministic machine-readable reporting.
+- JSON success/partial reports now include deterministic `extracted_files` and `refused_files` (`reason = "corrupted_required_blocks"`), while strict refusal behavior remains unchanged.
+- Preserved refusal-exit policy semantics independently from JSON output: `success` keeps exit `0` on refusal, `partial-failure` returns exit `3` for refusal, and structural/open/parse failures remain exit `2`.
+- Added integration coverage for clean success JSON, partial-refusal JSON under both refusal policies, structural failure JSON error envelope behavior, and deterministic serialization for identical inputs.
+- Updated `docs/CONTRACTS/ERROR_MODEL.md`, `docs/ARCHITECTURE.md`, and `PROJECT_STATE.md` for the new strict extraction JSON mode.
 
 ## What Remains (next actions)
 

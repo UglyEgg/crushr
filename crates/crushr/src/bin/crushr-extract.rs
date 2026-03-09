@@ -7,6 +7,7 @@ use crushr_core::{
     verify::{scan_blocks_v1, verify_block_payloads_v1},
 };
 use crushr_format::blk3::read_blk3_header;
+use serde::Serialize;
 use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::io::Cursor;
@@ -50,31 +51,43 @@ impl RefusalExitPolicy {
     }
 }
 
-#[derive(Debug)]
-struct RefusalError {
-    count: usize,
-}
-
-impl std::fmt::Display for RefusalError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "strict extraction had refused files due to corrupted required blocks: {}",
-            self.count
-        )
-    }
-}
-
-impl std::error::Error for RefusalError {}
-
 const USAGE: &str =
-    "usage: crushr-extract <archive> -o <out-dir> [--overwrite] [--refusal-exit <success|partial-failure>]";
+    "usage: crushr-extract <archive> -o <out-dir> [--overwrite] [--refusal-exit <success|partial-failure>] [--json]";
 
-fn run() -> Result<()> {
+#[derive(Debug)]
+struct CliOptions {
+    archive: PathBuf,
+    out_dir: PathBuf,
+    overwrite: bool,
+    refusal_exit: RefusalExitPolicy,
+    json: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct RefusedFileReport {
+    path: String,
+    reason: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct ExtractionReport {
+    overall_status: &'static str,
+    extracted_files: Vec<String>,
+    refused_files: Vec<RefusedFileReport>,
+}
+
+#[derive(Debug, Serialize)]
+struct ExtractionErrorReport {
+    overall_status: &'static str,
+    error: String,
+}
+
+fn parse_cli_options() -> Result<CliOptions> {
     let mut archive = None;
     let mut out_dir = None;
     let mut overwrite = false;
     let mut refusal_exit = RefusalExitPolicy::Success;
+    let mut json = false;
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -83,6 +96,8 @@ fn run() -> Result<()> {
             out_dir = Some(PathBuf::from(value));
         } else if arg == "--overwrite" {
             overwrite = true;
+        } else if arg == "--json" {
+            json = true;
         } else if arg == "--refusal-exit" {
             let value = args.next().context(USAGE)?;
             refusal_exit = RefusalExitPolicy::parse(&value).with_context(|| {
@@ -99,11 +114,19 @@ fn run() -> Result<()> {
         }
     }
 
-    let archive = archive.context(USAGE)?;
-    let out_dir = out_dir.context(USAGE)?;
+    Ok(CliOptions {
+        archive: archive.context(USAGE)?,
+        out_dir: out_dir.context(USAGE)?,
+        overwrite,
+        refusal_exit,
+        json,
+    })
+}
 
+fn run(opts: &CliOptions) -> Result<ExtractionReport> {
     let reader = FileReader {
-        file: File::open(&archive).with_context(|| format!("open {}", archive.display()))?,
+        file: File::open(&opts.archive)
+            .with_context(|| format!("open {}", opts.archive.display()))?,
     };
 
     let opened = open_archive_v1(&reader)?;
@@ -111,13 +134,15 @@ fn run() -> Result<()> {
     let index = decode_index(&opened.tail.idx3_bytes).context("decode IDX3")?;
     let corrupted = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
 
-    fs::create_dir_all(&out_dir).with_context(|| format!("create {}", out_dir.display()))?;
+    fs::create_dir_all(&opts.out_dir)
+        .with_context(|| format!("create {}", opts.out_dir.display()))?;
 
     let mut payload_cache = BTreeMap::<u32, BlockPayload>::new();
     let mut entries: Vec<Entry> = index.entries;
     entries.sort_by(|a, b| a.path.cmp(&b.path));
 
-    let mut refused = Vec::new();
+    let mut extracted_files = Vec::new();
+    let mut refused_files = Vec::new();
 
     for entry in entries {
         if entry.kind != EntryKind::Regular {
@@ -132,30 +157,37 @@ fn run() -> Result<()> {
             .iter()
             .any(|extent| corrupted.contains(&extent.block_id))
         {
-            refused.push(entry.path);
+            refused_files.push(RefusedFileReport {
+                path: entry.path,
+                reason: "corrupted_required_blocks",
+            });
             continue;
         }
 
         let bytes = read_entry_bytes_strict(&reader, &entry, &blocks, &mut payload_cache)?;
-        let destination = out_dir.join(&entry.path);
-        write_entry(destination.as_path(), &bytes, overwrite)?;
+        let destination = opts.out_dir.join(&entry.path);
+        write_entry(destination.as_path(), &bytes, opts.overwrite)?;
+        extracted_files.push(entry.path);
     }
 
-    if !refused.is_empty() {
-        let refused_count = refused.len();
-        for path in refused {
-            eprintln!("strict: refused extraction due to corrupted required blocks: {path}");
-        }
-
-        if refusal_exit == RefusalExitPolicy::PartialFailure {
-            return Err(RefusalError {
-                count: refused_count,
-            }
-            .into());
+    if !refused_files.is_empty() {
+        for refused in &refused_files {
+            eprintln!(
+                "strict: refused extraction due to corrupted required blocks: {}",
+                refused.path
+            );
         }
     }
 
-    Ok(())
+    Ok(ExtractionReport {
+        overall_status: if refused_files.is_empty() {
+            "success"
+        } else {
+            "partial_refusal"
+        },
+        extracted_files,
+        refused_files,
+    })
 }
 
 fn read_entry_bytes_strict(
@@ -256,8 +288,31 @@ fn read_exact_at<R: ReadAt>(reader: &R, mut offset: u64, mut dst: &mut [u8]) -> 
 }
 
 fn main() {
-    match run() {
-        Ok(()) => std::process::exit(0),
+    let opts = match parse_cli_options() {
+        Ok(opts) => opts,
+        Err(err) => {
+            eprintln!("{err:#}");
+            std::process::exit(1);
+        }
+    };
+
+    match run(&opts) {
+        Ok(report) => {
+            if opts.json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).expect("serialize extraction report")
+                );
+            }
+            let code = if report.overall_status == "partial_refusal"
+                && opts.refusal_exit == RefusalExitPolicy::PartialFailure
+            {
+                3
+            } else {
+                0
+            };
+            std::process::exit(code);
+        }
         Err(err) => {
             eprintln!("{err:#}");
             let msg = format!("{err:#}");
@@ -267,13 +322,21 @@ fn main() {
                 || msg.contains("unsupported value for --refusal-exit")
             {
                 1
-            } else if msg
-                .contains("strict extraction had refused files due to corrupted required blocks")
-            {
-                3
             } else {
                 2
             };
+
+            if opts.json {
+                let json_err = ExtractionErrorReport {
+                    overall_status: "error",
+                    error: msg,
+                };
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json_err)
+                        .expect("serialize extraction error report")
+                );
+            }
             std::process::exit(code);
         }
     }

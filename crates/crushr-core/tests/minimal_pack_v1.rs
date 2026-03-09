@@ -293,9 +293,26 @@ fn extract_single_file_roundtrip() {
             out_dir.to_str().unwrap(),
             "--refusal-exit",
             "success",
+            "--json",
         ],
     );
     assert_ok(&extracted_success);
+    let extracted_success_json: serde_json::Value =
+        serde_json::from_slice(&extracted_success.stdout).unwrap();
+    assert_eq!(extracted_success_json["overall_status"], "success");
+    assert_eq!(
+        extracted_success_json["refused_files"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+    assert_eq!(
+        extracted_success_json["extracted_files"]
+            .as_array()
+            .unwrap(),
+        &[serde_json::json!("single.txt")]
+    );
     assert_eq!(
         fs::read(out_dir.join("single.txt")).unwrap(),
         b"extract me\n"
@@ -310,9 +327,13 @@ fn extract_single_file_roundtrip() {
             out_dir_partial.to_str().unwrap(),
             "--refusal-exit",
             "partial-failure",
+            "--json",
         ],
     );
     assert_ok(&extracted_partial);
+    let extracted_partial_json: serde_json::Value =
+        serde_json::from_slice(&extracted_partial.stdout).unwrap();
+    assert_eq!(extracted_partial_json["overall_status"], "success");
     assert_eq!(
         fs::read(out_dir_partial.join("single.txt")).unwrap(),
         b"extract me\n"
@@ -391,9 +412,28 @@ fn extract_refuses_affected_file_and_keeps_unaffected_file() {
             out_dir_success_a.to_str().unwrap(),
             "--refusal-exit",
             "success",
+            "--json",
         ],
     );
     assert_ok(&extracted_success_a);
+    let extracted_success_a_json: serde_json::Value =
+        serde_json::from_slice(&extracted_success_a.stdout).unwrap();
+    assert_eq!(
+        extracted_success_a_json["overall_status"],
+        "partial_refusal"
+    );
+    assert_eq!(
+        extracted_success_a_json["extracted_files"]
+            .as_array()
+            .unwrap(),
+        &[serde_json::json!("b.txt")]
+    );
+    assert_eq!(
+        extracted_success_a_json["refused_files"]
+            .as_array()
+            .unwrap(),
+        &[serde_json::json!({"path": "a.txt", "reason": "corrupted_required_blocks"})]
+    );
     assert!(!out_dir_success_a.join("a.txt").exists());
     assert_eq!(
         fs::read(out_dir_success_a.join("b.txt")).unwrap(),
@@ -409,10 +449,12 @@ fn extract_refuses_affected_file_and_keeps_unaffected_file() {
             out_dir_success_b.to_str().unwrap(),
             "--refusal-exit",
             "success",
+            "--json",
         ],
     );
     assert_ok(&extracted_success_b);
     assert_eq!(extracted_success_a.stderr, extracted_success_b.stderr);
+    assert_eq!(extracted_success_a.stdout, extracted_success_b.stdout);
 
     let out_dir_partial_a = root.join("out-partial-a");
     let extracted_partial_a = run_bin(
@@ -423,9 +465,16 @@ fn extract_refuses_affected_file_and_keeps_unaffected_file() {
             out_dir_partial_a.to_str().unwrap(),
             "--refusal-exit",
             "partial-failure",
+            "--json",
         ],
     );
     assert_err_code_3(&extracted_partial_a);
+    let extracted_partial_a_json: serde_json::Value =
+        serde_json::from_slice(&extracted_partial_a.stdout).unwrap();
+    assert_eq!(
+        extracted_partial_a_json["overall_status"],
+        "partial_refusal"
+    );
     assert!(!out_dir_partial_a.join("a.txt").exists());
     assert_eq!(
         fs::read(out_dir_partial_a.join("b.txt")).unwrap(),
@@ -441,10 +490,12 @@ fn extract_refuses_affected_file_and_keeps_unaffected_file() {
             out_dir_partial_b.to_str().unwrap(),
             "--refusal-exit",
             "partial-failure",
+            "--json",
         ],
     );
     assert_err_code_3(&extracted_partial_b);
     assert_eq!(extracted_partial_a.stderr, extracted_partial_b.stderr);
+    assert_eq!(extracted_partial_a.stdout, extracted_partial_b.stdout);
 
     let _ = fs::remove_dir_all(&root);
 }
@@ -481,9 +532,13 @@ fn extract_fails_for_invalid_footer() {
             out_dir_success.to_str().unwrap(),
             "--refusal-exit",
             "success",
+            "--json",
         ],
     );
     assert_err_code_2(&extracted_success);
+    let extracted_success_json: serde_json::Value =
+        serde_json::from_slice(&extracted_success.stdout).unwrap();
+    assert_eq!(extracted_success_json["overall_status"], "error");
 
     let out_dir_partial = root.join("out-partial");
     let extracted_partial = run_bin(
@@ -494,9 +549,11 @@ fn extract_fails_for_invalid_footer() {
             out_dir_partial.to_str().unwrap(),
             "--refusal-exit",
             "partial-failure",
+            "--json",
         ],
     );
     assert_err_code_2(&extracted_partial);
+    assert_eq!(extracted_success.stdout, extracted_partial.stdout);
 
     let _ = fs::remove_dir_all(&root);
 }
