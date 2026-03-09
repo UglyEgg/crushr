@@ -4,36 +4,33 @@
 
 - Phase: F
 - Step: F.3
-- Fix iteration: 2
+- Fix iteration: 3
 
 ## Current Objective
 
-Implement first real BLK3 block-payload verification in `crushr-fsck` and surface corrupted block IDs via existing impact reporting.
+Provide a deterministic command entrypoint for reproducing the current small corruption-validation experiment matrix and keeping research artifacts aligned.
 
 ## What Changed (since last Step)
 
-- Added `crushr-core::verify` with read-only BLK3 block scanning (`scan_blocks_v1`) and payload-hash verification (`verify_block_payloads_v1`) over the blocks region up to `footer.blocks_end_offset`.
-- Wired `crushr-fsck` snapshot generation to run block payload verification and populate `blast_radius.impact.corrupted_blocks` deterministically (while keeping `affected_files` empty until real IDX3 extent mapping is wired).
-- Updated `crushr-fsck` binary integration to pass the archive reader into fsck snapshot generation so verification runs against real archive bytes.
-- Added/updated tests for:
-  - clean payload verification (`corrupted_blocks = []`)
-  - payload-byte corruption (`corrupted_blocks` includes the damaged block id)
-  - deterministic fsck JSON for identical bytes
-  - preserved footer/tail structural corruption failure behavior.
-- Verified with `cargo test -p crushr-core` and `cargo test --workspace`.
+- Added `crushr-lab run-first-experiment` to execute the current structural-validation loop end-to-end: fixture generation, `crushr-pack`, deterministic `byteflip` corruption, `crushr-info --json`, and `crushr-fsck --json` checks.
+- Runner now writes artifacts deterministically into `docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip` by default (or a caller-provided directory), and hard-fails on expectation mismatch (including expected nonzero exit code checks for corrupt archive info/fsck).
+- Added integration coverage to assert the runner produces the expected artifact set and identifiers.
+- Updated research docs to include the explicit runner invocation and limitations language, then refreshed the recorded artifact manifest with runner-managed command metadata.
+- Verified via `cargo test -p crushr-lab` and `cargo test --workspace`.
 
 ## What Remains (next actions)
 
-1. Continue Phase F.3 with additional controlled fixture classes (many-small + mixed datasets).
+1. Continue Phase F.3 with additional controlled fixture classes (many-small + mixed datasets) when packeted.
 2. Keep impact mapping read-only and add real IDX3 file/extent integration in a later bounded packet.
 3. Prepare bounded Phase F.4 baseline-comparison packet after explicit approval.
 
 ## How to Build / Test (best known)
 
-- `cargo test -p crushr-core`
+- `cargo run -q -p crushr-lab --bin crushr-lab -- run-first-experiment`
+- `cargo test -p crushr-lab`
 - `cargo test --workspace`
 
 ## Active constraints / gotchas
 
-- Existing workspace warnings remain in legacy areas (`crushr` and `crushr-tui`) but are non-blocking for current test gate.
-- Impact mapping is still intentionally decompression-free and currently does not derive real file-level extents from IDX3 in this path.
+- Existing workspace warnings remain in legacy areas (`crushr` and `crushr-tui`) but are non-blocking for the current test gate.
+- This runner intentionally targets only the existing single-experiment structural validation path; it is not a benchmark/comparison harness.

@@ -137,3 +137,11 @@
 - Integrated verification into `crushr-fsck` snapshot generation so `blast_radius.impact.corrupted_blocks` now reports payload corruption block IDs.
 - Added tests for clean/corrupt payload cases, deterministic fsck JSON for identical bytes, and preserved footer/tail corruption behavior.
 - Re-ran and passed `cargo test -p crushr-core` and `cargo test --workspace`.
+
+
+## 2026-03-09 — Phase F, Step F.3 (fix iteration 3: reproducible experiment runner path)
+
+- Added `crushr-lab run-first-experiment` to deterministically execute the current first structural corruption experiment (fixture → pack → corrupt → info/fsck).
+- Added expectation-gated artifact emission (defaulting to `docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip/`) including clean JSON outputs, corrupt exit/stderr captures, and refreshed manifest fields.
+- Added integration coverage ensuring runner artifact presence and experiment-id/exit-code consistency.
+- Updated `docs/RESEARCH/EXPERIMENT_METHOD.md` and `docs/RESEARCH/RESULTS.md` with the explicit runner command and clear small-scope limitation wording.

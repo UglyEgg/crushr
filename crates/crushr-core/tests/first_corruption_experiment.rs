@@ -168,6 +168,64 @@ fn first_e2e_corruption_experiment_loop() {
 }
 
 #[test]
+fn first_experiment_runner_writes_expected_artifacts() {
+    ensure_bins_built();
+
+    let root = unique_dir("crushr-first-exp-runner");
+    fs::create_dir_all(&root).unwrap();
+
+    let out = run_bin(
+        "crushr-lab",
+        &[
+            "run-first-experiment",
+            "--artifact-dir",
+            root.to_str().unwrap(),
+        ],
+    );
+    assert_ok(&out);
+
+    let expected = [
+        "fixture.txt",
+        "clean.crs",
+        "clean.info.json",
+        "clean.fsck.json",
+        "corrupt.crs",
+        "corrupt.corrupt.json",
+        "corrupt.fsck.exit_code.txt",
+        "corrupt.fsck.stderr.txt",
+        "corrupt.info.exit_code.txt",
+        "corrupt.info.stderr.txt",
+        "experiment_manifest.json",
+    ];
+
+    for name in expected {
+        assert!(root.join(name).exists(), "missing artifact {name}");
+    }
+
+    let manifest: Value =
+        serde_json::from_slice(&fs::read(root.join("experiment_manifest.json")).unwrap()).unwrap();
+    assert_eq!(
+        manifest["experiment_id"],
+        "crushr_p0s12f0_first_e2e_byteflip"
+    );
+
+    let clean_fsck: Value =
+        serde_json::from_slice(&fs::read(root.join("clean.fsck.json")).unwrap()).unwrap();
+    assert_eq!(clean_fsck["payload"]["verify"]["status"], "ok");
+
+    assert_eq!(
+        fs::read_to_string(root.join("corrupt.fsck.exit_code.txt")).unwrap(),
+        "2\n"
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("corrupt.info.exit_code.txt")).unwrap(),
+        "2\n"
+    );
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
 fn recorded_results_reference_experiment_artifact() {
     let manifest_path = workspace_root()
         .join("docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip/experiment_manifest.json");

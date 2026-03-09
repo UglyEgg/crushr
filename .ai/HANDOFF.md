@@ -9,6 +9,7 @@ Start with:
 6. `SPEC.md` and `docs/CONTRACTS/*`
 
 Current shape:
+- `crushr-lab run-first-experiment` now provides a deterministic command path for the recorded first corruption experiment and refreshes artifacts under `docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip/` (with expected-exit checks for corrupt info/fsck calls).
 - `crushr-core::verify` now performs read-only BLK3 scan + payload-hash checks across the blocks region; fsck now reports real `corrupted_blocks` when payload bytes are corrupted.
 - `crushr-fsck` snapshot/envelope APIs now require reader access so verification runs against archive bytes while preserving deterministic JSON output.
 - `crates/crushr-core/tests/minimal_pack_v1.rs` now includes a real payload-byte corruption case asserting `corrupted_blocks: [0]` and retained footer-corruption failure behavior.

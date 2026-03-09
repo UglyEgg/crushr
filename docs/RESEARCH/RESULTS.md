@@ -7,6 +7,7 @@ No empirical claims should exceed what is recorded in this document.
 - **Artifact path:** `docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip`
 - **Fixture:** single-file input `fixture.txt` with three short text lines.
 - **Corruption model:** `byteflip` via `crushr-lab corrupt`.
+- **Reproduction command:** `cargo run -q -p crushr-lab --bin crushr-lab -- run-first-experiment`.
 - **Seed / reproducibility:** seed `1337`, explicit touched offset `416` (`archive_len - 1`), and recorded input/output BLAKE3 in `corrupt.corrupt.json`.
 
 ### Observed clean behavior

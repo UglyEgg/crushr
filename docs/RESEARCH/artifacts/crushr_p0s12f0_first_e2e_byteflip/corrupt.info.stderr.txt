@@ -1,4 +1,1 @@
-Error: parse FTR4
-
-Caused by:
-    footer_hash mismatch
+parse FTR4: footer_hash mismatch
