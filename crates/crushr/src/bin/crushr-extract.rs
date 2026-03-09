@@ -53,15 +53,38 @@ impl RefusalExitPolicy {
 }
 
 const USAGE: &str =
-    "usage: crushr-extract <archive> -o <out-dir> [--overwrite] [--refusal-exit <success|partial-failure>] [--json]";
+    "usage: crushr-extract <archive> -o <out-dir> [--overwrite] [--mode <strict|salvage>] [--refusal-exit <success|partial-failure>] [--json]";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ExtractionMode {
+    Strict,
+    Salvage,
+}
+
+impl ExtractionMode {
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "strict" => Some(Self::Strict),
+            "salvage" => Some(Self::Salvage),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Debug)]
 struct CliOptions {
     archive: PathBuf,
     out_dir: PathBuf,
     overwrite: bool,
+    mode: ExtractionMode,
     refusal_exit: RefusalExitPolicy,
     json: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct SalvageDecisionReport {
+    path: String,
+    decision: &'static str,
 }
 
 #[derive(Debug, Serialize)]
@@ -75,6 +98,10 @@ struct ExtractionReport {
     overall_status: &'static str,
     extracted_files: Vec<String>,
     refused_files: Vec<RefusedFileReport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mode: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    salvage_decisions: Option<Vec<SalvageDecisionReport>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -139,6 +166,7 @@ fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
     let mut archive = None;
     let mut out_dir = None;
     let mut overwrite = false;
+    let mut mode = ExtractionMode::Strict;
     let mut refusal_exit = RefusalExitPolicy::Success;
     let mut json = false;
 
@@ -152,6 +180,16 @@ fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
             out_dir = Some(PathBuf::from(value));
         } else if arg == "--overwrite" {
             overwrite = true;
+        } else if arg == "--mode" {
+            let value = args
+                .next()
+                .context(USAGE)
+                .map_err(ExtractionClassifiedError::usage)?;
+            mode = ExtractionMode::parse(&value)
+                .with_context(|| {
+                    format!("unsupported value for --mode: {value} (expected strict|salvage)")
+                })
+                .map_err(ExtractionClassifiedError::usage)?;
         } else if arg == "--json" {
             json = true;
         } else if arg == "--refusal-exit" {
@@ -186,6 +224,7 @@ fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
             .context(USAGE)
             .map_err(ExtractionClassifiedError::usage)?,
         overwrite,
+        mode,
         refusal_exit,
         json,
     })
@@ -211,6 +250,7 @@ fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
 
     let mut extracted_files = Vec::new();
     let mut refused_files = Vec::new();
+    let mut salvage_decisions = Vec::new();
 
     for entry in entries {
         if entry.kind != EntryKind::Regular {
@@ -225,6 +265,12 @@ fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
             .iter()
             .any(|extent| corrupted.contains(&extent.block_id))
         {
+            if opts.mode == ExtractionMode::Salvage {
+                salvage_decisions.push(SalvageDecisionReport {
+                    path: entry.path.clone(),
+                    decision: "refused_corrupted_required_blocks",
+                });
+            }
             refused_files.push(RefusedFileReport {
                 path: entry.path,
                 reason: "corrupted_required_blocks",
@@ -235,6 +281,12 @@ fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
         let bytes = read_entry_bytes_strict(&reader, &entry, &blocks, &mut payload_cache)?;
         let destination = opts.out_dir.join(&entry.path);
         write_entry(destination.as_path(), &bytes, opts.overwrite)?;
+        if opts.mode == ExtractionMode::Salvage {
+            salvage_decisions.push(SalvageDecisionReport {
+                path: entry.path.clone(),
+                decision: "extracted_verified_extents",
+            });
+        }
         extracted_files.push(entry.path);
     }
 
@@ -262,6 +314,14 @@ fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
             },
             extracted_files,
             refused_files,
+            mode: match opts.mode {
+                ExtractionMode::Strict => None,
+                ExtractionMode::Salvage => Some("salvage"),
+            },
+            salvage_decisions: match opts.mode {
+                ExtractionMode::Strict => None,
+                ExtractionMode::Salvage => Some(salvage_decisions),
+            },
         },
     })
 }

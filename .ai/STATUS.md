@@ -3,32 +3,33 @@
 ## Current Phase / Step
 
 - Phase: 0
-- Step: 0.14
-- Fix iteration: 3
+- Step: 0.15
+- Fix iteration: 0
 
 ## Current Objective
 
-Harden strict extraction outcome handling with typed internal classification while preserving existing strict extraction/refusal/JSON semantics.
+Add explicit salvage-mode extraction for minimal v1 archives while preserving strict mode behavior and deterministic reporting/exit semantics.
 
 ## What Changed (since last Step)
 
-- Refactored `crushr-extract` to classify outcomes and errors using explicit internal enums (success, partial refusal, usage error, structural/open/parse failure) rather than string matching.
-- Exit-code mapping now comes from typed classification helpers: usage=1, structural/open/parse=2, success=0, and partial refusal maps to 0 or 3 per `--refusal-exit` policy.
-- Preserved existing `--json` output schema/behavior and refusal semantics; added a focused unit test for typed exit-code mapping.
+- Added explicit extraction mode selection in `crushr-extract` via `--mode <strict|salvage>` (default `strict`), preserving strict behavior as-is when salvage is not selected.
+- Implemented salvage-mode reporting in deterministic JSON form using `mode: "salvage"` and ordered `salvage_decisions` entries (`extracted_verified_extents` or `refused_corrupted_required_blocks`) while keeping existing `extracted_files` / `refused_files` contracts.
+- Kept integrity-first refusal rules unchanged: files with corrupted required blocks are never decompressed and remain refused in both strict and salvage modes.
+- Added focused integration coverage for salvage-mode clean archives, partial corruption extraction/refusal behavior, refusal-exit interaction, and deterministic JSON output.
 
 ## What Remains (next actions)
 
-1. Implement salvage-mode extraction and any recovery semantics as a separate packet.
-2. Extend extraction support beyond minimal regular-file scope (symlinks/xattrs/dicts/append behavior) only when explicitly packeted.
-3. Keep strict behavior integrity-first: never read/decompress bytes from corrupted required blocks.
+1. Extend salvage support beyond minimal regular-file scope only via explicit packets (symlinks/xattrs/dicts/append scenarios).
+2. Implement pending Step 0.13 blast-zone dump implementation (currently still unchecked in phase plan).
+3. Continue Phase F claim validation and artifact-backed result updates.
 
 ## How to Build / Test (best known)
 
 - `cargo test -p crushr-core --test minimal_pack_v1`
-- `cargo test -p crushr --tests`
+- `cargo test -p crushr --bin crushr-extract`
 
 ## Active constraints / gotchas
 
-- Current strict extraction path supports only regular files from the minimal v1 pack layout.
-- `crushr-extract` is intentionally strict-only in this packet (no salvage/hole filling/repair behavior).
-- Existing legacy `crushr` monolith extract path remains separate from this bounded strict minimal-v1 tool path.
+- Minimal-v1 extraction path currently supports regular files only.
+- Salvage mode is extraction-decision/reporting mode, not reconstruction/repair; corrupted required blocks are deterministically refused.
+- Legacy monolith `crushr` extract path remains separate from `crushr-extract` strict/salvage packet.

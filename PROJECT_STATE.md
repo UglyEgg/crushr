@@ -10,13 +10,13 @@ Implemented:
 - BLK3 / DCT1 / FTR4 format primitives
 - snapshot envelope types
 - initial impact enumeration model
-- strict minimal-v1 extraction path (`crushr-extract`) for regular files with corruption refusal by verified block health, policy-controlled refusal exit semantics (`--refusal-exit`), and deterministic machine-readable extraction reporting (`--json`)
+- strict minimal-v1 extraction path (`crushr-extract`) for regular files with corruption refusal by verified block health, policy-controlled refusal exit semantics (`--refusal-exit`), deterministic machine-readable extraction reporting (`--json`), and explicit opt-in salvage mode (`--mode salvage`) with deterministic salvage-decision reporting
 - contracts / research scaffolding
 
 Not yet complete:
 - tail frame assembly helpers
 - real archive open path
-- salvage extraction/repair semantics and non-regular metadata fidelity (symlinks/xattrs/dicts/append behavior)
+- broad salvage/repair semantics and non-regular metadata fidelity (symlinks/xattrs/dicts/append behavior)
 - end-to-end corruption experiments
 
 ## Thesis

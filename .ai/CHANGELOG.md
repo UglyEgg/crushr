@@ -181,3 +181,9 @@
 - Refactored `crushr-extract` to classify extraction outcomes/errors via typed enums instead of message-string matching for exit-code selection.
 - Preserved existing observable behavior for strict extraction, `--refusal-exit`, and `--json` success/error envelopes.
 - Added a targeted unit test for typed outcome/error to exit-code mapping and re-ran strict extraction integration tests.
+
+## 2026-03-09 — Phase 0, Step 0.15 (fix iteration 0: explicit salvage-mode extraction)
+
+- Added explicit extraction mode selection to `crushr-extract` via `--mode <strict|salvage>` with default strict behavior preserved.
+- Implemented salvage-mode deterministic reporting (`mode: salvage` + ordered `salvage_decisions`) while keeping integrity-first refusal for corrupted required blocks.
+- Added focused salvage integration tests for clean archives, partial corruption with verified-only extraction, refusal-exit interaction, and deterministic JSON behavior.

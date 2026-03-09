@@ -343,6 +343,75 @@ fn extract_single_file_roundtrip() {
 }
 
 #[test]
+fn extract_salvage_mode_clean_archive_matches_strict_with_deterministic_json() {
+    ensure_bins_built();
+
+    let root = unique_dir("crushr-extract-v1-salvage-clean");
+    fs::create_dir_all(&root).unwrap();
+
+    let input = root.join("single.txt");
+    fs::write(&input, b"salvage clean\n").unwrap();
+    let archive = root.join("single.crs");
+    let out_a = root.join("out-a");
+    let out_b = root.join("out-b");
+
+    let packed = run_bin(
+        "crushr-pack",
+        &[input.to_str().unwrap(), "-o", archive.to_str().unwrap()],
+    );
+    assert_ok(&packed);
+
+    let run_a = run_bin(
+        "crushr-extract",
+        &[
+            archive.to_str().unwrap(),
+            "-o",
+            out_a.to_str().unwrap(),
+            "--mode",
+            "salvage",
+            "--json",
+        ],
+    );
+    assert_ok(&run_a);
+    let run_b = run_bin(
+        "crushr-extract",
+        &[
+            archive.to_str().unwrap(),
+            "-o",
+            out_b.to_str().unwrap(),
+            "--mode",
+            "salvage",
+            "--json",
+        ],
+    );
+    assert_ok(&run_b);
+    assert_eq!(run_a.stdout, run_b.stdout);
+
+    let json: serde_json::Value = serde_json::from_slice(&run_a.stdout).unwrap();
+    assert_eq!(json["overall_status"], "success");
+    assert_eq!(json["mode"], "salvage");
+    assert_eq!(json["extracted_files"], serde_json::json!(["single.txt"]));
+    assert_eq!(json["refused_files"], serde_json::json!([]));
+    assert_eq!(
+        json["salvage_decisions"],
+        serde_json::json!([
+            {"path": "single.txt", "decision": "extracted_verified_extents"}
+        ])
+    );
+
+    assert_eq!(
+        fs::read(out_a.join("single.txt")).unwrap(),
+        b"salvage clean\n"
+    );
+    assert_eq!(
+        fs::read(out_b.join("single.txt")).unwrap(),
+        b"salvage clean\n"
+    );
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
 fn extract_tiny_directory_roundtrip() {
     ensure_bins_built();
 
@@ -496,6 +565,129 @@ fn extract_refuses_affected_file_and_keeps_unaffected_file() {
     assert_err_code_3(&extracted_partial_b);
     assert_eq!(extracted_partial_a.stderr, extracted_partial_b.stderr);
     assert_eq!(extracted_partial_a.stdout, extracted_partial_b.stdout);
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn extract_salvage_mode_partial_damage_extracts_only_verified_files() {
+    ensure_bins_built();
+
+    let root = unique_dir("crushr-extract-v1-salvage-partial");
+    let src = root.join("src");
+    fs::create_dir_all(&src).unwrap();
+    fs::write(src.join("a.txt"), b"alpha\n").unwrap();
+    fs::write(src.join("b.txt"), b"bravo\n").unwrap();
+
+    let archive = root.join("tree.crs");
+    let packed = run_bin(
+        "crushr-pack",
+        &[src.to_str().unwrap(), "-o", archive.to_str().unwrap()],
+    );
+    assert_ok(&packed);
+
+    let reader = FileReader {
+        file: fs::File::open(&archive).unwrap(),
+    };
+    let opened = open_archive_v1(&reader).unwrap();
+    let blocks = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset).unwrap();
+
+    let mut corrupted = fs::read(&archive).unwrap();
+    let payload_start = blocks[0].payload_offset as usize;
+    corrupted[payload_start] ^= 0x01;
+    let corrupt_archive = root.join("tree-corrupt.crs");
+    fs::write(&corrupt_archive, corrupted).unwrap();
+
+    let out_dir = root.join("out-salvage");
+    let extracted = run_bin(
+        "crushr-extract",
+        &[
+            corrupt_archive.to_str().unwrap(),
+            "-o",
+            out_dir.to_str().unwrap(),
+            "--mode",
+            "salvage",
+            "--json",
+        ],
+    );
+    assert_ok(&extracted);
+
+    let json: serde_json::Value = serde_json::from_slice(&extracted.stdout).unwrap();
+    assert_eq!(json["overall_status"], "partial_refusal");
+    assert_eq!(json["mode"], "salvage");
+    assert_eq!(json["extracted_files"], serde_json::json!(["b.txt"]));
+    assert_eq!(
+        json["refused_files"],
+        serde_json::json!([
+            {"path": "a.txt", "reason": "corrupted_required_blocks"}
+        ])
+    );
+    assert_eq!(
+        json["salvage_decisions"],
+        serde_json::json!([
+            {"path": "a.txt", "decision": "refused_corrupted_required_blocks"},
+            {"path": "b.txt", "decision": "extracted_verified_extents"}
+        ])
+    );
+    assert!(!out_dir.join("a.txt").exists());
+    assert_eq!(fs::read(out_dir.join("b.txt")).unwrap(), b"bravo\n");
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn extract_salvage_mode_still_refuses_required_corrupted_block_with_partial_failure_exit() {
+    ensure_bins_built();
+
+    let root = unique_dir("crushr-extract-v1-salvage-refusal-exit");
+    let src = root.join("src");
+    fs::create_dir_all(&src).unwrap();
+    fs::write(src.join("a.txt"), b"alpha\n").unwrap();
+    fs::write(src.join("b.txt"), b"bravo\n").unwrap();
+
+    let archive = root.join("tree.crs");
+    let packed = run_bin(
+        "crushr-pack",
+        &[src.to_str().unwrap(), "-o", archive.to_str().unwrap()],
+    );
+    assert_ok(&packed);
+
+    let reader = FileReader {
+        file: fs::File::open(&archive).unwrap(),
+    };
+    let opened = open_archive_v1(&reader).unwrap();
+    let blocks = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset).unwrap();
+
+    let mut corrupted = fs::read(&archive).unwrap();
+    let payload_start = blocks[0].payload_offset as usize;
+    corrupted[payload_start] ^= 0x01;
+    let corrupt_archive = root.join("tree-corrupt.crs");
+    fs::write(&corrupt_archive, corrupted).unwrap();
+
+    let out_dir = root.join("out-salvage");
+    let extracted = run_bin(
+        "crushr-extract",
+        &[
+            corrupt_archive.to_str().unwrap(),
+            "-o",
+            out_dir.to_str().unwrap(),
+            "--mode",
+            "salvage",
+            "--refusal-exit",
+            "partial-failure",
+            "--json",
+        ],
+    );
+    assert_err_code_3(&extracted);
+    let json: serde_json::Value = serde_json::from_slice(&extracted.stdout).unwrap();
+    assert_eq!(json["overall_status"], "partial_refusal");
+    assert_eq!(json["mode"], "salvage");
+    assert_eq!(
+        json["refused_files"],
+        serde_json::json!([
+            {"path": "a.txt", "reason": "corrupted_required_blocks"}
+        ])
+    );
 
     let _ = fs::remove_dir_all(&root);
 }

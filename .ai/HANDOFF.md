@@ -10,6 +10,7 @@ Start with:
 
 Current shape:
 
+- `crushr-extract` now supports explicit `--mode <strict|salvage>`; strict remains default/unchanged, while salvage adds deterministic `mode` + `salvage_decisions` JSON reporting without attempting reconstruction.
 - `crushr-extract` now uses typed internal extraction outcome/error classification (success/partial refusal/usage/structural) for exit-code mapping and JSON error handling, removing message-string exit classification.
 - `crushr-extract` now supports `--json` deterministic machine-readable strict extraction reports (`overall_status`, `extracted_files`, `refused_files` with `corrupted_required_blocks`, and `error` envelope on structural failures).
 - `crushr-extract` now supports `--refusal-exit <success|partial-failure>` (default `success`) to control strict refusal exit semantics without changing extraction/refusal behavior.
@@ -40,6 +41,6 @@ Current shape:
 - `crushr-info` binary exists at `crates/crushr/src/bin/crushr-info.rs` and emits JSON snapshots.
 
 Next likely implementation packet:
-1. Last-valid-tail scan behavior for damaged/trailing tails.
-2. Real `crushr-fsck --json` emission on top of open path.
-3. Controlled corruption experiment recording for Phase F.
+1. Implement Step 0.13 blast-zone dump implementation (still pending in phase plan).
+2. Extend salvage semantics to broader entry/metadata cases only via explicit packeting.
+3. Continue Phase F claim-validation/result-recording work.
