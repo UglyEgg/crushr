@@ -9,6 +9,7 @@ use crushr_core::{
 use crushr_format::blk3::read_blk3_header;
 use serde::Serialize;
 use std::collections::BTreeMap;
+use std::fmt;
 use std::fs::{self, File};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
@@ -82,7 +83,59 @@ struct ExtractionErrorReport {
     error: String,
 }
 
-fn parse_cli_options() -> Result<CliOptions> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ExtractionOutcomeKind {
+    Success,
+    PartialRefusal,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ExtractionErrorKind {
+    Usage,
+    Structural,
+}
+
+#[derive(Debug)]
+struct ExtractionClassifiedError {
+    kind: ExtractionErrorKind,
+    error: anyhow::Error,
+}
+
+impl fmt::Display for ExtractionClassifiedError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:#}", self.error)
+    }
+}
+
+impl std::error::Error for ExtractionClassifiedError {}
+
+impl ExtractionClassifiedError {
+    fn usage(error: anyhow::Error) -> Self {
+        Self {
+            kind: ExtractionErrorKind::Usage,
+            error,
+        }
+    }
+
+    fn structural(error: anyhow::Error) -> Self {
+        Self {
+            kind: ExtractionErrorKind::Structural,
+            error,
+        }
+    }
+
+    fn message(&self) -> String {
+        format!("{:#}", self.error)
+    }
+}
+
+#[derive(Debug)]
+struct ClassifiedRun {
+    outcome_kind: ExtractionOutcomeKind,
+    report: ExtractionReport,
+}
+
+fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
     let mut archive = None;
     let mut out_dir = None;
     let mut overwrite = false;
@@ -92,38 +145,53 @@ fn parse_cli_options() -> Result<CliOptions> {
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         if arg == "-o" || arg == "--output" {
-            let value = args.next().context(USAGE)?;
+            let value = args
+                .next()
+                .context(USAGE)
+                .map_err(ExtractionClassifiedError::usage)?;
             out_dir = Some(PathBuf::from(value));
         } else if arg == "--overwrite" {
             overwrite = true;
         } else if arg == "--json" {
             json = true;
         } else if arg == "--refusal-exit" {
-            let value = args.next().context(USAGE)?;
+            let value = args
+                .next()
+                .context(USAGE)
+                .map_err(ExtractionClassifiedError::usage)?;
             refusal_exit = RefusalExitPolicy::parse(&value).with_context(|| {
                 format!(
                     "unsupported value for --refusal-exit: {value} (expected success|partial-failure)"
                 )
-            })?;
+            })
+            .map_err(ExtractionClassifiedError::usage)?;
         } else if arg.starts_with('-') {
-            bail!("unsupported flag: {arg}");
+            return Err(ExtractionClassifiedError::usage(anyhow::anyhow!(
+                "unsupported flag: {arg}"
+            )));
         } else if archive.is_none() {
             archive = Some(PathBuf::from(arg));
         } else {
-            bail!("unexpected argument: {arg}");
+            return Err(ExtractionClassifiedError::usage(anyhow::anyhow!(
+                "unexpected argument: {arg}"
+            )));
         }
     }
 
     Ok(CliOptions {
-        archive: archive.context(USAGE)?,
-        out_dir: out_dir.context(USAGE)?,
+        archive: archive
+            .context(USAGE)
+            .map_err(ExtractionClassifiedError::usage)?,
+        out_dir: out_dir
+            .context(USAGE)
+            .map_err(ExtractionClassifiedError::usage)?,
         overwrite,
         refusal_exit,
         json,
     })
 }
 
-fn run(opts: &CliOptions) -> Result<ExtractionReport> {
+fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
     let reader = FileReader {
         file: File::open(&opts.archive)
             .with_context(|| format!("open {}", opts.archive.display()))?,
@@ -179,15 +247,37 @@ fn run(opts: &CliOptions) -> Result<ExtractionReport> {
         }
     }
 
-    Ok(ExtractionReport {
-        overall_status: if refused_files.is_empty() {
-            "success"
-        } else {
-            "partial_refusal"
+    let outcome_kind = if refused_files.is_empty() {
+        ExtractionOutcomeKind::Success
+    } else {
+        ExtractionOutcomeKind::PartialRefusal
+    };
+
+    Ok(ClassifiedRun {
+        outcome_kind,
+        report: ExtractionReport {
+            overall_status: match outcome_kind {
+                ExtractionOutcomeKind::Success => "success",
+                ExtractionOutcomeKind::PartialRefusal => "partial_refusal",
+            },
+            extracted_files,
+            refused_files,
         },
-        extracted_files,
-        refused_files,
     })
+}
+
+fn exit_code_for_outcome(kind: ExtractionOutcomeKind, refusal_exit: RefusalExitPolicy) -> i32 {
+    match (kind, refusal_exit) {
+        (ExtractionOutcomeKind::PartialRefusal, RefusalExitPolicy::PartialFailure) => 3,
+        _ => 0,
+    }
+}
+
+fn exit_code_for_error(kind: ExtractionErrorKind) -> i32 {
+    match kind {
+        ExtractionErrorKind::Usage => 1,
+        ExtractionErrorKind::Structural => 2,
+    }
 }
 
 fn read_entry_bytes_strict(
@@ -291,40 +381,28 @@ fn main() {
     let opts = match parse_cli_options() {
         Ok(opts) => opts,
         Err(err) => {
-            eprintln!("{err:#}");
-            std::process::exit(1);
+            eprintln!("{err}");
+            std::process::exit(exit_code_for_error(err.kind));
         }
     };
 
     match run(&opts) {
-        Ok(report) => {
+        Ok(classified) => {
             if opts.json {
                 println!(
                     "{}",
-                    serde_json::to_string_pretty(&report).expect("serialize extraction report")
+                    serde_json::to_string_pretty(&classified.report)
+                        .expect("serialize extraction report")
                 );
             }
-            let code = if report.overall_status == "partial_refusal"
-                && opts.refusal_exit == RefusalExitPolicy::PartialFailure
-            {
-                3
-            } else {
-                0
-            };
+            let code = exit_code_for_outcome(classified.outcome_kind, opts.refusal_exit);
             std::process::exit(code);
         }
         Err(err) => {
-            eprintln!("{err:#}");
-            let msg = format!("{err:#}");
-            let code = if msg.contains("usage:")
-                || msg.contains("unsupported flag")
-                || msg.contains("unexpected argument")
-                || msg.contains("unsupported value for --refusal-exit")
-            {
-                1
-            } else {
-                2
-            };
+            let classified_err = ExtractionClassifiedError::structural(err);
+            eprintln!("{classified_err}");
+            let msg = classified_err.message();
+            let code = exit_code_for_error(classified_err.kind);
 
             if opts.json {
                 let json_err = ExtractionErrorReport {
@@ -339,5 +417,44 @@ fn main() {
             }
             std::process::exit(code);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        exit_code_for_error, exit_code_for_outcome, ExtractionErrorKind, ExtractionOutcomeKind,
+        RefusalExitPolicy,
+    };
+
+    #[test]
+    fn typed_outcome_exit_mapping_is_stable() {
+        assert_eq!(
+            exit_code_for_outcome(ExtractionOutcomeKind::Success, RefusalExitPolicy::Success),
+            0
+        );
+        assert_eq!(
+            exit_code_for_outcome(
+                ExtractionOutcomeKind::Success,
+                RefusalExitPolicy::PartialFailure,
+            ),
+            0
+        );
+        assert_eq!(
+            exit_code_for_outcome(
+                ExtractionOutcomeKind::PartialRefusal,
+                RefusalExitPolicy::Success,
+            ),
+            0
+        );
+        assert_eq!(
+            exit_code_for_outcome(
+                ExtractionOutcomeKind::PartialRefusal,
+                RefusalExitPolicy::PartialFailure,
+            ),
+            3
+        );
+        assert_eq!(exit_code_for_error(ExtractionErrorKind::Usage), 1);
+        assert_eq!(exit_code_for_error(ExtractionErrorKind::Structural), 2);
     }
 }

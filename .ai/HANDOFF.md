@@ -10,6 +10,7 @@ Start with:
 
 Current shape:
 
+- `crushr-extract` now uses typed internal extraction outcome/error classification (success/partial refusal/usage/structural) for exit-code mapping and JSON error handling, removing message-string exit classification.
 - `crushr-extract` now supports `--json` deterministic machine-readable strict extraction reports (`overall_status`, `extracted_files`, `refused_files` with `corrupted_required_blocks`, and `error` envelope on structural failures).
 - `crushr-extract` now supports `--refusal-exit <success|partial-failure>` (default `success`) to control strict refusal exit semantics without changing extraction/refusal behavior.
 - In `partial-failure` mode, strict extraction returns exit code `3` when one or more files are refused due to corrupted required blocks; structural/open failures remain exit `2`.

@@ -4,19 +4,17 @@
 
 - Phase: 0
 - Step: 0.14
-- Fix iteration: 2
+- Fix iteration: 3
 
 ## Current Objective
 
-Add deterministic machine-readable JSON extraction result reporting to strict minimal-v1 extraction without changing strict extraction/refusal semantics.
+Harden strict extraction outcome handling with typed internal classification while preserving existing strict extraction/refusal/JSON semantics.
 
 ## What Changed (since last Step)
 
-- Added `--json` mode to `crushr-extract` for strict extraction with deterministic machine-readable reporting.
-- JSON success/partial reports now include deterministic `extracted_files` and `refused_files` (`reason = "corrupted_required_blocks"`), while strict refusal behavior remains unchanged.
-- Preserved refusal-exit policy semantics independently from JSON output: `success` keeps exit `0` on refusal, `partial-failure` returns exit `3` for refusal, and structural/open/parse failures remain exit `2`.
-- Added integration coverage for clean success JSON, partial-refusal JSON under both refusal policies, structural failure JSON error envelope behavior, and deterministic serialization for identical inputs.
-- Updated `docs/CONTRACTS/ERROR_MODEL.md`, `docs/ARCHITECTURE.md`, and `PROJECT_STATE.md` for the new strict extraction JSON mode.
+- Refactored `crushr-extract` to classify outcomes and errors using explicit internal enums (success, partial refusal, usage error, structural/open/parse failure) rather than string matching.
+- Exit-code mapping now comes from typed classification helpers: usage=1, structural/open/parse=2, success=0, and partial refusal maps to 0 or 3 per `--refusal-exit` policy.
+- Preserved existing `--json` output schema/behavior and refusal semantics; added a focused unit test for typed exit-code mapping.
 
 ## What Remains (next actions)
 

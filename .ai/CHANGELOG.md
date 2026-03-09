@@ -175,3 +175,9 @@
 - Preserved existing strict behavior and refusal-exit semantics (`success` => exit `0` on refusals, `partial-failure` => exit `3`, structural failures => exit `2`) while adding JSON error envelopes for non-success cases.
 - Extended `minimal_pack_v1` integration tests to cover clean JSON success, partial-refusal JSON under both refusal policies, structural-failure JSON behavior, and deterministic output for identical inputs.
 - Updated `docs/CONTRACTS/ERROR_MODEL.md`, `docs/ARCHITECTURE.md`, and `PROJECT_STATE.md` accordingly.
+
+## 2026-03-09 — Phase 0, Step 0.14 (fix iteration 3: typed strict extraction outcome classification)
+
+- Refactored `crushr-extract` to classify extraction outcomes/errors via typed enums instead of message-string matching for exit-code selection.
+- Preserved existing observable behavior for strict extraction, `--refusal-exit`, and `--json` success/error envelopes.
+- Added a targeted unit test for typed outcome/error to exit-code mapping and re-ran strict extraction integration tests.
