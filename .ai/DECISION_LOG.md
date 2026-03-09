@@ -85,3 +85,14 @@
 
 - Decision: treat `docs/CONTRACTS/*`, `docs/RESEARCH/*`, `PROJECT_STATE.md`, `REPO_SNAPSHOT.md`, task packets, and review checklist as canonical project-control surfaces for implementation agents.
 - Rationale: reduce drift, preserve the thesis, and keep Codex constrained to bounded tasks.
+
+## 2026-03-08 — Normalize `crushr-info`/`crushr-fsck` open/parse failure exit codes
+
+- Decision: For current workspace baseline, both `crushr-info` and `crushr-fsck` return exit code `2` for archive open failures and structural/parse/validation failures; usage/argument errors remain exit code `1`.
+- Alternatives:
+  1. Keep pre-existing inconsistency (`crushr-info` parse/open as `1`, `crushr-fsck` as `2`).
+  2. Introduce a broader multi-code mapping now (including internal-failure `4`) across all tools in this pass.
+- Rationale: This bounded hygiene pass required consistency for open/parse/structural failures without redesigning the full CLI error taxonomy.
+- Blast radius:
+  - Affects observed nonzero exit code behavior for `crushr-info` callers.
+  - No format/snapshot/schema or research-claim semantics changed.

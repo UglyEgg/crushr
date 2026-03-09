@@ -25,7 +25,7 @@
 
 - [x] Step F.1: Deterministic corruption harness skeleton
 - [x] Step F.2: Decompression-free impact enumeration model
-- [ ] Step F.3: Controlled datasets (in progress: first single-file dataset + artifact recorded)
+- [ ] Step F.3: Controlled datasets (in progress: first single-file dataset + artifact recorded; workspace hygiene + info/fsck exit-code normalization pass completed)
 - [ ] Step F.4: Comparative baseline experiments
 - [ ] Step F.5: Recorded results and claim validation
 

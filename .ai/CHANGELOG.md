@@ -121,3 +121,11 @@
 - Added integration test `crates/crushr-core/tests/first_corruption_experiment.rs` covering real single-file pack/corrupt/info/fsck loop and determinism checks.
 - Recorded first true experiment artifacts at `docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip/`.
 - Updated `docs/RESEARCH/RESULTS.md` with the initial recorded result and explicit limitation language.
+
+## 2026-03-08 — Phase F, Step F.3 (fix iteration 1: workspace hygiene + exit-code normalization)
+
+- Fixed pre-existing `crates/crushr/tests/mvp.rs` binary path assumptions so workspace tests no longer depend on crate-local `target/debug` layout.
+- Updated `crushr-info` to use the same exit-code classification style as `crushr-fsck` for this baseline (`1` usage, `2` open/parse/structural failures).
+- Added/extended binary-path tests in `crushr-core::snapshot` for `crushr-info` structural-failure exit code and info/fsck missing-archive open-failure parity.
+- Clarified the normalized tool behavior in `docs/CONTRACTS/ERROR_MODEL.md`.
+- Re-ran and passed `cargo test --workspace`.

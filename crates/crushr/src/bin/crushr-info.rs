@@ -23,7 +23,7 @@ impl Len for FileReader {
     }
 }
 
-fn main() -> Result<()> {
+fn run() -> Result<()> {
     let mut archive = None;
     let mut json = false;
 
@@ -53,4 +53,24 @@ fn main() -> Result<()> {
         info_envelope_from_open_archive(&opened, env!("CARGO_PKG_VERSION"), "1970-01-01T00:00:00Z");
     println!("{}", serialize_snapshot_json(&snapshot)?);
     Ok(())
+}
+
+fn main() {
+    match run() {
+        Ok(()) => std::process::exit(0),
+        Err(err) => {
+            eprintln!("{err:#}");
+            let msg = format!("{err:#}");
+            let code = if msg.contains("usage:")
+                || msg.contains("unsupported flag")
+                || msg.contains("unexpected argument")
+                || msg.contains("only --json")
+            {
+                1
+            } else {
+                2
+            };
+            std::process::exit(code);
+        }
+    }
 }

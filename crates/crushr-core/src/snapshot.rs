@@ -551,6 +551,97 @@ mod tests {
     }
 
     #[test]
+    fn crushr_info_binary_fails_cleanly_for_corrupt_footer() {
+        let mut bytes = build_archive(24, None, b"IDX3\x33\x44", None);
+        let last = bytes.len() - 1;
+        bytes[last] ^= 0x01;
+
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("crushr-info-synth-ftr-{unique}.crs"));
+        fs::write(&path, &bytes).unwrap();
+
+        let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(std::path::Path::parent)
+            .unwrap();
+
+        let output = Command::new("cargo")
+            .current_dir(workspace_root)
+            .args([
+                "run",
+                "-q",
+                "-p",
+                "crushr",
+                "--bin",
+                "crushr-info",
+                "--",
+                path.to_str().unwrap(),
+                "--json",
+            ])
+            .output()
+            .unwrap();
+
+        let _ = fs::remove_file(&path);
+
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+    }
+
+    #[test]
+    fn crushr_info_and_fsck_use_same_exit_code_for_missing_archive() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("crushr-missing-{unique}.crs"));
+
+        let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(std::path::Path::parent)
+            .unwrap();
+
+        let info = Command::new("cargo")
+            .current_dir(workspace_root)
+            .args([
+                "run",
+                "-q",
+                "-p",
+                "crushr",
+                "--bin",
+                "crushr-info",
+                "--",
+                path.to_str().unwrap(),
+                "--json",
+            ])
+            .output()
+            .unwrap();
+
+        let fsck = Command::new("cargo")
+            .current_dir(workspace_root)
+            .args([
+                "run",
+                "-q",
+                "-p",
+                "crushr",
+                "--bin",
+                "crushr-fsck",
+                "--",
+                path.to_str().unwrap(),
+                "--json",
+            ])
+            .output()
+            .unwrap();
+
+        assert_eq!(info.status.code(), Some(2));
+        assert_eq!(fsck.status.code(), Some(2));
+        assert!(info.stdout.is_empty());
+        assert!(fsck.stdout.is_empty());
+    }
+
+    #[test]
     fn fsck_serialization_is_deterministic_for_identical_archive_bytes() {
         let bytes = build_archive(24, None, b"IDX3\x90\x91", None);
         let open_a = open_from_bytes(bytes.clone());

@@ -1,5 +1,4 @@
 use std::fs;
-use std::path::Path;
 use tempfile::TempDir;
 
 fn run(cmd: &mut std::process::Command) {
@@ -26,12 +25,16 @@ fn pack_list_extract_roundtrip() {
     fs::write(in_dir.join("sub/b.json"), br#"{"k":"v","n":1}"#).unwrap();
 
     let archive = td.path().join("test.crs");
+    let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(std::path::Path::parent)
+        .expect("workspace root");
 
     run(std::process::Command::new("cargo")
-        .args(["build"])
-        .current_dir(env!("CARGO_MANIFEST_DIR")));
+        .args(["build", "-p", "crushr", "--bin", "crushr"])
+        .current_dir(workspace_root));
 
-    let bin = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/debug/crushr");
+    let bin = workspace_root.join("target/debug/crushr");
 
     run(std::process::Command::new(&bin).args([
         "pack",
