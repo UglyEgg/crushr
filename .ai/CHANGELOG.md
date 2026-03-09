@@ -152,3 +152,10 @@
 - Implemented scaffold target records for `crushr`, `zip`, and `tar+zstd` with explicit environment detection/deferral behavior, plus explicit `7z` deferral handling.
 - Added integration tests in `crates/crushr-core/tests/first_corruption_experiment.rs` for manifest structure, deferred-target honesty, and docs/results artifact-reference alignment.
 - Updated `docs/RESEARCH/EXPERIMENT_METHOD.md` and `docs/RESEARCH/RESULTS.md` to document scaffold scope and supported vs deferred targets without benchmark claims.
+
+## 2026-03-09 — Phase 0, Step 0.14 (fix iteration 0: strict minimal-v1 extraction)
+
+- Added `crushr-extract` binary for strict extraction of minimal v1 archives (regular files only) using existing open/verify/index paths.
+- Strict extraction now refuses files requiring corrupted blocks while allowing unaffected files to extract in deterministic path order.
+- Added extraction integration tests for single-file and tiny-directory clean round trips, payload-corruption selective refusal, invalid-footer failure, and deterministic stderr behavior.
+- Updated `PROJECT_STATE.md` to record strict extraction availability and explicitly keep salvage/metadata fidelity out of scope.

@@ -2,6 +2,7 @@ use anyhow::Result;
 use crushr_core::{
     io::{Len, ReadAt},
     open::open_archive_v1,
+    verify::scan_blocks_v1,
 };
 use crushr_format::ftr4::FTR4_LEN;
 use std::fs;
@@ -69,6 +70,17 @@ fn run_bin(bin: &str, args: &[&str]) -> std::process::Output {
 fn assert_ok(out: &std::process::Output) {
     assert!(
         out.status.success(),
+        "status={:?}\nstdout:\n{}\nstderr:\n{}",
+        out.status,
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
+fn assert_err_code_2(out: &std::process::Output) {
+    assert_eq!(
+        out.status.code(),
+        Some(2),
         "status={:?}\nstdout:\n{}\nstderr:\n{}",
         out.status,
         String::from_utf8_lossy(&out.stdout),
@@ -240,6 +252,159 @@ fn fsck_reports_corrupted_block_for_payload_byte_flip() {
         &[footer_corrupt_archive.to_str().unwrap(), "--json"],
     );
     assert_eq!(fsck_tail.status.code(), Some(2));
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn extract_single_file_roundtrip() {
+    ensure_bins_built();
+
+    let root = unique_dir("crushr-extract-v1-single");
+    fs::create_dir_all(&root).unwrap();
+
+    let input = root.join("single.txt");
+    fs::write(&input, b"extract me\n").unwrap();
+    let archive = root.join("single.crs");
+    let out_dir = root.join("out");
+
+    let packed = run_bin(
+        "crushr-pack",
+        &[input.to_str().unwrap(), "-o", archive.to_str().unwrap()],
+    );
+    assert_ok(&packed);
+
+    let extracted = run_bin(
+        "crushr-extract",
+        &[archive.to_str().unwrap(), "-o", out_dir.to_str().unwrap()],
+    );
+    assert_ok(&extracted);
+    assert_eq!(
+        fs::read(out_dir.join("single.txt")).unwrap(),
+        b"extract me\n"
+    );
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn extract_tiny_directory_roundtrip() {
+    ensure_bins_built();
+
+    let root = unique_dir("crushr-extract-v1-dir");
+    let src = root.join("src");
+    fs::create_dir_all(src.join("nested")).unwrap();
+
+    fs::write(src.join("a.txt"), b"alpha\n").unwrap();
+    fs::write(src.join("nested/b.txt"), b"bravo\n").unwrap();
+
+    let archive = root.join("tree.crs");
+    let out_dir = root.join("out");
+
+    let packed = run_bin(
+        "crushr-pack",
+        &[src.to_str().unwrap(), "-o", archive.to_str().unwrap()],
+    );
+    assert_ok(&packed);
+
+    let extracted = run_bin(
+        "crushr-extract",
+        &[archive.to_str().unwrap(), "-o", out_dir.to_str().unwrap()],
+    );
+    assert_ok(&extracted);
+
+    assert_eq!(fs::read(out_dir.join("a.txt")).unwrap(), b"alpha\n");
+    assert_eq!(fs::read(out_dir.join("nested/b.txt")).unwrap(), b"bravo\n");
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn extract_refuses_affected_file_and_keeps_unaffected_file() {
+    ensure_bins_built();
+
+    let root = unique_dir("crushr-extract-v1-corrupt");
+    let src = root.join("src");
+    fs::create_dir_all(&src).unwrap();
+    fs::write(src.join("a.txt"), b"alpha\n").unwrap();
+    fs::write(src.join("b.txt"), b"bravo\n").unwrap();
+
+    let archive = root.join("tree.crs");
+    let packed = run_bin(
+        "crushr-pack",
+        &[src.to_str().unwrap(), "-o", archive.to_str().unwrap()],
+    );
+    assert_ok(&packed);
+
+    let reader = FileReader {
+        file: fs::File::open(&archive).unwrap(),
+    };
+    let opened = open_archive_v1(&reader).unwrap();
+    let blocks = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset).unwrap();
+
+    let mut corrupted = fs::read(&archive).unwrap();
+    let payload_start = blocks[0].payload_offset as usize;
+    corrupted[payload_start] ^= 0x01;
+    let corrupt_archive = root.join("tree-corrupt.crs");
+    fs::write(&corrupt_archive, corrupted).unwrap();
+
+    let out_dir_a = root.join("out-a");
+    let extracted_a = run_bin(
+        "crushr-extract",
+        &[
+            corrupt_archive.to_str().unwrap(),
+            "-o",
+            out_dir_a.to_str().unwrap(),
+        ],
+    );
+    assert_ok(&extracted_a);
+    assert!(!out_dir_a.join("a.txt").exists());
+    assert_eq!(fs::read(out_dir_a.join("b.txt")).unwrap(), b"bravo\n");
+
+    let out_dir_b = root.join("out-b");
+    let extracted_b = run_bin(
+        "crushr-extract",
+        &[
+            corrupt_archive.to_str().unwrap(),
+            "-o",
+            out_dir_b.to_str().unwrap(),
+        ],
+    );
+    assert_ok(&extracted_b);
+    assert_eq!(extracted_a.stderr, extracted_b.stderr);
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn extract_fails_for_invalid_footer() {
+    ensure_bins_built();
+
+    let root = unique_dir("crushr-extract-v1-footer");
+    fs::create_dir_all(&root).unwrap();
+
+    let input = root.join("single.txt");
+    fs::write(&input, b"footer-test\n").unwrap();
+    let archive = root.join("single.crs");
+
+    let packed = run_bin(
+        "crushr-pack",
+        &[input.to_str().unwrap(), "-o", archive.to_str().unwrap()],
+    );
+    assert_ok(&packed);
+
+    let mut bytes = fs::read(&archive).unwrap();
+    let last = bytes.len() - 1;
+    bytes[last] ^= 0x01;
+    let broken = root.join("single-broken.crs");
+    fs::write(&broken, bytes).unwrap();
+
+    let out_dir = root.join("out");
+    let extracted = run_bin(
+        "crushr-extract",
+        &[broken.to_str().unwrap(), "-o", out_dir.to_str().unwrap()],
+    );
+    assert_err_code_2(&extracted);
 
     let _ = fs::remove_dir_all(&root);
 }

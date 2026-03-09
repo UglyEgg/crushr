@@ -10,6 +10,9 @@ Start with:
 
 Current shape:
 
+- New `crushr-extract` binary implements strict minimal-v1 extraction for regular files only using `open_archive_v1` + `scan_blocks_v1` + IDX3 decode + payload-hash verification.
+- In strict mode, files whose required block IDs are corrupted are refused (not extracted), while unaffected files still extract; invalid tail/footer archives fail with exit code `2`.
+- `crates/crushr-core/tests/minimal_pack_v1.rs` now covers clean extraction round trips, selective corruption refusal, invalid-footer failure, and deterministic refusal output ordering.
 - `crushr-lab run-competitor-scaffold` now creates the first bounded comparison scaffold at `docs/RESEARCH/artifacts/crushr_p0s13f0_competitor_scaffold_byteflip/` with deterministic fixture/corruption plus per-target command and status capture.
 - Comparison scaffold currently records `crushr` and `zip` in this environment, while explicitly deferring `tar+zstd` (`zstd` missing) and `7z` (`7z/7za` missing) without false success.
 - `crushr-lab run-first-experiment` now provides a deterministic command path for the recorded first corruption experiment and refreshes artifacts under `docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip/` (with expected-exit checks for corrupt info/fsck calls).

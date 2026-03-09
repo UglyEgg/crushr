@@ -10,12 +10,13 @@ Implemented:
 - BLK3 / DCT1 / FTR4 format primitives
 - snapshot envelope types
 - initial impact enumeration model
+- strict minimal-v1 extraction path (`crushr-extract`) for regular files with corruption refusal by verified block health
 - contracts / research scaffolding
 
 Not yet complete:
 - tail frame assembly helpers
 - real archive open path
-- pack / extract / fsck over the new format
+- salvage extraction/repair semantics and non-regular metadata fidelity (symlinks/xattrs/dicts/append behavior)
 - end-to-end corruption experiments
 
 ## Thesis

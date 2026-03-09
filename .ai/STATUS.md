@@ -2,37 +2,35 @@
 
 ## Current Phase / Step
 
-- Phase: F
-- Step: F.4
+- Phase: 0
+- Step: 0.14
 - Fix iteration: 0
 
 ## Current Objective
 
-Deliver the first bounded competitor-comparison experiment scaffold with deterministic artifacts and honest supported/deferred target handling.
+Deliver the first strict extraction path for minimal v1 archives: clean extraction for regular files, deterministic refusal of files requiring corrupted blocks, and explicit failure on invalid archive structure.
 
 ## What Changed (since last Step)
 
-- Added `crushr-lab run-competitor-scaffold` to generate a tiny shared fixture, build per-target archives, apply deterministic byteflip corruption, and record build/observe command metadata in a stable manifest.
-- Implemented scaffold target handling for `crushr`, `zip`, and `tar+zstd` with environment detection and graceful deferral; added explicit deferred handling for `7z` so unavailable tools do not report false success.
-- Added integration tests for scaffold artifact/manifest structure, deferred-target honesty, and docs-to-artifact reference alignment.
-- Added and recorded the first scaffold artifact set at `docs/RESEARCH/artifacts/crushr_p0s13f0_competitor_scaffold_byteflip/`.
-- Updated research docs to describe scaffold purpose, environment assumptions, and supported vs deferred targets without broad comparative claims.
+- Added a new `crushr-extract` binary implementing strict minimal-v1 extraction over the current `open_archive_v1` + BLK3 scan + IDX3 decode path.
+- Extraction now verifies payload hashes via existing `crushr-core::verify` and refuses only files whose required block IDs are in the corrupted set.
+- Extraction keeps deterministic behavior by sorting paths and emitting stable refusal lines for skipped files.
+- Added integration coverage in `crates/crushr-core/tests/minimal_pack_v1.rs` for clean single-file and tiny-directory extraction round trips, corrupted-payload selective refusal, invalid-footer failure, and deterministic stderr behavior.
+- Updated `PROJECT_STATE.md` to reflect that strict minimal-v1 extraction now exists while salvage/metadata fidelity remains out of scope.
 
 ## What Remains (next actions)
 
-1. Extend bounded comparison cases to additional corruption models only when packeted.
-2. Add tar+zstd and 7z execution paths when tool availability and stability constraints are explicitly approved.
-3. Keep comparative claims in `docs/RESEARCH/RESULTS.md` limited to recorded scaffold status until a full matrix packet is completed.
+1. Implement salvage-mode extraction and any recovery semantics as a separate packet.
+2. Extend extraction support beyond minimal regular-file scope (symlinks/xattrs/dicts/append behavior) only when explicitly packeted.
+3. Keep strict behavior integrity-first: never read/decompress bytes from corrupted required blocks.
 
 ## How to Build / Test (best known)
 
-- `cargo run -q -p crushr-lab --bin crushr-lab -- run-competitor-scaffold`
-- `cargo test -p crushr-lab`
-- `cargo test -p crushr-core --test first_corruption_experiment`
-- `cargo test --workspace`
+- `cargo test -p crushr-core --test minimal_pack_v1`
+- `cargo test -p crushr --tests`
 
 ## Active constraints / gotchas
 
-- `tar+zstd` currently defers in this environment because `zstd` is unavailable in `PATH`.
-- `7z` currently defers in this environment because `7z/7za` is unavailable in `PATH`.
-- This work is scaffold-only and intentionally does not claim benchmark-quality comparative outcomes.
+- Current strict extraction path supports only regular files from the minimal v1 pack layout.
+- `crushr-extract` is intentionally strict-only in this packet (no salvage/hole filling/repair behavior).
+- Existing legacy `crushr` monolith extract path remains separate from this bounded strict minimal-v1 tool path.
