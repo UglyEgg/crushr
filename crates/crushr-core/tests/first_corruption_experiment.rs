@@ -240,3 +240,65 @@ fn recorded_results_reference_experiment_artifact() {
     assert!(results.contains(&format!("seed `{seed}`")));
     assert!(results.contains("docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip"));
 }
+
+#[test]
+fn competitor_scaffold_runner_writes_manifest_and_deferrals() {
+    ensure_bins_built();
+
+    let root = unique_dir("crushr-competitor-scaffold");
+    fs::create_dir_all(&root).unwrap();
+
+    let out = run_bin(
+        "crushr-lab",
+        &[
+            "run-competitor-scaffold",
+            "--artifact-dir",
+            root.to_str().unwrap(),
+        ],
+    );
+    assert_ok(&out);
+
+    assert!(root.join("comparison_manifest.json").exists());
+    assert!(root.join("observations/commands.log").exists());
+
+    let manifest: Value =
+        serde_json::from_slice(&fs::read(root.join("comparison_manifest.json")).unwrap()).unwrap();
+    assert_eq!(
+        manifest["experiment_id"],
+        "crushr_p0s13f0_competitor_scaffold_byteflip"
+    );
+    assert_eq!(manifest["corruption_model"], "byteflip");
+
+    let targets = manifest["targets"].as_array().unwrap();
+    let crushr = targets
+        .iter()
+        .find(|v| v["archive_type"] == "crushr")
+        .unwrap();
+    assert_eq!(crushr["supported"], true);
+    assert_eq!(
+        crushr["build"]["command"],
+        "cargo run -q -p crushr --bin crushr-pack -- fixture/*.txt -o archives/fixture.crs"
+    );
+    assert!(crushr["observe_corrupt"]["exit_code"].as_i64().unwrap() != 0);
+
+    let seven_z = targets.iter().find(|v| v["archive_type"] == "7z").unwrap();
+    assert_eq!(seven_z["supported"], false);
+    assert!(seven_z["deferred_reason"].as_str().unwrap().contains("7z"));
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn recorded_results_reference_competitor_scaffold_artifact() {
+    let manifest_path = workspace_root().join(
+        "docs/RESEARCH/artifacts/crushr_p0s13f0_competitor_scaffold_byteflip/comparison_manifest.json",
+    );
+    let results_path = workspace_root().join("docs/RESEARCH/RESULTS.md");
+
+    let manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    let results = fs::read_to_string(&results_path).unwrap();
+
+    let experiment_id = manifest["experiment_id"].as_str().unwrap();
+    assert!(results.contains(experiment_id));
+    assert!(results.contains("docs/RESEARCH/artifacts/crushr_p0s13f0_competitor_scaffold_byteflip"));
+}

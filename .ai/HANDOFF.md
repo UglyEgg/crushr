@@ -9,6 +9,9 @@ Start with:
 6. `SPEC.md` and `docs/CONTRACTS/*`
 
 Current shape:
+
+- `crushr-lab run-competitor-scaffold` now creates the first bounded comparison scaffold at `docs/RESEARCH/artifacts/crushr_p0s13f0_competitor_scaffold_byteflip/` with deterministic fixture/corruption plus per-target command and status capture.
+- Comparison scaffold currently records `crushr` and `zip` in this environment, while explicitly deferring `tar+zstd` (`zstd` missing) and `7z` (`7z/7za` missing) without false success.
 - `crushr-lab run-first-experiment` now provides a deterministic command path for the recorded first corruption experiment and refreshes artifacts under `docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip/` (with expected-exit checks for corrupt info/fsck calls).
 - `crushr-core::verify` now performs read-only BLK3 scan + payload-hash checks across the blocks region; fsck now reports real `corrupted_blocks` when payload bytes are corrupted.
 - `crushr-fsck` snapshot/envelope APIs now require reader access so verification runs against archive bytes while preserving deterministic JSON output.

@@ -145,3 +145,10 @@
 - Added expectation-gated artifact emission (defaulting to `docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip/`) including clean JSON outputs, corrupt exit/stderr captures, and refreshed manifest fields.
 - Added integration coverage ensuring runner artifact presence and experiment-id/exit-code consistency.
 - Updated `docs/RESEARCH/EXPERIMENT_METHOD.md` and `docs/RESEARCH/RESULTS.md` with the explicit runner command and clear small-scope limitation wording.
+
+## 2026-03-09 — Phase F, Step F.4 (fix iteration 0: bounded competitor comparison scaffold)
+
+- Added `crushr-lab run-competitor-scaffold` to produce deterministic scaffold artifacts under `docs/RESEARCH/artifacts/crushr_p0s13f0_competitor_scaffold_byteflip/`.
+- Implemented scaffold target records for `crushr`, `zip`, and `tar+zstd` with explicit environment detection/deferral behavior, plus explicit `7z` deferral handling.
+- Added integration tests in `crates/crushr-core/tests/first_corruption_experiment.rs` for manifest structure, deferred-target honesty, and docs/results artifact-reference alignment.
+- Updated `docs/RESEARCH/EXPERIMENT_METHOD.md` and `docs/RESEARCH/RESULTS.md` to document scaffold scope and supported vs deferred targets without benchmark claims.

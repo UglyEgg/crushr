@@ -29,3 +29,23 @@ This experiment demonstrates the first real end-to-end structural corruption loo
 ### Limitation note
 
 This is an initial structural validation result only. It is **not** a comparative benchmark, not a full corruption matrix, and not evidence about salvage/repair or payload-level recovery behavior.
+
+
+## Experiment scaffold: `crushr_p0s13f0_competitor_scaffold_byteflip`
+
+- **Artifact path:** `docs/RESEARCH/artifacts/crushr_p0s13f0_competitor_scaffold_byteflip`
+- **Fixture:** `fixture/alpha.txt` and `fixture/beta.txt`.
+- **Corruption model:** deterministic `byteflip` (`seed = 2026`, offset `archive_len - 1` per built archive).
+- **Reproduction command:** `cargo run -q -p crushr-lab --bin crushr-lab -- run-competitor-scaffold`.
+- **Recorded metadata:** per-target archive type, build tool/command, clean/corrupt observation command metadata, and corruption metadata.
+
+### Current environment result (scaffold status only)
+
+- `crushr`: supported and recorded.
+- `zip`: supported and recorded.
+- `tar+zstd`: deferred in this environment (`zstd` not found in `PATH`).
+- `7z`: deferred in this environment (`7z/7za` not found in `PATH`).
+
+### Limitation note
+
+This entry is a scaffold-status record only. It is **not** a completed comparison study, not a benchmark matrix, and not a basis for broad performance or resilience claims.

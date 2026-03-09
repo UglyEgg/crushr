@@ -25,8 +25,8 @@
 
 - [x] Step F.1: Deterministic corruption harness skeleton
 - [x] Step F.2: Decompression-free impact enumeration model
-- [ ] Step F.3: Controlled datasets (in progress: single-file dataset now has deterministic command runner + artifact refresh path; workspace hygiene + info/fsck exit-code normalization pass completed; BLK3 payload-hash verification wired into fsck corrupted-block reporting)
-- [ ] Step F.4: Comparative baseline experiments
+- [x] Step F.3: Controlled datasets (single-file deterministic runner path and artifact refresh complete)
+- [x] Step F.4: Comparative baseline experiments (bounded first scaffold: crushr/zip runnable, tar+zstd + 7z deferred with explicit reasons)
 - [ ] Step F.5: Recorded results and claim validation
 
 ## Later Phases
