@@ -88,6 +88,17 @@ fn assert_err_code_2(out: &std::process::Output) {
     );
 }
 
+fn assert_err_code_3(out: &std::process::Output) {
+    assert_eq!(
+        out.status.code(),
+        Some(3),
+        "status={:?}\nstdout:\n{}\nstderr:\n{}",
+        out.status,
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
 #[test]
 fn pack_single_file_produces_readable_v1_archive() {
     ensure_bins_built();
@@ -274,13 +285,36 @@ fn extract_single_file_roundtrip() {
     );
     assert_ok(&packed);
 
-    let extracted = run_bin(
+    let extracted_success = run_bin(
         "crushr-extract",
-        &[archive.to_str().unwrap(), "-o", out_dir.to_str().unwrap()],
+        &[
+            archive.to_str().unwrap(),
+            "-o",
+            out_dir.to_str().unwrap(),
+            "--refusal-exit",
+            "success",
+        ],
     );
-    assert_ok(&extracted);
+    assert_ok(&extracted_success);
     assert_eq!(
         fs::read(out_dir.join("single.txt")).unwrap(),
+        b"extract me\n"
+    );
+
+    let out_dir_partial = root.join("out-partial");
+    let extracted_partial = run_bin(
+        "crushr-extract",
+        &[
+            archive.to_str().unwrap(),
+            "-o",
+            out_dir_partial.to_str().unwrap(),
+            "--refusal-exit",
+            "partial-failure",
+        ],
+    );
+    assert_ok(&extracted_partial);
+    assert_eq!(
+        fs::read(out_dir_partial.join("single.txt")).unwrap(),
         b"extract me\n"
     );
 
@@ -348,30 +382,69 @@ fn extract_refuses_affected_file_and_keeps_unaffected_file() {
     let corrupt_archive = root.join("tree-corrupt.crs");
     fs::write(&corrupt_archive, corrupted).unwrap();
 
-    let out_dir_a = root.join("out-a");
-    let extracted_a = run_bin(
+    let out_dir_success_a = root.join("out-success-a");
+    let extracted_success_a = run_bin(
         "crushr-extract",
         &[
             corrupt_archive.to_str().unwrap(),
             "-o",
-            out_dir_a.to_str().unwrap(),
+            out_dir_success_a.to_str().unwrap(),
+            "--refusal-exit",
+            "success",
         ],
     );
-    assert_ok(&extracted_a);
-    assert!(!out_dir_a.join("a.txt").exists());
-    assert_eq!(fs::read(out_dir_a.join("b.txt")).unwrap(), b"bravo\n");
+    assert_ok(&extracted_success_a);
+    assert!(!out_dir_success_a.join("a.txt").exists());
+    assert_eq!(
+        fs::read(out_dir_success_a.join("b.txt")).unwrap(),
+        b"bravo\n"
+    );
 
-    let out_dir_b = root.join("out-b");
-    let extracted_b = run_bin(
+    let out_dir_success_b = root.join("out-success-b");
+    let extracted_success_b = run_bin(
         "crushr-extract",
         &[
             corrupt_archive.to_str().unwrap(),
             "-o",
-            out_dir_b.to_str().unwrap(),
+            out_dir_success_b.to_str().unwrap(),
+            "--refusal-exit",
+            "success",
         ],
     );
-    assert_ok(&extracted_b);
-    assert_eq!(extracted_a.stderr, extracted_b.stderr);
+    assert_ok(&extracted_success_b);
+    assert_eq!(extracted_success_a.stderr, extracted_success_b.stderr);
+
+    let out_dir_partial_a = root.join("out-partial-a");
+    let extracted_partial_a = run_bin(
+        "crushr-extract",
+        &[
+            corrupt_archive.to_str().unwrap(),
+            "-o",
+            out_dir_partial_a.to_str().unwrap(),
+            "--refusal-exit",
+            "partial-failure",
+        ],
+    );
+    assert_err_code_3(&extracted_partial_a);
+    assert!(!out_dir_partial_a.join("a.txt").exists());
+    assert_eq!(
+        fs::read(out_dir_partial_a.join("b.txt")).unwrap(),
+        b"bravo\n"
+    );
+
+    let out_dir_partial_b = root.join("out-partial-b");
+    let extracted_partial_b = run_bin(
+        "crushr-extract",
+        &[
+            corrupt_archive.to_str().unwrap(),
+            "-o",
+            out_dir_partial_b.to_str().unwrap(),
+            "--refusal-exit",
+            "partial-failure",
+        ],
+    );
+    assert_err_code_3(&extracted_partial_b);
+    assert_eq!(extracted_partial_a.stderr, extracted_partial_b.stderr);
 
     let _ = fs::remove_dir_all(&root);
 }
@@ -399,12 +472,31 @@ fn extract_fails_for_invalid_footer() {
     let broken = root.join("single-broken.crs");
     fs::write(&broken, bytes).unwrap();
 
-    let out_dir = root.join("out");
-    let extracted = run_bin(
+    let out_dir_success = root.join("out-success");
+    let extracted_success = run_bin(
         "crushr-extract",
-        &[broken.to_str().unwrap(), "-o", out_dir.to_str().unwrap()],
+        &[
+            broken.to_str().unwrap(),
+            "-o",
+            out_dir_success.to_str().unwrap(),
+            "--refusal-exit",
+            "success",
+        ],
     );
-    assert_err_code_2(&extracted);
+    assert_err_code_2(&extracted_success);
+
+    let out_dir_partial = root.join("out-partial");
+    let extracted_partial = run_bin(
+        "crushr-extract",
+        &[
+            broken.to_str().unwrap(),
+            "-o",
+            out_dir_partial.to_str().unwrap(),
+            "--refusal-exit",
+            "partial-failure",
+        ],
+    );
+    assert_err_code_2(&extracted_partial);
 
     let _ = fs::remove_dir_all(&root);
 }

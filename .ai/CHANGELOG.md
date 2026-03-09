@@ -159,3 +159,11 @@
 - Strict extraction now refuses files requiring corrupted blocks while allowing unaffected files to extract in deterministic path order.
 - Added extraction integration tests for single-file and tiny-directory clean round trips, payload-corruption selective refusal, invalid-footer failure, and deterministic stderr behavior.
 - Updated `PROJECT_STATE.md` to record strict extraction availability and explicitly keep salvage/metadata fidelity out of scope.
+
+
+## 2026-03-09 — Phase 0, Step 0.14 (fix iteration 1: policy-controlled strict refusal exit semantics)
+
+- Added `--refusal-exit <success|partial-failure>` to `crushr-extract` with default `success` so strict refusal can optionally signal machine-detectable partial failure.
+- Kept strict extraction behavior unchanged: unaffected files still extract, refused files are still skipped and deterministically reported.
+- Extended extraction integration tests to cover clean archives in both modes, selective-refusal exit `0`/`3` split by policy, structural-failure exit `2` in both modes, and stable refusal reporting.
+- Updated `docs/CONTRACTS/ERROR_MODEL.md` and `PROJECT_STATE.md` for the new policy-controlled exit contract.

@@ -4,7 +4,7 @@
 
 - Phase: 0
 - Step: 0.14
-- Fix iteration: 0
+- Fix iteration: 1
 
 ## Current Objective
 
@@ -12,11 +12,10 @@ Deliver the first strict extraction path for minimal v1 archives: clean extracti
 
 ## What Changed (since last Step)
 
-- Added a new `crushr-extract` binary implementing strict minimal-v1 extraction over the current `open_archive_v1` + BLK3 scan + IDX3 decode path.
-- Extraction now verifies payload hashes via existing `crushr-core::verify` and refuses only files whose required block IDs are in the corrupted set.
-- Extraction keeps deterministic behavior by sorting paths and emitting stable refusal lines for skipped files.
-- Added integration coverage in `crates/crushr-core/tests/minimal_pack_v1.rs` for clean single-file and tiny-directory extraction round trips, corrupted-payload selective refusal, invalid-footer failure, and deterministic stderr behavior.
-- Updated `PROJECT_STATE.md` to reflect that strict minimal-v1 extraction now exists while salvage/metadata fidelity remains out of scope.
+- Added a policy-controlled refusal exit flag to `crushr-extract`: `--refusal-exit <success|partial-failure>` with default `success`.
+- Strict extraction behavior is preserved: unaffected files still extract, refused files are still reported deterministically on stderr, and refusal reporting remains stable.
+- Added integration coverage for both refusal policies on clean archives, selective-refusal archives, and structurally invalid archives.
+- Updated contract/state docs to record exit code `3` semantics for policy-requested partial extraction refusal signaling in strict extraction.
 
 ## What Remains (next actions)
 

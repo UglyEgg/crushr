@@ -34,20 +34,62 @@ struct BlockPayload {
     raw: Vec<u8>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RefusalExitPolicy {
+    Success,
+    PartialFailure,
+}
+
+impl RefusalExitPolicy {
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "success" => Some(Self::Success),
+            "partial-failure" => Some(Self::PartialFailure),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct RefusalError {
+    count: usize,
+}
+
+impl std::fmt::Display for RefusalError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "strict extraction had refused files due to corrupted required blocks: {}",
+            self.count
+        )
+    }
+}
+
+impl std::error::Error for RefusalError {}
+
+const USAGE: &str =
+    "usage: crushr-extract <archive> -o <out-dir> [--overwrite] [--refusal-exit <success|partial-failure>]";
+
 fn run() -> Result<()> {
     let mut archive = None;
     let mut out_dir = None;
     let mut overwrite = false;
+    let mut refusal_exit = RefusalExitPolicy::Success;
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         if arg == "-o" || arg == "--output" {
-            let value = args
-                .next()
-                .context("usage: crushr-extract <archive> -o <out-dir> [--overwrite]")?;
+            let value = args.next().context(USAGE)?;
             out_dir = Some(PathBuf::from(value));
         } else if arg == "--overwrite" {
             overwrite = true;
+        } else if arg == "--refusal-exit" {
+            let value = args.next().context(USAGE)?;
+            refusal_exit = RefusalExitPolicy::parse(&value).with_context(|| {
+                format!(
+                    "unsupported value for --refusal-exit: {value} (expected success|partial-failure)"
+                )
+            })?;
         } else if arg.starts_with('-') {
             bail!("unsupported flag: {arg}");
         } else if archive.is_none() {
@@ -57,8 +99,8 @@ fn run() -> Result<()> {
         }
     }
 
-    let archive = archive.context("usage: crushr-extract <archive> -o <out-dir> [--overwrite]")?;
-    let out_dir = out_dir.context("usage: crushr-extract <archive> -o <out-dir> [--overwrite]")?;
+    let archive = archive.context(USAGE)?;
+    let out_dir = out_dir.context(USAGE)?;
 
     let reader = FileReader {
         file: File::open(&archive).with_context(|| format!("open {}", archive.display()))?,
@@ -100,8 +142,16 @@ fn run() -> Result<()> {
     }
 
     if !refused.is_empty() {
+        let refused_count = refused.len();
         for path in refused {
             eprintln!("strict: refused extraction due to corrupted required blocks: {path}");
+        }
+
+        if refusal_exit == RefusalExitPolicy::PartialFailure {
+            return Err(RefusalError {
+                count: refused_count,
+            }
+            .into());
         }
     }
 
@@ -214,8 +264,13 @@ fn main() {
             let code = if msg.contains("usage:")
                 || msg.contains("unsupported flag")
                 || msg.contains("unexpected argument")
+                || msg.contains("unsupported value for --refusal-exit")
             {
                 1
+            } else if msg
+                .contains("strict extraction had refused files due to corrupted required blocks")
+            {
+                3
             } else {
                 2
             };
