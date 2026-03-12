@@ -300,3 +300,9 @@
 - Added typed raw run record schema (`RawRunRecord`) with deterministic per-scenario artifact layout under `docs/RESEARCH/artifacts/phase2_execution/raw/<scenario_id>/`.
 - Added completeness auditing for missing/duplicate/mismatched scenario IDs and report output (`completeness_audit.json`).
 - Added focused tests for raw JSON-result bookkeeping and completeness validation behavior.
+
+## 2026-03-12 — Phase 2, Step 2.1 cleanup (CRUSHR-P2-CLEAN-01)
+
+- Deleted obsolete scaffold/demo command surfaces from `crushr-lab` (`run-first-experiment`, `run-competitor-scaffold`) including related constants, helper flows, and tests.
+- Slimmed `crates/crushr-lab/src/main.rs` to a Phase 2-focused orchestration edge with only active command paths (`corrupt`, `write-phase2-manifest`, `build-phase2-foundation`, `run-phase2-execution`).
+- Removed one-off scaffold helper sediment and replaced removed tests with focused parsing tests relevant to retained command surfaces.
