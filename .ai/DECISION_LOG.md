@@ -158,3 +158,19 @@
 - Blast radius:
   - Documentation-only contract/control cleanup; no product behavior change.
   - Fresh contributors now have one deterministic reading path.
+
+
+## 2026-03-12 — CRUSHR-P2.1-A: deterministic Phase 2 scenario IDs and enumeration order locked
+
+- Decision:
+  - Lock Phase 2 core scenario ID format to `p2-core-{dataset}-{format_id}-{corruption_type}-{target_class}-{magnitude}-{seed}`.
+  - Lock enumeration order to nested axis order: dataset → format → corruption_type → target_class → magnitude → seed, using matrix values from `PHASE_2_LOCKS`.
+- Alternatives:
+  1. Use opaque numeric scenario IDs and keep axis values only as fields.
+  2. Sort by lexicographic scenario_id string post-generation.
+- Rationale:
+  - Human-readable deterministic IDs improve traceability in artifacts and review.
+  - Axis-driven ordering avoids accidental drift from string sorting quirks and matches lock-file semantics directly.
+- Blast radius:
+  - `crushr-lab` manifest producers/consumers and any downstream report tooling now rely on this stable ID and ordering contract.
+  - No runtime execution semantics changed in this packet.

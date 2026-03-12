@@ -2,13 +2,14 @@
 
 Current Phase: Phase 2 — Comparative Corruption Research
 
-Current Step: 2.1 packet preparation (controlled corruption matrix manifest/schema)
+Current Step: 2.1 complete (CRUSHR-P2.1-A manifest-first experiment contract and scenario enumeration)
 
-Recent completed packet: CRUSHR-CLEANUP-2.0-D (core report assembly centralization)
+Recent completed packet: CRUSHR-P2.1-A (manifest-first experiment contract and deterministic scenario enumeration)
 
 ## Current truth
 
 - Phase 1 is complete.
+- Phase 2.1 packet CRUSHR-P2.1-A is complete: `crushr-lab` now has typed Phase 2 manifest/scenario structures, deterministic locked-core scenario enumeration (2160 runs), stable scenario IDs, and a dedicated manifest schema.
 - Cleanup packets CRUSHR-CLEANUP-2.0-C and CRUSHR-CLEANUP-2.0-D are complete.
 - Active machine-readable schemas are now tightened contracts for: `crushr-info` snapshot, `crushr-fsck` snapshot, `crushr-impact` report, extraction result, and propagation graph.
 - Integration tests now perform real JSON Schema instance-vs-schema validation for active outputs.
@@ -22,4 +23,4 @@ Recent completed packet: CRUSHR-CLEANUP-2.0-D (core report assembly centralizati
 
 ## Next action
 
-Start and execute Phase 2.1 manifest/schema packet for controlled corruption matrix runs (no further cleanup drift tasks pending).
+Start Phase 2.2 execution harness packet (consume manifest scenarios for command execution and raw result capture; preserve deterministic ordering/IDs).

@@ -13,6 +13,6 @@
 - [x] 2.0-B Documentation/control cleanup and canonicalization
 - [x] 2.0-C Schema contract tightening and validator-backed tests
 - [x] 2.0-D Shared core report/classification centralization
-- [ ] 2.1 Controlled Corruption Matrix manifest/schema (next packet)
+- [x] 2.1 Controlled Corruption Matrix manifest/schema (CRUSHR-P2.1-A)
 - [ ] 2.2 Cross-Format Comparison
 - [ ] 2.3 Experimental Reporting

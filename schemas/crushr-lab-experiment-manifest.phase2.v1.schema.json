@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crushr.dev/schemas/crushr-lab-experiment-manifest.phase2.v1.schema.json",
+  "title": "crushr-lab phase2 experiment manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "scenario_id_format",
+    "ordering",
+    "datasets",
+    "formats",
+    "corruption_types",
+    "target_classes",
+    "magnitudes",
+    "seeds",
+    "scenarios"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "https://crushr.dev/schemas/crushr-lab-experiment-manifest.phase2.v1.schema.json"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "phase2.v1"
+    },
+    "scenario_id_format": {
+      "type": "string",
+      "const": "p2-core-{dataset}-{format_id}-{corruption_type}-{target_class}-{magnitude}-{seed}"
+    },
+    "ordering": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 6,
+      "maxItems": 6,
+      "prefixItems": [
+        { "const": "dataset" },
+        { "const": "format" },
+        { "const": "corruption_type" },
+        { "const": "target_class" },
+        { "const": "magnitude" },
+        { "const": "seed" }
+      ]
+    },
+    "datasets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/dataset" },
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        { "const": "smallfiles" },
+        { "const": "mixed" },
+        { "const": "largefiles" }
+      ]
+    },
+    "formats": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/format" },
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+        { "const": "crushr" },
+        { "const": "tar+zstd" },
+        { "const": "zip" },
+        { "const": "7z/lzma" }
+      ]
+    },
+    "corruption_types": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/corruption_type" },
+      "minItems": 5,
+      "maxItems": 5,
+      "prefixItems": [
+        { "const": "bit_flip" },
+        { "const": "byte_overwrite" },
+        { "const": "zero_fill" },
+        { "const": "truncation" },
+        { "const": "tail_damage" }
+      ]
+    },
+    "target_classes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/target_class" },
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+        { "const": "header" },
+        { "const": "index" },
+        { "const": "payload" },
+        { "const": "tail" }
+      ]
+    },
+    "magnitudes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/magnitude" },
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        { "const": "1B" },
+        { "const": "256B" },
+        { "const": "4KB" }
+      ]
+    },
+    "seeds": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0 },
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        { "const": 1337 },
+        { "const": 2600 },
+        { "const": 65535 }
+      ]
+    },
+    "scenarios": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/scenario" },
+      "minItems": 2160,
+      "maxItems": 2160
+    }
+  },
+  "$defs": {
+    "dataset": {
+      "type": "string",
+      "enum": ["smallfiles", "mixed", "largefiles"]
+    },
+    "format": {
+      "type": "string",
+      "enum": ["crushr", "tar+zstd", "zip", "7z/lzma"]
+    },
+    "corruption_type": {
+      "type": "string",
+      "enum": ["bit_flip", "byte_overwrite", "zero_fill", "truncation", "tail_damage"]
+    },
+    "target_class": {
+      "type": "string",
+      "enum": ["header", "index", "payload", "tail"]
+    },
+    "magnitude": {
+      "type": "string",
+      "enum": ["1B", "256B", "4KB"]
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "dataset",
+        "format",
+        "corruption_type",
+        "target_class",
+        "magnitude",
+        "magnitude_bytes",
+        "seed"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "pattern": "^p2-core-[a-z0-9]+-[a-z0-9_]+-[a-z_]+-[a-z]+-(1B|256B|4KB)-[0-9]+$"
+        },
+        "dataset": { "$ref": "#/$defs/dataset" },
+        "format": { "$ref": "#/$defs/format" },
+        "corruption_type": { "$ref": "#/$defs/corruption_type" },
+        "target_class": { "$ref": "#/$defs/target_class" },
+        "magnitude": { "$ref": "#/$defs/magnitude" },
+        "magnitude_bytes": {
+          "type": "integer",
+          "enum": [1, 256, 4096]
+        },
+        "seed": {
+          "type": "integer",
+          "enum": [1337, 2600, 65535]
+        }
+      }
+    }
+  }
+}

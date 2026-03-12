@@ -266,3 +266,12 @@
 - Slimmed `crushr-extract` by removing local report/refusal structs and delegating outcome/report construction to core helpers.
 - Added `build_structural_failure_report_v1` in `crushr-core::propagation` and updated `crushr-info` structural fallback branches to use shared helper.
 - Added/updated unit tests to assert centralized report semantics remain deterministic.
+
+
+## 2026-03-12 — Phase 2, Step 2.1 (CRUSHR-P2.1-A manifest-first experiment contract and scenario enumeration)
+
+- Added typed Phase 2 manifest/scenario model to `crushr-lab` with locked core matrix enums and deterministic scenario ID generation.
+- Added deterministic locked-core scenario expansion to 2160 scenarios with explicit enumeration ordering rules (`dataset` → `format` → `corruption_type` → `target_class` → `magnitude` → `seed`).
+- Added schema `schemas/crushr-lab-experiment-manifest.phase2.v1.schema.json` for Phase 2 manifest contract.
+- Added `crushr-lab write-phase2-manifest` command to generate a schema-tagged manifest artifact independent from execution logic.
+- Added manifest/scenario tests for count, ordering, stable IDs, stable fields, and schema-shape validation.

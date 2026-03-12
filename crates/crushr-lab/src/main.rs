@@ -5,6 +5,13 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+mod phase2_manifest;
+
+use phase2_manifest::{
+    validate_manifest_shape, Phase2ExperimentManifest, PHASE2_MANIFEST_SCHEMA_ID,
+    PHASE2_MANIFEST_SCHEMA_PATH,
+};
+
 const FIRST_EXPERIMENT_ID: &str = "crushr_p0s12f0_first_e2e_byteflip";
 const FIRST_EXPERIMENT_REL_DIR: &str = "docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip";
 const FIRST_EXPERIMENT_FIXTURE: &[u8] = b"crushr experiment fixture\nline-2\nline-3\n";
@@ -68,15 +75,50 @@ fn main() -> Result<()> {
     let cmd = args.next().unwrap_or_default();
     match cmd.as_str() {
         "corrupt" => run_corrupt(args.collect()),
+        "write-phase2-manifest" => write_phase2_manifest(args.collect()),
         "run-first-experiment" => run_first_experiment(args.collect()),
         "run-competitor-scaffold" => run_competitor_scaffold(args.collect()),
         _ => {
             eprintln!(
-                "usage:\n  crushr-lab corrupt <input> <output> [--model byteflip --seed <u64> --offset <u64>]\n  crushr-lab run-first-experiment [--artifact-dir <path>]\n  crushr-lab run-competitor-scaffold [--artifact-dir <path>]"
+                "usage:\n  crushr-lab corrupt <input> <output> [--model byteflip --seed <u64> --offset <u64>]\n  crushr-lab write-phase2-manifest [--output <path>]\n  crushr-lab run-first-experiment [--artifact-dir <path>]\n  crushr-lab run-competitor-scaffold [--artifact-dir <path>]"
             );
             std::process::exit(1);
         }
     }
+}
+
+fn write_phase2_manifest(raw_args: Vec<String>) -> Result<()> {
+    let mut args = raw_args.into_iter();
+    let mut output = workspace_root()?.join("docs/RESEARCH/artifacts/phase2_core_manifest.json");
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--output" => {
+                output = PathBuf::from(args.next().context("missing value for --output")?);
+            }
+            _ => bail!("unsupported flag: {arg}"),
+        }
+    }
+
+    if let Some(parent) = output.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let mut manifest = serde_json::to_value(Phase2ExperimentManifest::locked_core())?;
+    manifest
+        .as_object_mut()
+        .context("phase2 manifest value must be object")?
+        .insert(
+            "$schema".to_string(),
+            serde_json::Value::String(PHASE2_MANIFEST_SCHEMA_ID.to_string()),
+        );
+
+    validate_manifest_shape(&manifest)?;
+    fs::write(output, serde_json::to_vec_pretty(&manifest)?)?;
+    eprintln!(
+        "wrote locked Phase 2 manifest using schema {}",
+        PHASE2_MANIFEST_SCHEMA_PATH
+    );
+    Ok(())
 }
 
 fn run_competitor_scaffold(raw_args: Vec<String>) -> Result<()> {
