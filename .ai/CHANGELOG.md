@@ -258,3 +258,11 @@
 - Added validator-backed schema tests (`jsonschema`) to validate emitted `crushr-info --json` and `crushr-fsck --json` instances against their schemas and to validate typed `ImpactReportV1` instances against the impact schema.
 - Upgraded extraction-result and propagation tests to perform real JSON Schema validation in addition to existing deterministic-shape assertions.
 - Audited active schemas: extraction-result and propagation-graph remain active/canonical; no obsolete schema was deleted in this packet.
+
+
+## 2026-03-12 — Phase 2, Step 2.0-D (shared core report assembly centralization)
+
+- Added `crushr-core::extraction` typed report/refusal model and helper assembly (`build_extraction_report`) so extraction semantics live in shared core.
+- Slimmed `crushr-extract` by removing local report/refusal structs and delegating outcome/report construction to core helpers.
+- Added `build_structural_failure_report_v1` in `crushr-core::propagation` and updated `crushr-info` structural fallback branches to use shared helper.
+- Added/updated unit tests to assert centralized report semantics remain deterministic.

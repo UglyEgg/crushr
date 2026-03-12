@@ -21,3 +21,4 @@ Phase 2.1 — controlled corruption matrix manifest/schema.
 ## Recently completed
 
 - CRUSHR-CLEANUP-2.0-C finished: active schemas are now strict contracts and validated with JSON Schema in integration tests.
+- CRUSHR-CLEANUP-2.0-D finished: extraction report assembly/refusal classification moved to `crushr-core::extraction`; `crushr-info` structural-failure report assembly now uses shared propagation helper.

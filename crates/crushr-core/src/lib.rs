@@ -11,5 +11,6 @@ pub mod open;
 pub mod propagation;
 pub mod snapshot;
 
+pub mod extraction;
 pub mod impact;
 pub mod verify;

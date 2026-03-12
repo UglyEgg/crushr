@@ -79,6 +79,14 @@ pub struct FileDependencyV1 {
     pub required_blocks: Vec<u32>,
 }
 
+pub fn build_structural_failure_report_v1(corrupted_structures: &[&str]) -> PropagationReportV1 {
+    let corrupted_structures = corrupted_structures
+        .iter()
+        .map(|v| (*v).to_string())
+        .collect::<BTreeSet<_>>();
+    build_propagation_report_v1(&[], &corrupted_structures, &BTreeSet::new())
+}
+
 pub fn build_propagation_report_v1(
     files: &[FileDependencyV1],
     corrupted_structure_nodes: &BTreeSet<String>,
@@ -253,6 +261,25 @@ pub fn block_node_id(block_id: u32) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn structural_failure_helper_maps_to_required_structure_impacts() {
+        let report = build_structural_failure_report_v1(&[
+            STRUCTURE_FTR4,
+            STRUCTURE_TAIL_FRAME,
+            STRUCTURE_IDX3,
+        ]);
+
+        assert_eq!(
+            report.corrupted_structure_nodes,
+            vec![
+                STRUCTURE_FTR4.to_string(),
+                STRUCTURE_IDX3.to_string(),
+                STRUCTURE_TAIL_FRAME.to_string(),
+            ]
+        );
+        assert!(report.nodes.iter().any(|n| n.id == STRUCTURE_FTR4));
+    }
 
     #[test]
     fn report_is_deterministic_and_ordered() {

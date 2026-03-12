@@ -5,8 +5,8 @@ use crushr_core::{
     io::{Len, ReadAt},
     open::open_archive_v1,
     propagation::{
-        build_propagation_report_v1, FileDependencyV1, STRUCTURE_FTR4, STRUCTURE_IDX3,
-        STRUCTURE_TAIL_FRAME,
+        build_propagation_report_v1, build_structural_failure_report_v1, FileDependencyV1,
+        STRUCTURE_FTR4, STRUCTURE_IDX3, STRUCTURE_TAIL_FRAME,
     },
     snapshot::{info_envelope_from_open_archive, serialize_snapshot_json},
     verify::verify_block_payloads_v1,
@@ -69,42 +69,33 @@ fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> R
 
     let archive_len = reader.len().context("read archive length")?;
     if archive_len < FTR4_LEN as u64 {
-        corrupted_structures.insert(STRUCTURE_FTR4.to_string());
-        corrupted_structures.insert(STRUCTURE_TAIL_FRAME.to_string());
-        corrupted_structures.insert(STRUCTURE_IDX3.to_string());
-        let report = build_propagation_report_v1(
-            &file_dependencies,
-            &corrupted_structures,
-            &corrupted_blocks,
-        );
+        let report = build_structural_failure_report_v1(&[
+            STRUCTURE_FTR4,
+            STRUCTURE_TAIL_FRAME,
+            STRUCTURE_IDX3,
+        ]);
         return Ok(serialize_snapshot_json(&report)?);
     }
 
     let footer_offset = archive_len - FTR4_LEN as u64;
     let mut footer_bytes = vec![0u8; FTR4_LEN];
     if read_exact_at(reader, footer_offset, &mut footer_bytes).is_err() {
-        corrupted_structures.insert(STRUCTURE_FTR4.to_string());
-        corrupted_structures.insert(STRUCTURE_TAIL_FRAME.to_string());
-        corrupted_structures.insert(STRUCTURE_IDX3.to_string());
-        let report = build_propagation_report_v1(
-            &file_dependencies,
-            &corrupted_structures,
-            &corrupted_blocks,
-        );
+        let report = build_structural_failure_report_v1(&[
+            STRUCTURE_FTR4,
+            STRUCTURE_TAIL_FRAME,
+            STRUCTURE_IDX3,
+        ]);
         return Ok(serialize_snapshot_json(&report)?);
     }
 
     let footer = match Ftr4::read_from(Cursor::new(&footer_bytes)) {
         Ok(value) => value,
         Err(_) => {
-            corrupted_structures.insert(STRUCTURE_FTR4.to_string());
-            corrupted_structures.insert(STRUCTURE_TAIL_FRAME.to_string());
-            corrupted_structures.insert(STRUCTURE_IDX3.to_string());
-            let report = build_propagation_report_v1(
-                &file_dependencies,
-                &corrupted_structures,
-                &corrupted_blocks,
-            );
+            let report = build_structural_failure_report_v1(&[
+                STRUCTURE_FTR4,
+                STRUCTURE_TAIL_FRAME,
+                STRUCTURE_IDX3,
+            ]);
             return Ok(serialize_snapshot_json(&report)?);
         }
     };
