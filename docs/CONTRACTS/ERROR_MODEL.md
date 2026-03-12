@@ -26,6 +26,6 @@ Tool normalization (current workspace baseline):
   - `partial-failure`: valid archive structure with one or more refused files exits `3` (unchanged semantics).
   - Structural/open/parse failures still exit `2` regardless of refusal policy.
 - `crushr-extract --json` emits deterministic machine-readable extraction reports:
-  - strict mode: same existing contract (`overall_status`, deterministic `extracted_files`, deterministic `refused_files`, stable refusal reason `corrupted_required_blocks`)
-  - salvage mode: same extraction/refusal semantics plus explicit `mode = "salvage"` and deterministic ordered `salvage_decisions` entries with decisions `extracted_verified_extents` or `refused_corrupted_required_blocks`
+  - strict mode: explicit maximum-safe-extraction contract (`overall_status`, `maximal_safe_set_computed`, deterministic `safe_files`, deterministic `refused_files`, `safe_file_count`, `refused_file_count`, stable refusal reason `corrupted_required_blocks`)
+  - salvage mode: same maximum-safe-extraction semantics plus explicit `mode = "salvage"` and deterministic ordered `salvage_decisions` entries with decisions `extracted_verified_extents` or `refused_corrupted_required_blocks`
   - structural/open/parse failure: nonzero exit with `overall_status = "error"` envelope (no success/partial-success report emitted)

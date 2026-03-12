@@ -62,7 +62,7 @@ Each file is currently stored as a single BLK3 block.
 - block-level corruption detection
 - file-level impact enumeration
 - strict extraction
-- machine-readable extraction reports
+- machine-readable maximum-safe-extraction reports
 - deterministic corruption experiments
 - cross-format experiment scaffolding
 
@@ -89,4 +89,4 @@ Next milestone:
 
 **Maximum Safe Extraction Formalization**
 
-This step formalizes strict extraction as a reportable capability for the crushr white paper.
+This step is now implemented: strict extraction is formalized as deterministic maximum safe extraction reporting for minimal v1 (regular files, one block per file).

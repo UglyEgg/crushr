@@ -14,3 +14,10 @@ The system focuses on:
 - deterministic verification
 - corruption impact enumeration
 - extraction of verified safe content only
+
+
+Current minimal v1 extraction formalization:
+
+- maximum safe extraction is a first-class reporting capability
+- safe extraction set is computed deterministically from verified file->required-block mapping
+- current scope is regular files with one block per file
