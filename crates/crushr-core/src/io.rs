@@ -15,6 +15,7 @@ pub trait WriteAt {
 }
 
 /// Provides the total length of the underlying object.
+#[allow(clippy::len_without_is_empty)]
 pub trait Len {
     fn len(&self) -> Result<u64>;
 }

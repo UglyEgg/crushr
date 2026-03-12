@@ -87,6 +87,6 @@ No speculative recovery exists by design.
 
 Next milestone:
 
-**Maximum Safe Extraction Formalization**
+**Extraction Result Formalization**
 
-This step is now implemented: strict extraction is formalized as deterministic maximum safe extraction reporting for minimal v1 (regular files, one block per file).
+This step is now implemented: `crushr-extract --json` result envelopes are explicitly formalized as a stable deterministic contract (success, partial refusal, error) for minimal v1 (regular files, one block per file), including strict-vs-salvage field-surface constraints.

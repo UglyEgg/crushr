@@ -314,6 +314,8 @@ fn extract_single_file_roundtrip() {
         extracted_success_json["safe_files"].as_array().unwrap(),
         &[serde_json::json!({"path": "single.txt"})]
     );
+    assert!(extracted_success_json.get("mode").is_none());
+    assert!(extracted_success_json.get("salvage_decisions").is_none());
     assert_eq!(
         fs::read(out_dir.join("single.txt")).unwrap(),
         b"extract me\n"
@@ -404,6 +406,10 @@ fn extract_salvage_mode_clean_archive_matches_strict_with_deterministic_json() {
         serde_json::json!([
             {"path": "single.txt", "decision": "extracted_verified_extents"}
         ])
+    );
+    assert_eq!(
+        json["salvage_decisions"].as_array().unwrap(),
+        &[serde_json::json!({"path": "single.txt", "decision": "extracted_verified_extents"})]
     );
 
     assert_eq!(
@@ -528,6 +534,8 @@ fn extract_refuses_affected_file_and_keeps_unaffected_file() {
             .unwrap(),
         &[serde_json::json!({"path": "a.txt", "reason": "corrupted_required_blocks"})]
     );
+    assert!(extracted_success_a_json.get("mode").is_none());
+    assert!(extracted_success_a_json.get("salvage_decisions").is_none());
     assert!(!out_dir_success_a.join("a.txt").exists());
     assert_eq!(
         fs::read(out_dir_success_a.join("b.txt")).unwrap(),
@@ -657,6 +665,21 @@ fn extract_salvage_mode_partial_damage_extracts_only_verified_files() {
             {"path": "b.txt", "decision": "extracted_verified_extents"}
         ])
     );
+    assert_eq!(
+        json["safe_files"].as_array().unwrap(),
+        &[serde_json::json!({"path": "b.txt"})]
+    );
+    assert_eq!(
+        json["refused_files"].as_array().unwrap(),
+        &[serde_json::json!({"path": "a.txt", "reason": "corrupted_required_blocks"})]
+    );
+    assert_eq!(
+        json["salvage_decisions"].as_array().unwrap(),
+        &[
+            serde_json::json!({"path": "a.txt", "decision": "refused_corrupted_required_blocks"}),
+            serde_json::json!({"path": "b.txt", "decision": "extracted_verified_extents"})
+        ]
+    );
     assert!(!out_dir.join("a.txt").exists());
     assert_eq!(fs::read(out_dir.join("b.txt")).unwrap(), b"bravo\n");
 
@@ -759,6 +782,11 @@ fn extract_fails_for_invalid_footer() {
     let extracted_success_json: serde_json::Value =
         serde_json::from_slice(&extracted_success.stdout).unwrap();
     assert_eq!(extracted_success_json["overall_status"], "error");
+    assert!(extracted_success_json.get("error").is_some());
+    assert!(extracted_success_json.get("safe_files").is_none());
+    assert!(extracted_success_json.get("refused_files").is_none());
+    assert!(extracted_success_json.get("mode").is_none());
+    assert!(extracted_success_json.get("salvage_decisions").is_none());
 
     let out_dir_partial = root.join("out-partial");
     let extracted_partial = run_bin(
