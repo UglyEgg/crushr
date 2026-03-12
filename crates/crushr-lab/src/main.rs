@@ -8,6 +8,7 @@ use std::process::{Command, Output};
 mod phase2_corruption;
 mod phase2_foundation;
 mod phase2_manifest;
+mod phase2_runner;
 
 use phase2_corruption::{apply_locked_corruption, CorruptionRequest};
 use phase2_foundation::{build_phase2_foundation, validate_archive_coverage};
@@ -15,6 +16,7 @@ use phase2_manifest::{
     validate_manifest_shape, CorruptionType, Magnitude, Phase2ExperimentManifest, TargetClass,
     PHASE2_MANIFEST_SCHEMA_ID, PHASE2_MANIFEST_SCHEMA_PATH,
 };
+use phase2_runner::run_phase2_execution;
 
 const FIRST_EXPERIMENT_ID: &str = "crushr_p0s12f0_first_e2e_byteflip";
 const FIRST_EXPERIMENT_REL_DIR: &str = "docs/RESEARCH/artifacts/crushr_p0s12f0_first_e2e_byteflip";
@@ -91,9 +93,10 @@ fn main() -> Result<()> {
         "run-first-experiment" => run_first_experiment(args.collect()),
         "run-competitor-scaffold" => run_competitor_scaffold(args.collect()),
         "build-phase2-foundation" => run_phase2_foundation(args.collect()),
+        "run-phase2-execution" => run_phase2_execution_cmd(args.collect()),
         _ => {
             eprintln!(
-                "usage:\n  crushr-lab corrupt <input> <output> [--model <bit_flip|byte_overwrite|zero_fill|truncation|tail_damage> --target <header|index|payload|tail> --magnitude <1B|256B|4KB> --seed <1337|2600|65535> --scenario-id <id> [--offset <u64>]]\n  crushr-lab write-phase2-manifest [--output <path>]\n  crushr-lab run-first-experiment [--artifact-dir <path>]\n  crushr-lab run-competitor-scaffold [--artifact-dir <path>]\n  crushr-lab build-phase2-foundation [--artifact-dir <path>]"
+                "usage:\n  crushr-lab corrupt <input> <output> [--model <bit_flip|byte_overwrite|zero_fill|truncation|tail_damage> --target <header|index|payload|tail> --magnitude <1B|256B|4KB> --seed <1337|2600|65535> --scenario-id <id> [--offset <u64>]]\n  crushr-lab write-phase2-manifest [--output <path>]\n  crushr-lab run-first-experiment [--artifact-dir <path>]\n  crushr-lab run-competitor-scaffold [--artifact-dir <path>]\n  crushr-lab build-phase2-foundation [--artifact-dir <path>]\n  crushr-lab run-phase2-execution [--manifest <path> --foundation-report <path> --artifact-dir <path>]"
             );
             std::process::exit(1);
         }
@@ -118,6 +121,51 @@ fn run_phase2_foundation(raw_args: Vec<String>) -> Result<()> {
     validate_archive_coverage(&report)?;
     fs::write(
         artifact_dir.join("foundation_report.json"),
+        serde_json::to_vec_pretty(&report)?,
+    )?;
+    Ok(())
+}
+
+fn run_phase2_execution_cmd(raw_args: Vec<String>) -> Result<()> {
+    let mut args = raw_args.into_iter();
+    let root = workspace_root()?;
+    let mut manifest_path = root.join("docs/RESEARCH/artifacts/phase2_core_manifest.json");
+    let mut foundation_report_path =
+        root.join("docs/RESEARCH/artifacts/phase2_foundation/foundation_report.json");
+    let mut artifact_dir = root.join("docs/RESEARCH/artifacts/phase2_execution");
+
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--manifest" => {
+                manifest_path = PathBuf::from(args.next().context("missing value for --manifest")?)
+            }
+            "--foundation-report" => {
+                foundation_report_path = PathBuf::from(
+                    args.next()
+                        .context("missing value for --foundation-report")?,
+                )
+            }
+            "--artifact-dir" => {
+                artifact_dir =
+                    PathBuf::from(args.next().context("missing value for --artifact-dir")?)
+            }
+            _ => bail!("unsupported flag: {arg}"),
+        }
+    }
+
+    let manifest: Phase2ExperimentManifest = serde_json::from_slice(&fs::read(&manifest_path)?)
+        .with_context(|| format!("parsing manifest {}", manifest_path.display()))?;
+    let foundation: phase2_foundation::Phase2FoundationReport =
+        serde_json::from_slice(&fs::read(&foundation_report_path)?).with_context(|| {
+            format!(
+                "parsing foundation report {}",
+                foundation_report_path.display()
+            )
+        })?;
+
+    let report = run_phase2_execution(&root, &manifest, &foundation, &artifact_dir)?;
+    fs::write(
+        artifact_dir.join("execution_report.json"),
         serde_json::to_vec_pretty(&report)?,
     )?;
     Ok(())

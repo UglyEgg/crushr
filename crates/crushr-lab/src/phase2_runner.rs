@@ -1,0 +1,498 @@
+use crate::phase2_corruption::{apply_locked_corruption, CorruptionRequest};
+use crate::phase2_foundation::{
+    ArchiveBuildRecord, ArchiveKind, ExecutionStatus, FixtureDataset, Phase2FoundationReport,
+};
+use crate::phase2_manifest::{
+    ArchiveFormat, CorruptionType, Phase2ExperimentManifest, Phase2Scenario, TargetClass,
+};
+use anyhow::{anyhow, bail, Context, Result};
+use serde::Serialize;
+use std::collections::{HashMap, HashSet};
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ExecutionMetadata {
+    pub observed_command: String,
+    pub source_archive_path: String,
+    pub corrupted_archive_path: String,
+    pub corruption_log_path: String,
+    pub started_unix_ms: u128,
+    pub finished_unix_ms: u128,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RawRunRecord {
+    pub scenario_id: String,
+    pub dataset: FixtureDataset,
+    pub format: ArchiveKind,
+    pub corruption_type: CorruptionType,
+    pub target_class: TargetClass,
+    pub magnitude_bytes: u64,
+    pub seed: u64,
+    pub exit_code: i32,
+    pub stdout_path: String,
+    pub stderr_path: String,
+    pub json_result_path: Option<String>,
+    pub tool_version: String,
+    pub execution_metadata: ExecutionMetadata,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CompletenessAudit {
+    pub expected_runs: usize,
+    pub actual_runs: usize,
+    pub missing_runs: Vec<String>,
+    pub duplicate_runs: Vec<String>,
+    pub mismatched_scenario_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Phase2ExecutionReport {
+    pub expected_runs: usize,
+    pub actual_runs: usize,
+    pub records_path: String,
+    pub completeness_path: String,
+}
+
+pub fn run_phase2_execution(
+    workspace_root: &Path,
+    manifest: &Phase2ExperimentManifest,
+    foundation: &Phase2FoundationReport,
+    artifact_root: &Path,
+) -> Result<Phase2ExecutionReport> {
+    fs::create_dir_all(artifact_root)?;
+    let raw_root = artifact_root.join("raw");
+    fs::create_dir_all(&raw_root)?;
+
+    let mut archive_index = HashMap::new();
+    for build in &foundation.archive_builds {
+        archive_index.insert((build.dataset, build.archive_kind), build);
+    }
+
+    let mut version_cache = HashMap::new();
+    let mut records = Vec::with_capacity(manifest.scenarios.len());
+    for scenario in &manifest.scenarios {
+        let record = execute_scenario(
+            workspace_root,
+            artifact_root,
+            &raw_root,
+            scenario,
+            &archive_index,
+            &mut version_cache,
+        )?;
+        records.push(record);
+    }
+
+    let audit = audit_completeness(manifest, &records);
+
+    let records_path = artifact_root.join("raw_run_records.json");
+    fs::write(&records_path, serde_json::to_vec_pretty(&records)?)?;
+
+    let completeness_path = artifact_root.join("completeness_audit.json");
+    fs::write(&completeness_path, serde_json::to_vec_pretty(&audit)?)?;
+
+    if !audit.missing_runs.is_empty()
+        || !audit.duplicate_runs.is_empty()
+        || !audit.mismatched_scenario_ids.is_empty()
+    {
+        bail!(
+            "completeness audit failed; see {}",
+            completeness_path.display()
+        );
+    }
+
+    Ok(Phase2ExecutionReport {
+        expected_runs: manifest.scenarios.len(),
+        actual_runs: records.len(),
+        records_path: rel_path(artifact_root, &records_path),
+        completeness_path: rel_path(artifact_root, &completeness_path),
+    })
+}
+
+pub fn audit_completeness(
+    manifest: &Phase2ExperimentManifest,
+    records: &[RawRunRecord],
+) -> CompletenessAudit {
+    let expected_ids: HashSet<&str> = manifest
+        .scenarios
+        .iter()
+        .map(|s| s.scenario_id.as_str())
+        .collect();
+
+    let mut seen = HashSet::new();
+    let mut duplicates = Vec::new();
+    let mut mismatched = Vec::new();
+
+    for record in records {
+        let id = record.scenario_id.as_str();
+        if !seen.insert(id) {
+            duplicates.push(record.scenario_id.clone());
+        }
+        if !expected_ids.contains(id) {
+            mismatched.push(record.scenario_id.clone());
+        }
+    }
+
+    let recorded_ids: HashSet<&str> = records.iter().map(|r| r.scenario_id.as_str()).collect();
+    let mut missing = manifest
+        .scenarios
+        .iter()
+        .filter_map(|s| {
+            (!recorded_ids.contains(s.scenario_id.as_str())).then_some(s.scenario_id.clone())
+        })
+        .collect::<Vec<_>>();
+
+    missing.sort();
+    duplicates.sort();
+    mismatched.sort();
+
+    CompletenessAudit {
+        expected_runs: manifest.scenarios.len(),
+        actual_runs: records.len(),
+        missing_runs: missing,
+        duplicate_runs: duplicates,
+        mismatched_scenario_ids: mismatched,
+    }
+}
+
+fn execute_scenario(
+    workspace_root: &Path,
+    artifact_root: &Path,
+    raw_root: &Path,
+    scenario: &Phase2Scenario,
+    archive_index: &HashMap<(FixtureDataset, ArchiveKind), &ArchiveBuildRecord>,
+    version_cache: &mut HashMap<ArchiveKind, String>,
+) -> Result<RawRunRecord> {
+    let dataset = map_dataset(scenario.dataset);
+    let format = map_format(scenario.format);
+    let build = archive_index.get(&(dataset, format)).with_context(|| {
+        format!(
+            "missing archive build for dataset={} format={}",
+            dataset.slug(),
+            format.slug()
+        )
+    })?;
+    if !matches!(build.build.status, ExecutionStatus::Success) {
+        bail!(
+            "archive build for {} {} is not successful",
+            dataset.slug(),
+            format.slug()
+        );
+    }
+
+    let source_archive = artifact_root.join(&build.output_path);
+    let scenario_dir = raw_root.join(&scenario.scenario_id);
+    fs::create_dir_all(&scenario_dir)?;
+
+    let corrupted_archive = scenario_dir.join(format!(
+        "{}.corrupt",
+        source_archive.file_name().unwrap().to_string_lossy()
+    ));
+    let source_bytes = fs::read(&source_archive)
+        .with_context(|| format!("reading source archive {}", source_archive.display()))?;
+
+    let (mutated_bytes, provenance) = apply_locked_corruption(
+        &source_bytes,
+        &CorruptionRequest {
+            source_archive: rel_path(artifact_root, &source_archive),
+            scenario_id: scenario.scenario_id.clone(),
+            corruption_type: scenario.corruption_type,
+            target: scenario.target_class,
+            magnitude: scenario.magnitude,
+            seed: scenario.seed,
+            forced_offset: None,
+        },
+    )?;
+    fs::write(&corrupted_archive, mutated_bytes)?;
+
+    let corruption_log_path = scenario_dir.join("corruption_provenance.json");
+    fs::write(
+        &corruption_log_path,
+        serde_json::to_vec_pretty(&provenance)?,
+    )?;
+
+    let mut cmd = observe_command(workspace_root, format, &corrupted_archive)?;
+    let observed_command = render_command(&cmd, format, &corrupted_archive);
+    let started_unix_ms = now_ms()?;
+    let output = cmd
+        .output()
+        .with_context(|| format!("observing scenario {}", scenario.scenario_id))?;
+    let finished_unix_ms = now_ms()?;
+
+    let stdout_path = scenario_dir.join("stdout.txt");
+    let stderr_path = scenario_dir.join("stderr.txt");
+    fs::write(&stdout_path, &output.stdout)?;
+    fs::write(&stderr_path, &output.stderr)?;
+
+    let json_result_path = maybe_write_json_result(&scenario_dir, &output.stdout)?;
+    let tool_version = if let Some(existing) = version_cache.get(&format) {
+        existing.clone()
+    } else {
+        let fetched = detect_tool_version(workspace_root, format)?;
+        version_cache.insert(format, fetched.clone());
+        fetched
+    };
+
+    Ok(RawRunRecord {
+        scenario_id: scenario.scenario_id.clone(),
+        dataset,
+        format,
+        corruption_type: scenario.corruption_type,
+        target_class: scenario.target_class,
+        magnitude_bytes: scenario.magnitude_bytes,
+        seed: scenario.seed,
+        exit_code: output.status.code().unwrap_or(-1),
+        stdout_path: rel_path(artifact_root, &stdout_path),
+        stderr_path: rel_path(artifact_root, &stderr_path),
+        json_result_path: json_result_path.map(|p| rel_path(artifact_root, &p)),
+        tool_version,
+        execution_metadata: ExecutionMetadata {
+            observed_command,
+            source_archive_path: rel_path(artifact_root, &source_archive),
+            corrupted_archive_path: rel_path(artifact_root, &corrupted_archive),
+            corruption_log_path: rel_path(artifact_root, &corruption_log_path),
+            started_unix_ms,
+            finished_unix_ms,
+        },
+    })
+}
+
+fn maybe_write_json_result(scenario_dir: &Path, stdout: &[u8]) -> Result<Option<PathBuf>> {
+    let Ok(json) = serde_json::from_slice::<serde_json::Value>(stdout) else {
+        return Ok(None);
+    };
+    let path = scenario_dir.join("result.json");
+    fs::write(&path, serde_json::to_vec_pretty(&json)?)?;
+    Ok(Some(path))
+}
+
+fn observe_command(
+    workspace_root: &Path,
+    format: ArchiveKind,
+    archive_path: &Path,
+) -> Result<Command> {
+    match format {
+        ArchiveKind::Crushr => {
+            let mut cmd = Command::new("cargo");
+            cmd.current_dir(workspace_root)
+                .arg("run")
+                .arg("-q")
+                .arg("-p")
+                .arg("crushr")
+                .arg("--bin")
+                .arg("crushr-info")
+                .arg("--")
+                .arg(archive_path)
+                .arg("--json");
+            Ok(cmd)
+        }
+        ArchiveKind::Zip => {
+            let mut cmd = Command::new("zip");
+            cmd.arg("-T").arg(archive_path);
+            Ok(cmd)
+        }
+        ArchiveKind::TarZstd => {
+            let mut cmd = Command::new("sh");
+            cmd.arg("-c").arg(format!(
+                "zstd -dc {} | tar -tf -",
+                shell_escape_path(archive_path)
+            ));
+            Ok(cmd)
+        }
+        ArchiveKind::SevenZLzma => {
+            let mut cmd =
+                Command::new(detect_tool(&["7z", "7za"]).unwrap_or_else(|| "7z".to_string()));
+            cmd.arg("t").arg(archive_path);
+            Ok(cmd)
+        }
+    }
+}
+
+fn detect_tool_version(workspace_root: &Path, format: ArchiveKind) -> Result<String> {
+    let mut cmd = match format {
+        ArchiveKind::Crushr => {
+            let mut c = Command::new("cargo");
+            c.current_dir(workspace_root)
+                .arg("run")
+                .arg("-q")
+                .arg("-p")
+                .arg("crushr")
+                .arg("--bin")
+                .arg("crushr-info")
+                .arg("--")
+                .arg("--version");
+            c
+        }
+        ArchiveKind::Zip => {
+            let mut c = Command::new("zip");
+            c.arg("--version");
+            c
+        }
+        ArchiveKind::TarZstd => {
+            let mut c = Command::new("zstd");
+            c.arg("--version");
+            c
+        }
+        ArchiveKind::SevenZLzma => {
+            let tool = detect_tool(&["7z", "7za"]).unwrap_or_else(|| "7z".to_string());
+            let mut c = Command::new(tool);
+            c.arg("--help");
+            c
+        }
+    };
+
+    let out = cmd.output();
+    match out {
+        Ok(o) => {
+            let combined = if o.stdout.is_empty() {
+                String::from_utf8_lossy(&o.stderr).into_owned()
+            } else {
+                String::from_utf8_lossy(&o.stdout).into_owned()
+            };
+            Ok(combined
+                .lines()
+                .next()
+                .unwrap_or("unknown")
+                .trim()
+                .to_string())
+        }
+        Err(e) => Ok(format!("unavailable: {e}")),
+    }
+}
+
+fn detect_tool(names: &[&str]) -> Option<String> {
+    for name in names {
+        if Command::new(name).arg("--help").output().is_ok() {
+            return Some((*name).to_string());
+        }
+    }
+    None
+}
+
+fn render_command(cmd: &Command, format: ArchiveKind, archive_path: &Path) -> String {
+    if let Some(program) = cmd.get_program().to_str() {
+        let args = cmd
+            .get_args()
+            .map(|a| a.to_string_lossy().to_string())
+            .collect::<Vec<_>>()
+            .join(" ");
+        return format!("{program} {args}").trim().to_string();
+    }
+
+    match format {
+        ArchiveKind::TarZstd => format!("zstd -dc {} | tar -tf -", archive_path.display()),
+        _ => "<non-utf8 command>".to_string(),
+    }
+}
+
+fn shell_escape_path(path: &Path) -> String {
+    let raw = path.to_string_lossy();
+    format!("'{}'", raw.replace('\'', "'\\''"))
+}
+
+fn now_ms() -> Result<u128> {
+    Ok(SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| anyhow!(e))?
+        .as_millis())
+}
+
+fn map_dataset(dataset: crate::phase2_manifest::Dataset) -> FixtureDataset {
+    match dataset {
+        crate::phase2_manifest::Dataset::Smallfiles => FixtureDataset::Smallfiles,
+        crate::phase2_manifest::Dataset::Mixed => FixtureDataset::Mixed,
+        crate::phase2_manifest::Dataset::Largefiles => FixtureDataset::Largefiles,
+    }
+}
+
+fn map_format(format: ArchiveFormat) -> ArchiveKind {
+    match format {
+        ArchiveFormat::Crushr => ArchiveKind::Crushr,
+        ArchiveFormat::TarZstd => ArchiveKind::TarZstd,
+        ArchiveFormat::Zip => ArchiveKind::Zip,
+        ArchiveFormat::SevenZLzma => ArchiveKind::SevenZLzma,
+    }
+}
+
+fn rel_path(root: &Path, path: &Path) -> String {
+    path.strip_prefix(root)
+        .unwrap_or(path)
+        .to_string_lossy()
+        .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::phase2_manifest::Phase2ExperimentManifest;
+
+    #[test]
+    fn completeness_audit_detects_missing_duplicate_and_mismatch() {
+        let manifest = Phase2ExperimentManifest::locked_core();
+        let first = &manifest.scenarios[0];
+        let second = &manifest.scenarios[1];
+        let unknown = "p2-core-unknown-crushr-bit_flip-header-1B-999";
+
+        let base = RawRunRecord {
+            scenario_id: first.scenario_id.clone(),
+            dataset: FixtureDataset::Smallfiles,
+            format: ArchiveKind::Crushr,
+            corruption_type: first.corruption_type,
+            target_class: first.target_class,
+            magnitude_bytes: first.magnitude_bytes,
+            seed: first.seed,
+            exit_code: 0,
+            stdout_path: "raw/x/stdout.txt".to_string(),
+            stderr_path: "raw/x/stderr.txt".to_string(),
+            json_result_path: None,
+            tool_version: "tool 1.0".to_string(),
+            execution_metadata: ExecutionMetadata {
+                observed_command: "cmd".to_string(),
+                source_archive_path: "archives/a".to_string(),
+                corrupted_archive_path: "raw/x/corrupt".to_string(),
+                corruption_log_path: "raw/x/log".to_string(),
+                started_unix_ms: 1,
+                finished_unix_ms: 2,
+            },
+        };
+
+        let mut dup = base.clone();
+        dup.scenario_id = first.scenario_id.clone();
+
+        let mut mismatch = base.clone();
+        mismatch.scenario_id = unknown.to_string();
+
+        let mut second_record = base.clone();
+        second_record.scenario_id = second.scenario_id.clone();
+
+        let audit = audit_completeness(&manifest, &[base, dup, second_record, mismatch]);
+
+        assert!(audit.duplicate_runs.contains(&first.scenario_id));
+        assert!(audit.mismatched_scenario_ids.contains(&unknown.to_string()));
+        assert_eq!(audit.actual_runs, 4);
+        assert!(!audit.missing_runs.is_empty());
+    }
+
+    #[test]
+    fn json_result_is_written_only_for_valid_json_stdout() {
+        let tmp = std::env::temp_dir().join(format!(
+            "crushr_lab_runner_test_{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&tmp).unwrap();
+
+        let valid = maybe_write_json_result(&tmp, br#"{"ok":true}"#).unwrap();
+        assert!(valid.is_some());
+
+        let invalid = maybe_write_json_result(&tmp, b"not-json").unwrap();
+        assert!(invalid.is_none());
+
+        let _ = fs::remove_dir_all(tmp);
+    }
+}

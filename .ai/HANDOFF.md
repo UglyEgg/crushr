@@ -29,3 +29,10 @@ Phase 2.2 — cross-format comparison execution harnessing from Phase 2 manifest
 - CRUSHR-P2.1-B finished: deterministic dataset fixtures, inventories/provenance, typed archive build records, and reproducibility tests are in place.
 
 - CRUSHR-P2.1-C finished: locked corruption classes/targets/magnitudes/seeds are implemented with deterministic provenance output and determinism tests.
+
+
+## 2026-03-12 update (CRUSHR-P2.1-D)
+- Added `crushr-lab run-phase2-execution` to execute locked manifest scenarios against Phase 2 foundation archives and emit deterministic raw evidence under `docs/RESEARCH/artifacts/phase2_execution`.
+- Raw records are typed (`RawRunRecord`) and include required scenario fields, exit code, stdout/stderr paths, optional JSON result path, tool version, and execution metadata.
+- Completeness auditing now detects missing, duplicate, and mismatched scenario IDs and writes `completeness_audit.json`.
+- Next expected packet should map raw records into normalized comparative results (Phase 2.2).

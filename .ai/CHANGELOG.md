@@ -293,3 +293,10 @@
 - Added deterministic mutation provenance model (source archive, scenario_id, corruption type, target, magnitude, seed, concrete mutation details).
 - Updated `crushr-lab corrupt` to consume locked corruption options and emit deterministic provenance metadata in `.corrupt.json`.
 - Added determinism/unit tests proving repeated scenario generation is byte/provenance-stable and that locked seed policy is enforced.
+
+## 2026-03-12 — Phase 2, Step 2.1-D (execution runner + raw evidence capture)
+
+- Added `crushr-lab` Phase 2 execution command (`run-phase2-execution`) that consumes the locked manifest plus foundation report and runs all scenarios through typed paths.
+- Added typed raw run record schema (`RawRunRecord`) with deterministic per-scenario artifact layout under `docs/RESEARCH/artifacts/phase2_execution/raw/<scenario_id>/`.
+- Added completeness auditing for missing/duplicate/mismatched scenario IDs and report output (`completeness_audit.json`).
+- Added focused tests for raw JSON-result bookkeeping and completeness validation behavior.
