@@ -195,3 +195,16 @@
 - Added typed refusal reason serialization (`corrupted_required_blocks`) while preserving strict integrity-first extraction behavior and refusal policy exit semantics.
 - Updated extraction integration tests for clean single-file, clean tiny-directory deterministic ordering/counts, selective corruption safe-vs-refused reporting, structural invalid JSON error envelope behavior, and deterministic serialization checks.
 - Updated project/contract/research and `.ai` continuity docs to record maximum safe extraction as a first-class capability in minimal v1 scope.
+
+## 2026-03-12 — Phase 1, Step 1.3 (fix iteration 0: extraction result contract formalization)
+
+- Added a dedicated extraction JSON contract doc at `docs/CONTRACTS/EXTRACTION_RESULT_V1.md` covering success, partial-refusal, and error envelopes for minimal v1 scope.
+- Added versioned schema `schemas/crushr-extract-result.v1.schema.json` capturing strict/salvage success surfaces, partial refusal, salvage-only fields, and error envelopes with stable refusal/decision enums.
+- Tightened `minimal_pack_v1` extraction tests to explicitly assert strict-vs-salvage field presence/absence, deterministic ordered report arrays, stable refusal reason values, and error-envelope shape.
+- Updated contract index/error-model docs to reference the formal extraction result contract.
+- Added `#[allow(clippy::len_without_is_empty)]` on `crushr-core::io::Len` so required clippy `-D warnings` checks pass without behavior changes.
+
+## 2026-03-12 — Phase 1, Step 1.3 (fix iteration 1: schema-validation harness)
+
+- Added `crates/crushr-core/tests/extract_result_schema_v1.rs` as a dedicated automated schema-validation harness for `crushr-extract --json`.
+- Harness validates strict success, salvage partial refusal, and structural error envelopes against `schemas/crushr-extract-result.v1.schema.json` and enforces deterministic path ordering/enum constraints from the schema.

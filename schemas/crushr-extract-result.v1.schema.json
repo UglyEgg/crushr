@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "crushr-extract result v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "overall_status",
+        "maximal_safe_set_computed",
+        "safe_files",
+        "refused_files",
+        "safe_file_count",
+        "refused_file_count"
+      ],
+      "properties": {
+        "overall_status": {
+          "type": "string",
+          "enum": ["success", "partial_refusal"]
+        },
+        "maximal_safe_set_computed": {
+          "type": "boolean",
+          "const": true
+        },
+        "safe_files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/safe_file"
+          }
+        },
+        "refused_files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/refused_file"
+          }
+        },
+        "safe_file_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "refused_file_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mode": {
+          "type": "string",
+          "const": "salvage"
+        },
+        "salvage_decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/salvage_decision"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["mode"]
+          },
+          "then": {
+            "required": ["mode", "salvage_decisions"]
+          }
+        },
+        {
+          "if": {
+            "required": ["salvage_decisions"]
+          },
+          "then": {
+            "required": ["mode"]
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["overall_status", "error"],
+      "properties": {
+        "overall_status": {
+          "type": "string",
+          "const": "error"
+        },
+        "error": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "safe_file": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "refused_file": {
+      "type": "object",
+      "required": ["path", "reason"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "const": "corrupted_required_blocks"
+        }
+      },
+      "additionalProperties": false
+    },
+    "salvage_decision": {
+      "type": "object",
+      "required": ["path", "decision"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "extracted_verified_extents",
+            "refused_corrupted_required_blocks"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
