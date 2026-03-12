@@ -7,7 +7,7 @@ Phase 2.2 — cross-format comparison execution harnessing from Phase 2 manifest
 ## First actions for a fresh instance
 
 1. Read startup order from `../AI_BOOTSTRAP.md`.
-2. Confirm `STATUS.md` and `PHASE_PLAN.md` both show Phase 2.1-A/2.1-B complete and Phase 2.2 next.
+2. Confirm `STATUS.md` and `PHASE_PLAN.md` both show Phase 2.1-A/2.1-B/2.1-C complete and Phase 2.2 next.
 3. Keep strict extraction + integrity-first thesis unchanged.
 4. Consume `crushr-lab` Phase 2 manifest/scenario enumeration plus the deterministic foundation builder (`build-phase2-foundation`) as canonical execution inputs; do not mutate locked matrix semantics.
 5. Run full workspace fmt/test/clippy gates.
@@ -27,3 +27,5 @@ Phase 2.2 — cross-format comparison execution harnessing from Phase 2 manifest
 - CRUSHR-P2.1-A finished: typed manifest/scenario model, deterministic scenario IDs and enumeration (2160), schema file, and validation tests are in place.
 
 - CRUSHR-P2.1-B finished: deterministic dataset fixtures, inventories/provenance, typed archive build records, and reproducibility tests are in place.
+
+- CRUSHR-P2.1-C finished: locked corruption classes/targets/magnitudes/seeds are implemented with deterministic provenance output and determinism tests.

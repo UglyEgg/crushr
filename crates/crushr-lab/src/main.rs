@@ -5,13 +5,15 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+mod phase2_corruption;
 mod phase2_foundation;
 mod phase2_manifest;
 
+use phase2_corruption::{apply_locked_corruption, CorruptionRequest};
 use phase2_foundation::{build_phase2_foundation, validate_archive_coverage};
 use phase2_manifest::{
-    validate_manifest_shape, Phase2ExperimentManifest, PHASE2_MANIFEST_SCHEMA_ID,
-    PHASE2_MANIFEST_SCHEMA_PATH,
+    validate_manifest_shape, CorruptionType, Magnitude, Phase2ExperimentManifest, TargetClass,
+    PHASE2_MANIFEST_SCHEMA_ID, PHASE2_MANIFEST_SCHEMA_PATH,
 };
 
 const FIRST_EXPERIMENT_ID: &str = "crushr_p0s12f0_first_e2e_byteflip";
@@ -25,11 +27,16 @@ const COMPARISON_SEED: u64 = 2026;
 #[derive(Debug, Serialize)]
 struct CorruptionLog {
     model: String,
+    source_archive: String,
+    scenario_id: String,
+    target: String,
+    magnitude: String,
     seed: u64,
     input_len: u64,
     input_blake3: String,
     output_blake3: String,
     touched_offsets: Vec<u64>,
+    concrete_mutation_details: serde_json::Value,
 }
 
 #[derive(Debug)]
@@ -37,6 +44,9 @@ struct CorruptArgs {
     input: PathBuf,
     output: PathBuf,
     model: String,
+    target: String,
+    magnitude: String,
+    scenario_id: String,
     seed: u64,
     offset: Option<u64>,
 }
@@ -83,7 +93,7 @@ fn main() -> Result<()> {
         "build-phase2-foundation" => run_phase2_foundation(args.collect()),
         _ => {
             eprintln!(
-                "usage:\n  crushr-lab corrupt <input> <output> [--model byteflip --seed <u64> --offset <u64>]\n  crushr-lab write-phase2-manifest [--output <path>]\n  crushr-lab run-first-experiment [--artifact-dir <path>]\n  crushr-lab run-competitor-scaffold [--artifact-dir <path>]\n  crushr-lab build-phase2-foundation [--artifact-dir <path>]"
+                "usage:\n  crushr-lab corrupt <input> <output> [--model <bit_flip|byte_overwrite|zero_fill|truncation|tail_damage> --target <header|index|payload|tail> --magnitude <1B|256B|4KB> --seed <1337|2600|65535> --scenario-id <id> [--offset <u64>]]\n  crushr-lab write-phase2-manifest [--output <path>]\n  crushr-lab run-first-experiment [--artifact-dir <path>]\n  crushr-lab run-competitor-scaffold [--artifact-dir <path>]\n  crushr-lab build-phase2-foundation [--artifact-dir <path>]"
             );
             std::process::exit(1);
         }
@@ -511,11 +521,21 @@ fn apply_byteflip(input: &Path, output: &Path, seed: u64, offset: u64) -> Result
     fs::write(output, &bytes)?;
     Ok(CorruptionLog {
         model: "byteflip".to_string(),
+        source_archive: input.display().to_string(),
+        scenario_id: "legacy-byteflip-explicit-offset".to_string(),
+        target: "tail".to_string(),
+        magnitude: "1B".to_string(),
         seed,
         input_len: bytes.len() as u64,
         input_blake3: blake3::hash(&fs::read(input)?).to_hex().to_string(),
         output_blake3: blake3::hash(&bytes).to_hex().to_string(),
         touched_offsets: chosen_offset.map(|x| vec![x as u64]).unwrap_or_default(),
+        concrete_mutation_details: serde_json::json!([
+            {
+                "operation": "bit_flip",
+                "offset": chosen_offset.map(|x| x as u64)
+            }
+        ]),
     })
 }
 
@@ -524,8 +544,11 @@ fn run_corrupt(raw_args: Vec<String>) -> Result<()> {
     let input = PathBuf::from(args.next().context("missing input")?);
     let output = PathBuf::from(args.next().context("missing output")?);
 
-    let mut model = String::from("byteflip");
-    let mut seed = 0_u64;
+    let mut model = String::from("bit_flip");
+    let mut target = String::from("payload");
+    let mut magnitude = String::from("1B");
+    let mut scenario_id = String::from("ad-hoc-scenario");
+    let mut seed = 1337_u64;
     let mut offset = None;
 
     while let Some(arg) = args.next() {
@@ -538,6 +561,15 @@ fn run_corrupt(raw_args: Vec<String>) -> Result<()> {
             }
             "--model" => {
                 model = args.next().context("missing value for --model")?;
+            }
+            "--target" => {
+                target = args.next().context("missing value for --target")?;
+            }
+            "--magnitude" => {
+                magnitude = args.next().context("missing value for --magnitude")?;
+            }
+            "--scenario-id" => {
+                scenario_id = args.next().context("missing value for --scenario-id")?;
             }
             "--offset" => {
                 let value = args.next().context("missing value for --offset")?;
@@ -555,33 +587,86 @@ fn run_corrupt(raw_args: Vec<String>) -> Result<()> {
         input,
         output,
         model,
+        target,
+        magnitude,
+        scenario_id,
         seed,
         offset,
     };
 
-    if parsed.model != "byteflip" {
-        bail!("unsupported model: {}", parsed.model);
-    }
+    let corruption_type = parse_corruption_type(&parsed.model)?;
+    let target = parse_target(&parsed.target)?;
+    let magnitude = parse_magnitude(&parsed.magnitude)?;
 
-    let mut bytes =
+    let input_bytes =
         fs::read(&parsed.input).with_context(|| format!("reading {}", parsed.input.display()))?;
-    let chosen_offset = pick_offset(bytes.len(), parsed.seed, parsed.offset)?;
-    if let Some(ix) = chosen_offset {
-        bytes[ix] ^= 0x01;
-    }
+    let (bytes, provenance) = apply_locked_corruption(
+        &input_bytes,
+        &CorruptionRequest {
+            source_archive: parsed.input.display().to_string(),
+            scenario_id: parsed.scenario_id.clone(),
+            corruption_type,
+            target,
+            magnitude,
+            seed: parsed.seed,
+            forced_offset: parsed.offset,
+        },
+    )?;
+
     fs::write(&parsed.output, &bytes)
         .with_context(|| format!("writing {}", parsed.output.display()))?;
+
+    let touched_offsets = provenance
+        .concrete_mutation_details
+        .iter()
+        .filter_map(|d| d.offset)
+        .collect();
     let log = CorruptionLog {
         model: parsed.model,
+        source_archive: provenance.source_archive,
+        scenario_id: provenance.scenario_id,
+        target: parsed.target,
+        magnitude: parsed.magnitude,
         seed: parsed.seed,
-        input_len: bytes.len() as u64,
+        input_len: input_bytes.len() as u64,
         input_blake3: blake3::hash(&fs::read(&parsed.input)?).to_hex().to_string(),
         output_blake3: blake3::hash(&bytes).to_hex().to_string(),
-        touched_offsets: chosen_offset.map(|x| vec![x as u64]).unwrap_or_default(),
+        touched_offsets,
+        concrete_mutation_details: serde_json::to_value(provenance.concrete_mutation_details)?,
     };
     let log_path = parsed.output.with_extension("corrupt.json");
     fs::write(log_path, serde_json::to_vec_pretty(&log)?)?;
     Ok(())
+}
+
+fn parse_corruption_type(raw: &str) -> Result<CorruptionType> {
+    match raw {
+        "bit_flip" | "byteflip" => Ok(CorruptionType::BitFlip),
+        "byte_overwrite" => Ok(CorruptionType::ByteOverwrite),
+        "zero_fill" => Ok(CorruptionType::ZeroFill),
+        "truncation" => Ok(CorruptionType::Truncation),
+        "tail_damage" => Ok(CorruptionType::TailDamage),
+        _ => bail!("unsupported model: {raw}"),
+    }
+}
+
+fn parse_target(raw: &str) -> Result<TargetClass> {
+    match raw {
+        "header" => Ok(TargetClass::Header),
+        "index" => Ok(TargetClass::Index),
+        "payload" => Ok(TargetClass::Payload),
+        "tail" => Ok(TargetClass::Tail),
+        _ => bail!("unsupported --target: {raw}"),
+    }
+}
+
+fn parse_magnitude(raw: &str) -> Result<Magnitude> {
+    match raw {
+        "1B" => Ok(Magnitude::OneByte),
+        "256B" => Ok(Magnitude::TwoHundredFiftySixBytes),
+        "4KB" => Ok(Magnitude::FourKilobytes),
+        _ => bail!("unsupported --magnitude: {raw}"),
+    }
 }
 
 fn run_first_experiment(raw_args: Vec<String>) -> Result<()> {
@@ -734,7 +819,13 @@ fn command_for_lab_corrupt(input: &Path, output: &Path, seed: u64, offset: u64) 
         .arg(input)
         .arg(output)
         .arg("--model")
-        .arg("byteflip")
+        .arg("bit_flip")
+        .arg("--target")
+        .arg("tail")
+        .arg("--magnitude")
+        .arg("1B")
+        .arg("--scenario-id")
+        .arg("legacy-first-experiment-tail-byteflip")
         .arg("--seed")
         .arg(seed.to_string())
         .arg("--offset")
