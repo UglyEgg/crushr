@@ -1,35 +1,23 @@
-**This is the single source of truth for current state.**
+# crushr Development Status
 
-## Current Phase / Step
+Current Phase: Phase 1 — Integrity Intelligence
 
-- Phase: 0
-- Step: 0.15
-- Fix iteration: 0
+Active Objective:
 
-## Current Objective
+Step 1.2 — Maximum Safe Extraction Formalization
 
-Add explicit salvage-mode extraction for minimal v1 archives while preserving strict mode behavior and deterministic reporting/exit semantics.
+Goal:
 
-## What Changed (since last Step)
+Formalize strict extraction behavior into a deterministic system capability that:
 
-- Added explicit extraction mode selection in `crushr-extract` via `--mode <strict|salvage>` (default `strict`), preserving strict behavior as-is when salvage is not selected.
-- Implemented salvage-mode reporting in deterministic JSON form using `mode: "salvage"` and ordered `salvage_decisions` entries (`extracted_verified_extents` or `refused_corrupted_required_blocks`) while keeping existing `extracted_files` / `refused_files` contracts.
-- Kept integrity-first refusal rules unchanged: files with corrupted required blocks are never decompressed and remain refused in both strict and salvage modes.
-- Added focused integration coverage for salvage-mode clean archives, partial corruption extraction/refusal behavior, refusal-exit interaction, and deterministic JSON output.
+- computes the maximal safe extraction set
+- produces machine-readable reports
+- supports white-paper evaluation
 
-## What Remains (next actions)
+Baseline capabilities already exist:
 
-1. Extend salvage support beyond minimal regular-file scope only via explicit packets (symlinks/xattrs/dicts/append scenarios).
-2. Implement pending Step 0.13 blast-zone dump implementation (currently still unchecked in phase plan).
-3. Continue Phase F claim validation and artifact-backed result updates.
-
-## How to Build / Test (best known)
-
-- `cargo test -p crushr-core --test minimal_pack_v1`
-- `cargo test -p crushr --bin crushr-extract`
-
-## Active constraints / gotchas
-
-- Minimal-v1 extraction path currently supports regular files only.
-- Salvage mode is extraction-decision/reporting mode, not reconstruction/repair; corrupted required blocks are deterministically refused.
-- Legacy monolith `crushr` extract path remains separate from `crushr-extract` strict/salvage packet.
+- strict extraction
+- refusal reporting
+- JSON extraction reports
+- block verification
+- file impact enumeration

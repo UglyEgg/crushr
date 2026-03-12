@@ -1,48 +1,31 @@
-# .ai/PHASE_PLAN.md
+# crushr Phase Plan
 
-## Active Phase
+Phase 0 — Minimal v1 Archive System
 
-- Phase: 0
-- Goal: Complete the canonical format and the first read/write/verify path while preserving the integrity-first thesis.
+Completed steps:
 
-## Steps
+0.1 Archive Format Foundations
+0.2 Archive Open Path
+0.3 Info Snapshot
+0.4 FSCK Verification Baseline
+0.5 Block Payload Verification
+0.6 File Impact Enumeration
+0.7 Minimal v1 Pack
+0.8 Corruption Experiment Framework
+0.9 Competitor Experiment Scaffold
+0.10 Strict Extraction
+0.11 Refusal Exit Policy
+0.12 Machine‑Readable Extraction Reports
+0.13 Extraction Outcome Classification
 
-- [x] Step 0.1: Migrate halted `crushr` project into prime scaffold
-- [x] Step 0.2: Lock v1.0 spec + architecture; introduce workspace crate boundaries
-- [x] Step 0.3: Add live+snapshot TUI skeleton + normative snapshot docs/schema
-- [x] Step 0.4: Implement Ledger v1 framing (LDG1) + snapshot fingerprint plumbing
-- [x] Step 0.5: Define BLK3 parser/writer in `crushr-format`
-- [x] Step 0.6: Define DCT1 parser/writer in `crushr-format`
-- [x] Step 0.7: Define FTR4 parser/writer in `crushr-format`
-- [x] Step 0.8: Tail frame assembly helpers (DCT1 + IDX3 + LDG1 + FTR4)
-- [x] Step 0.9: `crushr-core` open path (read-only): locate last valid tail frame
-- [x] Step 0.10: Minimal `crushr-info` snapshot emission (read-only)
-- [x] Step 0.11: Minimal pack path with BLK3 (no dicts yet)
-- [x] Step 0.12: `crushr-fsck` verify (detect+isolate baseline)
-- [ ] Step 0.13: Blast-zone dump implementation
-- [x] Step 0.14: Strict minimal-v1 extraction path (regular files only, corruption-aware refusal, strict mode only; fix iteration 1 adds policy-controlled refusal-exit semantics; fix iteration 2 adds deterministic `--json` extraction reporting; fix iteration 3 hardens internal typed outcome/error classification without behavior changes)
-- [x] Step 0.15: Explicit salvage-mode extraction packet (opt-in `--mode salvage`, integrity-first refusal maintained, deterministic salvage decision reporting, focused salvage tests)
+Phase 1 — Integrity Intelligence
 
-## Phase F — Failure-Domain Validation
+1.1 Corruption Propagation Graph (planned)
+1.2 Maximum Safe Extraction Formalization (active)
+1.3 Extraction Result Formalization (planned)
 
-- [x] Step F.1: Deterministic corruption harness skeleton
-- [x] Step F.2: Decompression-free impact enumeration model
-- [x] Step F.3: Controlled datasets (single-file deterministic runner path and artifact refresh complete)
-- [x] Step F.4: Comparative baseline experiments (bounded first scaffold: crushr/zip runnable, tar+zstd + 7z deferred with explicit reasons)
-- [ ] Step F.5: Recorded results and claim validation
+Phase 2 — Comparative Corruption Research
 
-## Later Phases
-
-### Phase 1
-- DCT1 support in pack
-- decode with dicts
-- extract + salvage semantics
-- tail repair
-
-### Phase 2
-1. Compression ledger enrichment
-2. Integrity heatmap / blast simulator
-3. Opt-in adaptive planning
-4. Policy packs
-5. Incremental tail-frame checkpointing
-6. Near-duplicate layout optimization
+2.1 Controlled Corruption Matrix
+2.2 Cross‑Format Comparison
+2.3 Experimental Reporting

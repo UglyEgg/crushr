@@ -1,31 +1,92 @@
-# PROJECT_STATE
+# crushr — Project State
 
-## Current state
+crushr is an **integrity-first archival container** designed for deterministic corruption analysis and maximum safe extraction.
 
-crushr is in foundation and validation work.
+The system exists primarily as:
 
-Implemented:
-- workspace split (`crushr-format`, `crushr-core`, `crushr`, `crushr-cli-common`, `crushr-tui`)
-- LDG1 ledger framing
-- BLK3 / DCT1 / FTR4 format primitives
-- snapshot envelope types
-- initial impact enumeration model
-- strict minimal-v1 extraction path (`crushr-extract`) for regular files with corruption refusal by verified block health, policy-controlled refusal exit semantics (`--refusal-exit`), deterministic machine-readable extraction reporting (`--json`), and explicit opt-in salvage mode (`--mode salvage`) with deterministic salvage-decision reporting
-- contracts / research scaffolding
+- a research artifact
+- a white-paper implementation
+- a reference archive integrity design
 
-Not yet complete:
-- tail frame assembly helpers
-- real archive open path
-- broad salvage/repair semantics and non-regular metadata fidelity (symlinks/xattrs/dicts/append behavior)
-- end-to-end corruption experiments
+It is **not intended to replace general-purpose compression formats** like zip or 7z.
 
-## Thesis
+---
 
-crushr exists to demonstrate bounded failure domains and deterministic corruption impact enumeration in an archival compression container.
+# Canonical Toolchain
 
+Active tools:
 
-## Repository hygiene
+- crushr-pack
+- crushr-info
+- crushr-fsck
+- crushr-extract
+- crushr-lab
 
-Canonical source-of-truth files live at the repo root, `.ai/`, `docs/`, `schemas/`, and `TASK_PACKETS/`.
-Legacy or historical material lives under `docs/legacy/` and `.ai/imported_crushr/` and is not authoritative.
-The canonical workspace-level CI definition is `.github/workflows/ci.yml`.
+Active libraries:
+
+- crushr-core
+- crushr-format
+
+Legacy monolith code paths remain in the repository **for historical reference only**.
+
+---
+
+# Archive Model
+
+Minimal v1 archive layout:
+
+BLK3 blocks → IDX3 index → tail frame → FTR4 footer
+
+Verification pipeline:
+
+footer → tail frame → index → blocks → file impact
+
+---
+
+# Current Implementation Scope
+
+The current minimal v1 implementation focuses on:
+
+- regular files
+- **one block per file**
+
+Each file is currently stored as a single BLK3 block.
+
+---
+
+# Current Capabilities
+
+- archive packing
+- deterministic archive opening
+- corruption verification
+- block-level corruption detection
+- file-level impact enumeration
+- strict extraction
+- machine-readable extraction reports
+- deterministic corruption experiments
+- cross-format experiment scaffolding
+
+---
+
+# Known Limitations
+
+The minimal v1 system intentionally excludes:
+
+- multi-block files
+- dictionary compression paths (DCT1)
+- ledger metadata (LDG1)
+- streaming extraction
+- metadata fidelity
+- parity or reconstruction systems
+
+No speculative recovery exists by design.
+
+---
+
+# Current Development Focus
+
+Next milestone:
+
+**Maximum Safe Extraction Formalization**
+
+This step formalizes strict extraction as a reportable capability for the crushr white paper.
