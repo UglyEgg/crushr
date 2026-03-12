@@ -1,6 +1,0 @@
-crushr_build: cargo run -q -p crushr --bin crushr-pack -- fixture/*.txt -o archives/fixture.crs
-crushr_observe_clean: cargo run -q -p crushr --bin crushr-info -- archives/fixture.crs --json
-crushr_observe_corrupt: cargo run -q -p crushr --bin crushr-info -- corrupt/fixture.crs.corrupt --json
-zip_build: zip -q archives/fixture.zip alpha.txt beta.txt
-zip_observe_clean: zip -T archives/fixture.zip
-zip_observe_corrupt: zip -T corrupt/fixture.zip.corrupt

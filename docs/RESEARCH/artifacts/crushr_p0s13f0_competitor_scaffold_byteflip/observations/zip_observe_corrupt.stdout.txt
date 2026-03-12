@@ -1,2 +1,0 @@
-
-zip error: Unexpected end of zip file (/workspace/crushr/docs/RESEARCH/artifacts/crushr_p0s13f0_competitor_scaffold_byteflip/corrupt/fixture.zip.corrupt)
