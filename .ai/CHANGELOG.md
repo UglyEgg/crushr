@@ -250,3 +250,11 @@
 - Rewrote core active docs (`README.md`, `SPEC.md`, `docs/ARCHITECTURE.md`, `docs/SNAPSHOT_FORMAT.md`, `PROJECT_STATE.md`, `REPO_LAYOUT.md`) to match integrity-first strict extraction reality.
 - Deleted stale transitional markdown from active paths (`docs/legacy/*`, `docs/README.md`, `.ai/imported_crushr/*`).
 - Marked Phase 2.1 manifest/schema packet as the explicit next engineering step across control files.
+
+
+## 2026-03-12 — Phase 2, Step 2.0-C (schema contracts tightened)
+
+- Tightened active schemas for `crushr-info`, `crushr-fsck`, and `crushr-impact` from permissive envelopes to explicit nested object/array contracts with bounded enums and `additionalProperties: false` where appropriate.
+- Added validator-backed schema tests (`jsonschema`) to validate emitted `crushr-info --json` and `crushr-fsck --json` instances against their schemas and to validate typed `ImpactReportV1` instances against the impact schema.
+- Upgraded extraction-result and propagation tests to perform real JSON Schema validation in addition to existing deterministic-shape assertions.
+- Audited active schemas: extraction-result and propagation-graph remain active/canonical; no obsolete schema was deleted in this packet.

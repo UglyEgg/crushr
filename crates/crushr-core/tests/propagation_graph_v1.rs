@@ -1,3 +1,4 @@
+use jsonschema::JSONSchema;
 use serde_json::Value;
 use std::collections::BTreeSet;
 use std::fs;
@@ -64,6 +65,16 @@ fn load_schema() -> Value {
     serde_json::from_slice(&fs::read(path).unwrap()).unwrap()
 }
 
+fn compile_schema(schema: &Value) -> JSONSchema {
+    JSONSchema::compile(schema).expect("compile schema")
+}
+
+fn assert_valid_against_schema(validator: &JSONSchema, instance: &Value, context: &str) {
+    if let Err(errors) = validator.validate(instance) {
+        let rendered = errors.map(|e| e.to_string()).collect::<Vec<_>>().join("\n");
+        panic!("{context} failed schema validation:\n{rendered}\ninstance={instance}");
+    }
+}
 fn as_object<'a>(value: &'a Value, context: &str) -> &'a serde_json::Map<String, Value> {
     value
         .as_object()
@@ -245,6 +256,7 @@ fn assert_schema_shape(schema: &Value, instance: &Value) {
 fn propagation_report_healthy_archive_has_deterministic_graph_shape() {
     ensure_bins_built();
     let schema = load_schema();
+    let validator = compile_schema(&schema);
 
     let root = unique_dir("crushr-propagation-healthy");
     let src = root.join("src");
@@ -270,6 +282,7 @@ fn propagation_report_healthy_archive_has_deterministic_graph_shape() {
     assert_ok(&out);
 
     let report = parse_json(&out);
+    assert_valid_against_schema(&validator, &report, "propagation report");
     assert_schema_shape(&schema, &report);
 
     assert_eq!(report["nodes"][0]["id"], "structure:ftr4");

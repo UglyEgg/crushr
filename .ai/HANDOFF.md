@@ -16,3 +16,8 @@ Phase 2.1 — controlled corruption matrix manifest/schema.
 
 - Do not reintroduce recovery/salvage language in active docs.
 - Keep authority order aligned across AGENTS/bootstrap/guardrails/state/.ai files.
+
+
+## Recently completed
+
+- CRUSHR-CLEANUP-2.0-C finished: active schemas are now strict contracts and validated with JSON Schema in integration tests.

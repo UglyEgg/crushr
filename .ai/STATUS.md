@@ -7,15 +7,16 @@ Current Step: 2.1 packet preparation (controlled corruption matrix manifest/sche
 ## Current truth
 
 - Phase 1 is complete.
-- Cleanup packet CRUSHR-CLEANUP-2.0-B is complete.
-- Active docs/control files now use one canonical startup order and one authority hierarchy.
-- Recovery/salvage transitional markdown in active paths has been removed.
+- Cleanup packet CRUSHR-CLEANUP-2.0-C is complete.
+- Active machine-readable schemas are now tightened contracts for: `crushr-info` snapshot, `crushr-fsck` snapshot, `crushr-impact` report, extraction result, and propagation graph.
+- Integration tests now perform real JSON Schema instance-vs-schema validation for active outputs.
 
 ## Active constraints
 
 - Minimal v1 scope: regular files, one block per file.
 - No speculative recovery/reconstruction/repair.
 - Strict extraction semantics remain canonical.
+- `schemas/crushr-impact.v1.schema.json` remains active as a nested contract dependency (used by fsck blast-radius payload and direct impact report typing); no obsolete schema was deleted in this packet.
 
 ## Next action
 
