@@ -5,7 +5,7 @@ This document is the canonical on-disk format contract for `crushr`.
 ## Scope
 
 - Defines the byte-level archive layout.
-- Defines required verification and repair semantics.
+- Defines required verification semantics.
 - Defines portability guarantees for stored metadata.
 
 Non-goals:
@@ -161,7 +161,7 @@ The footer anchors a tail frame and provides integrity verification.
 ## Tail frame selection rules
 
 - Tools locate the end of file, read a candidate FTR4, and validate it.
-- If invalid and operating in recovery mode, tools may scan backwards to locate the most recent valid FTR4.
+- If invalid, open fails deterministically.
 - The **last valid** FTR4 is authoritative.
 
 ## Verification semantics
@@ -179,12 +179,3 @@ Appending creates a new tail frame:
 2. Truncate the file to `blocks_end_offset`.
 3. Append new BLK3 blocks.
 4. Write updated DCT1 (if needed), then IDX3, then FTR4.
-
-## Repair semantics (bounded mutation)
-
-`fsck`-style repair operations are limited to tail operations:
-
-- Rewriting the tail frame (IDX3 + FTR4) when blocks region is intact.
-- Rebuilding IDX3 from EVT/meta frames is optional and not required for v1.0.
-
-Any repair that requires rewriting blocks MUST be performed as a transform to a new archive file.

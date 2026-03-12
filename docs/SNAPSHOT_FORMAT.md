@@ -58,7 +58,6 @@ Tool: `crushr-fsck --json`
 
 - `verify`: structural verification results and reason codes
 - `blast_radius`: computed blast zones (bad blocks, invalid tail frames) and impacted files
-- `salvage_plan`: optional (what would be extractable under strict vs salvage)
 - `dump_paths`: optional paths when `--dump-blast-zone` was used
 
 ### Blast-zone dump contract

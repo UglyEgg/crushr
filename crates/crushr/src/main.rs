@@ -40,7 +40,6 @@ mod index_codec;
 mod pack;
 mod progress;
 mod read;
-mod recovery;
 mod tune;
 
 fn read_paths_from(spec: &Option<String>) -> anyhow::Result<Vec<PathBuf>> {
@@ -284,17 +283,6 @@ enum Cmd {
         #[arg(long)]
         deep: bool,
     },
-
-    /// Attempt tail-based repair using redundant tail frames
-    Recover {
-        input: PathBuf,
-        output: PathBuf,
-        #[arg(long, default_value_t = 64 * 1024 * 1024)]
-        tail_scan_bytes: u64,
-    },
-
-    /// Salvage rebuild: scan embedded EVT frames and rebuild an index even if the tail is unrecoverable
-    Salvage { input: PathBuf, output: PathBuf },
 
     /// Train a zstd dictionary from the input corpus
     DictTrain {
@@ -557,30 +545,6 @@ fn main() -> Result<()> {
             }
             println!("OK");
             Ok(())
-        }
-        Cmd::Recover {
-            input,
-            output,
-            tail_scan_bytes,
-        } => {
-            sink.on_event(progress::ProgressEvent::Start {
-                op: progress::ProgressOp::Recover,
-                phase: progress::ProgressPhase::Other,
-                total_bytes: 0,
-            });
-            let r = recovery::repair_archive(&input, &output, tail_scan_bytes);
-            sink.on_event(progress::ProgressEvent::Finish { ok: r.is_ok() });
-            r
-        }
-        Cmd::Salvage { input, output } => {
-            sink.on_event(progress::ProgressEvent::Start {
-                op: progress::ProgressOp::Salvage,
-                phase: progress::ProgressPhase::Other,
-                total_bytes: 0,
-            });
-            let r = recovery::salvage_archive(&input, &output);
-            sink.on_event(progress::ProgressEvent::Finish { ok: r.is_ok() });
-            r
         }
         Cmd::DictTrain {
             inputs,

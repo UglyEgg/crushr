@@ -36,7 +36,6 @@ For canonical project state and source-of-truth documents, read in this order:
 
 - A replacement for zip or 7z
 - A parity/reconstruction system
-- A speculative recovery tool
 - A “compress everything better” benchmark project
 
 ## Workspace layout

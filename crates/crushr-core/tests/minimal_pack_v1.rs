@@ -315,7 +315,6 @@ fn extract_single_file_roundtrip() {
         &[serde_json::json!({"path": "single.txt"})]
     );
     assert!(extracted_success_json.get("mode").is_none());
-    assert!(extracted_success_json.get("salvage_decisions").is_none());
     assert_eq!(
         fs::read(out_dir.join("single.txt")).unwrap(),
         b"extract me\n"
@@ -456,7 +455,6 @@ fn extract_refuses_affected_file_and_keeps_unaffected_file() {
         &[serde_json::json!({"path": "a.txt", "reason": "corrupted_required_blocks"})]
     );
     assert!(extracted_success_a_json.get("mode").is_none());
-    assert!(extracted_success_a_json.get("salvage_decisions").is_none());
     assert!(!out_dir_success_a.join("a.txt").exists());
     assert_eq!(
         fs::read(out_dir_success_a.join("b.txt")).unwrap(),
@@ -566,7 +564,6 @@ fn extract_fails_for_invalid_footer() {
     assert!(extracted_success_json.get("safe_files").is_none());
     assert!(extracted_success_json.get("refused_files").is_none());
     assert!(extracted_success_json.get("mode").is_none());
-    assert!(extracted_success_json.get("salvage_decisions").is_none());
 
     let out_dir_partial = root.join("out-partial");
     let extracted_partial = run_bin(

@@ -236,3 +236,10 @@
 
 - Follow-up: removed `crushr-extract --mode salvage` surface and tightened strict-only extraction contract/schema/tests.
 - Follow-up: propagation report now emits bounded structural-current-state impacts for open-path failures.
+
+
+## 2026-03-12 — Phase 2, Step 2.0-A (legacy recovery/salvage surface deletion)
+
+- Deleted legacy recovery/salvage CLI surfaces from `crates/crushr/src/main.rs` and removed the recovery module `crates/crushr/src/recovery.rs`.
+- Deleted legacy public API recovery/salvage options/functions from `crates/crushr/src/api.rs` and removed related progress op variants.
+- Removed `salvage_plan` from `crushr-core` fsck snapshot model and aligned docs/spec/tests to remove active recovery/salvage/repair workflow descriptions.

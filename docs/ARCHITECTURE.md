@@ -41,8 +41,8 @@ Tagging (mutation boundaries):
 
 - **Read-only**: `crushr-info`
 - **Writes new archive**: `crushr-pack`
-- **May mutate existing archive** (bounded): `crushr-fsck` (tail repair/salvage/append-style operations)
-- **Writes filesystem**: `crushr-extract` (archive is read-only; strict default path plus explicit salvage mode, deterministic `--json` maximum-safe-extraction reporting (`safe_files`/`refused_files` + counts), and `--refusal-exit` policy)
+- **May mutate existing archive** (bounded): `crushr-fsck` (append-style operations)
+- **Writes filesystem**: `crushr-extract` (archive is read-only, deterministic `--json` maximum-safe-extraction reporting (`safe_files`/`refused_files` + counts), and `--refusal-exit` policy)
 - **Interactive**: `crushr-tui` (read-mostly; writes only via explicit actions)
 
 No tool should implement ad-hoc parsing. Tools should call library APIs and render typed structures.

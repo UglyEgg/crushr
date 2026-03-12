@@ -11,8 +11,6 @@ pub enum ProgressOp {
     Pack,
     Append,
     Extract,
-    Recover,
-    Salvage,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
