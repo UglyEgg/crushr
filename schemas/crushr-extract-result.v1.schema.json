@@ -15,7 +15,10 @@
       "properties": {
         "overall_status": {
           "type": "string",
-          "enum": ["success", "partial_refusal"]
+          "enum": [
+            "success",
+            "partial_refusal"
+          ]
         },
         "maximal_safe_set_computed": {
           "type": "boolean",
@@ -40,41 +43,16 @@
         "refused_file_count": {
           "type": "integer",
           "minimum": 0
-        },
-        "mode": {
-          "type": "string",
-          "const": "salvage"
-        },
-        "salvage_decisions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/salvage_decision"
-          }
         }
       },
-      "allOf": [
-        {
-          "if": {
-            "required": ["mode"]
-          },
-          "then": {
-            "required": ["mode", "salvage_decisions"]
-          }
-        },
-        {
-          "if": {
-            "required": ["salvage_decisions"]
-          },
-          "then": {
-            "required": ["mode"]
-          }
-        }
-      ],
       "additionalProperties": false
     },
     {
       "type": "object",
-      "required": ["overall_status", "error"],
+      "required": [
+        "overall_status",
+        "error"
+      ],
       "properties": {
         "overall_status": {
           "type": "string",
@@ -91,7 +69,9 @@
   "$defs": {
     "safe_file": {
       "type": "object",
-      "required": ["path"],
+      "required": [
+        "path"
+      ],
       "properties": {
         "path": {
           "type": "string",
@@ -102,7 +82,10 @@
     },
     "refused_file": {
       "type": "object",
-      "required": ["path", "reason"],
+      "required": [
+        "path",
+        "reason"
+      ],
       "properties": {
         "path": {
           "type": "string",
@@ -111,24 +94,6 @@
         "reason": {
           "type": "string",
           "const": "corrupted_required_blocks"
-        }
-      },
-      "additionalProperties": false
-    },
-    "salvage_decision": {
-      "type": "object",
-      "required": ["path", "decision"],
-      "properties": {
-        "path": {
-          "type": "string",
-          "minLength": 1
-        },
-        "decision": {
-          "type": "string",
-          "enum": [
-            "extracted_verified_extents",
-            "refused_corrupted_required_blocks"
-          ]
         }
       },
       "additionalProperties": false

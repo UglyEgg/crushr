@@ -6,7 +6,6 @@ This document exists to eliminate ambiguity about where files belong and which f
 
 - `AGENTS.md` — repository operating contract for implementation agents
 - `PROJECT_STATE.md` — concise current truth of the project
-- `REPO_SNAPSHOT.md` — short current inventory of major repo contents
 - `SPEC.md` — canonical on-disk format contract
 - `README.md` — project-facing overview
 - `CONTRIBUTING.md` — contributor and quality-gate entry point

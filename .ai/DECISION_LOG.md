@@ -96,3 +96,34 @@
 - Blast radius:
   - Affects observed nonzero exit code behavior for `crushr-info` callers.
   - No format/snapshot/schema or research-claim semantics changed.
+
+## 2026-03-12 — CRUSHR-1.1-B: propagation contract narrowed to truthful observation boundary
+
+- Decision:
+  - Keep propagation reporting bounded to archives that can be opened/indexed by `crushr-info --json --report propagation`.
+  - Treat current-state structural corruption as non-observable in this CLI path; represent structure failures only as hypothetical causes or explicit caller assumptions.
+  - Rename report fields to make this boundary explicit (`assumed_corrupted_structure_nodes`, `actual_impacts_from_current_payload_corruption`).
+- Alternatives:
+  1. Implement structural-current-state reporting via lower-level fsck/open bypass path in this packet.
+  2. Keep existing field names/prose and rely on caveats.
+- Rationale:
+  - Option 1 required invasive changes across open/parse boundaries and risked destabilizing Phase transition.
+  - Option 2 left a contract lie.
+  - Narrowing preserves deterministic behavior and removes misleading semantics.
+- Blast radius:
+  - Propagation schema/contract/tests and `crushr-info` report consumers must adopt renamed fields.
+  - No extraction behavior or archive format changes.
+
+
+## 2026-03-12 — CRUSHR-1.1-B follow-up: structural-current-state propagation fallback implemented
+
+- Decision:
+  - Implement bounded structural-current-state propagation fallback in `crushr-info --json --report propagation` so reports still emit for structural failures where normal open fails.
+  - Remove `crushr-extract --mode salvage`; extract is strict-only.
+- Rationale:
+  - Prior narrowed-only approach was rejected; structural-current-state reporting is required.
+  - Legacy salvage surface contradicted canonical thesis and was explicitly requested for removal.
+- Blast radius:
+  - Propagation field semantics return to current-state structural reporting (`corrupted_structure_nodes`, `actual_impacts_from_current_corruption`).
+  - Extraction JSON/schema/docs no longer include salvage fields.
+

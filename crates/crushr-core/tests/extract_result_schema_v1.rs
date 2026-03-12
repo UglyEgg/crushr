@@ -1,9 +1,3 @@
-use anyhow::Result;
-use crushr_core::{
-    io::{Len, ReadAt},
-    open::open_archive_v1,
-    verify::scan_blocks_v1,
-};
 use serde_json::Value;
 use std::collections::BTreeSet;
 use std::fs;
@@ -13,23 +7,6 @@ use std::sync::Once;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 static BUILD_ONCE: Once = Once::new();
-
-struct FileReader {
-    file: fs::File,
-}
-
-impl ReadAt for FileReader {
-    fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize> {
-        use std::os::unix::fs::FileExt;
-        Ok(self.file.read_at(buf, offset)?)
-    }
-}
-
-impl Len for FileReader {
-    fn len(&self) -> Result<u64> {
-        Ok(self.file.metadata()?.len())
-    }
-}
 
 fn workspace_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -118,13 +95,6 @@ fn validate_success_or_partial(schema: &Value, instance: &Value) {
     let refused_reason = defs["refused_file"]["properties"]["reason"]["const"]
         .as_str()
         .unwrap();
-    let allowed_salvage_decisions = defs["salvage_decision"]["properties"]["decision"]["enum"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|v| v.as_str().unwrap())
-        .collect::<BTreeSet<_>>();
-
     let obj = as_object(instance, "extract-result-success-partial");
     let status = obj["overall_status"].as_str().unwrap();
     assert!(matches!(status, "success" | "partial_refusal"));
@@ -154,27 +124,7 @@ fn validate_success_or_partial(schema: &Value, instance: &Value) {
         );
     }
 
-    let has_mode = obj.contains_key("mode");
-    let has_salvage_decisions = obj.contains_key("salvage_decisions");
-    assert_eq!(has_mode, has_salvage_decisions);
-
-    if has_mode {
-        assert_eq!(obj["mode"].as_str().unwrap(), "salvage");
-
-        let decisions = as_array(&obj["salvage_decisions"], "salvage_decisions");
-        assert_sorted_paths(decisions, "salvage_decisions");
-
-        for item in decisions {
-            let decision = as_object(item, "salvage_decision");
-            let value = decision.get("decision").and_then(Value::as_str).unwrap();
-            assert!(
-                allowed_salvage_decisions.contains(value),
-                "unexpected salvage decision: {value}"
-            );
-        }
-    }
-
-    let mut allowed = BTreeSet::from([
+    let allowed = BTreeSet::from([
         "overall_status",
         "maximal_safe_set_computed",
         "safe_files",
@@ -182,10 +132,6 @@ fn validate_success_or_partial(schema: &Value, instance: &Value) {
         "safe_file_count",
         "refused_file_count",
     ]);
-    if has_mode {
-        allowed.insert("mode");
-        allowed.insert("salvage_decisions");
-    }
 
     let actual = obj.keys().map(String::as_str).collect::<BTreeSet<_>>();
     assert_eq!(
@@ -248,45 +194,6 @@ fn extract_result_json_conforms_to_v1_schema_for_all_envelopes() {
     assert_ok(&strict_extract);
     let strict_json: Value = serde_json::from_slice(&strict_extract.stdout).unwrap();
     validate_extract_result_against_schema(&schema, &strict_json);
-
-    // salvage partial refusal
-    let tree = root.join("tree-src");
-    fs::create_dir_all(&tree).unwrap();
-    fs::write(tree.join("a.txt"), b"alpha\n").unwrap();
-    fs::write(tree.join("b.txt"), b"bravo\n").unwrap();
-    let tree_archive = root.join("tree.crs");
-    let packed_tree = run_bin(
-        "crushr-pack",
-        &[tree.to_str().unwrap(), "-o", tree_archive.to_str().unwrap()],
-    );
-    assert_ok(&packed_tree);
-
-    let reader = FileReader {
-        file: fs::File::open(&tree_archive).unwrap(),
-    };
-    let opened = open_archive_v1(&reader).unwrap();
-    let blocks = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset).unwrap();
-    let mut corrupted = fs::read(&tree_archive).unwrap();
-    let payload_start = blocks[0].payload_offset as usize;
-    corrupted[payload_start] ^= 0x01;
-    let tree_corrupt_archive = root.join("tree-corrupt.crs");
-    fs::write(&tree_corrupt_archive, corrupted).unwrap();
-
-    let salvage_out = root.join("out-salvage");
-    let salvage_extract = run_bin(
-        "crushr-extract",
-        &[
-            tree_corrupt_archive.to_str().unwrap(),
-            "-o",
-            salvage_out.to_str().unwrap(),
-            "--mode",
-            "salvage",
-            "--json",
-        ],
-    );
-    assert_ok(&salvage_extract);
-    let salvage_json: Value = serde_json::from_slice(&salvage_extract.stdout).unwrap();
-    validate_extract_result_against_schema(&schema, &salvage_json);
 
     // structural error envelope
     let mut invalid_bytes = fs::read(&single_archive).unwrap();

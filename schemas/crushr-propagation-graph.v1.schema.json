@@ -19,10 +19,12 @@
     "report_kind": {"type": "string", "const": "corruption_propagation_graph"},
     "corrupted_structure_nodes": {
       "type": "array",
-      "items": {"type": "string"}
+      "uniqueItems": true,
+      "items": {"type": "string", "enum": ["structure:ftr4", "structure:tail_frame", "structure:idx3"]}
     },
     "corrupted_blocks": {
       "type": "array",
+      "uniqueItems": true,
       "items": {"type": "integer", "minimum": 0}
     },
     "nodes": {

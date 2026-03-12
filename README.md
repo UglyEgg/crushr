@@ -24,7 +24,6 @@ For canonical project state and source-of-truth documents, read in this order:
 6. `docs/ARCHITECTURE.md`
 7. `docs/CONTRACTS/README.md`
 8. `docs/RESEARCH/FAILURE_DOMAIN_MODEL.md`
-9. `REPO_LAYOUT.md`
 
 ## What crushr is
 
@@ -55,7 +54,6 @@ For canonical project state and source-of-truth documents, read in this order:
 - `docs/ARCHITECTURE.md` — crate graph and system shape
 - `docs/CONTRACTS/` — project scope, stability, error/security/perf contracts
 - `docs/RESEARCH/` — formalization, experiment method, results scaffolding
-- `REPO_LAYOUT.md` — where things belong and which files are authoritative
 
 ## Status
 

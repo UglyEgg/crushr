@@ -25,11 +25,13 @@ No implementation work may begin until the AI can summarize:
 
 If files conflict, use this order:
 
-1. `PROJECT_STATE.md`
+1. `AGENTS.md`
 2. `.ai/STATUS.md`
-3. `.ai/PHASE_PLAN.md`
-4. `docs/CONTRACTS/*`
-5. `docs/RESEARCH/*`
+3. `.ai/DECISION_LOG.md`
+4. `.ai/PHASE_PLAN.md`
+5. `PROJECT_STATE.md`
+6. `docs/CONTRACTS/*`
+7. `docs/RESEARCH/*`
 
 If a conflict is detected:
 
@@ -41,7 +43,7 @@ If a conflict is detected:
 
 AI instances must not:
 
-- reintroduce deprecated terminology (`salvage`, ambiguous `recovery`)
+- present legacy salvage/recovery surfaces as canonical Phase 2 workflow
 - treat legacy monolith code as canonical product surface
 - change the project thesis without explicit user approval
 - silently broaden scope
