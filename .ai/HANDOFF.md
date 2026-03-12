@@ -30,6 +30,8 @@ Phase 2.2 — cross-format comparison execution harnessing from Phase 2 manifest
 
 - CRUSHR-P2.1-C finished: locked corruption classes/targets/magnitudes/seeds are implemented with deterministic provenance output and determinism tests.
 
+- CRUSHR-P2-CLEAN-01 finished: removed obsolete `run-first-experiment`/`run-competitor-scaffold` command paths and associated helper sediment from `crushr-lab` main so only the Phase 2 core pipeline remains.
+
 
 ## 2026-03-12 update (CRUSHR-P2.1-D)
 - Added `crushr-lab run-phase2-execution` to execute locked manifest scenarios against Phase 2 foundation archives and emit deterministic raw evidence under `docs/RESEARCH/artifacts/phase2_execution`.
