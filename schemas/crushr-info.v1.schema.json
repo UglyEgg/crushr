@@ -2,14 +2,97 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "crushr-info snapshot v1",
   "type": "object",
-  "required": ["schema_version", "tool", "tool_version", "generated_at_utc", "archive_fingerprint", "payload"],
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tool",
+    "tool_version",
+    "generated_at_utc",
+    "archive_fingerprint",
+    "payload"
+  ],
   "properties": {
-    "schema_version": {"type": "integer", "const": 1},
-    "tool": {"type": "string", "const": "crushr-info"},
-    "tool_version": {"type": "string"},
-    "generated_at_utc": {"type": "string"},
-    "archive_fingerprint": {"type": "string"},
-    "payload": {"type": "object"}
+    "schema_version": { "type": "integer", "const": 1 },
+    "tool": { "type": "string", "const": "crushr-info" },
+    "tool_version": { "type": "string", "minLength": 1 },
+    "generated_at_utc": { "type": "string", "format": "date-time" },
+    "archive_fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "tail_frames", "dicts"],
+      "properties": {
+        "summary": { "$ref": "#/$defs/info_summary" },
+        "tail_frames": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/tail_frame" }
+        },
+        "dicts": { "$ref": "#/$defs/dict_summary" },
+        "ledger": { "type": "object" },
+        "files": { "type": "object" },
+        "blocks": { "type": "object" }
+      }
+    }
   },
-  "additionalProperties": true
+  "$defs": {
+    "info_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "archive_len",
+        "footer_offset",
+        "footer_len",
+        "has_footer",
+        "tail_frame_offset",
+        "tail_frame_len",
+        "raw_idx3_len",
+        "has_dct1",
+        "has_ldg1"
+      ],
+      "properties": {
+        "archive_len": { "type": "integer", "minimum": 0 },
+        "footer_offset": { "type": "integer", "minimum": 0 },
+        "footer_len": { "type": "integer", "minimum": 0 },
+        "has_footer": { "type": "boolean" },
+        "tail_frame_offset": { "type": "integer", "minimum": 0 },
+        "tail_frame_len": { "type": "integer", "minimum": 0 },
+        "raw_idx3_len": { "type": "integer", "minimum": 0 },
+        "has_dct1": { "type": "boolean" },
+        "has_ldg1": { "type": "boolean" }
+      }
+    },
+    "tail_frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blocks_end_offset",
+        "dct_offset",
+        "dct_len",
+        "index_offset",
+        "index_len",
+        "ledger_offset",
+        "ledger_len"
+      ],
+      "properties": {
+        "blocks_end_offset": { "type": "integer", "minimum": 0 },
+        "dct_offset": { "type": "integer", "minimum": 0 },
+        "dct_len": { "type": "integer", "minimum": 0 },
+        "index_offset": { "type": "integer", "minimum": 0 },
+        "index_len": { "type": "integer", "minimum": 0 },
+        "ledger_offset": { "type": "integer", "minimum": 0 },
+        "ledger_len": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "dict_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
 }

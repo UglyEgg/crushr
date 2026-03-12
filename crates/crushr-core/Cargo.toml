@@ -11,3 +11,6 @@ crushr-format = { path = "../crushr-format" }
 serde.workspace = true
 serde_json.workspace = true
 blake3.workspace = true
+
+[dev-dependencies]
+jsonschema = "0.18"

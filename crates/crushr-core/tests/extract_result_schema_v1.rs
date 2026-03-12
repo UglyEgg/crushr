@@ -1,3 +1,4 @@
+use jsonschema::JSONSchema;
 use serde_json::Value;
 use std::collections::BTreeSet;
 use std::fs;
@@ -61,6 +62,16 @@ fn load_extract_result_schema() -> Value {
     serde_json::from_slice(&bytes).unwrap()
 }
 
+fn compile_schema(schema: &Value) -> JSONSchema {
+    JSONSchema::compile(schema).expect("compile schema")
+}
+
+fn assert_valid_against_schema(validator: &JSONSchema, instance: &Value, context: &str) {
+    if let Err(errors) = validator.validate(instance) {
+        let rendered = errors.map(|e| e.to_string()).collect::<Vec<_>>().join("\n");
+        panic!("{context} failed schema validation:\n{rendered}\ninstance={instance}");
+    }
+}
 fn as_object<'a>(value: &'a Value, context: &str) -> &'a serde_json::Map<String, Value> {
     value
         .as_object()
@@ -163,6 +174,7 @@ fn validate_extract_result_against_schema(schema: &Value, instance: &Value) {
 fn extract_result_json_conforms_to_v1_schema_for_all_envelopes() {
     ensure_bins_built();
     let schema = load_extract_result_schema();
+    let validator = compile_schema(&schema);
 
     let root = unique_dir("crushr-extract-schema-v1");
     fs::create_dir_all(&root).unwrap();
@@ -193,6 +205,7 @@ fn extract_result_json_conforms_to_v1_schema_for_all_envelopes() {
     );
     assert_ok(&strict_extract);
     let strict_json: Value = serde_json::from_slice(&strict_extract.stdout).unwrap();
+    assert_valid_against_schema(&validator, &strict_json, "strict extract result");
     validate_extract_result_against_schema(&schema, &strict_json);
 
     // structural error envelope
@@ -214,6 +227,7 @@ fn extract_result_json_conforms_to_v1_schema_for_all_envelopes() {
     );
     assert_eq!(errored.status.code(), Some(2));
     let error_json: Value = serde_json::from_slice(&errored.stdout).unwrap();
+    assert_valid_against_schema(&validator, &error_json, "error extract result");
     validate_extract_result_against_schema(&schema, &error_json);
 
     let _ = fs::remove_dir_all(&root);

@@ -2,14 +2,212 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "crushr-fsck snapshot v1",
   "type": "object",
-  "required": ["schema_version", "tool", "tool_version", "generated_at_utc", "archive_fingerprint", "payload"],
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tool",
+    "tool_version",
+    "generated_at_utc",
+    "archive_fingerprint",
+    "payload"
+  ],
   "properties": {
-    "schema_version": {"type": "integer", "const": 1},
-    "tool": {"type": "string", "const": "crushr-fsck"},
-    "tool_version": {"type": "string"},
-    "generated_at_utc": {"type": "string"},
-    "archive_fingerprint": {"type": "string"},
-    "payload": {"type": "object"}
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "tool": {
+      "type": "string",
+      "const": "crushr-fsck"
+    },
+    "tool_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "archive_fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verify",
+        "blast_radius"
+      ],
+      "properties": {
+        "verify": {
+          "$ref": "#/$defs/verify"
+        },
+        "blast_radius": {
+          "$ref": "#/$defs/blast_radius"
+        },
+        "dump_paths": {
+          "type": "object"
+        }
+      }
+    }
   },
-  "additionalProperties": true
+  "$defs": {
+    "verify": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "has_footer",
+        "has_tail_frame",
+        "has_valid_idx3_hash",
+        "has_valid_ldg1_hash"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "ok"
+        },
+        "has_footer": {
+          "type": "boolean"
+        },
+        "has_tail_frame": {
+          "type": "boolean"
+        },
+        "has_valid_idx3_hash": {
+          "type": "boolean"
+        },
+        "has_valid_ldg1_hash": {
+          "type": "boolean"
+        }
+      }
+    },
+    "blast_radius": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "structural_components_untrusted",
+        "impact"
+      ],
+      "properties": {
+        "structural_components_untrusted": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "structure:ftr4",
+              "structure:tail_frame",
+              "structure:idx3"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "impact": {
+          "$ref": "#/$defs/impact_report"
+        }
+      }
+    },
+    "impact_report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "corrupted_blocks",
+        "affected_files",
+        "unaffected_files"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "corrupted_blocks": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "uniqueItems": true
+        },
+        "affected_files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/affected_file"
+          }
+        },
+        "unaffected_files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/unaffected_file"
+          }
+        }
+      }
+    },
+    "file_extent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "block_id",
+        "offset_in_block",
+        "len"
+      ],
+      "properties": {
+        "block_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "offset_in_block": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "len": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "affected_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_id",
+        "path",
+        "affected_extents"
+      ],
+      "properties": {
+        "file_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "affected_extents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/file_extent"
+          }
+        }
+      }
+    },
+    "unaffected_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_id",
+        "path"
+      ],
+      "properties": {
+        "file_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
 }
