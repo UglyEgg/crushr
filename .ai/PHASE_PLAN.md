@@ -16,5 +16,6 @@
 - [x] 2.1-A Controlled Corruption Matrix manifest/schema (CRUSHR-P2.1-A)
 - [x] 2.1-B Dataset fixture + archive build foundation (CRUSHR-P2.1-B)
 - [x] 2.1-C Deterministic corruption injection engine (CRUSHR-P2.1-C)
+- [x] 2.1-D Phase 2 execution runner + raw result capture + completeness auditing (CRUSHR-P2.1-D)
 - [ ] 2.2 Cross-Format Comparison
 - [ ] 2.3 Experimental Reporting

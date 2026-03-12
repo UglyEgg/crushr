@@ -1,11 +1,11 @@
 use anyhow::{bail, Context, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FixtureDataset {
     Smallfiles,
@@ -41,7 +41,7 @@ impl FixtureDataset {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ArchiveKind {
     #[serde(rename = "crushr")]
     Crushr,
@@ -77,14 +77,14 @@ impl ArchiveKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FileInventoryEntry {
     pub path: String,
     pub bytes: u64,
     pub blake3: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatasetInventory {
     pub dataset: FixtureDataset,
     pub composition_rule: String,
@@ -94,7 +94,7 @@ pub struct DatasetInventory {
     pub files: Vec<FileInventoryEntry>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatasetProvenance {
     pub generator: String,
     pub deterministic: bool,
@@ -104,14 +104,14 @@ pub struct DatasetProvenance {
     pub inventory_blake3: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExecutionStatus {
     Success,
     Failure,
     Skipped,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandExecutionRecord {
     pub status: ExecutionStatus,
     pub program: String,
@@ -122,7 +122,7 @@ pub struct CommandExecutionRecord {
     pub note: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArchiveBuildRecord {
     pub dataset: FixtureDataset,
     pub archive_kind: ArchiveKind,
@@ -130,7 +130,7 @@ pub struct ArchiveBuildRecord {
     pub build: CommandExecutionRecord,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Phase2FoundationReport {
     pub datasets: Vec<DatasetProvenance>,
     pub archive_builds: Vec<ArchiveBuildRecord>,
