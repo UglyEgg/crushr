@@ -137,6 +137,7 @@ fn capture_xattrs(path: &Path) -> Result<Vec<Xattr>> {
 }
 
 /// Packs a set of input paths (files and/or directories) into a crushr archive.
+#[allow(clippy::too_many_arguments)]
 pub fn pack_paths_with_dict_with_xattrs_progress(
     inputs: &[PathBuf],
     base: &Path,
@@ -147,7 +148,7 @@ pub fn pack_paths_with_dict_with_xattrs_progress(
     dict_bytes: Option<&[u8]>,
     xattr_policy: &str,
 ) -> Result<()> {
-    if block_size < 1 * 1024 * 1024 {
+    if block_size < 1024 * 1024 {
         bail!("block_size too small; use >= 1 MiB");
     }
 
@@ -298,6 +299,7 @@ pub fn pack_paths_with_dict_with_xattrs_progress(
 
 /// "Auto dicts" MVP: currently uses a single (optional) externally supplied dict.
 /// (We keep the signature stable, but don't do per-group dict tables yet.)
+#[allow(clippy::too_many_arguments)]
 pub fn pack_paths_with_auto_dicts_with_xattrs_progress(
     inputs: &[PathBuf],
     base: &Path,
@@ -336,6 +338,7 @@ pub fn pack_paths_with_auto_dicts_with_xattrs_progress(
 }
 
 /// Append is not implemented in this MVP. This function exists to keep the CLI stable.
+#[allow(clippy::too_many_arguments)]
 pub fn append_paths_with_dict_with_xattrs_progress(
     _archive: &Path,
     _inputs: &[PathBuf],

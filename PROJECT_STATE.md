@@ -87,6 +87,6 @@ No speculative recovery exists by design.
 
 Next milestone:
 
-**Extraction Result Formalization**
+**Corruption Propagation Graph**
 
-This step is now implemented: `crushr-extract --json` result envelopes are explicitly formalized as a stable deterministic contract (success, partial refusal, error) for minimal v1 (regular files, one block per file), including strict-vs-salvage field-surface constraints.
+This step is now implemented: `crushr-info --json --report propagation` emits a deterministic minimal-v1 corruption propagation graph contract covering required structure/file/block dependencies and bounded impact-cause semantics aligned with extraction refusal behavior.

@@ -10,6 +10,8 @@ Start with:
 
 Current shape:
 
+- Workspace clippy gate is now green: `cargo clippy --workspace --all-targets -- -D warnings` passes after lint-only cleanup (no behavior changes).
+- Step 1.1 is complete: `crushr-info --json --report propagation` now emits a deterministic minimal-v1 corruption propagation graph with bounded node/edge/reason enums, per-file required-node dependencies, hypothetical impact causes, and actual impacts from current corrupted blocks.
 - Step 1.2 is complete: `crushr-extract --json` now reports explicit maximum-safe-extraction fields (`maximal_safe_set_computed`, `safe_files`, `refused_files`, `safe_file_count`, `refused_file_count`) with deterministic refusal reason typing.
 - `crushr-extract` now supports explicit `--mode <strict|salvage>`; strict remains default/unchanged, while salvage adds deterministic `mode` + `salvage_decisions` JSON reporting without attempting reconstruction.
 - `crushr-extract` now uses typed internal extraction outcome/error classification (success/partial refusal/usage/structural) for exit-code mapping and JSON error handling, removing message-string exit classification.

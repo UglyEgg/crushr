@@ -208,3 +208,18 @@
 
 - Added `crates/crushr-core/tests/extract_result_schema_v1.rs` as a dedicated automated schema-validation harness for `crushr-extract --json`.
 - Harness validates strict success, salvage partial refusal, and structural error envelopes against `schemas/crushr-extract-result.v1.schema.json` and enforces deterministic path ordering/enum constraints from the schema.
+
+
+## 2026-03-12 — Phase 1, Step 1.1 (corruption propagation graph)
+
+- Added `crushr-core::propagation` typed deterministic report model for minimal-v1 structure/file/block dependency and impact propagation.
+- Added `crushr-info --json --report propagation` as the machine-readable propagation graph reporting surface.
+- Added `docs/CONTRACTS/PROPAGATION_GRAPH_V1.md` and schema `schemas/crushr-propagation-graph.v1.schema.json`.
+- Added contract/determinism/consistency integration tests in `crates/crushr-core/tests/propagation_graph_v1.rs`.
+
+
+## 2026-03-12 — Phase 1, Step 1.1 (fix iteration 1: workspace lint debt cleanup)
+
+- Removed existing workspace lint failures so `cargo clippy --workspace --all-targets -- -D warnings` passes.
+- Applied lint-only changes in `crushr`, `crushr-tui`, and related modules (unused vars/mut, reserve-after-init, counter-loop, identity-op, needless returns, and targeted allow attributes for stable public signatures).
+- No functional behavior or public API contracts were changed.

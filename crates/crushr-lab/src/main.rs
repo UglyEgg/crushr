@@ -109,29 +109,30 @@ fn run_competitor_scaffold(raw_args: Vec<String>) -> Result<()> {
         b"beta fixture payload\nfor comparison\n",
     )?;
 
-    let mut targets = Vec::new();
-    targets.push(run_crushr_target(
-        &artifact_dir,
-        &fixture_dir,
-        &archives_dir,
-        &corrupt_dir,
-        &observations_dir,
-    )?);
-    targets.push(run_zip_target(
-        &artifact_dir,
-        &fixture_dir,
-        &archives_dir,
-        &corrupt_dir,
-        &observations_dir,
-    )?);
-    targets.push(run_tar_zstd_target(
-        &artifact_dir,
-        &fixture_dir,
-        &archives_dir,
-        &corrupt_dir,
-        &observations_dir,
-    )?);
-    targets.push(run_7z_target());
+    let targets = vec![
+        run_crushr_target(
+            &artifact_dir,
+            &fixture_dir,
+            &archives_dir,
+            &corrupt_dir,
+            &observations_dir,
+        )?,
+        run_zip_target(
+            &artifact_dir,
+            &fixture_dir,
+            &archives_dir,
+            &corrupt_dir,
+            &observations_dir,
+        )?,
+        run_tar_zstd_target(
+            &artifact_dir,
+            &fixture_dir,
+            &archives_dir,
+            &corrupt_dir,
+            &observations_dir,
+        )?,
+        run_7z_target(),
+    ];
 
     let manifest = ComparisonManifest {
         experiment_id: COMPARISON_SCAFFOLD_ID.to_string(),

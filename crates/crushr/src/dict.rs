@@ -222,12 +222,10 @@ pub fn train_dict_for_paths_progress(
         total_bytes: Some(total),
     });
 
-    let mut samples: Vec<u8> = Vec::new();
-    samples.reserve(files.len().min(max_samples) * sample_bytes);
+    let mut samples: Vec<u8> = Vec::with_capacity(files.len().min(max_samples) * sample_bytes);
     let mut sample_sizes: Vec<usize> = Vec::new();
 
-    let mut taken = 0usize;
-    for p in files.into_iter() {
+    for (taken, p) in files.into_iter().enumerate() {
         if taken >= max_samples {
             break;
         }
@@ -238,7 +236,6 @@ pub fn train_dict_for_paths_progress(
         samples.extend_from_slice(&buf);
         sample_sizes.push(n);
         sink.on_event(ProgressEvent::AdvanceBytes { bytes: n as u64 });
-        taken += 1;
     }
 
     if sample_sizes.is_empty() {
