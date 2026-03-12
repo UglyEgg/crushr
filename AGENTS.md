@@ -1,5 +1,14 @@
 # AGENTS.md
 
+## Mandatory bootstrap rule
+
+Before any new implementation work, AI contributors must read:
+
+- `AI_BOOTSTRAP.md`
+- `REPO_GUARDRAILS.md`
+
+If they cannot summarize the current state and active step from those files, they must not modify code.
+
 ## 1. Authority & Conflict Resolution
 
 This document defines the default operating contract for AI-assisted development within this repository.
@@ -27,15 +36,19 @@ If any conflict is detected, stop and resolve explicitly.
 All work is organized into Phases. Each Phase consists of sequential Steps.
 
 ### Phase
+
 A Phase represents a coherent milestone of meaningful progress (feature complete, architectural unit complete, or major refactor complete).
 
 ### Step
+
 A Step is a bounded unit of work within a Phase. Steps must:
+
 - Be small enough to complete safely and coherently.
 - Avoid scope drift.
 - Produce code, documentation, and tests together when applicable.
 
 If work grows beyond the intended scope of a Step:
+
 - Finish the coherent portion.
 - Insert a new Step immediately after.
 - Do not silently expand the original Step.
@@ -118,11 +131,13 @@ Before ending a Step (or handing off):
 Work must remain within the scope of the current repository.
 
 Do not:
+
 - Modify other repositories unless explicitly directed.
 - Introduce cross-repository architectural changes without explicit approval.
 - Expand feature scope beyond the defined Phase.
 
 If a Step requires architectural, contractual, or feature-direction changes:
+
 - Stop work.
 - Document context, options, recommendation, and blast radius.
 - Await explicit user decision.
@@ -132,6 +147,7 @@ If a Step requires architectural, contractual, or feature-direction changes:
 ## 6. Decision Escalation Protocol
 
 If a decision impacts:
+
 - Public contracts
 - Data formats
 - Architecture
@@ -139,6 +155,7 @@ If a decision impacts:
 - Backward compatibility
 
 Then:
+
 1. Stop work.
 2. Write context.
 3. Provide viable options.
@@ -147,11 +164,13 @@ Then:
 6. Await explicit decision before continuing.
 
 Recommendation criteria:
+
 - Prefer stability and long-term growth over short-term simplicity.
 - If the best option implies a major refactor, rewrite, or pivot, recommend it.
 - Make scope explicit (what changes, what is removed, what migrates, risk profile, and transition plan).
 
 Decision recording requirement:
+
 - Every resolved decision must be recorded in `.ai/DECISION_LOG.md` (date, decision, alternatives, rationale, blast radius).
 
 No forward progress may occur past this boundary without resolution.
@@ -183,6 +202,7 @@ A small CI-like harness exists for building Rust and C++ using Podman: `podCI`.
 - If the harness must be extended, treat changes as architectural/contractual decisions and follow the Decision Escalation Protocol.
 
 Pinning policy (disabled for now):
+
 - Once `podCI` is publicly accessible and stable, record a reference in `.ai/STATUS.md` (tag/commit) as `podCI_ref`.
 - Until then, do not block work on `podCI_ref`.
 
@@ -201,6 +221,7 @@ A Step is complete only when:
 If the current environment does not allow execution of tests, execution is deferred but tests must still be authored correctly.
 
 If an artifact is generated (zip, tarball, release bundle, etc.), record the exact filename in:
+
 - `.ai/STATUS.md`
 - `.ai/CHANGELOG.md`
 
@@ -211,6 +232,7 @@ A Step is not complete if only code was written without documentation or tests w
 ## 10. Artifact Naming & Versioning
 
 ### Artifact Naming
+
 Artifacts must follow the format:
 
 ```
@@ -218,6 +240,7 @@ Artifacts must follow the format:
 ```
 
 Where:
+
 - `phase_number` = current Phase
 - `step_number` = Step within Phase
 - `fix_iteration` = debugging iteration within the Step
@@ -237,6 +260,7 @@ It resets to `0` once the issue is resolved.
 By default, artifact packaging occurs at Phase completion.
 
 Artifacts may be generated during a Step only when:
+
 - Explicitly requested, or
 - A fix checkpoint requires preservation.
 
@@ -258,6 +282,7 @@ This ensures traceability and prevents context drift across sessions.
 ## 13. Documentation Standards
 
 Documentation must:
+
 - Be written for a mid-level engineer.
 - Avoid unnecessary verbosity.
 - Avoid unexplained assumptions.
@@ -277,18 +302,19 @@ Diagrams (e.g., Mermaid) should be included when they materially improve underst
 
 Process is durable. Execution constraints belong under `.ai/` as supplemental documents.
 
-
 ## Implementation-agent workflow
 
 Implementation agents (Codex/Context/etc.) are not design authorities.
 
 They must:
+
 - treat `SPEC.md`, `docs/CONTRACTS/*`, `.ai/STATUS.md`, and `.ai/DECISION_LOG.md` as canonical
 - work from a bounded task packet
 - avoid architectural changes unless the packet explicitly authorizes them
 - include tests with every meaningful code change
 
 They must not:
+
 - redesign the format
 - weaken the Failure-Domain Determinism thesis
 - add hidden heuristics or undocumented behavior

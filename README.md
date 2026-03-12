@@ -1,3 +1,5 @@
+AI contributors should begin with `AI_BOOTSTRAP.md`.
+
 # crushr
 
 An integrity-first archival compression container and tool suite.
