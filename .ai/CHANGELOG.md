@@ -284,3 +284,12 @@
 - Added typed archive-build foundation for `crushr`, `tar+zstd`, `zip`, and `7z/lzma` using structured `CommandExecutionRecord` instead of shell-story output.
 - Added `crushr-lab build-phase2-foundation` command and validation helpers for archive coverage over the locked dataset/format matrix.
 - Added reproducibility tests for dataset generation, inventory determinism, and archive coverage shape.
+
+
+## 2026-03-12 — Phase 2, Step 2.1 (CRUSHR-P2.1-C deterministic corruption injection layer)
+
+- Added `crates/crushr-lab/src/phase2_corruption.rs` implementing the locked core corruption engine for `bit_flip`, `byte_overwrite`, `zero_fill`, `truncation`, and `tail_damage`.
+- Locked neutral targets (`header`, `index`, `payload`, `tail`), magnitudes (`1B`, `256B`, `4KB`), and fixed seed policy (`1337`, `2600`, `65535`) with validation in the main corruption path.
+- Added deterministic mutation provenance model (source archive, scenario_id, corruption type, target, magnitude, seed, concrete mutation details).
+- Updated `crushr-lab corrupt` to consume locked corruption options and emit deterministic provenance metadata in `.corrupt.json`.
+- Added determinism/unit tests proving repeated scenario generation is byte/provenance-stable and that locked seed policy is enforced.
