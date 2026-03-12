@@ -275,3 +275,12 @@
 - Added schema `schemas/crushr-lab-experiment-manifest.phase2.v1.schema.json` for Phase 2 manifest contract.
 - Added `crushr-lab write-phase2-manifest` command to generate a schema-tagged manifest artifact independent from execution logic.
 - Added manifest/scenario tests for count, ordering, stable IDs, stable fields, and schema-shape validation.
+
+
+## 2026-03-12 — Phase 2, Step 2.1 (CRUSHR-P2.1-B dataset fixture/archive foundation)
+
+- Added `crates/crushr-lab/src/phase2_foundation.rs` implementing deterministic dataset fixture builders for `smallfiles`, `mixed`, and `largefiles` with explicit composition rules.
+- Added deterministic inventory/provenance emission (`inventory.json` + `inventory.blake3.txt`) and stable inventory digesting for fixture-drift detection.
+- Added typed archive-build foundation for `crushr`, `tar+zstd`, `zip`, and `7z/lzma` using structured `CommandExecutionRecord` instead of shell-story output.
+- Added `crushr-lab build-phase2-foundation` command and validation helpers for archive coverage over the locked dataset/format matrix.
+- Added reproducibility tests for dataset generation, inventory determinism, and archive coverage shape.

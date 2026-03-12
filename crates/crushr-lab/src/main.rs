@@ -5,8 +5,10 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+mod phase2_foundation;
 mod phase2_manifest;
 
+use phase2_foundation::{build_phase2_foundation, validate_archive_coverage};
 use phase2_manifest::{
     validate_manifest_shape, Phase2ExperimentManifest, PHASE2_MANIFEST_SCHEMA_ID,
     PHASE2_MANIFEST_SCHEMA_PATH,
@@ -78,13 +80,37 @@ fn main() -> Result<()> {
         "write-phase2-manifest" => write_phase2_manifest(args.collect()),
         "run-first-experiment" => run_first_experiment(args.collect()),
         "run-competitor-scaffold" => run_competitor_scaffold(args.collect()),
+        "build-phase2-foundation" => run_phase2_foundation(args.collect()),
         _ => {
             eprintln!(
-                "usage:\n  crushr-lab corrupt <input> <output> [--model byteflip --seed <u64> --offset <u64>]\n  crushr-lab write-phase2-manifest [--output <path>]\n  crushr-lab run-first-experiment [--artifact-dir <path>]\n  crushr-lab run-competitor-scaffold [--artifact-dir <path>]"
+                "usage:\n  crushr-lab corrupt <input> <output> [--model byteflip --seed <u64> --offset <u64>]\n  crushr-lab write-phase2-manifest [--output <path>]\n  crushr-lab run-first-experiment [--artifact-dir <path>]\n  crushr-lab run-competitor-scaffold [--artifact-dir <path>]\n  crushr-lab build-phase2-foundation [--artifact-dir <path>]"
             );
             std::process::exit(1);
         }
     }
+}
+
+fn run_phase2_foundation(raw_args: Vec<String>) -> Result<()> {
+    let mut args = raw_args.into_iter();
+    let mut artifact_dir = workspace_root()?.join("docs/RESEARCH/artifacts/phase2_foundation");
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--artifact-dir" => {
+                artifact_dir =
+                    PathBuf::from(args.next().context("missing value for --artifact-dir")?);
+            }
+            _ => bail!("unsupported flag: {arg}"),
+        }
+    }
+
+    let root = workspace_root()?;
+    let report = build_phase2_foundation(&root, &artifact_dir)?;
+    validate_archive_coverage(&report)?;
+    fs::write(
+        artifact_dir.join("foundation_report.json"),
+        serde_json::to_vec_pretty(&report)?,
+    )?;
+    Ok(())
 }
 
 fn write_phase2_manifest(raw_args: Vec<String>) -> Result<()> {
