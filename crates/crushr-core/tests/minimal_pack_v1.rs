@@ -300,6 +300,9 @@ fn extract_single_file_roundtrip() {
     let extracted_success_json: serde_json::Value =
         serde_json::from_slice(&extracted_success.stdout).unwrap();
     assert_eq!(extracted_success_json["overall_status"], "success");
+    assert_eq!(extracted_success_json["maximal_safe_set_computed"], true);
+    assert_eq!(extracted_success_json["safe_file_count"], 1);
+    assert_eq!(extracted_success_json["refused_file_count"], 0);
     assert_eq!(
         extracted_success_json["refused_files"]
             .as_array()
@@ -308,10 +311,8 @@ fn extract_single_file_roundtrip() {
         0
     );
     assert_eq!(
-        extracted_success_json["extracted_files"]
-            .as_array()
-            .unwrap(),
-        &[serde_json::json!("single.txt")]
+        extracted_success_json["safe_files"].as_array().unwrap(),
+        &[serde_json::json!({"path": "single.txt"})]
     );
     assert_eq!(
         fs::read(out_dir.join("single.txt")).unwrap(),
@@ -389,8 +390,14 @@ fn extract_salvage_mode_clean_archive_matches_strict_with_deterministic_json() {
 
     let json: serde_json::Value = serde_json::from_slice(&run_a.stdout).unwrap();
     assert_eq!(json["overall_status"], "success");
+    assert_eq!(json["maximal_safe_set_computed"], true);
+    assert_eq!(json["safe_file_count"], 1);
+    assert_eq!(json["refused_file_count"], 0);
     assert_eq!(json["mode"], "salvage");
-    assert_eq!(json["extracted_files"], serde_json::json!(["single.txt"]));
+    assert_eq!(
+        json["safe_files"],
+        serde_json::json!([{"path": "single.txt"}])
+    );
     assert_eq!(json["refused_files"], serde_json::json!([]));
     assert_eq!(
         json["salvage_decisions"],
@@ -433,9 +440,26 @@ fn extract_tiny_directory_roundtrip() {
 
     let extracted = run_bin(
         "crushr-extract",
-        &[archive.to_str().unwrap(), "-o", out_dir.to_str().unwrap()],
+        &[
+            archive.to_str().unwrap(),
+            "-o",
+            out_dir.to_str().unwrap(),
+            "--json",
+        ],
     );
     assert_ok(&extracted);
+    let extracted_json: serde_json::Value = serde_json::from_slice(&extracted.stdout).unwrap();
+    assert_eq!(extracted_json["overall_status"], "success");
+    assert_eq!(extracted_json["maximal_safe_set_computed"], true);
+    assert_eq!(extracted_json["safe_file_count"], 2);
+    assert_eq!(extracted_json["refused_file_count"], 0);
+    assert_eq!(
+        extracted_json["safe_files"],
+        serde_json::json!([
+            {"path": "a.txt"},
+            {"path": "nested/b.txt"}
+        ])
+    );
 
     assert_eq!(fs::read(out_dir.join("a.txt")).unwrap(), b"alpha\n");
     assert_eq!(fs::read(out_dir.join("nested/b.txt")).unwrap(), b"bravo\n");
@@ -491,11 +515,12 @@ fn extract_refuses_affected_file_and_keeps_unaffected_file() {
         extracted_success_a_json["overall_status"],
         "partial_refusal"
     );
+    assert_eq!(extracted_success_a_json["maximal_safe_set_computed"], true);
+    assert_eq!(extracted_success_a_json["safe_file_count"], 1);
+    assert_eq!(extracted_success_a_json["refused_file_count"], 1);
     assert_eq!(
-        extracted_success_a_json["extracted_files"]
-            .as_array()
-            .unwrap(),
-        &[serde_json::json!("b.txt")]
+        extracted_success_a_json["safe_files"].as_array().unwrap(),
+        &[serde_json::json!({"path": "b.txt"})]
     );
     assert_eq!(
         extracted_success_a_json["refused_files"]
@@ -614,8 +639,11 @@ fn extract_salvage_mode_partial_damage_extracts_only_verified_files() {
 
     let json: serde_json::Value = serde_json::from_slice(&extracted.stdout).unwrap();
     assert_eq!(json["overall_status"], "partial_refusal");
+    assert_eq!(json["maximal_safe_set_computed"], true);
+    assert_eq!(json["safe_file_count"], 1);
+    assert_eq!(json["refused_file_count"], 1);
     assert_eq!(json["mode"], "salvage");
-    assert_eq!(json["extracted_files"], serde_json::json!(["b.txt"]));
+    assert_eq!(json["safe_files"], serde_json::json!([{"path": "b.txt"}]));
     assert_eq!(
         json["refused_files"],
         serde_json::json!([

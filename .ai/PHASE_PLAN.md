@@ -21,8 +21,8 @@ Completed steps:
 Phase 1 — Integrity Intelligence
 
 1.1 Corruption Propagation Graph (planned)
-1.2 Maximum Safe Extraction Formalization (active)
-1.3 Extraction Result Formalization (planned)
+1.2 Maximum Safe Extraction Formalization (completed)
+1.3 Extraction Result Formalization (active)
 
 Phase 2 — Comparative Corruption Research
 

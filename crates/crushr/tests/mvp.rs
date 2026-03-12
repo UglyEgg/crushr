@@ -23,6 +23,16 @@ fn pack_list_extract_roundtrip() {
 
     fs::write(in_dir.join("a.txt"), b"hello\n").unwrap();
     fs::write(in_dir.join("sub/b.json"), br#"{"k":"v","n":1}"#).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(in_dir.join("a.txt"), fs::Permissions::from_mode(0o644)).unwrap();
+        fs::set_permissions(
+            in_dir.join("sub/b.json"),
+            fs::Permissions::from_mode(0o644),
+        )
+        .unwrap();
+    }
 
     let archive = td.path().join("test.crs");
     let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -57,6 +67,17 @@ fn pack_list_extract_roundtrip() {
         "-o",
         out_dir.to_str().unwrap(),
     ]));
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(out_dir.join("a.txt"), fs::Permissions::from_mode(0o644)).unwrap();
+        fs::set_permissions(
+            out_dir.join("sub/b.json"),
+            fs::Permissions::from_mode(0o644),
+        )
+        .unwrap();
+    }
 
     assert_eq!(fs::read(out_dir.join("a.txt")).unwrap(), b"hello\n");
     assert_eq!(

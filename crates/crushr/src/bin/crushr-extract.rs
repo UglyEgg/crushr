@@ -90,14 +90,28 @@ struct SalvageDecisionReport {
 #[derive(Debug, Serialize)]
 struct RefusedFileReport {
     path: String,
-    reason: &'static str,
+    reason: RefusalReason,
+}
+
+#[derive(Debug, Serialize)]
+struct SafeFileReport {
+    path: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum RefusalReason {
+    CorruptedRequiredBlocks,
 }
 
 #[derive(Debug, Serialize)]
 struct ExtractionReport {
     overall_status: &'static str,
-    extracted_files: Vec<String>,
+    maximal_safe_set_computed: bool,
+    safe_files: Vec<SafeFileReport>,
     refused_files: Vec<RefusedFileReport>,
+    safe_file_count: usize,
+    refused_file_count: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
     mode: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -248,7 +262,7 @@ fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
     let mut entries: Vec<Entry> = index.entries;
     entries.sort_by(|a, b| a.path.cmp(&b.path));
 
-    let mut extracted_files = Vec::new();
+    let mut safe_files = Vec::new();
     let mut refused_files = Vec::new();
     let mut salvage_decisions = Vec::new();
 
@@ -273,7 +287,7 @@ fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
             }
             refused_files.push(RefusedFileReport {
                 path: entry.path,
-                reason: "corrupted_required_blocks",
+                reason: RefusalReason::CorruptedRequiredBlocks,
             });
             continue;
         }
@@ -287,7 +301,7 @@ fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
                 decision: "extracted_verified_extents",
             });
         }
-        extracted_files.push(entry.path);
+        safe_files.push(SafeFileReport { path: entry.path });
     }
 
     if !refused_files.is_empty() {
@@ -305,6 +319,9 @@ fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
         ExtractionOutcomeKind::PartialRefusal
     };
 
+    let safe_file_count = safe_files.len();
+    let refused_file_count = refused_files.len();
+
     Ok(ClassifiedRun {
         outcome_kind,
         report: ExtractionReport {
@@ -312,8 +329,11 @@ fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
                 ExtractionOutcomeKind::Success => "success",
                 ExtractionOutcomeKind::PartialRefusal => "partial_refusal",
             },
-            extracted_files,
+            maximal_safe_set_computed: true,
+            safe_files,
             refused_files,
+            safe_file_count,
+            refused_file_count,
             mode: match opts.mode {
                 ExtractionMode::Strict => None,
                 ExtractionMode::Salvage => Some("salvage"),

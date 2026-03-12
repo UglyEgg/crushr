@@ -187,3 +187,11 @@
 - Added explicit extraction mode selection to `crushr-extract` via `--mode <strict|salvage>` with default strict behavior preserved.
 - Implemented salvage-mode deterministic reporting (`mode: salvage` + ordered `salvage_decisions`) while keeping integrity-first refusal for corrupted required blocks.
 - Added focused salvage integration tests for clean archives, partial corruption with verified-only extraction, refusal-exit interaction, and deterministic JSON behavior.
+
+
+## 2026-03-12 — Phase 1, Step 1.2 (fix iteration 0: maximum safe extraction formalization/reporting)
+
+- Formalized `crushr-extract --json` around explicit maximum-safe-extraction reporting fields: `maximal_safe_set_computed`, deterministic `safe_files`, deterministic `refused_files`, and `safe/refused` counts.
+- Added typed refusal reason serialization (`corrupted_required_blocks`) while preserving strict integrity-first extraction behavior and refusal policy exit semantics.
+- Updated extraction integration tests for clean single-file, clean tiny-directory deterministic ordering/counts, selective corruption safe-vs-refused reporting, structural invalid JSON error envelope behavior, and deterministic serialization checks.
+- Updated project/contract/research and `.ai` continuity docs to record maximum safe extraction as a first-class capability in minimal v1 scope.
