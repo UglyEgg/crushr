@@ -1,7 +1,9 @@
+#[allow(dead_code)]
 pub const BLK_MAGIC: &[u8; 4] = b"BLK1";
 pub const BLK_MAGIC_V2: &[u8; 4] = b"BLK2";
 pub const FTR_MAGIC_V1: &[u8; 4] = b"FTR1";
 pub const FTR_MAGIC_V2: &[u8; 4] = b"FTR2";
+#[allow(dead_code)]
 pub const FTR_MAGIC_V3: &[u8; 4] = b"FTR3";
 
 pub const CODEC_ZSTD: u32 = 1;
@@ -131,7 +133,9 @@ pub fn classify_group(path: &str) -> u8 {
 }
 
 // Dictionary table
+#[allow(dead_code)]
 pub const DCT_MAGIC_V1: &[u8; 4] = b"DCT1";
 
-// Embedded event frames (for salvage)
+// Embedded event frames
+#[allow(dead_code)]
 pub const EVT_MAGIC_V1: &[u8; 4] = b"EVT1";

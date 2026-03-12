@@ -114,7 +114,7 @@ fn scan_blocks(f: &mut File, blocks_end_offset: u64) -> Result<Vec<BlockHeader>>
 
     if pos != blocks_end_offset {
         // Allow slight mismatch due to corruption, but keep best-effort.
-        // The recovery layer is separate; here we report a soft error.
+        // The caller may handle this separately; here we report a soft error.
         // For now, just accept.
     }
     Ok(blocks)

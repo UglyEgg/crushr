@@ -127,3 +127,18 @@
   - Propagation field semantics return to current-state structural reporting (`corrupted_structure_nodes`, `actual_impacts_from_current_corruption`).
   - Extraction JSON/schema/docs no longer include salvage fields.
 
+
+
+## 2026-03-12 — CRUSHR-CLEANUP-2.0-A: remove remaining legacy recovery/salvage surfaces
+
+- Decision:
+  - Remove remaining legacy recovery/salvage product surfaces from active code/docs: `crushr` CLI recover/salvage commands, public API recovery/salvage options/functions, legacy recovery module, and snapshot `salvage_plan` field.
+- Alternatives:
+  1. Keep surfaces behind legacy/hidden/deprecated flags.
+  2. Keep API stubs while removing internals.
+- Rationale:
+  - Hidden/deprecated retention still leaves a contradictory product surface and Phase 2 contamination risk.
+  - Full deletion matches integrity-first thesis and current canonical scope.
+- Blast radius:
+  - Removes recover/salvage entry points from the legacy `crushr` monolith binary/API.
+  - Any callers depending on these removed surfaces must migrate.

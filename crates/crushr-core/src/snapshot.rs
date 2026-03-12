@@ -191,8 +191,6 @@ pub struct FsckSnapshotV1 {
     pub verify: FsckVerifyV1,
     pub blast_radius: FsckBlastRadiusV1,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub salvage_plan: Option<serde_json::Value>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dump_paths: Option<serde_json::Value>,
 }
 
@@ -218,7 +216,6 @@ pub fn fsck_snapshot_from_open_archive<R: ReadAt + Len>(
             structural_components_untrusted: Vec::new(),
             impact: enumerate_impact_v1(&corrupted_blocks, &[]),
         },
-        salvage_plan: None,
         dump_paths: None,
     })
 }

@@ -10,8 +10,9 @@ Start with:
 
 Handoff state:
 
+- CRUSHR-CLEANUP-2.0-A is complete: legacy recovery/salvage code/API/CLI/model surfaces were deleted.
 - Step 1.1 hostile-review hardening (CRUSHR-1.1-B) is complete.
 - Propagation report now emits bounded structural-current-state output via fallback inspection when open fails.
 - Schema/tests were hardened; propagation now includes structural-current-state fallback coverage and extract is strict-only.
 - Control docs now align on authority: `AGENTS.md` then `.ai/STATUS.md`.
-- Phase 2 is active; next packet is Step 2.1 controlled corruption matrix manifest/schema.
+- Phase 2 is active; next packet remains Step 2.1 controlled corruption matrix manifest/schema.

@@ -28,7 +28,7 @@ This experiment demonstrates the first real end-to-end structural corruption loo
 
 ### Limitation note
 
-This is an initial structural validation result only. It is **not** a comparative benchmark, not a full corruption matrix, and not evidence about salvage/repair or payload-level recovery behavior.
+This is an initial structural validation result only. It is **not** a comparative benchmark, not a full corruption matrix, and not evidence about payload-level behavior.
 
 
 ## Experiment scaffold: `crushr_p0s13f0_competitor_scaffold_byteflip`

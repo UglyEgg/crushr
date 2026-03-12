@@ -42,20 +42,6 @@ pub struct ExtractOptions {
     pub overwrite: bool,
 }
 
-#[derive(Debug, Clone)]
-pub struct RecoverOptions {
-    pub progress: Option<crate::progress::SharedSink>,
-    pub input: PathBuf,
-    pub output: PathBuf,
-    pub tail_scan_bytes: u64,
-}
-
-#[derive(Debug, Clone)]
-pub struct SalvageOptions {
-    pub progress: Option<crate::progress::SharedSink>,
-    pub input: PathBuf,
-    pub output: PathBuf,
-}
 
 /// Pack files/dirs into an archive.
 pub fn pack(inputs: &[PathBuf], opts: &PackOptions) -> Result<()> {
@@ -118,18 +104,4 @@ pub fn append(inputs: &[PathBuf], opts: &AppendOptions) -> Result<()> {
 pub fn extract_all(opts: &ExtractOptions) -> Result<()> {
     let sink = opts.progress.clone().unwrap_or_else(|| std::sync::Arc::new(crate::progress::NullProgressSink));
     crate::extract::extract_all_progress(&opts.archive, &opts.output_dir, opts.overwrite, sink)
-}
-
-/// Attempt tail-based repair using redundant tail frames.
-pub fn recover(opts: &RecoverOptions) -> Result<()> {
-    let sink = opts.progress.clone().unwrap_or_else(|| std::sync::Arc::new(crate::progress::NullProgressSink));
-    sink.on_event(crate::progress::ProgressEvent::Start { op: crate::progress::ProgressOp::Recover, phase: crate::progress::ProgressPhase::Other, total_bytes: 0 });
-    { let r = crate::recovery::repair_archive(&opts.input, &opts.output, opts.tail_scan_bytes); sink.on_event(crate::progress::ProgressEvent::Finish { ok: r.is_ok() }); r }
-}
-
-/// Salvage rebuild by scanning embedded EVT frames.
-pub fn salvage(opts: &SalvageOptions) -> Result<()> {
-    let sink = opts.progress.clone().unwrap_or_else(|| std::sync::Arc::new(crate::progress::NullProgressSink));
-    sink.on_event(crate::progress::ProgressEvent::Start { op: crate::progress::ProgressOp::Salvage, phase: crate::progress::ProgressPhase::Other, total_bytes: 0 });
-    { let r = crate::recovery::salvage_archive(&opts.input, &opts.output); sink.on_event(crate::progress::ProgressEvent::Finish { ok: r.is_ok() }); r }
 }
