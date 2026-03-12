@@ -1,20 +1,21 @@
 # AI Bootstrap
 
-To resume development of crushr:
+Use this exact startup order before making changes:
 
-Read these files in order:
+1. `AGENTS.md`
+2. `REPO_GUARDRAILS.md`
+3. `PROJECT_STATE.md`
+4. `.ai/INDEX.md`
+5. `.ai/STATUS.md`
+6. `.ai/PHASE_PLAN.md`
+7. `.ai/DECISION_LOG.md`
+8. Task packet + directly affected docs/contracts
 
-1. PROJECT_STATE.md
-2. .ai/STATUS.md
-3. .ai/PHASE_PLAN.md
-4. docs/CONTRACTS/PROJECT_SCOPE.md
-5. docs/RESEARCH/FAILURE_DOMAIN_FORMALIZATION.md
+If conflicts exist, do not proceed until resolved using the hierarchy in `AGENTS.md`.
 
-The repository itself is the source of truth.
+Current orientation:
 
-The system models:
-
-- bounded failure domains
-- deterministic corruption impact
-- maximum safe extraction
-- reproducible corruption experiments
+- Phase 1 is complete.
+- Cleanup is complete enough to proceed with Phase 2 packets.
+- Active engineering focus is Phase 2.
+- Next packet is Phase 2.1 controlled corruption matrix manifest/schema.

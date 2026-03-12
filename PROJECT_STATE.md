@@ -1,92 +1,50 @@
 # crushr — Project State
 
-crushr is an **integrity-first archival container** designed for deterministic corruption analysis and maximum safe extraction.
+crushr is an integrity-first archival container for deterministic corruption analysis.
 
-The system exists primarily as:
+## Canonical product thesis
 
-- a research artifact
-- a white-paper implementation
-- a reference archive integrity design
+- Integrity-first archive design.
+- Strict extraction semantics: extract verified-safe content, refuse unsafe content.
+- Deterministic corruption impact reporting and experimentability.
+- No speculative recovery, reconstruction, or automatic repair.
 
-It is **not intended to replace general-purpose compression formats** like zip or 7z.
-
----
-
-# Canonical Toolchain
+## Active toolchain
 
 Active tools:
 
-- crushr-pack
-- crushr-info
-- crushr-fsck
-- crushr-extract
-- crushr-lab
+- `crushr-pack`
+- `crushr-info`
+- `crushr-fsck`
+- `crushr-extract`
+- `crushr-lab`
 
 Active libraries:
 
-- crushr-core
-- crushr-format
+- `crushr-format`
+- `crushr-core`
 
-Legacy monolith code paths remain in the repository **for historical reference only**.
+`crates/crushr/` remains in-repo but is not authority for project direction.
 
----
+## Archive/verification model
 
-# Archive Model
+Minimal v1 layout:
 
-Minimal v1 archive layout:
+`BLK3 blocks -> (optional DCT1) -> IDX3 -> FTR4`
 
-BLK3 blocks → IDX3 index → tail frame → FTR4 footer
+Verification progression:
 
-Verification pipeline:
+`FTR4 -> tail frame -> IDX3 -> BLK3 payload/hash checks -> per-file impact`
 
-footer → tail frame → index → blocks → file impact
+## Current implementation scope
 
----
+- regular files only
+- one block per file
+- deterministic strict extraction reporting (`safe_files` / `refused_files`)
 
-# Current Implementation Scope
+## Phase status
 
-The current minimal v1 implementation focuses on:
-
-- regular files
-- **one block per file**
-
-Each file is currently stored as a single BLK3 block.
-
----
-
-# Current Capabilities
-
-- archive packing
-- deterministic archive opening
-- corruption verification
-- block-level corruption detection
-- file-level impact enumeration
-- strict extraction
-- machine-readable maximum-safe-extraction reports
-- deterministic corruption experiments
-- cross-format experiment scaffolding
-
----
-
-# Known Limitations
-
-The minimal v1 system intentionally excludes:
-
-- multi-block files
-- dictionary compression paths (DCT1)
-- ledger metadata (LDG1)
-- streaming extraction
-- metadata fidelity
-- parity or reconstruction systems
-
-No speculative recovery exists by design.
-
----
-
-# Current Development Focus
-
-Active phase:
-
-**Phase 2 — Comparative Corruption Research**
-
-Step 1.1 hardening is complete: propagation reporting now includes bounded structural-current-state fallback inspection when the normal open path fails.
+- Phase 1: complete.
+- Cleanup packet: complete.
+- Phase 2: active engineering focus.
+- Next packet: Phase 2.1 controlled corruption matrix manifest/schema.

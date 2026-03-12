@@ -243,3 +243,10 @@
 - Deleted legacy recovery/salvage CLI surfaces from `crates/crushr/src/main.rs` and removed the recovery module `crates/crushr/src/recovery.rs`.
 - Deleted legacy public API recovery/salvage options/functions from `crates/crushr/src/api.rs` and removed related progress op variants.
 - Removed `salvage_plan` from `crushr-core` fsck snapshot model and aligned docs/spec/tests to remove active recovery/salvage/repair workflow descriptions.
+
+## 2026-03-12 — Phase 2, Step 2.0-B (documentation/control canonicalization)
+
+- Rewrote active control docs to one canonical startup order and authority hierarchy.
+- Rewrote core active docs (`README.md`, `SPEC.md`, `docs/ARCHITECTURE.md`, `docs/SNAPSHOT_FORMAT.md`, `PROJECT_STATE.md`, `REPO_LAYOUT.md`) to match integrity-first strict extraction reality.
+- Deleted stale transitional markdown from active paths (`docs/legacy/*`, `docs/README.md`, `.ai/imported_crushr/*`).
+- Marked Phase 2.1 manifest/schema packet as the explicit next engineering step across control files.

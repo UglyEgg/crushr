@@ -2,39 +2,21 @@
 
 Current Phase: Phase 2 — Comparative Corruption Research
 
-Active Objective:
+Current Step: 2.1 packet preparation (controlled corruption matrix manifest/schema)
 
-Phase transition complete after CRUSHR-1.1-B hardening closeout.
+## Current truth
 
-Current truth:
+- Phase 1 is complete.
+- Cleanup packet CRUSHR-CLEANUP-2.0-B is complete.
+- Active docs/control files now use one canonical startup order and one authority hierarchy.
+- Recovery/salvage transitional markdown in active paths has been removed.
 
-- Phase 1 Step 1.1 is complete and hardened.
-- `crushr-info --json --report propagation` now includes bounded structural-current-state reporting even when the normal open path fails.
-- Structural corruption of required structures (`FTR4`, tail frame, `IDX3`) is now reported as current-state impacts when detectable from fallback inspection.
-- Propagation schema/test coverage now validates nested object shape, enum stability, unknown-field rejection behavior, and deterministic ordering expectations.
-- `crushr-extract --mode salvage` has been removed; extract is strict-only.
+## Active constraints
 
-Active constraints:
+- Minimal v1 scope: regular files, one block per file.
+- No speculative recovery/reconstruction/repair.
+- Strict extraction semantics remain canonical.
 
-- Minimal v1 scope remains regular files + one block per file.
-- No speculative recovery, reconstruction, or repair.
+## Next action
 
-Next actions:
-
-- Start Phase 2 Step 2.1 packet (controlled corruption matrix manifest/schema).
-
-
-Update 2026-03-12 (CRUSHR-CLEANUP-2.0-A):
-
-- Removed legacy recovery/salvage surfaces from the `crushr` crate CLI and API (`recover`/`salvage` command and API options/functions).
-- Deleted legacy recovery implementation module (`crates/crushr/src/recovery.rs`).
-- Removed `salvage_plan` from `crushr-core` fsck snapshot model and aligned tests/docs/spec text to strict integrity-first semantics.
-
-Current constraints unchanged:
-
-- Minimal v1 scope remains regular files + one block per file.
-- No speculative recovery, reconstruction, or repair workflows.
-
-Next actions:
-
-- Continue Phase 2 Step 2.1 packet (controlled corruption matrix manifest/schema).
+Start and execute Phase 2.1 manifest/schema packet for controlled corruption matrix runs.

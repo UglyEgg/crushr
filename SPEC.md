@@ -1,181 +1,93 @@
 # crushr Archive Format v1.0
 
-This document is the canonical on-disk format contract for `crushr`.
+This is the canonical on-disk archive contract for active implementation.
 
 ## Scope
 
-- Defines the byte-level archive layout.
-- Defines required verification semantics.
-- Defines portability guarantees for stored metadata.
+Defines:
 
-Non-goals:
-- CLI/TUI UX. Those live in tool-specific docs.
-- Filesystem policy (how to map OS metadata to the format). That lives in `crushr` crate docs.
+- byte-level layout
+- verification-critical invariants
+- append/update behavior for tail frames
 
-## Compatibility policy
+Does not define:
 
-- **v1.0 archives use BLK3 / IDX3 / DCT1 / FTR4.**
-- Pre-v1.0 prototype archives are **not** guaranteed readable by v1.0 tools.
-- A future "compat" feature may be added, but it is not part of the v1.0 contract.
+- recovery/salvage/reconstruction behavior
+- UI/UX workflows
 
-## File layout overview
+## Compatibility
 
-An archive is a blocks region followed by one or more tail frames. The last valid tail frame is authoritative.
+- v1 uses `BLK3`, optional `DCT1`, `IDX3`, and `FTR4`
+- pre-v1/prototype archives are not compatibility targets
 
-```mermaid
-flowchart TB
-  B[Blocks region\nBLK3...BLK3] --> TF1[Tail frame\nDCT1? + IDX3 + FTR4]
-  TF1 --> TFN[Optional additional tail frames\nDCT1? + IDX3 + FTR4]
-```
+## Layout model
 
-### Terminology
+An archive is block data followed by one or more tail frames.
+The last valid tail frame is authoritative.
 
-- **Block**: a self-contained compressed payload with a header (BLK3).
-- **Index (IDX3)**: file table + extent map referencing blocks.
-- **Dictionary table (DCT1)**: optional embedded dictionaries referenced by blocks.
-- **Footer (FTR4)**: offsets/lengths for the tail frame plus integrity hashes.
-- **Tail frame**: `DCT1?` + `IDX3` + `FTR4` (in that order).
+`BLK3...BLK3 -> (optional DCT1) -> IDX3 -> FTR4`
 
-## Encoding
+## Encoding basics
 
-- All integers are **little-endian**.
-- Offsets are **absolute file offsets** from the start of the archive.
-- Hashes use **BLAKE3**, 32 bytes.
+- little-endian integer encoding
+- absolute archive offsets
+- BLAKE3 hashes where hash fields are present
 
-## BLK3: Block format
+## BLK3
 
-Blocks are the fundamental unit of random access.
+Block header carries codec/length/hash metadata and is followed by compressed payload bytes.
 
-### BLK3 header
+Required invariants:
 
-All fields are little-endian.
+- header length must cover all present fields
+- compressed length must match payload byte count
+- dictionary reference must be valid when dictionary flag is set
+- payload hash verification is required when present and verification mode requires it
 
-| Field | Type | Notes |
-|---|---:|---|
-| magic | [u8;4] | ASCII `BLK3` |
-| header_len | u16 | Total header length in bytes (>= fixed header) |
-| flags | u16 | See flags table |
-| codec | u32 | `1 = zstd` (others reserved) |
-| level | i32 | codec-specific compression level |
-| dict_id | u32 | `0 = none`, otherwise references DCT1 entry |
-| raw_len | u64 | Uncompressed payload length |
-| comp_len | u64 | Compressed payload length |
-| payload_hash | [u8;32]? | Present if `HAS_PAYLOAD_HASH` |
-| raw_hash | [u8;32]? | Present if `HAS_RAW_HASH` (optional/expensive) |
-| reserved/padding | bytes | Pad to `header_len` |
+## DCT1 (optional)
 
-Immediately after the header:
+Dictionary table appears only when referenced by blocks.
 
-- `payload`: `comp_len` bytes
+Required invariants:
 
-### BLK3 flags
+- unique non-zero dictionary IDs
+- dictionary hash verification before use
 
-| Flag | Bit | Meaning |
-|---|---:|---|
-| HAS_PAYLOAD_HASH | 0 | `payload_hash` present (BLAKE3 of compressed payload bytes) |
-| HAS_RAW_HASH | 1 | `raw_hash` present (BLAKE3 of uncompressed payload bytes) |
-| USES_DICT | 2 | `dict_id != 0` and dictionary must be present in DCT1 |
-| IS_META_FRAME | 3 | Payload contains non-user data (e.g., EVT frames). Semantics are tool-defined. |
+## IDX3
 
-### BLK3 invariants
+Canonical file/block mapping index.
 
-- `header_len` MUST be large enough to contain all present fields.
-- `comp_len` MUST match the following payload byte count.
-- If `USES_DICT` is set, `dict_id` MUST be non-zero.
-- If `HAS_PAYLOAD_HASH` is set, readers MUST verify it during `verify --deep`.
+Required invariants:
 
-## DCT1: Dictionary table
+- fully parsed without trailing garbage
+- references must be in-bounds
+- deterministic interpretation for impact and extraction mapping
 
-The dictionary table is optional. It MUST be present if any block sets `USES_DICT`.
+## FTR4
 
-### DCT1 layout
+Tail footer anchors offsets and hashes for the tail frame.
 
-| Field | Type | Notes |
-|---|---:|---|
-| magic | [u8;4] | ASCII `DCT1` |
-| count | u32 | Number of dictionaries |
-| entries | ... | Repeated `count` times |
+Required invariants:
 
-Each entry:
-
-| Field | Type | Notes |
-|---|---:|---|
-| dict_id | u32 | Must be non-zero |
-| dict_len | u32 | Byte length |
-| dict_hash | [u8;32] | BLAKE3 of dict bytes |
-| dict_bytes | [u8;dict_len] | Raw dictionary bytes |
-
-### DCT1 invariants
-
-- `dict_id` values must be unique within the table.
-- Readers MUST verify `dict_hash` before using a dictionary.
-
-## IDX3: Index
-
-IDX3 is the canonical index encoding for v1.0.
-
-- The precise IDX3 layout is defined by the `crushr-format` crate.
-- IDX3 MUST be fully validated on load (structural checks; no trailing bytes).
-- Index entries reference blocks via extents: `(block_id, block_offset, len)`.
-
-### Metadata portability
-
-IDX3 may store:
-
-- POSIX-like metadata: mode bits, mtime, uid/gid (if captured)
-- xattrs (optional)
-
-Portability rules:
-
-- Writers MAY store metadata on any platform.
-- Extractors apply metadata on a **best-effort** basis on non-Unix platforms.
-- Any metadata that cannot be applied MUST be reported (and optionally emitted in JSON output).
-
-## FTR4: Tail footer
-
-The footer anchors a tail frame and provides integrity verification.
-
-### FTR4 layout
-
-| Field | Type | Notes |
-|---|---:|---|
-| magic | [u8;4] | ASCII `FTR4` |
-| version | u32 | Must be `1` |
-| flags | u32 | Reserved (0 for now) |
-| blocks_end_offset | u64 | Offset immediately after last block payload |
-| dct_offset | u64 | 0 if no DCT1 |
-| dct_len | u64 | 0 if no DCT1 |
-| index_offset | u64 | Absolute offset to IDX3 |
-| index_len | u64 | Byte length |
-| index_hash | [u8;32] | BLAKE3 of IDX3 bytes |
-| footer_hash | [u8;32] | BLAKE3 of footer fields excluding `footer_hash` |
-| reserved | bytes | Pad to a fixed size (implementation-defined; recommend 128 bytes total) |
-
-### FTR4 invariants
-
-- `index_offset + index_len` MUST be within file bounds.
-- `dct_offset + dct_len` MUST be within file bounds if `dct_offset != 0`.
-- `blocks_end_offset` MUST be <= `min(dct_offset, index_offset)` for the tail frame.
-- Readers MUST verify `index_hash` on open.
-
-## Tail frame selection rules
-
-- Tools locate the end of file, read a candidate FTR4, and validate it.
-- If invalid, open fails deterministically.
-- The **last valid** FTR4 is authoritative.
+- offsets and lengths are in-bounds
+- index hash must verify
+- footer hash must verify
 
 ## Verification semantics
 
-Two primary modes:
+- fast verification: structural/footer/index validation
+- deep verification: includes block-level payload/hash validation
 
-- **Fast verify**: validate footer + index hash + index structural checks.
-- **Deep verify**: additionally validate per-block payload hashes (and raw hashes if present), and ensure referenced extents are in-bounds.
+## Extraction semantics boundary
+
+Extraction is strict-only: tools extract verified-safe files and refuse unsafe files deterministically.
+No recovery/salvage/reconstruction semantics are part of this format contract.
 
 ## Append semantics
 
-Appending creates a new tail frame:
+Append/update writes a new authoritative tail frame:
 
-1. Read and validate the last tail frame.
-2. Truncate the file to `blocks_end_offset`.
-3. Append new BLK3 blocks.
-4. Write updated DCT1 (if needed), then IDX3, then FTR4.
+1. validate current authoritative tail frame
+2. truncate to `blocks_end_offset` when replacing tail region
+3. append new blocks (if any)
+4. write optional DCT1, then IDX3, then FTR4
