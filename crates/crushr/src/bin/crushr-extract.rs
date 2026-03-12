@@ -2,13 +2,14 @@ use anyhow::{bail, Context, Result};
 use crushr::format::{Entry, EntryKind};
 use crushr::index_codec::decode_index;
 use crushr_core::{
+    extraction::{build_extraction_report, classify_refusal_paths, ExtractionOutcomeKind},
     io::{Len, ReadAt},
     open::open_archive_v1,
     verify::{scan_blocks_v1, verify_block_payloads_v1},
 };
 use crushr_format::blk3::read_blk3_header;
 use serde::Serialize;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fs::{self, File};
 use std::io::Cursor;
@@ -65,42 +66,9 @@ struct CliOptions {
 }
 
 #[derive(Debug, Serialize)]
-struct RefusedFileReport {
-    path: String,
-    reason: RefusalReason,
-}
-
-#[derive(Debug, Serialize)]
-struct SafeFileReport {
-    path: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "snake_case")]
-enum RefusalReason {
-    CorruptedRequiredBlocks,
-}
-
-#[derive(Debug, Serialize)]
-struct ExtractionReport {
-    overall_status: &'static str,
-    maximal_safe_set_computed: bool,
-    safe_files: Vec<SafeFileReport>,
-    refused_files: Vec<RefusedFileReport>,
-    safe_file_count: usize,
-    refused_file_count: usize,
-}
-
-#[derive(Debug, Serialize)]
 struct ExtractionErrorReport {
     overall_status: &'static str,
     error: String,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ExtractionOutcomeKind {
-    Success,
-    PartialRefusal,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -146,7 +114,7 @@ impl ExtractionClassifiedError {
 #[derive(Debug)]
 struct ClassifiedRun {
     outcome_kind: ExtractionOutcomeKind,
-    report: ExtractionReport,
+    report: crushr_core::extraction::ExtractionReport,
 }
 
 fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
@@ -223,32 +191,43 @@ fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
     let mut entries: Vec<Entry> = index.entries;
     entries.sort_by(|a, b| a.path.cmp(&b.path));
 
-    let mut safe_files = Vec::new();
-    let mut refused_files = Vec::new();
-    for entry in entries {
+    let mut required_blocks_by_path = BTreeMap::<String, Vec<u32>>::new();
+    for entry in &entries {
         if entry.kind != EntryKind::Regular {
             bail!(
                 "unsupported entry kind for strict extraction: {}",
                 entry.path
             );
         }
+        required_blocks_by_path.insert(
+            entry.path.clone(),
+            entry.extents.iter().map(|extent| extent.block_id).collect(),
+        );
+    }
 
-        if entry
-            .extents
-            .iter()
-            .any(|extent| corrupted.contains(&extent.block_id))
-        {
-            refused_files.push(RefusedFileReport {
-                path: entry.path,
-                reason: RefusalReason::CorruptedRequiredBlocks,
-            });
+    let candidate_paths = entries
+        .iter()
+        .map(|entry| entry.path.clone())
+        .collect::<Vec<_>>();
+    let (safe_files, refused_files) = classify_refusal_paths(candidate_paths, &corrupted, |path| {
+        required_blocks_by_path
+            .get(path)
+            .cloned()
+            .unwrap_or_default()
+    });
+
+    let safe_paths = safe_files
+        .iter()
+        .map(|entry| entry.path.as_str())
+        .collect::<BTreeSet<_>>();
+    for entry in entries {
+        if !safe_paths.contains(entry.path.as_str()) {
             continue;
         }
 
         let bytes = read_entry_bytes_strict(&reader, &entry, &blocks, &mut payload_cache)?;
         let destination = opts.out_dir.join(&entry.path);
         write_entry(destination.as_path(), &bytes, opts.overwrite)?;
-        safe_files.push(SafeFileReport { path: entry.path });
     }
 
     if !refused_files.is_empty() {
@@ -260,28 +239,11 @@ fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
         }
     }
 
-    let outcome_kind = if refused_files.is_empty() {
-        ExtractionOutcomeKind::Success
-    } else {
-        ExtractionOutcomeKind::PartialRefusal
-    };
-
-    let safe_file_count = safe_files.len();
-    let refused_file_count = refused_files.len();
+    let (outcome_kind, report) = build_extraction_report(safe_files, refused_files);
 
     Ok(ClassifiedRun {
         outcome_kind,
-        report: ExtractionReport {
-            overall_status: match outcome_kind {
-                ExtractionOutcomeKind::Success => "success",
-                ExtractionOutcomeKind::PartialRefusal => "partial_refusal",
-            },
-            maximal_safe_set_computed: true,
-            safe_files,
-            refused_files,
-            safe_file_count,
-            refused_file_count,
-        },
+        report,
     })
 }
 
@@ -445,6 +407,9 @@ mod tests {
         exit_code_for_error, exit_code_for_outcome, ExtractionErrorKind, ExtractionOutcomeKind,
         RefusalExitPolicy,
     };
+    use crushr_core::extraction::{
+        build_extraction_report, RefusalReason, RefusedFileReport, SafeFileReport,
+    };
 
     #[test]
     fn typed_outcome_exit_mapping_is_stable() {
@@ -475,5 +440,23 @@ mod tests {
         );
         assert_eq!(exit_code_for_error(ExtractionErrorKind::Usage), 1);
         assert_eq!(exit_code_for_error(ExtractionErrorKind::Structural), 2);
+    }
+
+    #[test]
+    fn extraction_json_contract_is_assembled_by_core_helper() {
+        let (kind, report) = build_extraction_report(
+            vec![SafeFileReport {
+                path: "b.txt".into(),
+            }],
+            vec![RefusedFileReport {
+                path: "a.txt".into(),
+                reason: RefusalReason::CorruptedRequiredBlocks,
+            }],
+        );
+
+        assert_eq!(kind, ExtractionOutcomeKind::PartialRefusal);
+        assert_eq!(report.overall_status, "partial_refusal");
+        assert_eq!(report.safe_file_count, 1);
+        assert_eq!(report.refused_file_count, 1);
     }
 }
