@@ -337,7 +337,7 @@ fn main() -> Result<()> {
                 Shell::Zsh => generate(shells::Zsh, &mut cmd, "crushr", &mut std::io::stdout()),
                 Shell::Fish => generate(shells::Fish, &mut cmd, "crushr", &mut std::io::stdout()),
             }
-            return Ok(());
+            Ok(())
         }
         Cmd::Pack {
             mut inputs,
@@ -482,7 +482,7 @@ fn main() -> Result<()> {
             for e in ar.index().entries.iter() {
                 println!("{}", e.path);
             }
-            return Ok(());
+            Ok(())
         }
 
         Cmd::Info { archive } => {
@@ -530,7 +530,7 @@ fn main() -> Result<()> {
             );
             println!("Savings vs file bytes: {:.2}%", savings * 100.0);
 
-            return Ok(());
+            Ok(())
         }
 
         Cmd::Cat { archive, path } => {

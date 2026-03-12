@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "crushr propagation graph report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_version",
+    "format_family",
+    "report_kind",
+    "corrupted_structure_nodes",
+    "corrupted_blocks",
+    "nodes",
+    "edges",
+    "per_file_impacts"
+  ],
+  "properties": {
+    "report_version": {"type": "integer", "const": 1},
+    "format_family": {"type": "string", "const": "minimal-v1"},
+    "report_kind": {"type": "string", "const": "corruption_propagation_graph"},
+    "corrupted_structure_nodes": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "corrupted_blocks": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 0}
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind"],
+        "properties": {
+          "id": {"type": "string"},
+          "kind": {
+            "type": "string",
+            "enum": ["footer", "tail_frame", "index", "block", "file"]
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to", "reason"],
+        "properties": {
+          "from": {"type": "string"},
+          "to": {"type": "string"},
+          "reason": {
+            "type": "string",
+            "enum": [
+              "required_for_reachability",
+              "required_for_index",
+              "required_for_extraction",
+              "required_data_block"
+            ]
+          }
+        }
+      }
+    },
+    "per_file_impacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file_path",
+          "required_nodes",
+          "hypothetical_impacts_if_corrupted",
+          "actual_impacts_from_current_corruption"
+        ],
+        "properties": {
+          "file_path": {"type": "string"},
+          "required_nodes": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "hypothetical_impacts_if_corrupted": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/fileImpactCause"}
+          },
+          "actual_impacts_from_current_corruption": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/fileImpactCause"}
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "fileImpactCause": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cause_node", "reason"],
+      "properties": {
+        "cause_node": {"type": "string"},
+        "reason": {
+          "type": "string",
+          "enum": ["corrupted_required_structure", "corrupted_required_block"]
+        }
+      }
+    }
+  }
+}

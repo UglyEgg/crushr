@@ -5,7 +5,7 @@ fn usage() -> &'static str {
 }
 
 fn main() -> Result<()> {
-    let mut args = std::env::args().skip(1).collect::<Vec<_>>();
+    let args = std::env::args().skip(1).collect::<Vec<_>>();
     if args.is_empty() {
         bail!("{}", usage());
     }

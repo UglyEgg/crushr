@@ -8,6 +8,7 @@
 
 pub mod io;
 pub mod open;
+pub mod propagation;
 pub mod snapshot;
 
 pub mod impact;

@@ -183,6 +183,7 @@ fn read_u32_le(mut r: impl Read) -> Result<u32> {
     Ok(u32::from_le_bytes(b))
 }
 
+#[allow(clippy::type_complexity)]
 fn scan_frames_for_salvage(
     path: &Path,
 ) -> Result<(
@@ -208,24 +209,15 @@ fn scan_frames_for_salvage(
         _pos += 4;
 
         if &magic == BLK_MAGIC || &magic == BLK_MAGIC_V2 {
-            let dict_id = if &magic == BLK_MAGIC_V2 {
-                read_u32_le(&mut f)?
-            } else {
-                0
-            };
+            if &magic == BLK_MAGIC_V2 {
+                let _ = read_u32_le(&mut f)?;
+            }
             let codec = read_u32_le(&mut f)?;
             if codec != CODEC_ZSTD {
                 bail!("unsupported codec {} during salvage", codec);
             }
             let comp_len = read_u32_le(&mut f)?;
             let uncomp_len = read_u32_le(&mut f)?;
-            // header sizes: BLK1 = 4+4+4+4+32? actually: magic + codec + comp + uncomp + hash
-            // BLK2 adds dict_id field after magic.
-            let header_len = if &magic == BLK_MAGIC_V2 {
-                4 + 4 + 4 + 4 + 4
-            } else {
-                4 + 4 + 4 + 4
-            };
             // comp bytes
             f.seek(SeekFrom::Current(comp_len as i64))?;
             // hash

@@ -298,6 +298,7 @@ impl ArchiveReader {
     pub fn blocks_raw_bytes(&self) -> u64 {
         self.blocks.iter().map(|b| b.raw_len).sum()
     }
+    #[allow(dead_code)]
     pub fn blocks_comp_bytes(&self) -> u64 {
         self.blocks.iter().map(|b| b.comp_len).sum()
     }
