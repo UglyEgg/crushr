@@ -1,18 +1,18 @@
 # .ai/HANDOFF.md
 
-Start with:
-1. `AGENTS.md`
-2. `.ai/STATUS.md`
-3. `.ai/DECISION_LOG.md`
-4. `PROJECT_STATE.md`
-5. `docs/CONTRACTS/PROJECT_SCOPE.md`
-6. `docs/CONTRACTS/ERROR_MODEL.md`
+## Immediate next packet
 
-Handoff state:
+Phase 2.1 — controlled corruption matrix manifest/schema.
 
-- CRUSHR-CLEANUP-2.0-A is complete: legacy recovery/salvage code/API/CLI/model surfaces were deleted.
-- Step 1.1 hostile-review hardening (CRUSHR-1.1-B) is complete.
-- Propagation report now emits bounded structural-current-state output via fallback inspection when open fails.
-- Schema/tests were hardened; propagation now includes structural-current-state fallback coverage and extract is strict-only.
-- Control docs now align on authority: `AGENTS.md` then `.ai/STATUS.md`.
-- Phase 2 is active; next packet remains Step 2.1 controlled corruption matrix manifest/schema.
+## First actions for a fresh instance
+
+1. Read startup order from `../AI_BOOTSTRAP.md`.
+2. Confirm `STATUS.md` and `PHASE_PLAN.md` both point to Phase 2.1 as next packet.
+3. Keep strict extraction + integrity-first thesis unchanged.
+4. Implement manifest/schema only; do not expand into harness execution logic unless packet requests it.
+5. Run full workspace fmt/test/clippy gates.
+
+## Gotchas
+
+- Do not reintroduce recovery/salvage language in active docs.
+- Keep authority order aligned across AGENTS/bootstrap/guardrails/state/.ai files.

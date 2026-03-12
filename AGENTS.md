@@ -25,7 +25,10 @@ When multiple continuity documents exist, apply this order:
 2. `.ai/STATUS.md` (authoritative “what is true right now”)
 3. `.ai/DECISION_LOG.md` (resolved decisions and non-negotiables)
 4. `.ai/PHASE_PLAN.md` (execution plan)
-5. `.ai/*` supplements (contextual only; never override policy)
+5. `PROJECT_STATE.md` (concise current-state summary)
+6. `SPEC.md`, `docs/ARCHITECTURE.md`, `docs/SNAPSHOT_FORMAT.md` (active technical truth)
+7. `docs/CONTRACTS/*` and `docs/RESEARCH/*` (supporting contracts and research context)
+8. `.ai/*` supplements (contextual only; never override policy)
 
 If any conflict is detected, stop and resolve explicitly.
 
@@ -100,11 +103,15 @@ These procedures are mandatory to minimize drift during development and across h
 Before making changes:
 
 1. Read `AGENTS.md`.
-2. Read `.ai/INDEX.md`.
-3. Read `.ai/STATUS.md`.
-4. Read `.ai/DECISION_LOG.md`.
-5. Confirm the active Phase/Step (from `.ai/STATUS.md`).
-6. Confirm active constraints (build targets, environment limitations, known risks).
+2. Read `AI_BOOTSTRAP.md`.
+3. Read `REPO_GUARDRAILS.md`.
+4. Read `PROJECT_STATE.md`.
+5. Read `.ai/INDEX.md`.
+6. Read `.ai/STATUS.md`.
+7. Read `.ai/PHASE_PLAN.md`.
+8. Read `.ai/DECISION_LOG.md`.
+9. Confirm the active Phase/Step (from `.ai/STATUS.md`).
+10. Confirm active constraints (build targets, environment limitations, known risks).
 
 Only then proceed.
 

@@ -142,3 +142,19 @@
 - Blast radius:
   - Removes recover/salvage entry points from the legacy `crushr` monolith binary/API.
   - Any callers depending on these removed surfaces must migrate.
+
+## 2026-03-12 — CRUSHR-CLEANUP-2.0-B canonical doc/control collapse
+
+- Decision:
+  - Collapse startup/authority guidance to one canonical order across `AGENTS.md`, `AI_BOOTSTRAP.md`, `REPO_GUARDRAILS.md`, `PROJECT_STATE.md`, and `.ai/*` control files.
+  - Remove stale transitional markdown from active paths (legacy docs and imported continuity sediment).
+  - Set Phase 2.1 manifest/schema as explicit next packet across control/docs.
+- Alternatives:
+  1. Keep transitional/legacy markdown for historical context in active paths.
+  2. Keep multiple startup orders and rely on operator judgment.
+- Rationale:
+  - Multiple contradictory doc surfaces caused onboarding ambiguity and policy drift.
+  - Single authority + startup order reduces execution variance and packet confusion.
+- Blast radius:
+  - Documentation-only contract/control cleanup; no product behavior change.
+  - Fresh contributors now have one deterministic reading path.

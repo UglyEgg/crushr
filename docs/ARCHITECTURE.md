@@ -1,82 +1,52 @@
 # Architecture
 
-## Goals
+This document describes the current implemented boundary without speculative maturity claims.
 
-- Provide a vendorable Rust library with a strict, versioned on-disk format contract.
-- Offer a small suite of CLI tools and a TUI for "geek-level" inspection and repair.
-- Keep all structural parsing and validation in the library (no duplicated parsers in tools).
-- Avoid IPC/RPC between tools; all tools link to the same crates and call APIs in-process.
-- Keep basic functionality portable; degrade OS-specific metadata (xattrs, permissions) on non-Unix platforms as "best effort" with explicit reporting.
+## System thesis alignment
 
-## Crate graph
+- integrity-first archive semantics
+- strict extraction (verified-safe only)
+- deterministic corruption impact reporting
+- no recovery/salvage/reconstruction product path
+
+## Crate boundaries
 
 - `crushr-format`
-  - Byte layouts (BLK*/IDX*/DCT*/FTR*)
-  - Encoding/decoding
-  - Structural invariants and validation helpers
-  - No filesystem IO, no CLI/TUI logic
+  - byte-level format encoding/decoding (`BLK3`, `IDX3`, optional `DCT1`, `FTR4`)
+  - strict structural parsing helpers
 
 - `crushr-core`
-  - Engine and algorithms (verify/repair planning, structural traversal)
-  - Operates over minimal random-access IO traits (`ReadAt`, `WriteAt`, `Len`, etc.)
-  - Returns typed reports (verify/repair outcomes) suitable for both CLI and TUI
-
-- `crushr`
-  - Platform integration
-  - Filesystem walking, metadata capture/restore (xattrs behind `cfg(unix)`)
-  - Caching, concurrency orchestration
-  - Convenience wrappers around `crushr-core`
+  - verification, structural interpretation, impact reporting, extraction result modeling
+  - JSON/report models used by tools
 
 - `crushr-cli-common`
-  - Global flags (e.g., `--json`, `--color`, `--verbose`, `--threads`, `--cache-mib`)
-  - Logging initialization
-  - Output formatting (human + JSON)
-  - Standard exit codes
+  - shared CLI output/error helpers
 
-## Tool suite
+- `crushr-tui`
+  - live/snapshot visualization path (non-authoritative for format/contracts)
 
-The CLI is expected to evolve into multiple focused tools rather than a single binary with many subcommands.
+- `crushr-lab`
+  - deterministic experiment harness support for corruption research
 
-Tagging (mutation boundaries):
+- `crushr`
+  - legacy integration surface still present in-repo; not the authority for active Phase 2 direction
 
-- **Read-only**: `crushr-info`
-- **Writes new archive**: `crushr-pack`
-- **May mutate existing archive** (bounded): `crushr-fsck` (append-style operations)
-- **Writes filesystem**: `crushr-extract` (archive is read-only, deterministic `--json` maximum-safe-extraction reporting (`safe_files`/`refused_files` + counts), and `--refusal-exit` policy)
-- **Interactive**: `crushr-tui` (read-mostly; writes only via explicit actions)
+## Tool boundaries
 
-No tool should implement ad-hoc parsing. Tools should call library APIs and render typed structures.
+- `crushr-pack`: create archives
+- `crushr-info`: read/report archive state
+- `crushr-fsck`: verify/analyze corruption and emit bounded diagnostics
+- `crushr-extract`: strict safe extraction + refusal reporting
+- `crushr-lab`: experiment orchestration support
 
-## TUI data pipeline
+## Current implementation constraints
 
-`crushr-tui` supports two input modes:
+- minimal v1: regular files only
+- one block per file
+- deterministic refusal reporting for unsafe files
 
-1. **Live mode**: open an archive directly and compute the same structural views as `crushr-info`/`crushr-fsck`.
-2. **Snapshot mode**: load precomputed JSON outputs from `crushr-info --json` and/or `crushr-fsck --json`.
+## Active phase
 
-Both modes feed a shared, typed model (summary, tail frames, dict table, block map, file/index entries, and fsck impact/blast reports).
-Snapshot mode exists to enable offline analysis, sharing, regression tests, and deterministic repro cases.
-
-### Snapshot compatibility
-
-Snapshots are versioned and include an `archive_fingerprint`.
-
-- If multiple snapshots are loaded, their `archive_fingerprint` values **must match** to be merged.
-- If they do not match, the TUI must present them as separate datasets and warn the user.
-
-The normative snapshot contract is documented in `docs/SNAPSHOT_FORMAT.md`.
-
-## No-IPC rule
-
-All tools link to the same Rust crates and communicate via in-process function calls.
-
-- No JSON-over-stdio protocols between tools.
-- No Unix sockets.
-- No background daemons.
-
-If a future use case truly requires IPC (e.g., remote inspection), it must be an explicit architectural decision recorded in `.ai/DECISION_LOG.md`.
-
-
-## Source-of-truth map
-
-For documentation precedence and repo layout, see `docs/README.md` and `../REPO_LAYOUT.md`.
+- Phase 1 complete
+- Phase 2 active
+- next packet: controlled corruption matrix manifest/schema
