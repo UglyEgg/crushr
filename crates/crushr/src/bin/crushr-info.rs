@@ -1,15 +1,21 @@
 use anyhow::{bail, Context, Result};
-use crushr::format::EntryKind;
+use crushr::format::{EntryKind, IDX_MAGIC_V3};
 use crushr::index_codec::decode_index;
 use crushr_core::{
     io::{Len, ReadAt},
     open::open_archive_v1,
-    propagation::{build_propagation_report_v1, FileDependencyV1},
+    propagation::{
+        build_propagation_report_v1, FileDependencyV1, STRUCTURE_FTR4, STRUCTURE_IDX3,
+        STRUCTURE_TAIL_FRAME,
+    },
     snapshot::{info_envelope_from_open_archive, serialize_snapshot_json},
     verify::verify_block_payloads_v1,
 };
+use crushr_format::ftr4::{Ftr4, FTR4_LEN};
+use crushr_format::tailframe::parse_tail_frame;
 use std::collections::BTreeSet;
 use std::fs::File;
+use std::io::Cursor;
 
 struct FileReader {
     file: File,
@@ -26,6 +32,124 @@ impl Len for FileReader {
     fn len(&self) -> Result<u64> {
         Ok(self.file.metadata()?.len())
     }
+}
+
+fn read_exact_at<R: ReadAt>(reader: &R, mut offset: u64, mut dst: &mut [u8]) -> Result<()> {
+    while !dst.is_empty() {
+        let read = reader.read_at(offset, dst)?;
+        if read == 0 {
+            bail!("unexpected EOF while reading archive");
+        }
+        let (_, rest) = dst.split_at_mut(read);
+        dst = rest;
+        offset = offset.checked_add(read as u64).context("offset overflow")?;
+    }
+    Ok(())
+}
+
+fn dependencies_from_index_bytes(idx3_bytes: &[u8]) -> Option<Vec<FileDependencyV1>> {
+    let index = decode_index(idx3_bytes).ok()?;
+    let mut deps = Vec::new();
+    for entry in index.entries {
+        if entry.kind != EntryKind::Regular {
+            continue;
+        }
+        deps.push(FileDependencyV1 {
+            file_path: entry.path,
+            required_blocks: entry.extents.into_iter().map(|e| e.block_id).collect(),
+        });
+    }
+    Some(deps)
+}
+
+fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> Result<String> {
+    let mut corrupted_structures = BTreeSet::new();
+    let mut corrupted_blocks = BTreeSet::new();
+    let mut file_dependencies = Vec::new();
+
+    let archive_len = reader.len().context("read archive length")?;
+    if archive_len < FTR4_LEN as u64 {
+        corrupted_structures.insert(STRUCTURE_FTR4.to_string());
+        corrupted_structures.insert(STRUCTURE_TAIL_FRAME.to_string());
+        corrupted_structures.insert(STRUCTURE_IDX3.to_string());
+        let report = build_propagation_report_v1(
+            &file_dependencies,
+            &corrupted_structures,
+            &corrupted_blocks,
+        );
+        return Ok(serialize_snapshot_json(&report)?);
+    }
+
+    let footer_offset = archive_len - FTR4_LEN as u64;
+    let mut footer_bytes = vec![0u8; FTR4_LEN];
+    if read_exact_at(reader, footer_offset, &mut footer_bytes).is_err() {
+        corrupted_structures.insert(STRUCTURE_FTR4.to_string());
+        corrupted_structures.insert(STRUCTURE_TAIL_FRAME.to_string());
+        corrupted_structures.insert(STRUCTURE_IDX3.to_string());
+        let report = build_propagation_report_v1(
+            &file_dependencies,
+            &corrupted_structures,
+            &corrupted_blocks,
+        );
+        return Ok(serialize_snapshot_json(&report)?);
+    }
+
+    let footer = match Ftr4::read_from(Cursor::new(&footer_bytes)) {
+        Ok(value) => value,
+        Err(_) => {
+            corrupted_structures.insert(STRUCTURE_FTR4.to_string());
+            corrupted_structures.insert(STRUCTURE_TAIL_FRAME.to_string());
+            corrupted_structures.insert(STRUCTURE_IDX3.to_string());
+            let report = build_propagation_report_v1(
+                &file_dependencies,
+                &corrupted_structures,
+                &corrupted_blocks,
+            );
+            return Ok(serialize_snapshot_json(&report)?);
+        }
+    };
+
+    let tail_frame_len = archive_len
+        .checked_sub(footer.blocks_end_offset)
+        .context("tail frame length underflow")?;
+    let mut tail_frame_bytes = vec![0u8; tail_frame_len as usize];
+    let tail_ok = read_exact_at(reader, footer.blocks_end_offset, &mut tail_frame_bytes)
+        .ok()
+        .and_then(|_| parse_tail_frame(&tail_frame_bytes).ok())
+        .is_some();
+    if !tail_ok {
+        corrupted_structures.insert(STRUCTURE_TAIL_FRAME.to_string());
+    }
+
+    if footer.index_len == 0 || footer.index_offset.saturating_add(footer.index_len) > archive_len {
+        corrupted_structures.insert(STRUCTURE_IDX3.to_string());
+    } else {
+        let mut idx3_bytes = vec![0u8; footer.index_len as usize];
+        if read_exact_at(reader, footer.index_offset, &mut idx3_bytes).is_err() {
+            corrupted_structures.insert(STRUCTURE_IDX3.to_string());
+        } else {
+            let hash_ok = *blake3::hash(&idx3_bytes).as_bytes() == footer.index_hash;
+            let magic_ok = idx3_bytes.starts_with(IDX_MAGIC_V3);
+            if !hash_ok || !magic_ok {
+                corrupted_structures.insert(STRUCTURE_IDX3.to_string());
+            }
+            if let Some(deps) = dependencies_from_index_bytes(&idx3_bytes) {
+                file_dependencies = deps;
+            } else {
+                corrupted_structures.insert(STRUCTURE_IDX3.to_string());
+            }
+        }
+    }
+
+    if footer.blocks_end_offset <= archive_len {
+        if let Ok(values) = verify_block_payloads_v1(reader, footer.blocks_end_offset) {
+            corrupted_blocks = values;
+        }
+    }
+
+    let report =
+        build_propagation_report_v1(&file_dependencies, &corrupted_structures, &corrupted_blocks);
+    Ok(serialize_snapshot_json(&report)?)
 }
 
 fn run() -> Result<()> {
@@ -57,37 +181,15 @@ fn run() -> Result<()> {
         file: File::open(&archive).with_context(|| format!("open {archive}"))?,
     };
 
-    let opened = open_archive_v1(&reader)?;
-
     if let Some(report_kind) = report {
         if report_kind != "propagation" {
             bail!("unsupported report: {report_kind} (expected propagation)");
         }
-
-        let index = decode_index(&opened.tail.idx3_bytes).context("decode IDX3 index")?;
-        let mut file_dependencies = Vec::new();
-        for entry in index.entries {
-            if entry.kind != EntryKind::Regular {
-                continue;
-            }
-            file_dependencies.push(FileDependencyV1 {
-                file_path: entry.path,
-                required_blocks: entry.extents.into_iter().map(|e| e.block_id).collect(),
-            });
-        }
-
-        let corrupted_blocks =
-            verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
-        let corrupted_structures = BTreeSet::new();
-        let report = build_propagation_report_v1(
-            &file_dependencies,
-            &corrupted_structures,
-            &corrupted_blocks,
-        );
-        println!("{}", serialize_snapshot_json(&report)?);
+        println!("{}", propagation_report_with_structural_fallback(&reader)?);
         return Ok(());
     }
 
+    let opened = open_archive_v1(&reader)?;
     let snapshot =
         info_envelope_from_open_archive(&opened, env!("CARGO_PKG_VERSION"), "1970-01-01T00:00:00Z");
     println!("{}", serialize_snapshot_json(&snapshot)?);

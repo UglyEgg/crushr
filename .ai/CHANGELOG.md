@@ -184,7 +184,7 @@
 
 ## 2026-03-09 — Phase 0, Step 0.15 (fix iteration 0: explicit salvage-mode extraction)
 
-- Added explicit extraction mode selection to `crushr-extract` via `--mode <strict|salvage>` with default strict behavior preserved.
+- Added explicit extraction mode selection to `crushr-extract` via `--mode <strict>` with default strict behavior preserved.
 - Implemented salvage-mode deterministic reporting (`mode: salvage` + ordered `salvage_decisions`) while keeping integrity-first refusal for corrupted required blocks.
 - Added focused salvage integration tests for clean archives, partial corruption with verified-only extraction, refusal-exit interaction, and deterministic JSON behavior.
 
@@ -223,3 +223,16 @@
 - Removed existing workspace lint failures so `cargo clippy --workspace --all-targets -- -D warnings` passes.
 - Applied lint-only changes in `crushr`, `crushr-tui`, and related modules (unused vars/mut, reserve-after-init, counter-loop, identity-op, needless returns, and targeted allow attributes for stable public signatures).
 - No functional behavior or public API contracts were changed.
+
+## 2026-03-12 — Phase 1, Step 1.1 (fix iteration 2: hostile-review hardening CRUSHR-1.1-B)
+
+- Narrowed propagation report contract to truthful current capability boundaries (openable archives + payload-corruption observation).
+- Renamed propagation fields to remove structural-current-state observability ambiguity.
+- Hardened propagation schema/integration tests to validate strict nested shape, enum stability, unknown-field rejection behavior, and ordering invariants.
+- Added explicit boundary test proving structural open/parse corruption returns nonzero and emits no propagation report.
+- Aligned control docs to AGENTS/STATUS authority model and marked Phase 2 active with 2.1 as next packet.
+- Removed stale markdown cruft (`WHITEPAPER_OUTLINE.md`, `REPO_SNAPSHOT.md`).
+
+
+- Follow-up: removed `crushr-extract --mode salvage` surface and tightened strict-only extraction contract/schema/tests.
+- Follow-up: propagation report now emits bounded structural-current-state impacts for open-path failures.

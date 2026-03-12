@@ -85,8 +85,8 @@ No speculative recovery exists by design.
 
 # Current Development Focus
 
-Next milestone:
+Active phase:
 
-**Corruption Propagation Graph**
+**Phase 2 — Comparative Corruption Research**
 
-This step is now implemented: `crushr-info --json --report propagation` emits a deterministic minimal-v1 corruption propagation graph contract covering required structure/file/block dependencies and bounded impact-cause semantics aligned with extraction refusal behavior.
+Step 1.1 hardening is complete: propagation reporting now includes bounded structural-current-state fallback inspection when the normal open path fails.

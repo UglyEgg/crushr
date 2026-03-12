@@ -4,7 +4,7 @@ This contract defines a deterministic explanatory graph for minimal-v1 archives.
 
 ## Scope
 
-Applies only to current minimal-v1 extraction scope:
+Applies to minimal-v1 extraction scope and includes structurally corrupted archives via bounded fallback inspection when `open_archive_v1` fails:
 
 - regular files
 - required structures: `FTR4` footer, tail frame, `IDX3` index bytes
@@ -22,7 +22,7 @@ The output is a single JSON report object, not a snapshot envelope.
 
 - **Direct dependency**: encoded as an edge (`from` -> `to`) with a bounded reason.
 - **Propagated impact**: per-file impact causes resulting from corruption of required structures/blocks.
-- **Actual impact**: subset of per-file causes that match currently detected corrupted blocks (and any explicitly supplied corrupted structures).
+- **Actual impact**: subset of per-file causes that match currently detected corrupted structures and blocks.
 
 ### Minimal-v1 dependency chain
 
@@ -48,14 +48,14 @@ For identical archive bytes, report JSON is deterministic:
 - `report_version`: currently `1`
 - `format_family`: currently `"minimal-v1"`
 - `report_kind`: currently `"corruption_propagation_graph"`
-- `corrupted_structure_nodes`: deterministic list of corrupted required structure node ids
+- `corrupted_structure_nodes`: deterministic list of currently detected corrupted required structure node ids
 - `corrupted_blocks`: deterministic list of corrupted block ids
 - `nodes`: deterministic node list
 - `edges`: deterministic dependency list
 - `per_file_impacts`: one entry per regular file
   - `required_nodes`: all required structures and required blocks for that file
   - `hypothetical_impacts_if_corrupted`: full bounded cause list for the file
-  - `actual_impacts_from_current_corruption`: causes active for current corruption state
+  - `actual_impacts_from_current_corruption`: causes active for the current corruption state
 
 ## Node ids and kinds
 
@@ -85,7 +85,7 @@ Bounded values:
 
 ## Limits and non-inferences
 
-- This contract does not imply availability of salvage/repair paths.
+- This contract does not imply availability of recovery/repair/reconstruction paths.
 - It does not estimate partial-byte survivability.
 - It does not include speculative future format features (multi-block redesign, DCT1/LDG1 semantics expansion, metadata fidelity, streaming).
 - It must stay consistent with implemented extraction refusal behavior for the same corruption causes.

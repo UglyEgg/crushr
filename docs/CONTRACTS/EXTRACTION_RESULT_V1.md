@@ -79,30 +79,11 @@ The success/partial fields are not emitted for the error envelope.
 - `safe_file_count` / `refused_file_count`
   - Exact counts of entries in `safe_files` / `refused_files`.
 
-## Mode fields
-
-`--mode` defaults to strict when omitted.
-
-### Strict mode (`--mode strict` or default)
-
-- `mode` is omitted.
-- `salvage_decisions` is omitted.
-
-### Salvage mode (`--mode salvage`)
-
-- `mode` is present with value `"salvage"`.
-- `salvage_decisions` is present as a deterministically ordered list with one entry per considered file:
-  - `{"path": "...", "decision": "extracted_verified_extents"}`
-  - `{"path": "...", "decision": "refused_corrupted_required_blocks"}`
-
-Salvage mode remains integrity-first: files requiring corrupted blocks are refused.
-
 ## Deterministic ordering
 
 For identical archive bytes and extraction flags:
 
 - `safe_files` order is deterministic
 - `refused_files` order is deterministic
-- `salvage_decisions` order is deterministic (salvage mode only)
 
 Current minimal v1 behavior orders file-path-based report entries lexicographically by stored path.
