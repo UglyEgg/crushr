@@ -171,7 +171,7 @@
 
 - Decision:
   - Create `PHASE2_RESEARCH/` as the canonical Phase 2 research root and move active Phase 2 lock guidance to `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`.
-  - Change `crushr-lab` Phase 2 default output paths to `PHASE2_RESEARCH/manifests/` and `PHASE2_RESEARCH/generated/{foundation,execution}/`.
+  - Change `crushr-lab` Phase 2 default output paths to `PHASE2_RESEARCH/manifest/` and `PHASE2_RESEARCH/generated/{foundation,execution}/`.
 - Alternatives:
   1. Keep emitting defaults under the former `docs/RESEARCH/artifacts/*` path.
   2. Keep lock docs in `.ai/` while only moving generated outputs.

@@ -17,7 +17,7 @@ pub const PHASE2_MANIFEST_SCHEMA_ID: &str =
 pub fn write_phase2_manifest(raw_args: Vec<String>) -> Result<()> {
     let mut args = raw_args.into_iter();
     let mut output =
-        crate::cli::workspace_root()?.join("PHASE2_RESEARCH/manifests/phase2_core_manifest.json");
+        crate::cli::workspace_root()?.join("PHASE2_RESEARCH/manifest/phase2_core_manifest.json");
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--output" => {

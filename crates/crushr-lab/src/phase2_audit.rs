@@ -15,7 +15,7 @@ use std::process::Command;
 
 const EXPECTED_SCENARIO_COUNT: usize = 2700;
 const PHASE2_LOCKS_PATH: &str = "PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md";
-const DEFAULT_MANIFEST_PATH: &str = "PHASE2_RESEARCH/manifests/phase2_core_manifest.json";
+const DEFAULT_MANIFEST_PATH: &str = "PHASE2_RESEARCH/manifest/phase2_core_manifest.json";
 const DEFAULT_AUDIT_ARTIFACT_DIR: &str = "PHASE2_RESEARCH/generated/audit";
 
 #[derive(Debug, Clone, Serialize)]
@@ -349,7 +349,7 @@ fn check_command(workspace_root: &Path, program: &str, args: &[&str]) -> (CheckS
 
 fn check_output_roots(workspace_root: &Path) -> Vec<OutputRootStatus> {
     [
-        "PHASE2_RESEARCH/manifests",
+        "PHASE2_RESEARCH/manifest",
         "PHASE2_RESEARCH/generated/foundation",
         "PHASE2_RESEARCH/generated/execution",
         "PHASE2_RESEARCH/generated/audit",

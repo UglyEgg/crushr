@@ -68,7 +68,7 @@ pub struct Phase2ExecutionReport {
 pub fn run_phase2_execution_cmd(raw_args: Vec<String>) -> Result<()> {
     let mut args = raw_args.into_iter();
     let root = crate::cli::workspace_root()?;
-    let mut manifest_path = root.join("PHASE2_RESEARCH/manifests/phase2_core_manifest.json");
+    let mut manifest_path = root.join("PHASE2_RESEARCH/manifest/phase2_core_manifest.json");
     let mut foundation_report_path =
         root.join("PHASE2_RESEARCH/generated/foundation/foundation_report.json");
     let mut artifact_dir = root.join("PHASE2_RESEARCH/generated/execution");
