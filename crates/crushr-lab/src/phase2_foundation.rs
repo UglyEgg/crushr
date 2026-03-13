@@ -5,87 +5,7 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum FixtureDataset {
-    Smallfiles,
-    Mixed,
-    Largefiles,
-}
-
-impl FixtureDataset {
-    pub fn ordered_locked_core() -> &'static [Self] {
-        &[Self::Smallfiles, Self::Mixed, Self::Largefiles]
-    }
-
-    pub fn slug(self) -> &'static str {
-        match self {
-            Self::Smallfiles => "smallfiles",
-            Self::Mixed => "mixed",
-            Self::Largefiles => "largefiles",
-        }
-    }
-
-    pub fn composition_rule(self) -> &'static str {
-        match self {
-            Self::Smallfiles => {
-                "24 UTF-8 text files split across 6 folders; file i has exactly i+3 lines with deterministic sentence payload"
-            }
-            Self::Mixed => {
-                "12 text files + 4 deterministic binary blobs + 2 JSON files + 2 CSV files in stable nested layout"
-            }
-            Self::Largefiles => {
-                "3 larger files (2 binary, 1 text) with deterministic byte/line generation and stable sizes"
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum ArchiveKind {
-    #[serde(rename = "crushr")]
-    Crushr,
-    #[serde(rename = "zip")]
-    Zip,
-    #[serde(rename = "tar+zstd")]
-    TarZstd,
-    #[serde(rename = "tar+gz")]
-    TarGz,
-    #[serde(rename = "tar+xz")]
-    TarXz,
-}
-
-impl ArchiveKind {
-    pub fn ordered_locked_core() -> &'static [Self] {
-        &[
-            Self::Crushr,
-            Self::Zip,
-            Self::TarZstd,
-            Self::TarGz,
-            Self::TarXz,
-        ]
-    }
-
-    pub fn slug(self) -> &'static str {
-        match self {
-            Self::Crushr => "crushr",
-            Self::Zip => "zip",
-            Self::TarZstd => "tar_zstd",
-            Self::TarGz => "tar_gz",
-            Self::TarXz => "tar_xz",
-        }
-    }
-
-    fn output_file_name(self, dataset: FixtureDataset) -> String {
-        match self {
-            Self::Crushr => format!("{}.crs", dataset.slug()),
-            Self::Zip => format!("{}.zip", dataset.slug()),
-            Self::TarZstd => format!("{}.tar.zst", dataset.slug()),
-            Self::TarGz => format!("{}.tar.gz", dataset.slug()),
-            Self::TarXz => format!("{}.tar.xz", dataset.slug()),
-        }
-    }
-}
+use crate::phase2_domain::{ArchiveFormat, Dataset};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FileInventoryEntry {
@@ -96,7 +16,7 @@ pub struct FileInventoryEntry {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatasetInventory {
-    pub dataset: FixtureDataset,
+    pub dataset: Dataset,
     pub composition_rule: String,
     pub file_count: usize,
     pub total_bytes: u64,
@@ -108,7 +28,7 @@ pub struct DatasetInventory {
 pub struct DatasetProvenance {
     pub generator: String,
     pub deterministic: bool,
-    pub dataset: FixtureDataset,
+    pub dataset: Dataset,
     pub composition_rule: String,
     pub inventory_path: String,
     pub inventory_blake3: String,
@@ -134,8 +54,8 @@ pub struct CommandExecutionRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArchiveBuildRecord {
-    pub dataset: FixtureDataset,
-    pub archive_kind: ArchiveKind,
+    pub dataset: Dataset,
+    pub archive_kind: ArchiveFormat,
     pub output_path: String,
     pub build: CommandExecutionRecord,
 }
@@ -146,16 +66,16 @@ pub struct Phase2FoundationReport {
     pub archive_builds: Vec<ArchiveBuildRecord>,
 }
 
-pub fn create_dataset_fixture(root: &Path, dataset: FixtureDataset) -> Result<DatasetInventory> {
+pub fn create_dataset_fixture(root: &Path, dataset: Dataset) -> Result<DatasetInventory> {
     if root.exists() {
         fs::remove_dir_all(root)?;
     }
     fs::create_dir_all(root)?;
 
     match dataset {
-        FixtureDataset::Smallfiles => build_smallfiles(root)?,
-        FixtureDataset::Mixed => build_mixed(root)?,
-        FixtureDataset::Largefiles => build_largefiles(root)?,
+        Dataset::Smallfiles => build_smallfiles(root)?,
+        Dataset::Mixed => build_mixed(root)?,
+        Dataset::Largefiles => build_largefiles(root)?,
     }
 
     deterministic_inventory(root, dataset)
@@ -163,7 +83,7 @@ pub fn create_dataset_fixture(root: &Path, dataset: FixtureDataset) -> Result<Da
 
 pub fn write_inventory_and_provenance(
     artifact_root: &Path,
-    dataset: FixtureDataset,
+    dataset: Dataset,
     inventory: &DatasetInventory,
 ) -> Result<DatasetProvenance> {
     let dataset_dir = artifact_root.join("datasets").join(dataset.slug());
@@ -184,7 +104,7 @@ pub fn write_inventory_and_provenance(
 pub fn build_archives_for_dataset(
     workspace_root: &Path,
     artifact_root: &Path,
-    dataset: FixtureDataset,
+    dataset: Dataset,
     dataset_dir: &Path,
 ) -> Result<Vec<ArchiveBuildRecord>> {
     let archives_dir = artifact_root.join("archives");
@@ -195,10 +115,10 @@ pub fn build_archives_for_dataset(
     let files = collect_relative_files(dataset_dir)?;
     let mut records = Vec::new();
 
-    for archive_kind in ArchiveKind::ordered_locked_core() {
+    for archive_kind in ArchiveFormat::ordered_locked_core() {
         let output_path = archives_dir.join(archive_kind.output_file_name(dataset));
         let build = match archive_kind {
-            ArchiveKind::Crushr => run_crushr_pack(
+            ArchiveFormat::Crushr => run_crushr_pack(
                 workspace_root,
                 dataset_dir,
                 &files,
@@ -207,7 +127,7 @@ pub fn build_archives_for_dataset(
                 &observations_dir,
                 dataset,
             )?,
-            ArchiveKind::Zip => run_zip_build(
+            ArchiveFormat::Zip => run_zip_build(
                 dataset_dir,
                 &files,
                 &output_path,
@@ -215,7 +135,7 @@ pub fn build_archives_for_dataset(
                 &observations_dir,
                 dataset,
             )?,
-            ArchiveKind::TarZstd => run_tar_zstd_build(
+            ArchiveFormat::TarZstd => run_tar_zstd_build(
                 dataset_dir,
                 &files,
                 &output_path,
@@ -223,7 +143,7 @@ pub fn build_archives_for_dataset(
                 &observations_dir,
                 dataset,
             )?,
-            ArchiveKind::TarGz => run_tar_gz_build(
+            ArchiveFormat::TarGz => run_tar_gz_build(
                 dataset_dir,
                 &files,
                 &output_path,
@@ -231,7 +151,7 @@ pub fn build_archives_for_dataset(
                 &observations_dir,
                 dataset,
             )?,
-            ArchiveKind::TarXz => run_tar_xz_build(
+            ArchiveFormat::TarXz => run_tar_xz_build(
                 dataset_dir,
                 &files,
                 &output_path,
@@ -344,7 +264,7 @@ fn build_largefiles(root: &Path) -> Result<()> {
     Ok(())
 }
 
-fn deterministic_inventory(root: &Path, dataset: FixtureDataset) -> Result<DatasetInventory> {
+fn deterministic_inventory(root: &Path, dataset: Dataset) -> Result<DatasetInventory> {
     let rel_files = collect_relative_files(root)?;
     let mut files = Vec::new();
     let mut total_bytes = 0_u64;
@@ -380,7 +300,7 @@ fn run_crushr_pack(
     output_path: &Path,
     artifact_root: &Path,
     observations_dir: &Path,
-    dataset: FixtureDataset,
+    dataset: Dataset,
 ) -> Result<CommandExecutionRecord> {
     let mut cmd = Command::new("cargo");
     cmd.current_dir(workspace_root)
@@ -399,7 +319,7 @@ fn run_crushr_pack(
     execute_command(
         artifact_root,
         observations_dir,
-        format!("{}_{}_build", dataset.slug(), ArchiveKind::Crushr.slug()),
+        format!("{}_{}_build", dataset.slug(), ArchiveFormat::Crushr.slug()),
         "cargo",
         cmd,
     )
@@ -411,7 +331,7 @@ fn run_zip_build(
     output_path: &Path,
     artifact_root: &Path,
     observations_dir: &Path,
-    dataset: FixtureDataset,
+    dataset: Dataset,
 ) -> Result<CommandExecutionRecord> {
     if detect_tool(["zip"]).is_none() {
         return Ok(skipped_record("zip", "zip executable not found in PATH"));
@@ -425,7 +345,7 @@ fn run_zip_build(
     execute_command(
         artifact_root,
         observations_dir,
-        format!("{}_{}_build", dataset.slug(), ArchiveKind::Zip.slug()),
+        format!("{}_{}_build", dataset.slug(), ArchiveFormat::Zip.slug()),
         "zip",
         cmd,
     )
@@ -437,7 +357,7 @@ fn run_tar_zstd_build(
     output_path: &Path,
     artifact_root: &Path,
     observations_dir: &Path,
-    dataset: FixtureDataset,
+    dataset: Dataset,
 ) -> Result<CommandExecutionRecord> {
     if detect_tool(["tar"]).is_none() {
         return Ok(skipped_record("tar", "tar executable not found in PATH"));
@@ -455,7 +375,7 @@ fn run_tar_zstd_build(
     let tar_record = execute_command(
         artifact_root,
         observations_dir,
-        format!("{}_{}_tar", dataset.slug(), ArchiveKind::TarZstd.slug()),
+        format!("{}_{}_tar", dataset.slug(), ArchiveFormat::TarZstd.slug()),
         "tar",
         tar_cmd,
     )?;
@@ -473,7 +393,7 @@ fn run_tar_zstd_build(
     let zstd_record = execute_command(
         artifact_root,
         observations_dir,
-        format!("{}_{}_zstd", dataset.slug(), ArchiveKind::TarZstd.slug()),
+        format!("{}_{}_zstd", dataset.slug(), ArchiveFormat::TarZstd.slug()),
         "zstd",
         zstd_cmd,
     )?;
@@ -491,7 +411,7 @@ fn run_tar_gz_build(
     output_path: &Path,
     artifact_root: &Path,
     observations_dir: &Path,
-    dataset: FixtureDataset,
+    dataset: Dataset,
 ) -> Result<CommandExecutionRecord> {
     if detect_tool(["tar"]).is_none() {
         return Ok(skipped_record("tar", "tar executable not found in PATH"));
@@ -505,7 +425,7 @@ fn run_tar_gz_build(
     execute_command(
         artifact_root,
         observations_dir,
-        format!("{}_{}_build", dataset.slug(), ArchiveKind::TarGz.slug()),
+        format!("{}_{}_build", dataset.slug(), ArchiveFormat::TarGz.slug()),
         "tar",
         cmd,
     )
@@ -517,7 +437,7 @@ fn run_tar_xz_build(
     output_path: &Path,
     artifact_root: &Path,
     observations_dir: &Path,
-    dataset: FixtureDataset,
+    dataset: Dataset,
 ) -> Result<CommandExecutionRecord> {
     if detect_tool(["tar"]).is_none() {
         return Ok(skipped_record("tar", "tar executable not found in PATH"));
@@ -531,7 +451,7 @@ fn run_tar_xz_build(
     execute_command(
         artifact_root,
         observations_dir,
-        format!("{}_{}_build", dataset.slug(), ArchiveKind::TarXz.slug()),
+        format!("{}_{}_build", dataset.slug(), ArchiveFormat::TarXz.slug()),
         "tar",
         cmd,
     )
@@ -661,7 +581,7 @@ pub fn build_phase2_foundation(
     let mut dataset_records = Vec::new();
     let mut archive_records = Vec::new();
 
-    for dataset in FixtureDataset::ordered_locked_core() {
+    for dataset in Dataset::ordered_locked_core() {
         let dataset_dir = datasets_root.join(dataset.slug()).join("payload");
         let inventory = create_dataset_fixture(&dataset_dir, *dataset)?;
         let provenance = write_inventory_and_provenance(artifact_root, *dataset, &inventory)?;
@@ -691,7 +611,7 @@ pub fn build_phase2_foundation(
 
 pub fn validate_archive_coverage(report: &Phase2FoundationReport) -> Result<()> {
     let expected =
-        FixtureDataset::ordered_locked_core().len() * ArchiveKind::ordered_locked_core().len();
+        Dataset::ordered_locked_core().len() * ArchiveFormat::ordered_locked_core().len();
     if report.archive_builds.len() != expected {
         bail!(
             "archive build coverage mismatch: expected {expected}, got {}",
@@ -719,8 +639,8 @@ mod tests {
     fn dataset_generation_is_reproducible() {
         let root_a = temp_path("dataset_a");
         let root_b = temp_path("dataset_b");
-        let inventory_a = create_dataset_fixture(&root_a, FixtureDataset::Mixed).expect("build a");
-        let inventory_b = create_dataset_fixture(&root_b, FixtureDataset::Mixed).expect("build b");
+        let inventory_a = create_dataset_fixture(&root_a, Dataset::Mixed).expect("build a");
+        let inventory_b = create_dataset_fixture(&root_b, Dataset::Mixed).expect("build b");
 
         assert_eq!(inventory_a.inventory_blake3, inventory_b.inventory_blake3);
         assert_eq!(inventory_a.files, inventory_b.files);
@@ -732,9 +652,8 @@ mod tests {
     #[test]
     fn inventory_digest_is_deterministic() {
         let root = temp_path("inventory");
-        let inventory_1 = create_dataset_fixture(&root, FixtureDataset::Smallfiles).expect("build");
-        let inventory_2 =
-            deterministic_inventory(&root, FixtureDataset::Smallfiles).expect("inventory");
+        let inventory_1 = create_dataset_fixture(&root, Dataset::Smallfiles).expect("build");
+        let inventory_2 = deterministic_inventory(&root, Dataset::Smallfiles).expect("inventory");
 
         assert_eq!(inventory_1.inventory_blake3, inventory_2.inventory_blake3);
         assert_eq!(inventory_1.files, inventory_2.files);
@@ -746,10 +665,10 @@ mod tests {
     fn archive_coverage_matches_locked_matrix() {
         let report = Phase2FoundationReport {
             datasets: Vec::new(),
-            archive_builds: FixtureDataset::ordered_locked_core()
+            archive_builds: Dataset::ordered_locked_core()
                 .iter()
                 .flat_map(|dataset| {
-                    ArchiveKind::ordered_locked_core()
+                    ArchiveFormat::ordered_locked_core()
                         .iter()
                         .map(|kind| ArchiveBuildRecord {
                             dataset: *dataset,

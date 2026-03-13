@@ -1,9 +1,7 @@
 use anyhow::{bail, Result};
 use serde::Serialize;
 
-use crate::phase2_manifest::{CorruptionType, Magnitude, TargetClass};
-
-const LOCKED_SEEDS: [u64; 3] = [1337, 2600, 65535];
+use crate::phase2_domain::{CorruptionType, Magnitude, TargetClass, LOCKED_CORE_SEEDS};
 
 #[derive(Debug, Clone)]
 pub struct CorruptionRequest {
@@ -43,7 +41,7 @@ pub fn apply_locked_corruption(
     input: &[u8],
     request: &CorruptionRequest,
 ) -> Result<(Vec<u8>, CorruptionProvenance)> {
-    if !LOCKED_SEEDS.contains(&request.seed) {
+    if !LOCKED_CORE_SEEDS.contains(&request.seed) {
         bail!(
             "seed {} is not in locked policy [1337, 2600, 65535]",
             request.seed

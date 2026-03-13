@@ -2,9 +2,9 @@
 
 Current Phase: Phase 2 — Comparative Corruption Research
 
-Current Step: 2.1 cleanup complete (CRUSHR-P2-CLEAN-04 comparator set update: remove 7z/lzma, add tar+gz/tar+xz, and lock 2700-run matrix)
+Current Step: 2.1 cleanup complete (CRUSHR-P2-CLEAN-06 unified Phase 2 domain model across manifest/foundation/runner)
 
-Recent completed packet: CRUSHR-P2-CLEAN-04 follow-up (resolved required clippy invocation diagnostic by allowing unknown-lints rustc category in workspace cargo config)
+Recent completed packet: CRUSHR-P2-CLEAN-06 (introduced shared `phase2_domain` model and removed manifest↔foundation↔runner translation seams)
 
 ## Current truth
 
