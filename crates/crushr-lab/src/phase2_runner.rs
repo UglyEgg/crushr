@@ -65,6 +65,51 @@ pub struct Phase2ExecutionReport {
     pub completeness_path: String,
 }
 
+pub fn run_phase2_execution_cmd(raw_args: Vec<String>) -> Result<()> {
+    let mut args = raw_args.into_iter();
+    let root = crate::cli::workspace_root()?;
+    let mut manifest_path = root.join("PHASE2_RESEARCH/manifests/phase2_core_manifest.json");
+    let mut foundation_report_path =
+        root.join("PHASE2_RESEARCH/generated/foundation/foundation_report.json");
+    let mut artifact_dir = root.join("PHASE2_RESEARCH/generated/execution");
+
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--manifest" => {
+                manifest_path = PathBuf::from(args.next().context("missing value for --manifest")?)
+            }
+            "--foundation-report" => {
+                foundation_report_path = PathBuf::from(
+                    args.next()
+                        .context("missing value for --foundation-report")?,
+                )
+            }
+            "--artifact-dir" => {
+                artifact_dir =
+                    PathBuf::from(args.next().context("missing value for --artifact-dir")?)
+            }
+            _ => bail!("unsupported flag: {arg}"),
+        }
+    }
+
+    let manifest: Phase2ExperimentManifest = serde_json::from_slice(&fs::read(&manifest_path)?)
+        .with_context(|| format!("parsing manifest {}", manifest_path.display()))?;
+    let foundation: Phase2FoundationReport =
+        serde_json::from_slice(&fs::read(&foundation_report_path)?).with_context(|| {
+            format!(
+                "parsing foundation report {}",
+                foundation_report_path.display()
+            )
+        })?;
+
+    let report = run_phase2_execution(&root, &manifest, &foundation, &artifact_dir)?;
+    fs::write(
+        artifact_dir.join("execution_report.json"),
+        serde_json::to_vec_pretty(&report)?,
+    )?;
+    Ok(())
+}
+
 pub fn run_phase2_execution(
     workspace_root: &Path,
     manifest: &Phase2ExperimentManifest,

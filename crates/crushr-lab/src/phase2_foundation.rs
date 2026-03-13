@@ -2,10 +2,34 @@ use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::phase2_domain::{ArchiveFormat, Dataset};
+
+pub fn run_phase2_foundation(raw_args: Vec<String>) -> Result<()> {
+    let mut args = raw_args.into_iter();
+    let mut artifact_dir =
+        crate::cli::workspace_root()?.join("PHASE2_RESEARCH/generated/foundation");
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--artifact-dir" => {
+                artifact_dir =
+                    PathBuf::from(args.next().context("missing value for --artifact-dir")?);
+            }
+            _ => bail!("unsupported flag: {arg}"),
+        }
+    }
+
+    let root = crate::cli::workspace_root()?;
+    let report = build_phase2_foundation(&root, &artifact_dir)?;
+    validate_archive_coverage(&report)?;
+    fs::write(
+        artifact_dir.join("foundation_report.json"),
+        serde_json::to_vec_pretty(&report)?,
+    )?;
+    Ok(())
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FileInventoryEntry {

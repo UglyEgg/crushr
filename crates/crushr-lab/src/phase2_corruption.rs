@@ -1,5 +1,7 @@
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use serde::Serialize;
+use std::fs;
+use std::path::PathBuf;
 
 use crate::phase2_domain::{CorruptionType, Magnitude, TargetClass, LOCKED_CORE_SEEDS};
 
@@ -35,6 +37,163 @@ pub struct CorruptionProvenance {
     pub magnitude: Magnitude,
     pub seed: u64,
     pub concrete_mutation_details: Vec<MutationDetail>,
+}
+
+#[derive(Debug, Serialize)]
+struct CorruptionLog {
+    model: String,
+    source_archive: String,
+    scenario_id: String,
+    target: String,
+    magnitude: String,
+    seed: u64,
+    input_len: u64,
+    input_blake3: String,
+    output_blake3: String,
+    touched_offsets: Vec<u64>,
+    concrete_mutation_details: serde_json::Value,
+}
+
+#[derive(Debug)]
+struct CorruptArgs {
+    input: PathBuf,
+    output: PathBuf,
+    model: String,
+    target: String,
+    magnitude: String,
+    scenario_id: String,
+    seed: u64,
+    offset: Option<u64>,
+}
+
+pub fn run_corrupt(raw_args: Vec<String>) -> Result<()> {
+    let mut args = raw_args.into_iter();
+    let input = PathBuf::from(args.next().context("missing input")?);
+    let output = PathBuf::from(args.next().context("missing output")?);
+
+    let mut model = String::from("bit_flip");
+    let mut target = String::from("payload");
+    let mut magnitude = String::from("1B");
+    let mut scenario_id = String::from("ad-hoc-scenario");
+    let mut seed = 1337_u64;
+    let mut offset = None;
+
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--seed" => {
+                let value = args.next().context("missing value for --seed")?;
+                seed = value
+                    .parse::<u64>()
+                    .with_context(|| format!("invalid --seed value: {value}"))?;
+            }
+            "--model" => {
+                model = args.next().context("missing value for --model")?;
+            }
+            "--target" => {
+                target = args.next().context("missing value for --target")?;
+            }
+            "--magnitude" => {
+                magnitude = args.next().context("missing value for --magnitude")?;
+            }
+            "--scenario-id" => {
+                scenario_id = args.next().context("missing value for --scenario-id")?;
+            }
+            "--offset" => {
+                let value = args.next().context("missing value for --offset")?;
+                offset = Some(
+                    value
+                        .parse::<u64>()
+                        .with_context(|| format!("invalid --offset value: {value}"))?,
+                );
+            }
+            _ => bail!("unsupported flag: {arg}"),
+        }
+    }
+
+    let parsed = CorruptArgs {
+        input,
+        output,
+        model,
+        target,
+        magnitude,
+        scenario_id,
+        seed,
+        offset,
+    };
+
+    let corruption_type = parse_corruption_type(&parsed.model)?;
+    let target = parse_target(&parsed.target)?;
+    let magnitude = parse_magnitude(&parsed.magnitude)?;
+
+    let input_bytes =
+        fs::read(&parsed.input).with_context(|| format!("reading {}", parsed.input.display()))?;
+    let (bytes, provenance) = apply_locked_corruption(
+        &input_bytes,
+        &CorruptionRequest {
+            source_archive: parsed.input.display().to_string(),
+            scenario_id: parsed.scenario_id.clone(),
+            corruption_type,
+            target,
+            magnitude,
+            seed: parsed.seed,
+            forced_offset: parsed.offset,
+        },
+    )?;
+
+    fs::write(&parsed.output, &bytes)
+        .with_context(|| format!("writing {}", parsed.output.display()))?;
+
+    let touched_offsets = provenance
+        .concrete_mutation_details
+        .iter()
+        .filter_map(|d| d.offset)
+        .collect();
+    let log = CorruptionLog {
+        model: parsed.model,
+        source_archive: provenance.source_archive,
+        scenario_id: provenance.scenario_id,
+        target: parsed.target,
+        magnitude: parsed.magnitude,
+        seed: parsed.seed,
+        input_len: input_bytes.len() as u64,
+        input_blake3: blake3::hash(&fs::read(&parsed.input)?).to_hex().to_string(),
+        output_blake3: blake3::hash(&bytes).to_hex().to_string(),
+        touched_offsets,
+        concrete_mutation_details: serde_json::to_value(provenance.concrete_mutation_details)?,
+    };
+    let log_path = parsed.output.with_extension("corrupt.json");
+    fs::write(log_path, serde_json::to_vec_pretty(&log)?)?;
+    Ok(())
+}
+
+fn parse_corruption_type(raw: &str) -> Result<CorruptionType> {
+    match raw {
+        "bit_flip" | "byteflip" => Ok(CorruptionType::BitFlip),
+        "byte_overwrite" => Ok(CorruptionType::ByteOverwrite),
+        "zero_fill" => Ok(CorruptionType::ZeroFill),
+        "truncation" => Ok(CorruptionType::Truncation),
+        "tail_damage" => Ok(CorruptionType::TailDamage),
+        _ => bail!("unsupported model: {raw}"),
+    }
+}
+
+fn parse_target(raw: &str) -> Result<TargetClass> {
+    match raw {
+        "header" => Ok(TargetClass::Header),
+        "index" => Ok(TargetClass::Index),
+        "payload" => Ok(TargetClass::Payload),
+        "tail" => Ok(TargetClass::Tail),
+        _ => bail!("unsupported --target: {raw}"),
+    }
+}
+
+fn parse_magnitude(raw: &str) -> Result<Magnitude> {
+    match raw {
+        "1B" => Ok(Magnitude::OneByte),
+        "256B" => Ok(Magnitude::TwoHundredFiftySixBytes),
+        "4KB" => Ok(Magnitude::FourKilobytes),
+        _ => bail!("unsupported --magnitude: {raw}"),
+    }
 }
 
 pub fn apply_locked_corruption(
@@ -383,5 +542,19 @@ mod tests {
         };
         let err = apply_locked_corruption(&input, &request).expect_err("seed should be rejected");
         assert!(err.to_string().contains("locked policy"));
+    }
+
+    #[test]
+    fn parse_corruption_type_aliases_byteflip() {
+        assert!(matches!(
+            parse_corruption_type("byteflip").expect("alias should parse"),
+            CorruptionType::BitFlip
+        ));
+    }
+
+    #[test]
+    fn parse_target_rejects_unknown_values() {
+        let err = parse_target("unknown").expect_err("target should fail");
+        assert!(err.to_string().contains("unsupported --target"));
     }
 }
