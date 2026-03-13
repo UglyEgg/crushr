@@ -16,10 +16,10 @@ Canonical workspace for all Phase 2 research materials.
 ## Phase 2 operator path
 
 1. Generate manifest (default path shown explicitly): `crushr-lab write-phase2-manifest --output PHASE2_RESEARCH/manifests/phase2_core_manifest.json`
-2. Build foundation: `crushr-lab build-phase2-foundation --artifact-dir PHASE2_RESEARCH/generated/foundation`
-3. Run execution: `crushr-lab run-phase2-execution --manifest PHASE2_RESEARCH/manifests/phase2_core_manifest.json --foundation-report PHASE2_RESEARCH/generated/foundation/foundation_report.json --artifact-dir PHASE2_RESEARCH/generated/execution`
-4. Inspect outputs: raw evidence in `PHASE2_RESEARCH/generated/execution/`, normalized mappings in `PHASE2_RESEARCH/normalized/`, summaries in `PHASE2_RESEARCH/summaries/`
-5. Pre-trial audit is the next planned gate and is not yet part of the implemented CLI in this snapshot.
+2. Run pre-trial audit gate: `crushr-lab run-phase2-pretrial-audit --manifest PHASE2_RESEARCH/manifests/phase2_core_manifest.json --artifact-dir PHASE2_RESEARCH/generated/audit`
+3. Build foundation: `crushr-lab build-phase2-foundation --artifact-dir PHASE2_RESEARCH/generated/foundation`
+4. Run execution: `crushr-lab run-phase2-execution --manifest PHASE2_RESEARCH/manifests/phase2_core_manifest.json --foundation-report PHASE2_RESEARCH/generated/foundation/foundation_report.json --artifact-dir PHASE2_RESEARCH/generated/execution`
+5. Inspect outputs: audit report in `PHASE2_RESEARCH/generated/audit/phase2_pretrial_audit.json`, raw evidence in `PHASE2_RESEARCH/generated/execution/`, normalized mappings in `PHASE2_RESEARCH/normalized/`, summaries in `PHASE2_RESEARCH/summaries/`
 
 ## Policy boundary
 

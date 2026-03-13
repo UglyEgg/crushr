@@ -1,3 +1,11 @@
+## Update (2026-03-13): CRUSHR-P2-TRIAL-READY-01 complete
+
+- Added `crushr-lab run-phase2-pretrial-audit` command and `phase2_audit` module.
+- Audit validates locked matrix (2700 scenarios + axes), manifest/schema shape, duplicate IDs, truthful tool availability, required support files, and writable `PHASE2_RESEARCH/` output roots.
+- Machine-readable artifact path: `PHASE2_RESEARCH/generated/audit/phase2_pretrial_audit.json`.
+- Operator path in `PHASE2_RESEARCH/README.md` now includes audit immediately after manifest generation.
+- Next action: begin Phase 2.2 normalized mapping/reporting work.
+
 # .ai/HANDOFF.md
 
 ## Immediate next packet
