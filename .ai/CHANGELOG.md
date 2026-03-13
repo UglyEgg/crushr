@@ -306,3 +306,11 @@
 - Deleted obsolete scaffold/demo command surfaces from `crushr-lab` (`run-first-experiment`, `run-competitor-scaffold`) including related constants, helper flows, and tests.
 - Slimmed `crates/crushr-lab/src/main.rs` to a Phase 2-focused orchestration edge with only active command paths (`corrupt`, `write-phase2-manifest`, `build-phase2-foundation`, `run-phase2-execution`).
 - Removed one-off scaffold helper sediment and replaced removed tests with focused parsing tests relevant to retained command surfaces.
+
+
+## 2026-03-12 — Phase 2, Step 2.1 cleanup (CRUSHR-P2-CLEAN-02)
+
+- Removed narrative command-string provenance (`observed_command`) from `crates/crushr-lab/src/phase2_runner.rs` execution metadata used by active Phase 2 records.
+- Added typed `InvocationMetadata` to `ExecutionMetadata` capturing truthful invocation fields from actual `Command` execution: `tool_kind`, `executable`, `argv`, `cwd`, `exit_status_code`, and stdout/stderr artifact paths.
+- Updated Tar+Zstd observation path to execute directly via `tar --use-compress-program=zstd -tf <archive>` so invocation provenance is represented as a real executable + argv path rather than shell storytelling.
+- Updated/kept Phase 2 runner tests aligned to the new structured provenance model.
