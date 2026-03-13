@@ -29,7 +29,8 @@ Canonical reading/authority path:
 
 - Phase 1 is complete.
 - Active focus is Phase 2 comparative corruption research, with canonical Phase 2 materials rooted at `PHASE2_RESEARCH/`.
-- Next packet is Phase 2.2 cross-format comparison and normalized result mapping.
+- Next required milestone is the Phase 2 pre-trial audit pass under `PHASE2_RESEARCH/`.
+- Next packet after audit is Phase 2.2 cross-format comparison and normalized result mapping.
 
 ## Tooling surface
 

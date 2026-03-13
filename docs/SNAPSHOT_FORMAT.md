@@ -49,4 +49,5 @@ Expected payload families:
 
 - Phase 1 contracts are complete and active
 - Phase 2 uses these snapshots as experiment harness inputs
-- next packet: Phase 2.1 manifest/schema for controlled corruption matrix execution
+- next required milestone: Phase 2 pre-trial audit over `PHASE2_RESEARCH/` flow
+- next packet after audit: Phase 2.2 cross-format comparison and normalized result mapping

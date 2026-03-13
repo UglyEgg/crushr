@@ -49,4 +49,5 @@ This document describes the current implemented boundary without speculative mat
 
 - Phase 1 complete
 - Phase 2 active
-- next packet: controlled corruption matrix manifest/schema
+- next required milestone: Phase 2 pre-trial audit over `PHASE2_RESEARCH/` flow
+- next packet after audit: Phase 2.2 cross-format comparison and normalized result mapping

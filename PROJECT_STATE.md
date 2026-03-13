@@ -47,5 +47,6 @@ Verification progression:
 - Phase 1: complete.
 - Cleanup packet series: complete.
 - Phase 2: active engineering focus.
-- Next packet: Phase 2.2 cross-format comparison and normalized result mapping.
+- Next required milestone: Phase 2 pre-trial audit over manifest/foundation/execution controls.
+- Next packet after audit: Phase 2.2 cross-format comparison and normalized result mapping.
 - Canonical Phase 2 research workspace root: `PHASE2_RESEARCH/`.
