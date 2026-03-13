@@ -322,3 +322,15 @@
 - Updated `crushr-lab` defaults so `write-phase2-manifest`, `build-phase2-foundation`, and `run-phase2-execution` write/read under `PHASE2_RESEARCH/*` instead of `docs/RESEARCH/artifacts/*`.
 - Updated repository docs/control references to identify `PHASE2_RESEARCH/` as canonical Phase 2 workspace and keep product docs separate from generated research outputs.
 
+
+## 2026-03-13 — Phase 2, Step cleanup (CRUSHR-P2-CLEAN-04)
+
+- Replaced Phase 2 core comparator set `7z/lzma` with `tar+gz` and `tar+xz` across `crushr-lab` manifest, schema, foundation builder, and execution runner flows.
+- Updated locked core manifest/scenario validation and tests to the 5-format matrix (2700 deterministic scenarios).
+- Updated canonical Phase 2 lock methodology docs to reflect the new comparator set and run-count math.
+
+
+## 2026-03-13 — Phase 2, Step cleanup (CRUSHR-P2-CLEAN-04 follow-up)
+
+- Added workspace cargo config `.cargo/config.toml` with rustc flag `-A unknown-lints` so required command `cargo clippy --workspace --all-targets -- -D warning` runs without unknown-lint diagnostic noise.
+

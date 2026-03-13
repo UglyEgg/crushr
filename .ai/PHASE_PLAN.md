@@ -20,5 +20,6 @@
 - [x] 2.1 cleanup — delete obsolete scaffold experiment flows and slim `crushr-lab` main path (CRUSHR-P2-CLEAN-01)
 - [x] 2.1 cleanup — replace narrative command-string provenance with structured invocation metadata in execution records (CRUSHR-P2-CLEAN-02)
 - [x] 2.1 cleanup — create canonical `PHASE2_RESEARCH/` workspace and migrate Phase 2 defaults/docs (CRUSHR-P2-CLEAN-03)
+- [x] 2.1 cleanup — replace 7z comparator with tar+gz/tar+xz across Phase 2 manifest/foundation/runner/docs/tests (CRUSHR-P2-CLEAN-04)
 - [ ] 2.2 Cross-Format Comparison
 - [ ] 2.3 Experimental Reporting

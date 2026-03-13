@@ -24,7 +24,7 @@ Phase 2.2 — cross-format comparison execution harnessing from Phase 2 manifest
 - CRUSHR-CLEANUP-2.0-D finished: extraction report assembly/refusal classification moved to `crushr-core::extraction`; `crushr-info` structural-failure report assembly now uses shared propagation helper.
 
 
-- CRUSHR-P2.1-A finished: typed manifest/scenario model, deterministic scenario IDs and enumeration (2160), schema file, and validation tests are in place.
+- CRUSHR-P2.1-A finished: typed manifest/scenario model, deterministic scenario IDs and enumeration (2700), schema file, and validation tests are in place.
 
 - CRUSHR-P2.1-B finished: deterministic dataset fixtures, inventories/provenance, typed archive build records, and reproducibility tests are in place.
 
@@ -33,6 +33,8 @@ Phase 2.2 — cross-format comparison execution harnessing from Phase 2 manifest
 - CRUSHR-P2-CLEAN-01 finished: removed obsolete `run-first-experiment`/`run-competitor-scaffold` command paths and associated helper sediment from `crushr-lab` main so only the Phase 2 core pipeline remains.
 - CRUSHR-P2-CLEAN-02 finished: Phase 2 execution raw records now store structured invocation provenance from actual command execution (tool kind, executable, argv, cwd, exit status, stdout/stderr artifact paths) and no longer store narrative command strings.
 - CRUSHR-P2-CLEAN-03 finished: canonical Phase 2 workspace now lives at `PHASE2_RESEARCH/`; defaults for manifest/foundation/execution outputs no longer target `docs/RESEARCH/artifacts/`, and lock guidance now lives in `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`.
+- CRUSHR-P2-CLEAN-04 finished: Phase 2 locked comparator set is now `crushr`, `zip`, `tar+zstd`, `tar+gz`, `tar+xz`; 7z/lzma is removed from manifest/schema/foundation/runner/docs/tests and core scenario count is now 2700.
+- CRUSHR-P2-CLEAN-04 follow-up finished: required clippy invocation diagnostic is resolved via workspace cargo config (`-A unknown-lints`).
 
 
 ## 2026-03-12 update (CRUSHR-P2.1-D)

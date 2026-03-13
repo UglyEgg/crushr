@@ -328,10 +328,14 @@ fn observe_command(
                 .arg(archive_path);
             Ok(cmd)
         }
-        ArchiveKind::SevenZLzma => {
-            let mut cmd =
-                Command::new(detect_tool(&["7z", "7za"]).unwrap_or_else(|| "7z".to_string()));
-            cmd.arg("t").arg(archive_path);
+        ArchiveKind::TarGz => {
+            let mut cmd = Command::new("tar");
+            cmd.arg("-tzf").arg(archive_path);
+            Ok(cmd)
+        }
+        ArchiveKind::TarXz => {
+            let mut cmd = Command::new("tar");
+            cmd.arg("-tJf").arg(archive_path);
             Ok(cmd)
         }
     }
@@ -362,10 +366,9 @@ fn detect_tool_version(workspace_root: &Path, format: ArchiveKind) -> Result<Str
             c.arg("--version");
             c
         }
-        ArchiveKind::SevenZLzma => {
-            let tool = detect_tool(&["7z", "7za"]).unwrap_or_else(|| "7z".to_string());
-            let mut c = Command::new(tool);
-            c.arg("--help");
+        ArchiveKind::TarGz | ArchiveKind::TarXz => {
+            let mut c = Command::new("tar");
+            c.arg("--version");
             c
         }
     };
@@ -389,15 +392,6 @@ fn detect_tool_version(workspace_root: &Path, format: ArchiveKind) -> Result<Str
     }
 }
 
-fn detect_tool(names: &[&str]) -> Option<String> {
-    for name in names {
-        if Command::new(name).arg("--help").output().is_ok() {
-            return Some((*name).to_string());
-        }
-    }
-    None
-}
-
 fn now_ms() -> Result<u128> {
     Ok(SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -416,9 +410,10 @@ fn map_dataset(dataset: crate::phase2_manifest::Dataset) -> FixtureDataset {
 fn map_format(format: ArchiveFormat) -> ArchiveKind {
     match format {
         ArchiveFormat::Crushr => ArchiveKind::Crushr,
-        ArchiveFormat::TarZstd => ArchiveKind::TarZstd,
         ArchiveFormat::Zip => ArchiveKind::Zip,
-        ArchiveFormat::SevenZLzma => ArchiveKind::SevenZLzma,
+        ArchiveFormat::TarZstd => ArchiveKind::TarZstd,
+        ArchiveFormat::TarGz => ArchiveKind::TarGz,
+        ArchiveFormat::TarXz => ArchiveKind::TarXz,
     }
 }
 

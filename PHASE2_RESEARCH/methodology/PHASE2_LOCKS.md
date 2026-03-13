@@ -29,9 +29,10 @@ Disallowed claim categories unless separately tested:
 
 ### Formats
 - crushr
-- tar+zstd
 - zip
-- 7z/lzma
+- tar+zstd
+- tar+gz
+- tar+xz
 
 ### Datasets
 - smallfiles
@@ -66,7 +67,7 @@ Fixed seeds:
 - 65535
 
 ### Core matrix size
-3 datasets × 4 formats × 5 corruption types × 4 target classes × 3 magnitudes × 3 seeds = 2160 runs
+3 datasets × 5 formats × 5 corruption types × 4 target classes × 3 magnitudes × 3 seeds = 2700 runs
 
 ## Addendum scope
 

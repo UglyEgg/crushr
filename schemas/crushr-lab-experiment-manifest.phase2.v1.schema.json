@@ -58,13 +58,14 @@
     "formats": {
       "type": "array",
       "items": { "$ref": "#/$defs/format" },
-      "minItems": 4,
-      "maxItems": 4,
+      "minItems": 5,
+      "maxItems": 5,
       "prefixItems": [
         { "const": "crushr" },
-        { "const": "tar+zstd" },
         { "const": "zip" },
-        { "const": "7z/lzma" }
+        { "const": "tar+zstd" },
+        { "const": "tar+gz" },
+        { "const": "tar+xz" }
       ]
     },
     "corruption_types": {
@@ -117,8 +118,8 @@
     "scenarios": {
       "type": "array",
       "items": { "$ref": "#/$defs/scenario" },
-      "minItems": 2160,
-      "maxItems": 2160
+      "minItems": 2700,
+      "maxItems": 2700
     }
   },
   "$defs": {
@@ -128,7 +129,7 @@
     },
     "format": {
       "type": "string",
-      "enum": ["crushr", "tar+zstd", "zip", "7z/lzma"]
+      "enum": ["crushr", "zip", "tar+zstd", "tar+gz", "tar+xz"]
     },
     "corruption_type": {
       "type": "string",
