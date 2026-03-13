@@ -13,6 +13,14 @@ Canonical workspace for all Phase 2 research materials.
 - `summaries/` — aggregate tables/CSVs and publication-facing summary views
 - `whitepaper_support/` — figures, tables, and source support files for whitepaper claims
 
+## Phase 2 operator path
+
+1. Generate manifest: `crushr-lab write-phase2-manifest --output PHASE2_RESEARCH/manifests/phase2_manifest.json`
+2. Build foundation: `crushr-lab build-phase2-foundation --manifest PHASE2_RESEARCH/manifests/phase2_manifest.json`
+3. Run pre-trial audit: verify `PHASE2_RESEARCH/generated/foundation/foundation_report.json` and output path readiness before execution
+4. Run execution: `crushr-lab run-phase2-execution --manifest PHASE2_RESEARCH/manifests/phase2_manifest.json --foundation-report PHASE2_RESEARCH/generated/foundation/foundation_report.json`
+5. Inspect outputs: raw evidence in `PHASE2_RESEARCH/generated/execution/`, normalized mappings in `PHASE2_RESEARCH/normalized/`, summaries in `PHASE2_RESEARCH/summaries/`
+
 ## Policy boundary
 
 Product-facing docs remain under `docs/`.

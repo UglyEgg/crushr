@@ -344,6 +344,12 @@
 - Updated canonical Phase 2 lock methodology docs to reflect the new comparator set and run-count math.
 
 
+## 2026-03-13 — Phase 2, Step cleanup (CRUSHR-P2-CLEAN-08)
+
+- Removed stale active-control references to pre-migration Phase 2 paths/process language and kept canonical references pointed at `PHASE2_RESEARCH/`.
+- Added concise operator-path guidance in `PHASE2_RESEARCH/README.md` linking manifest generation, foundation build, pre-trial audit checkpoint, execution run, and output locations.
+- Aligned active control docs on next-step sequencing: pre-trial audit milestone first, then Phase 2.2 mapping/reporting packet.
+
 ## 2026-03-13 — Phase 2, Step cleanup (CRUSHR-P2-CLEAN-04 follow-up)
 
 - Added workspace cargo config `.cargo/config.toml` with rustc flag `-A unknown-lints` so required command `cargo clippy --workspace --all-targets -- -D warning` runs without unknown-lint diagnostic noise.

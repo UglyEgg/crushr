@@ -2,9 +2,9 @@
 
 Current Phase: Phase 2 — Comparative Corruption Research
 
-Current Step: 2.1 cleanup complete (CRUSHR-P2-CLEAN-07 slimmed crushr-lab main dispatch edge and moved residual command logic into Phase 2 modules)
+Current Step: 2.1 cleanup complete (CRUSHR-P2-CLEAN-08 final Phase 2 control/doc hygiene pass after PHASE2_RESEARCH migration)
 
-Recent completed packet: CRUSHR-P2-CLEAN-07 (reduced `crushr-lab` `main.rs` to thin dispatch and moved command parsing/execution logic into `cli`/`phase2_*` modules)
+Recent completed packet: CRUSHR-P2-CLEAN-08 (finalized active control/doc references to `PHASE2_RESEARCH/` and aligned next-step language to a pre-trial audit milestone)
 
 ## Current truth
 
@@ -15,6 +15,7 @@ Recent completed packet: CRUSHR-P2-CLEAN-07 (reduced `crushr-lab` `main.rs` to t
 - Cleanup packet CRUSHR-P2-CLEAN-02 is complete: replaced hand-authored command prose (`observed_command`) in `RawRunRecord.execution_metadata` with structured invocation metadata (`tool_kind`, executable, argv, cwd, exit status, stdout/stderr artifact paths) captured directly from the real `Command` invocation before/after execution.
 - Cleanup packet CRUSHR-P2-CLEAN-03 is complete: established `PHASE2_RESEARCH/` as canonical Phase 2 workspace (`methodology/`, `manifests/`, `generated/`, `normalized/`, `summaries/`, `whitepaper_support/`), moved lock guidance to `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`, and migrated Phase 2 default output roots out of `docs/`.
 - Cleanup packet CRUSHR-P2-CLEAN-07 is complete: slimmed `crushr-lab` `main.rs` into command dispatch only; moved usage/workspace helpers into `cli.rs`, moved `corrupt` argument parsing/log emission into `phase2_corruption`, and moved `write-phase2-manifest` / `build-phase2-foundation` / `run-phase2-execution` command orchestration into their owning modules.
+- Cleanup packet CRUSHR-P2-CLEAN-08 is complete: removed stale control-doc path/process residue, added a concise Phase 2 operator path in `PHASE2_RESEARCH/README.md`, and aligned active docs on pre-trial audit as the next required milestone before Phase 2.2.
 - Active machine-readable schemas are now tightened contracts for: `crushr-info` snapshot, `crushr-fsck` snapshot, `crushr-impact` report, extraction result, and propagation graph.
 - Integration tests now perform real JSON Schema instance-vs-schema validation for active outputs.
 
@@ -28,4 +29,4 @@ Recent completed packet: CRUSHR-P2-CLEAN-07 (reduced `crushr-lab` `main.rs` to t
 
 ## Next action
 
-Start Phase 2.2 comparative mapping/reporting packet (consume Phase 2.1 raw run records and map tool-specific outputs into normalized comparative result contracts).
+Run the Phase 2 pre-trial audit milestone across manifest/foundation/execution controls under `PHASE2_RESEARCH/`, then start Phase 2.2 comparative mapping/reporting.

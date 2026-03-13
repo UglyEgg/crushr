@@ -2,12 +2,12 @@
 
 ## Immediate next packet
 
-Phase 2.2 — cross-format comparison and normalized result mapping from Phase 2 raw run records.
+Phase 2 pre-trial audit over manifest/foundation/execution controls under `PHASE2_RESEARCH/`.
 
 ## First actions for a fresh instance
 
 1. Read startup order from `../AI_BOOTSTRAP.md`.
-2. Confirm `STATUS.md` and `PHASE_PLAN.md` both show Phase 2.1 and cleanup packets complete and Phase 2.2 next.
+2. Confirm `STATUS.md` and `PHASE_PLAN.md` both show CRUSHR-P2-CLEAN-08 complete and the Phase 2 pre-trial audit milestone as next.
 3. Keep strict extraction + integrity-first thesis unchanged.
 4. Treat `PHASE2_RESEARCH/` as the canonical Phase 2 workspace and `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md` as the active lock document.
 5. Consume `crushr-lab` Phase 2 manifest/scenario enumeration plus the deterministic foundation builder (`build-phase2-foundation`) and execution runner (`run-phase2-execution`) as canonical Phase 2 inputs; do not mutate locked matrix semantics.
@@ -37,4 +37,4 @@ Phase 2.2 — cross-format comparison and normalized result mapping from Phase 2
 
 ## Next expected packet
 
-Map raw run records into normalized comparative results (Phase 2.2).
+After pre-trial audit signoff, map raw run records into normalized comparative results (Phase 2.2).
