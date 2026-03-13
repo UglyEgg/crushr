@@ -18,18 +18,17 @@ This document defines where active truth lives.
 - `docs/ARCHITECTURE.md` — truthful crate/tool architecture boundary
 - `docs/SNAPSHOT_FORMAT.md` — canonical snapshot contract boundary
 - `docs/CONTRACTS/*` — policy contracts
-- `docs/RESEARCH/*` — product-level experiment formalization/reference docs (not generated artifacts)
-- `PHASE2_RESEARCH/` — canonical Phase 2 research workspace (methodology, manifests, generated outputs, normalized results, summaries, whitepaper support)
+- `PHASE2_RESEARCH/` — canonical Phase 2 research workspace
+- `PHASE2_RESEARCH/methodology/*` — active Phase 2 methodology and lock docs
 
 ## Code and supporting dirs
 
 - `crates/` — Rust workspace crates
 - `schemas/` — versioned JSON schemas
-- `TASK_PACKETS/` — bounded implementation packets
 - `.ai/` — continuity memory (internal project control)
 
 ## Current phase direction
 
 - Phase 1 complete
 - Phase 2 active
-- Next packet: Phase 2.1 controlled corruption matrix manifest/schema
+- Next packet: Phase 2.2 cross-format comparison and normalized result mapping

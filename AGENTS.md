@@ -27,7 +27,7 @@ When multiple continuity documents exist, apply this order:
 4. `.ai/PHASE_PLAN.md` (execution plan)
 5. `PROJECT_STATE.md` (concise current-state summary)
 6. `SPEC.md`, `docs/ARCHITECTURE.md`, `docs/SNAPSHOT_FORMAT.md` (active technical truth)
-7. `docs/CONTRACTS/*` and `docs/RESEARCH/*` (supporting contracts and research context)
+7. `docs/CONTRACTS/*` and `PHASE2_RESEARCH/methodology/*` (supporting contracts and active research methodology)
 8. `.ai/*` supplements (contextual only; never override policy)
 
 If any conflict is detected, stop and resolve explicitly.

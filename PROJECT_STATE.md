@@ -45,7 +45,7 @@ Verification progression:
 ## Phase status
 
 - Phase 1: complete.
-- Cleanup packet: complete.
+- Cleanup packet series: complete.
 - Phase 2: active engineering focus.
-- Next packet: Phase 2.1 controlled corruption matrix manifest/schema.
+- Next packet: Phase 2.2 cross-format comparison and normalized result mapping.
 - Canonical Phase 2 research workspace root: `PHASE2_RESEARCH/`.

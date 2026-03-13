@@ -23,12 +23,13 @@ Canonical reading/authority path:
 11. `docs/SNAPSHOT_FORMAT.md`
 12. `docs/CONTRACTS/README.md`
 13. `PHASE2_RESEARCH/README.md`
+14. `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`
 
 ## What is active
 
 - Phase 1 is complete.
 - Active focus is Phase 2 comparative corruption research, with canonical Phase 2 materials rooted at `PHASE2_RESEARCH/`.
-- Next packet is Phase 2.1 controlled corruption matrix manifest/schema.
+- Next packet is Phase 2.2 cross-format comparison and normalized result mapping.
 
 ## Tooling surface
 
@@ -42,4 +43,4 @@ Canonical reading/authority path:
 
 - recovery/salvage/reconstruction workflows
 - parity-based repair systems
-- generic replacement for zip/7z
+- generic replacement for zip or tar-family formats

@@ -83,7 +83,7 @@
 
 ## 2026-03-08 — Adopt contracts, research scaffolding, and Codex control layer
 
-- Decision: treat `docs/CONTRACTS/*`, `docs/RESEARCH/*`, `PROJECT_STATE.md`, `REPO_SNAPSHOT.md`, task packets, and review checklist as canonical project-control surfaces for implementation agents.
+- Decision: treat `docs/CONTRACTS/*`, `PHASE2_RESEARCH/methodology/*`, `PROJECT_STATE.md`, and the `.ai/` control files as canonical implementation guidance surfaces for active work.
 - Rationale: reduce drift, preserve the thesis, and keep Codex constrained to bounded tasks.
 
 ## 2026-03-08 — Normalize `crushr-info`/`crushr-fsck` open/parse failure exit codes
@@ -181,7 +181,7 @@
   - Create `PHASE2_RESEARCH/` as the canonical Phase 2 research root and move active Phase 2 lock guidance to `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`.
   - Change `crushr-lab` Phase 2 default output paths to `PHASE2_RESEARCH/manifests/` and `PHASE2_RESEARCH/generated/{foundation,execution}/`.
 - Alternatives:
-  1. Keep emitting defaults under `docs/RESEARCH/artifacts/*`.
+  1. Keep emitting defaults under the former `docs/RESEARCH/artifacts/*` path.
   2. Keep lock docs in `.ai/` while only moving generated outputs.
 - Rationale:
   - Product/reference docs and generated research state must remain separated to reduce drift and operator confusion.

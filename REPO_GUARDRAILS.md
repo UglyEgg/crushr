@@ -28,7 +28,7 @@ If documents conflict, resolve with this order:
 7. `docs/ARCHITECTURE.md`
 8. `docs/SNAPSHOT_FORMAT.md`
 9. `docs/CONTRACTS/*`
-10. `docs/RESEARCH/*`
+10. `PHASE2_RESEARCH/methodology/*`
 
 If conflict remains, stop and resolve explicitly.
 
@@ -55,4 +55,5 @@ Each implementation response must include:
 
 - Phase 1 complete.
 - Phase 2 active.
-- Next packet: Phase 2.1 controlled corruption matrix manifest/schema.
+- Next packet: Phase 2.2 cross-format comparison and normalized result mapping.
+- Canonical Phase 2 research workspace root: `PHASE2_RESEARCH/`.

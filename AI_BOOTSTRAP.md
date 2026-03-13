@@ -17,5 +17,6 @@ Current orientation:
 
 - Phase 1 is complete.
 - Cleanup is complete enough to proceed with Phase 2 packets.
-- Active engineering focus is Phase 2.
-- Next packet is Phase 2.1 controlled corruption matrix manifest/schema.
+- Active engineering focus is Phase 2.2 cross-format comparison and normalized result mapping.
+- Canonical Phase 2 research workspace root is `PHASE2_RESEARCH/`.
+- Active Phase 2 methodology and lock guidance live under `PHASE2_RESEARCH/methodology/`.
