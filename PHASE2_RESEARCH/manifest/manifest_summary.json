@@ -1,0 +1,27 @@
+{
+  "scenario_count": 2700,
+  "dataset_list": [
+    "smallfiles",
+    "mixed",
+    "largefiles"
+  ],
+  "format_list": [
+    "crushr",
+    "zip",
+    "tar+zstd",
+    "tar+gz",
+    "tar+xz"
+  ],
+  "corruption_list": [
+    "bit_flip",
+    "byte_overwrite",
+    "zero_fill",
+    "truncation",
+    "tail_damage"
+  ],
+  "seed_list": [
+    1337,
+    2600,
+    65535
+  ]
+}
