@@ -190,3 +190,32 @@
   - Default paths for `crushr-lab` Phase 2 commands changed; operators relying on old defaults must use explicit flags or migrate to new root.
   - Repo docs/control references now point to `PHASE2_RESEARCH/` as canonical Phase 2 workspace.
 
+
+## 2026-03-13 — CRUSHR-P2-CLEAN-04: replace 7z comparator with tar.gz and tar.xz in locked core matrix
+
+- Decision:
+  - Remove `7z/lzma` from the locked Phase 2 core publication matrix and replace it with `tar+gz` and `tar+xz`.
+  - Lock core comparator set to: `crushr`, `zip`, `tar+zstd`, `tar+gz`, `tar+xz` (2700 runs).
+- Alternatives:
+  1. Keep `7z/lzma` with skip/deferred behavior when unavailable.
+  2. Replace `7z/lzma` with only one additional tar comparator (`tar+gz` or `tar+xz`).
+- Rationale:
+  - `7z` tool availability is unreliable in current execution environments, which undermines core-matrix reproducibility.
+  - `tar+gz` and `tar+xz` are broadly available and deterministic for this methodology.
+- Blast radius:
+  - Phase 2 manifest/schema enums, scenario count/ordering tests, foundation archive build logic, runner observation/version probes, and lock docs now align on the 5-format set.
+  - Any downstream artifacts/scripts assuming 2160 scenarios or 7z comparator names must migrate to 2700 and tar variants.
+
+
+## 2026-03-13 — CRUSHR-P2-CLEAN-04 follow-up: suppress command-line unknown-lint diagnostic for required clippy invocation
+
+- Decision:
+  - Add workspace cargo config rustflag `-Aunknown-lints` to align required command `cargo clippy --workspace --all-targets -- -D warning` with clean output expectations.
+- Alternatives:
+  1. Keep command as-is and accept warning output.
+  2. Change required command to `-D warnings` (not permitted by packet requirement).
+- Rationale:
+  - Packet requires running a fixed command string; this workspace-local rustflag removes the known diagnostic without changing public APIs or product behavior.
+- Blast radius:
+  - Affects lint-diagnostic behavior only; no runtime/archive-contract behavior changes.
+

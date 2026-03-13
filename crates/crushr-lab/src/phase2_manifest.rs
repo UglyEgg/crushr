@@ -35,26 +35,35 @@ impl Dataset {
 pub enum ArchiveFormat {
     #[serde(rename = "crushr")]
     Crushr,
-    #[serde(rename = "tar+zstd")]
-    TarZstd,
     #[serde(rename = "zip")]
     Zip,
-    #[serde(rename = "7z/lzma")]
-    SevenZLzma,
+    #[serde(rename = "tar+zstd")]
+    TarZstd,
+    #[serde(rename = "tar+gz")]
+    TarGz,
+    #[serde(rename = "tar+xz")]
+    TarXz,
 }
 
 impl ArchiveFormat {
     fn id_slug(self) -> &'static str {
         match self {
             Self::Crushr => "crushr",
-            Self::TarZstd => "tar_zstd",
             Self::Zip => "zip",
-            Self::SevenZLzma => "7z_lzma",
+            Self::TarZstd => "tar_zstd",
+            Self::TarGz => "tar_gz",
+            Self::TarXz => "tar_xz",
         }
     }
 
     fn ordered_locked_core() -> &'static [Self] {
-        &[Self::Crushr, Self::TarZstd, Self::Zip, Self::SevenZLzma]
+        &[
+            Self::Crushr,
+            Self::Zip,
+            Self::TarZstd,
+            Self::TarGz,
+            Self::TarXz,
+        ]
     }
 }
 
@@ -262,8 +271,8 @@ pub fn validate_manifest_shape(manifest: &Value) -> Result<()> {
         .get("scenarios")
         .and_then(Value::as_array)
         .context("manifest.scenarios must be an array")?;
-    if scenarios.len() != 2160 {
-        bail!("manifest.scenarios must contain exactly 2160 entries");
+    if scenarios.len() != 2700 {
+        bail!("manifest.scenarios must contain exactly 2700 entries");
     }
 
     let expected_ids = enumerate_locked_core_scenarios()
@@ -317,9 +326,9 @@ mod tests {
     }
 
     #[test]
-    fn locked_core_manifest_expands_to_2160_scenarios() {
+    fn locked_core_manifest_expands_to_2700_scenarios() {
         let manifest = Phase2ExperimentManifest::locked_core();
-        assert_eq!(manifest.scenarios.len(), 2160);
+        assert_eq!(manifest.scenarios.len(), 2700);
     }
 
     #[test]
@@ -331,7 +340,7 @@ mod tests {
         );
         assert_eq!(
             manifest.scenarios.last().map(|s| s.scenario_id.as_str()),
-            Some("p2-core-largefiles-7z_lzma-tail_damage-tail-4KB-65535")
+            Some("p2-core-largefiles-tar_xz-tail_damage-tail-4KB-65535")
         );
     }
 
@@ -343,7 +352,7 @@ mod tests {
             assert!(scenario.scenario_id.starts_with("p2-core-"));
             assert!(ids.insert(scenario.scenario_id.clone()));
         }
-        assert_eq!(ids.len(), 2160);
+        assert_eq!(ids.len(), 2700);
     }
 
     #[test]

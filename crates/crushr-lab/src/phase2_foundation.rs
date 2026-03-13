@@ -45,34 +45,44 @@ impl FixtureDataset {
 pub enum ArchiveKind {
     #[serde(rename = "crushr")]
     Crushr,
-    #[serde(rename = "tar+zstd")]
-    TarZstd,
     #[serde(rename = "zip")]
     Zip,
-    #[serde(rename = "7z/lzma")]
-    SevenZLzma,
+    #[serde(rename = "tar+zstd")]
+    TarZstd,
+    #[serde(rename = "tar+gz")]
+    TarGz,
+    #[serde(rename = "tar+xz")]
+    TarXz,
 }
 
 impl ArchiveKind {
     pub fn ordered_locked_core() -> &'static [Self] {
-        &[Self::Crushr, Self::TarZstd, Self::Zip, Self::SevenZLzma]
+        &[
+            Self::Crushr,
+            Self::Zip,
+            Self::TarZstd,
+            Self::TarGz,
+            Self::TarXz,
+        ]
     }
 
     pub fn slug(self) -> &'static str {
         match self {
             Self::Crushr => "crushr",
-            Self::TarZstd => "tar_zstd",
             Self::Zip => "zip",
-            Self::SevenZLzma => "7z_lzma",
+            Self::TarZstd => "tar_zstd",
+            Self::TarGz => "tar_gz",
+            Self::TarXz => "tar_xz",
         }
     }
 
     fn output_file_name(self, dataset: FixtureDataset) -> String {
         match self {
             Self::Crushr => format!("{}.crs", dataset.slug()),
-            Self::TarZstd => format!("{}.tar.zst", dataset.slug()),
             Self::Zip => format!("{}.zip", dataset.slug()),
-            Self::SevenZLzma => format!("{}.7z", dataset.slug()),
+            Self::TarZstd => format!("{}.tar.zst", dataset.slug()),
+            Self::TarGz => format!("{}.tar.gz", dataset.slug()),
+            Self::TarXz => format!("{}.tar.xz", dataset.slug()),
         }
     }
 }
@@ -213,7 +223,15 @@ pub fn build_archives_for_dataset(
                 &observations_dir,
                 dataset,
             )?,
-            ArchiveKind::SevenZLzma => run_7z_build(
+            ArchiveKind::TarGz => run_tar_gz_build(
+                dataset_dir,
+                &files,
+                &output_path,
+                artifact_root,
+                &observations_dir,
+                dataset,
+            )?,
+            ArchiveKind::TarXz => run_tar_xz_build(
                 dataset_dir,
                 &files,
                 &output_path,
@@ -467,7 +485,7 @@ fn run_tar_zstd_build(
     Ok(zstd_record)
 }
 
-fn run_7z_build(
+fn run_tar_gz_build(
     dataset_dir: &Path,
     files: &[String],
     output_path: &Path,
@@ -475,29 +493,46 @@ fn run_7z_build(
     observations_dir: &Path,
     dataset: FixtureDataset,
 ) -> Result<CommandExecutionRecord> {
-    let program = detect_tool(["7z", "7za"]);
-    let Some(tool) = program else {
-        return Ok(skipped_record("7z", "7z/7za executable not found in PATH"));
-    };
+    if detect_tool(["tar"]).is_none() {
+        return Ok(skipped_record("tar", "tar executable not found in PATH"));
+    }
 
-    let mut cmd = Command::new(&tool);
-    cmd.current_dir(dataset_dir)
-        .arg("a")
-        .arg("-t7z")
-        .arg("-mx=7")
-        .arg(output_path);
+    let mut cmd = Command::new("tar");
+    cmd.current_dir(dataset_dir).arg("-czf").arg(output_path);
     for file in files {
         cmd.arg(file);
     }
     execute_command(
         artifact_root,
         observations_dir,
-        format!(
-            "{}_{}_build",
-            dataset.slug(),
-            ArchiveKind::SevenZLzma.slug()
-        ),
-        &tool,
+        format!("{}_{}_build", dataset.slug(), ArchiveKind::TarGz.slug()),
+        "tar",
+        cmd,
+    )
+}
+
+fn run_tar_xz_build(
+    dataset_dir: &Path,
+    files: &[String],
+    output_path: &Path,
+    artifact_root: &Path,
+    observations_dir: &Path,
+    dataset: FixtureDataset,
+) -> Result<CommandExecutionRecord> {
+    if detect_tool(["tar"]).is_none() {
+        return Ok(skipped_record("tar", "tar executable not found in PATH"));
+    }
+
+    let mut cmd = Command::new("tar");
+    cmd.current_dir(dataset_dir).arg("-cJf").arg(output_path);
+    for file in files {
+        cmd.arg(file);
+    }
+    execute_command(
+        artifact_root,
+        observations_dir,
+        format!("{}_{}_build", dataset.slug(), ArchiveKind::TarXz.slug()),
+        "tar",
         cmd,
     )
 }
