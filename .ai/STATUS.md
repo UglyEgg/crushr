@@ -2,9 +2,9 @@
 
 Current Phase: Phase 2 — Comparative Corruption Research
 
-Current Step: 2.1 cleanup complete (CRUSHR-P2-CLEAN-08 final Phase 2 control/doc hygiene pass after PHASE2_RESEARCH migration)
+Current Step: CRUSHR-P2-PRETRIAL-DET-01 complete (deterministic baseline archive generation for crushr-pack)
 
-Recent completed packet: CRUSHR-P2-CLEAN-08 (finalized active control/doc references to `PHASE2_RESEARCH/` and aligned next-step language to a pre-trial audit milestone)
+Recent completed packet: CRUSHR-P2-PRETRIAL-DET-01 (implemented deterministic baseline crushr-pack archive generation + focused determinism tests)
 
 ## Current truth
 
@@ -16,6 +16,7 @@ Recent completed packet: CRUSHR-P2-CLEAN-08 (finalized active control/doc refere
 - Cleanup packet CRUSHR-P2-CLEAN-03 is complete: established `PHASE2_RESEARCH/` as canonical Phase 2 workspace (`methodology/`, `manifests/`, `generated/`, `normalized/`, `summaries/`, `whitepaper_support/`), moved lock guidance to `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`, and migrated Phase 2 default output roots out of `docs/`.
 - Cleanup packet CRUSHR-P2-CLEAN-07 is complete: slimmed `crushr-lab` `main.rs` into command dispatch only; moved usage/workspace helpers into `cli.rs`, moved `corrupt` argument parsing/log emission into `phase2_corruption`, and moved `write-phase2-manifest` / `build-phase2-foundation` / `run-phase2-execution` command orchestration into their owning modules.
 - Cleanup packet CRUSHR-P2-CLEAN-08 is complete: removed stale control-doc path/process residue, added a concise Phase 2 operator path in `PHASE2_RESEARCH/README.md`, and aligned active docs on pre-trial audit as the next required milestone before Phase 2.2.
+- Pre-trial packet CRUSHR-P2-PRETRIAL-DET-01 is complete: `crushr-pack` now uses deterministic baseline rules (stable relative-path ordering, normalized `mode=0` and `mtime=0`, deterministic metadata emission with empty xattrs, and fixed zstd encoder flags with checksum off/content-size on/dict-id off) and has focused integration tests proving byte-identical repeated archives plus stable index ordering/metadata normalization.
 - Active machine-readable schemas are now tightened contracts for: `crushr-info` snapshot, `crushr-fsck` snapshot, `crushr-impact` report, extraction result, and propagation graph.
 - Integration tests now perform real JSON Schema instance-vs-schema validation for active outputs.
 
@@ -29,4 +30,4 @@ Recent completed packet: CRUSHR-P2-CLEAN-08 (finalized active control/doc refere
 
 ## Next action
 
-Run the Phase 2 pre-trial audit milestone across manifest/foundation/execution controls under `PHASE2_RESEARCH/`, then start Phase 2.2 comparative mapping/reporting.
+Run the Phase 2 pre-trial audit milestone across manifest/foundation/execution controls under `PHASE2_RESEARCH/` using deterministic baseline archives, then start Phase 2.2 comparative mapping/reporting.

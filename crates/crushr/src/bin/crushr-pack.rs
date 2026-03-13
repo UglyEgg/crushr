@@ -9,6 +9,21 @@ use std::path::{Path, PathBuf};
 
 const ZSTD_CODEC: u32 = 1;
 
+fn compress_deterministic(raw: &[u8], level: i32) -> Result<Vec<u8>> {
+    let mut encoder = zstd::Encoder::new(Vec::new(), level).context("create zstd encoder")?;
+    encoder
+        .include_checksum(false)
+        .context("set zstd checksum flag")?;
+    encoder
+        .include_contentsize(true)
+        .context("set zstd content-size flag")?;
+    encoder
+        .include_dictid(false)
+        .context("set zstd dict-id flag")?;
+    encoder.write_all(raw).context("zstd write")?;
+    encoder.finish().context("zstd finish")
+}
+
 #[derive(Debug)]
 struct InputFile {
     rel_path: String,
@@ -78,7 +93,7 @@ fn pack_minimal_v1(inputs: &[PathBuf], output: &Path, level: i32) -> Result<()> 
     for file in files {
         let raw = std::fs::read(&file.abs_path)
             .with_context(|| format!("read {}", file.abs_path.display()))?;
-        let compressed = zstd::bulk::compress(&raw, level)
+        let compressed = compress_deterministic(&raw, level)
             .with_context(|| format!("compress {}", file.abs_path.display()))?;
 
         let payload_hash = *blake3::hash(&compressed).as_bytes();
