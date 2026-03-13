@@ -15,12 +15,23 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ExecutionMetadata {
-    pub observed_command: String,
+    pub invocation: InvocationMetadata,
     pub source_archive_path: String,
     pub corrupted_archive_path: String,
     pub corruption_log_path: String,
     pub started_unix_ms: u128,
     pub finished_unix_ms: u128,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct InvocationMetadata {
+    pub tool_kind: ArchiveKind,
+    pub executable: String,
+    pub argv: Vec<String>,
+    pub cwd: Option<String>,
+    pub exit_status_code: i32,
+    pub stdout_artifact_path: String,
+    pub stderr_artifact_path: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -215,7 +226,14 @@ fn execute_scenario(
     )?;
 
     let mut cmd = observe_command(workspace_root, format, &corrupted_archive)?;
-    let observed_command = render_command(&cmd, format, &corrupted_archive);
+    let executable = cmd.get_program().to_string_lossy().to_string();
+    let argv = cmd
+        .get_args()
+        .map(|arg| arg.to_string_lossy().to_string())
+        .collect::<Vec<_>>();
+    let cwd = cmd
+        .get_current_dir()
+        .map(|path| path.to_string_lossy().to_string());
     let started_unix_ms = now_ms()?;
     let output = cmd
         .output()
@@ -226,6 +244,7 @@ fn execute_scenario(
     let stderr_path = scenario_dir.join("stderr.txt");
     fs::write(&stdout_path, &output.stdout)?;
     fs::write(&stderr_path, &output.stderr)?;
+    let exit_status_code = output.status.code().unwrap_or(-1);
 
     let json_result_path = maybe_write_json_result(&scenario_dir, &output.stdout)?;
     let tool_version = if let Some(existing) = version_cache.get(&format) {
@@ -244,13 +263,21 @@ fn execute_scenario(
         target_class: scenario.target_class,
         magnitude_bytes: scenario.magnitude_bytes,
         seed: scenario.seed,
-        exit_code: output.status.code().unwrap_or(-1),
+        exit_code: exit_status_code,
         stdout_path: rel_path(artifact_root, &stdout_path),
         stderr_path: rel_path(artifact_root, &stderr_path),
         json_result_path: json_result_path.map(|p| rel_path(artifact_root, &p)),
         tool_version,
         execution_metadata: ExecutionMetadata {
-            observed_command,
+            invocation: InvocationMetadata {
+                tool_kind: format,
+                executable,
+                argv,
+                cwd,
+                exit_status_code,
+                stdout_artifact_path: rel_path(artifact_root, &stdout_path),
+                stderr_artifact_path: rel_path(artifact_root, &stderr_path),
+            },
             source_archive_path: rel_path(artifact_root, &source_archive),
             corrupted_archive_path: rel_path(artifact_root, &corrupted_archive),
             corruption_log_path: rel_path(artifact_root, &corruption_log_path),
@@ -295,11 +322,10 @@ fn observe_command(
             Ok(cmd)
         }
         ArchiveKind::TarZstd => {
-            let mut cmd = Command::new("sh");
-            cmd.arg("-c").arg(format!(
-                "zstd -dc {} | tar -tf -",
-                shell_escape_path(archive_path)
-            ));
+            let mut cmd = Command::new("tar");
+            cmd.arg("--use-compress-program=zstd")
+                .arg("-tf")
+                .arg(archive_path);
             Ok(cmd)
         }
         ArchiveKind::SevenZLzma => {
@@ -372,27 +398,6 @@ fn detect_tool(names: &[&str]) -> Option<String> {
     None
 }
 
-fn render_command(cmd: &Command, format: ArchiveKind, archive_path: &Path) -> String {
-    if let Some(program) = cmd.get_program().to_str() {
-        let args = cmd
-            .get_args()
-            .map(|a| a.to_string_lossy().to_string())
-            .collect::<Vec<_>>()
-            .join(" ");
-        return format!("{program} {args}").trim().to_string();
-    }
-
-    match format {
-        ArchiveKind::TarZstd => format!("zstd -dc {} | tar -tf -", archive_path.display()),
-        _ => "<non-utf8 command>".to_string(),
-    }
-}
-
-fn shell_escape_path(path: &Path) -> String {
-    let raw = path.to_string_lossy();
-    format!("'{}'", raw.replace('\'', "'\\''"))
-}
-
 fn now_ms() -> Result<u128> {
     Ok(SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -450,7 +455,15 @@ mod tests {
             json_result_path: None,
             tool_version: "tool 1.0".to_string(),
             execution_metadata: ExecutionMetadata {
-                observed_command: "cmd".to_string(),
+                invocation: InvocationMetadata {
+                    tool_kind: ArchiveKind::Crushr,
+                    executable: "cargo".to_string(),
+                    argv: vec!["run".to_string()],
+                    cwd: Some("/workspace/crushr".to_string()),
+                    exit_status_code: 0,
+                    stdout_artifact_path: "raw/x/stdout.txt".to_string(),
+                    stderr_artifact_path: "raw/x/stderr.txt".to_string(),
+                },
                 source_archive_path: "archives/a".to_string(),
                 corrupted_archive_path: "raw/x/corrupt".to_string(),
                 corruption_log_path: "raw/x/log".to_string(),
