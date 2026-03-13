@@ -25,7 +25,7 @@
 - [x] 2.1 cleanup — slim `crushr-lab` main dispatch edge and relocate residual command logic to owner modules (CRUSHR-P2-CLEAN-07)
 - [x] 2.1 cleanup — final control/doc hygiene pass after `PHASE2_RESEARCH/` migration (CRUSHR-P2-CLEAN-08)
 - [x] 2.1 pre-trial reproducibility prep — deterministic baseline archive generation (CRUSHR-P2-PRETRIAL-DET-01)
-- [ ] 2.1 pre-trial audit milestone
+- [x] 2.1 pre-trial audit milestone (CRUSHR-P2-TRIAL-READY-01)
 - [ ] 2.2 Cross-Format Comparison
 - [ ] 2.3 Experimental Reporting
 

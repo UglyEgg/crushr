@@ -360,3 +360,11 @@
 - Implemented deterministic baseline archive generation in `crushr-pack`: stable lexicographic relative-path ordering, normalized metadata (`mode=0`, `mtime=0`, empty xattrs), and fixed zstd encoder flags (`checksum=false`, `content-size=true`, `dict-id=false`).
 - Added focused integration tests proving repeated runs over identical logical inputs produce byte-identical archives and that index entry ordering/metadata normalization are stable.
 - Updated architecture documentation to reflect implemented deterministic baseline archive-generation behavior.
+
+## 2026-03-13 — Phase 2, Step 2.1 pre-trial audit milestone (CRUSHR-P2-TRIAL-READY-01)
+
+- Added `crushr-lab run-phase2-pretrial-audit` command and a dedicated `phase2_audit` module for deterministic readiness checks before trial execution.
+- Implemented readiness checks for manifest/schema validity, locked matrix axis values, deterministic scenario count (2700), duplicate scenario IDs, truthful tool availability, support-file existence, and Phase 2 output-root writability.
+- Added machine-readable audit reporting (`pass/fail`, failing checks, summary, tool status, matrix summary, output-root status) with default artifact output `PHASE2_RESEARCH/generated/audit/phase2_pretrial_audit.json`.
+- Added focused tests for audit report serialization, wrong-scenario-count and duplicate-ID detection, and a local happy-path audit construction.
+- Updated `PHASE2_RESEARCH/README.md` operator path to include the implemented pre-trial audit command.
