@@ -12,14 +12,24 @@ Canonical workspace for all Phase 2 research materials.
 - `normalized/` — normalized cross-tool result contracts and mapped records
 - `summaries/` — aggregate tables/CSVs and publication-facing summary views
 - `whitepaper_support/` — figures, tables, and source support files for whitepaper claims
+- `outputs/` — operator-side machine-readable checkpoints (for example pre-trial audit snapshots)
 
-## Phase 2 operator path
+## Canonical Phase 2 operator flow
 
-1. Generate manifest: `crushr-lab write-phase2-manifest --output PHASE2_RESEARCH/manifests/phase2_manifest.json`
-2. Build foundation: `crushr-lab build-phase2-foundation --manifest PHASE2_RESEARCH/manifests/phase2_manifest.json`
-3. Run pre-trial audit: verify `PHASE2_RESEARCH/generated/foundation/foundation_report.json` and output path readiness before execution
-4. Run execution: `crushr-lab run-phase2-execution --manifest PHASE2_RESEARCH/manifests/phase2_manifest.json --foundation-report PHASE2_RESEARCH/generated/foundation/foundation_report.json`
-5. Inspect outputs: raw evidence in `PHASE2_RESEARCH/generated/execution/`, normalized mappings in `PHASE2_RESEARCH/normalized/`, summaries in `PHASE2_RESEARCH/summaries/`
+1. Generate manifest:
+   `crushr-lab write-phase2-manifest --output PHASE2_RESEARCH/manifests/phase2_core_manifest.json`
+2. Run pre-trial audit gate:
+   `crushr-lab run-phase2-pretrial-audit --manifest PHASE2_RESEARCH/manifests/phase2_core_manifest.json --output PHASE2_RESEARCH/outputs/pretrial_audit.json`
+3. Build foundation artifacts:
+   `crushr-lab build-phase2-foundation --artifact-dir PHASE2_RESEARCH/generated/foundation`
+4. Run execution matrix:
+   `crushr-lab run-phase2-execution --manifest PHASE2_RESEARCH/manifests/phase2_core_manifest.json --foundation-report PHASE2_RESEARCH/generated/foundation/foundation_report.json --artifact-dir PHASE2_RESEARCH/generated/execution`
+5. Inspect outputs:
+   - audit report: `PHASE2_RESEARCH/outputs/pretrial_audit.json`
+   - foundation report + fixtures: `PHASE2_RESEARCH/generated/foundation/`
+   - raw execution evidence: `PHASE2_RESEARCH/generated/execution/`
+   - normalized mappings: `PHASE2_RESEARCH/normalized/`
+   - summary tables: `PHASE2_RESEARCH/summaries/`
 
 ## Policy boundary
 

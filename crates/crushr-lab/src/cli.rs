@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
-pub const USAGE: &str = "usage:\n  crushr-lab corrupt <input> <output> [--model <bit_flip|byte_overwrite|zero_fill|truncation|tail_damage> --target <header|index|payload|tail> --magnitude <1B|256B|4KB> --seed <1337|2600|65535> --scenario-id <id> [--offset <u64>]]\n  crushr-lab write-phase2-manifest [--output <path>]\n  crushr-lab build-phase2-foundation [--artifact-dir <path>]\n  crushr-lab run-phase2-execution [--manifest <path> --foundation-report <path> --artifact-dir <path>]";
+pub const USAGE: &str = "usage:\n  crushr-lab corrupt <input> <output> [--model <bit_flip|byte_overwrite|zero_fill|truncation|tail_damage> --target <header|index|payload|tail> --magnitude <1B|256B|4KB> --seed <1337|2600|65535> --scenario-id <id> [--offset <u64>]]\n  crushr-lab write-phase2-manifest [--output <path>]\n  crushr-lab build-phase2-foundation [--artifact-dir <path>]\n  crushr-lab run-phase2-execution [--manifest <path> --foundation-report <path> --artifact-dir <path>]
+  crushr-lab run-phase2-pretrial-audit [--manifest <path> --output <path>]";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Command {
@@ -9,6 +10,7 @@ pub enum Command {
     WritePhase2Manifest,
     BuildPhase2Foundation,
     RunPhase2Execution,
+    RunPhase2PretrialAudit,
 }
 
 impl Command {
@@ -18,6 +20,7 @@ impl Command {
             "write-phase2-manifest" => Some(Self::WritePhase2Manifest),
             "build-phase2-foundation" => Some(Self::BuildPhase2Foundation),
             "run-phase2-execution" => Some(Self::RunPhase2Execution),
+            "run-phase2-pretrial-audit" => Some(Self::RunPhase2PretrialAudit),
             _ => None,
         }
     }
@@ -42,6 +45,10 @@ mod tests {
     #[test]
     fn command_parsing_handles_known_and_unknown_commands() {
         assert_eq!(Command::from_str("corrupt"), Some(Command::Corrupt));
+        assert_eq!(
+            Command::from_str("run-phase2-pretrial-audit"),
+            Some(Command::RunPhase2PretrialAudit)
+        );
         assert_eq!(Command::from_str(""), None);
         assert_eq!(Command::from_str("unknown"), None);
     }

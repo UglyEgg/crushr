@@ -354,3 +354,12 @@
 
 - Added workspace cargo config `.cargo/config.toml` with rustc flag `-A unknown-lints` so required command `cargo clippy --workspace --all-targets -- -D warning` runs without unknown-lint diagnostic noise.
 
+
+
+## 2026-03-13 — Phase 2, Step 2.1 pre-trial audit milestone (CRUSHR-P2-TRIAL-READY-01)
+
+- Added `crates/crushr-lab/src/phase2_audit.rs` and new `crushr-lab run-phase2-pretrial-audit` command path to perform deterministic readiness checks before Phase 2 matrix execution.
+- Audit checks now cover manifest schema/shape validity, locked 2700-scenario matrix semantics (ordering/comparator set and scenario-ID completeness), required file/schema presence, writable `PHASE2_RESEARCH/*` roots, and truthful comparator-tool availability.
+- Added machine-readable audit report contract (`phase2_pretrial_readiness_v1`) with pass/fail, failing check names, categorized failures, tool statuses, output-root statuses, locked matrix summary, and compact readiness summary; default snapshot path is `PHASE2_RESEARCH/outputs/pretrial_audit.json`.
+- Updated `PHASE2_RESEARCH/README.md` with canonical operator flow covering pre-trial audit, manifest generation, foundation build, execution run, and output locations.
+- Added focused audit tests for serialization/readiness summary, duplicate-ID failures, missing-support-file failures, and unwritable output-root checks.
