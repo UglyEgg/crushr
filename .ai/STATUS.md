@@ -2,9 +2,9 @@
 
 Current Phase: Phase 2 — Comparative Corruption Research
 
-Current Step: 2.1 cleanup complete (CRUSHR-P2-CLEAN-06 unified Phase 2 domain model across manifest/foundation/runner)
+Current Step: 2.1 cleanup complete (CRUSHR-P2-CLEAN-07 slimmed crushr-lab main dispatch edge and moved residual command logic into Phase 2 modules)
 
-Recent completed packet: CRUSHR-P2-CLEAN-06 (introduced shared `phase2_domain` model and removed manifest↔foundation↔runner translation seams)
+Recent completed packet: CRUSHR-P2-CLEAN-07 (reduced `crushr-lab` `main.rs` to thin dispatch and moved command parsing/execution logic into `cli`/`phase2_*` modules)
 
 ## Current truth
 
@@ -14,6 +14,7 @@ Recent completed packet: CRUSHR-P2-CLEAN-06 (introduced shared `phase2_domain` m
 - Cleanup packet CRUSHR-P2-CLEAN-01 is complete: deleted packet-era scaffold experiment commands/helpers/tests and reduced `crushr-lab` main dispatch/help surface to `corrupt`, `write-phase2-manifest`, `build-phase2-foundation`, and `run-phase2-execution`.
 - Cleanup packet CRUSHR-P2-CLEAN-02 is complete: replaced hand-authored command prose (`observed_command`) in `RawRunRecord.execution_metadata` with structured invocation metadata (`tool_kind`, executable, argv, cwd, exit status, stdout/stderr artifact paths) captured directly from the real `Command` invocation before/after execution.
 - Cleanup packet CRUSHR-P2-CLEAN-03 is complete: established `PHASE2_RESEARCH/` as canonical Phase 2 workspace (`methodology/`, `manifests/`, `generated/`, `normalized/`, `summaries/`, `whitepaper_support/`), moved lock guidance to `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`, and migrated Phase 2 default output roots out of `docs/`.
+- Cleanup packet CRUSHR-P2-CLEAN-07 is complete: slimmed `crushr-lab` `main.rs` into command dispatch only; moved usage/workspace helpers into `cli.rs`, moved `corrupt` argument parsing/log emission into `phase2_corruption`, and moved `write-phase2-manifest` / `build-phase2-foundation` / `run-phase2-execution` command orchestration into their owning modules.
 - Active machine-readable schemas are now tightened contracts for: `crushr-info` snapshot, `crushr-fsck` snapshot, `crushr-impact` report, extraction result, and propagation graph.
 - Integration tests now perform real JSON Schema instance-vs-schema validation for active outputs.
 

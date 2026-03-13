@@ -1,6 +1,8 @@
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::fs;
+use std::path::PathBuf;
 
 use crate::phase2_domain::{
     locked_core_scenario_id, ArchiveFormat, CorruptionType, Dataset, Magnitude, TargetClass,
@@ -11,6 +13,41 @@ pub const PHASE2_MANIFEST_SCHEMA_PATH: &str =
     "schemas/crushr-lab-experiment-manifest.phase2.v1.schema.json";
 pub const PHASE2_MANIFEST_SCHEMA_ID: &str =
     "https://crushr.dev/schemas/crushr-lab-experiment-manifest.phase2.v1.schema.json";
+
+pub fn write_phase2_manifest(raw_args: Vec<String>) -> Result<()> {
+    let mut args = raw_args.into_iter();
+    let mut output =
+        crate::cli::workspace_root()?.join("PHASE2_RESEARCH/manifests/phase2_core_manifest.json");
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--output" => {
+                output = PathBuf::from(args.next().context("missing value for --output")?);
+            }
+            _ => bail!("unsupported flag: {arg}"),
+        }
+    }
+
+    if let Some(parent) = output.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let mut manifest = serde_json::to_value(Phase2ExperimentManifest::locked_core())?;
+    manifest
+        .as_object_mut()
+        .context("phase2 manifest value must be object")?
+        .insert(
+            "$schema".to_string(),
+            serde_json::Value::String(PHASE2_MANIFEST_SCHEMA_ID.to_string()),
+        );
+
+    validate_manifest_shape(&manifest)?;
+    fs::write(output, serde_json::to_vec_pretty(&manifest)?)?;
+    eprintln!(
+        "wrote locked Phase 2 manifest using schema {}",
+        PHASE2_MANIFEST_SCHEMA_PATH
+    );
+    Ok(())
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Phase2Scenario {

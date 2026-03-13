@@ -21,6 +21,7 @@ Phase 2.2 — cross-format comparison and normalized result mapping from Phase 2
 
 ## Recently completed
 
+- CRUSHR-P2-CLEAN-07: reduced `crushr-lab/src/main.rs` to thin top-level dispatch; moved command-specific parsing/execution into `cli.rs`, `phase2_corruption.rs`, `phase2_manifest.rs`, `phase2_foundation.rs`, and `phase2_runner.rs` with behavior-preserving defaults/help.
 - CRUSHR-CLEANUP-2.0-C finished: active schemas are now strict contracts and validated with JSON Schema in integration tests.
 - CRUSHR-CLEANUP-2.0-D finished: extraction report assembly/refusal classification moved to `crushr-core::extraction`; `crushr-info` structural-failure report assembly now uses shared propagation helper.
 - CRUSHR-P2.1-A finished: typed manifest/scenario model, deterministic scenario IDs and enumeration (2700), schema file, and validation tests are in place.

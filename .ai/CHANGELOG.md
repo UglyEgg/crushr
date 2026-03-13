@@ -1,3 +1,10 @@
+## 2026-03-13 — Phase 2, Step 2.1 cleanup (CRUSHR-P2-CLEAN-07: slim crushr-lab main dispatch edge)
+
+- Reduced `crates/crushr-lab/src/main.rs` to command parsing + dispatch + top-level usage/exit behavior only.
+- Added `crates/crushr-lab/src/cli.rs` for shared command parsing (`Command` enum), usage text, and workspace-root resolution.
+- Moved `corrupt` command parsing/logging helpers and alias/target/magnitude parsing into `phase2_corruption.rs`; retained existing behavior/defaults and parsing tests there.
+- Moved write/build/run command orchestration wrappers into owning Phase 2 modules (`phase2_manifest`, `phase2_foundation`, `phase2_runner`) so `main.rs` no longer contains packet-grown helper logic.
+
 # .ai/CHANGELOG.md
 
 ## 2026-03-13 — Phase 2, Step 2.1 cleanup (CRUSHR-P2-CLEAN-06 domain model unification)
