@@ -22,7 +22,7 @@ Recent completed packet: CRUSHR-P2-CLEAN-04 follow-up (resolved required clippy 
 - Minimal v1 scope: regular files, one block per file.
 - No speculative recovery/reconstruction/repair.
 - Strict extraction semantics remain canonical.
-- Workspace cargo config now sets rustc flag `-Aunknown-lints` so required command `cargo clippy --workspace --all-targets -- -D warning` does not emit command-line unknown-lint noise.
+- Workspace cargo config now sets rustc flag `-A unknown-lints` so required command `cargo clippy --workspace --all-targets -- -D warning` does not emit command-line unknown-lint noise.
 - `schemas/crushr-impact.v1.schema.json` remains active as a nested contract dependency (used by fsck blast-radius payload and direct impact report typing); no obsolete schema was deleted in this packet.
 
 ## Next action

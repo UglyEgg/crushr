@@ -210,7 +210,7 @@
 ## 2026-03-13 — CRUSHR-P2-CLEAN-04 follow-up: suppress command-line unknown-lint diagnostic for required clippy invocation
 
 - Decision:
-  - Add workspace cargo config rustflag `-Aunknown-lints` to align required command `cargo clippy --workspace --all-targets -- -D warning` with clean output expectations.
+  - Add workspace cargo config rustflag `-A unknown-lints` to align required command `cargo clippy --workspace --all-targets -- -D warning` with clean output expectations.
 - Alternatives:
   1. Keep command as-is and accept warning output.
   2. Change required command to `-D warnings` (not permitted by packet requirement).

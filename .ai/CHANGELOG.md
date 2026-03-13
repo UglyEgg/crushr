@@ -332,5 +332,5 @@
 
 ## 2026-03-13 — Phase 2, Step cleanup (CRUSHR-P2-CLEAN-04 follow-up)
 
-- Added workspace cargo config `.cargo/config.toml` with rustc flag `-Aunknown-lints` so required command `cargo clippy --workspace --all-targets -- -D warning` runs without unknown-lint diagnostic noise.
+- Added workspace cargo config `.cargo/config.toml` with rustc flag `-A unknown-lints` so required command `cargo clippy --workspace --all-targets -- -D warning` runs without unknown-lint diagnostic noise.
 

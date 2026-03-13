@@ -1,2 +1,2 @@
 [build]
-rustflags = ["-Aunknown-lints"]
+rustflags = ["-A", "unknown-lints"]
