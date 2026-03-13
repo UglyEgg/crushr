@@ -368,3 +368,9 @@
 - Added machine-readable audit reporting (`pass/fail`, failing checks, summary, tool status, matrix summary, output-root status) with default artifact output `PHASE2_RESEARCH/generated/audit/phase2_pretrial_audit.json`.
 - Added focused tests for audit report serialization, wrong-scenario-count and duplicate-ID detection, and a local happy-path audit construction.
 - Updated `PHASE2_RESEARCH/README.md` operator path to include the implemented pre-trial audit command.
+
+## 2026-03-13 — Phase 2 execution freeze (CRUSHR-P2-EXEC-01)
+
+- Generated and froze canonical Phase 2 manifest at `PHASE2_RESEARCH/manifest/phase2_manifest.json` using `crushr-lab write-phase2-manifest` with the locked core matrix.
+- Emitted `PHASE2_RESEARCH/manifest/manifest_summary.json` capturing scenario count and locked dataset/format/corruption/seed lists for operator quick-checks.
+- Verified manifest contract properties for the frozen artifact: deterministic ordering, stable scenario IDs, no duplicate IDs, and exact 2700 scenario count.

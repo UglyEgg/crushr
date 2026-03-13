@@ -2,9 +2,9 @@
 
 Current Phase: Phase 2 — Comparative Corruption Research
 
-Current Step: CRUSHR-P2-TRIAL-READY-01 complete (pre-trial audit command + deterministic readiness checks)
+Current Step: CRUSHR-P2-EXEC-01 complete (canonical Phase 2 scenario manifest freeze)
 
-Recent completed packet: CRUSHR-P2-TRIAL-READY-01 (added run-phase2-pretrial-audit gate, machine-readable audit report, focused readiness tests, and operator-path update)
+Recent completed packet: CRUSHR-P2-EXEC-01 (generated and froze canonical locked-core manifest + summary for Phase 2 trial execution contract)
 
 ## Current truth
 
@@ -18,6 +18,7 @@ Recent completed packet: CRUSHR-P2-TRIAL-READY-01 (added run-phase2-pretrial-aud
 - Cleanup packet CRUSHR-P2-CLEAN-08 is complete: removed stale control-doc path/process residue, added a concise Phase 2 operator path in `PHASE2_RESEARCH/README.md`, and aligned active docs on pre-trial audit as the next required milestone before Phase 2.2.
 - Pre-trial packet CRUSHR-P2-PRETRIAL-DET-01 is complete: `crushr-pack` now uses deterministic baseline rules (stable relative-path ordering, normalized `mode=0` and `mtime=0`, deterministic metadata emission with empty xattrs, and fixed zstd encoder flags with checksum off/content-size on/dict-id off) and has focused integration tests proving byte-identical repeated archives plus stable index ordering/metadata normalization.
 - Pre-trial packet CRUSHR-P2-TRIAL-READY-01 is complete: added `crushr-lab run-phase2-pretrial-audit` to validate manifest/schema shape, locked core matrix axes, deterministic scenario count (2700), duplicate scenario IDs, truthful tool availability (`crushr`, `zip`, `tar+zstd`, `tar+gz`, `tar+xz`), required support files, and writable Phase 2 output roots; command emits `PHASE2_RESEARCH/generated/audit/phase2_pretrial_audit.json` and fails on any readiness check failure.
+- Execution packet CRUSHR-P2-EXEC-01 is complete: generated and froze `PHASE2_RESEARCH/manifest/phase2_manifest.json` from the existing `write-phase2-manifest` generator, emitted `PHASE2_RESEARCH/manifest/manifest_summary.json`, and verified deterministic ordering, stable scenario IDs, uniqueness, and exact 2700-scenario cardinality.
 - Active machine-readable schemas are now tightened contracts for: `crushr-info` snapshot, `crushr-fsck` snapshot, `crushr-impact` report, extraction result, and propagation graph.
 - Integration tests now perform real JSON Schema instance-vs-schema validation for active outputs.
 
@@ -31,4 +32,4 @@ Recent completed packet: CRUSHR-P2-TRIAL-READY-01 (added run-phase2-pretrial-aud
 
 ## Next action
 
-Start Phase 2.2 comparative mapping/reporting on top of the now-implemented pre-trial audit gate and deterministic baseline generation controls.
+Start Phase 2.2 comparative mapping/reporting on top of the frozen canonical execution manifest and the pre-trial audit gate.
