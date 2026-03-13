@@ -170,7 +170,10 @@ pub fn parse_tail_frame(frame_bytes: &[u8]) -> Result<TailFrameParts> {
         );
 
         // Ensure reader consumed exactly the component and there are no extra bytes in the slice.
-        ensure!(rdr.position() as usize == slice.len(), "LDG1 trailing bytes");
+        ensure!(
+            rdr.position() as usize == slice.len(),
+            "LDG1 trailing bytes"
+        );
 
         // Preserve parsed blob.
         blob.hash = footer.ledger_hash;

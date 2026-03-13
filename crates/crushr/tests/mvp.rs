@@ -27,11 +27,7 @@ fn pack_list_extract_roundtrip() {
     {
         use std::os::unix::fs::PermissionsExt;
         fs::set_permissions(in_dir.join("a.txt"), fs::Permissions::from_mode(0o644)).unwrap();
-        fs::set_permissions(
-            in_dir.join("sub/b.json"),
-            fs::Permissions::from_mode(0o644),
-        )
-        .unwrap();
+        fs::set_permissions(in_dir.join("sub/b.json"), fs::Permissions::from_mode(0o644)).unwrap();
     }
 
     let archive = td.path().join("test.crs");

@@ -15,13 +15,42 @@ Canonical workspace for all Phase 2 research materials.
 
 ## Phase 2 operator path
 
-1. Generate manifest: `crushr-lab write-phase2-manifest --output PHASE2_RESEARCH/manifests/phase2_manifest.json`
-2. Build foundation: `crushr-lab build-phase2-foundation --manifest PHASE2_RESEARCH/manifests/phase2_manifest.json`
-3. Run pre-trial audit: verify `PHASE2_RESEARCH/generated/foundation/foundation_report.json` and output path readiness before execution
-4. Run execution: `crushr-lab run-phase2-execution --manifest PHASE2_RESEARCH/manifests/phase2_manifest.json --foundation-report PHASE2_RESEARCH/generated/foundation/foundation_report.json`
-5. Inspect outputs: raw evidence in `PHASE2_RESEARCH/generated/execution/`, normalized mappings in `PHASE2_RESEARCH/normalized/`, summaries in `PHASE2_RESEARCH/summaries/`
+1. Generate manifest (default path shown explicitly): `crushr-lab write-phase2-manifest --output PHASE2_RESEARCH/manifests/phase2_core_manifest.json`
+2. Build foundation: `crushr-lab build-phase2-foundation --artifact-dir PHASE2_RESEARCH/generated/foundation`
+3. Run execution: `crushr-lab run-phase2-execution --manifest PHASE2_RESEARCH/manifests/phase2_core_manifest.json --foundation-report PHASE2_RESEARCH/generated/foundation/foundation_report.json --artifact-dir PHASE2_RESEARCH/generated/execution`
+4. Inspect outputs: raw evidence in `PHASE2_RESEARCH/generated/execution/`, normalized mappings in `PHASE2_RESEARCH/normalized/`, summaries in `PHASE2_RESEARCH/summaries/`
+5. Pre-trial audit is the next planned gate and is not yet part of the implemented CLI in this snapshot.
 
 ## Policy boundary
 
 Product-facing docs remain under `docs/`.
 Generated Phase 2 research state and artifacts must not be written into `docs/`.
+
+## Experimental Evidence Model
+
+The Phase-2 trials generate a complete experimental evidence corpus.
+
+Each scenario is defined by a deterministic manifest entry:
+
+- dataset
+- archive format
+- corruption type
+- corruption target
+- corruption magnitude
+- seed
+
+From this manifest the system produces:
+
+1. raw execution records
+2. normalized result records
+3. audit reports verifying trial completeness
+
+All outputs are machine-readable.
+
+This ensures that:
+
+- every result in the white paper can be traced to raw data
+- missing runs are detected
+- the experiment can be rerun in the future
+
+This design intentionally prioritizes reproducibility over convenience.

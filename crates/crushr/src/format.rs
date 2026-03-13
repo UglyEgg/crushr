@@ -82,7 +82,6 @@ pub fn is_probably_incompressible(path: &str) -> bool {
         ".flac",
         ".pdf",
         ".zip",
-        ".7z",
         ".rar",
         ".gz",
         ".xz",

@@ -57,24 +57,20 @@
   - Introduces a stable JSON boundary (`docs/SNAPSHOT_FORMAT.md`) and schemas under `schemas/`.
   - TUI and tools must evolve snapshots in a versioned, backward-compatible way.
 
-
 ## 2026-03-08 — Recovery policy: detect and isolate only
 
 - Decision: `fsck` detects and isolates corruption; it does not attempt reconstruction. Raw compressed blast-zone payload bytes may be dumped, and decompressed dumps are emitted only when verification passes.
 - Rationale: preserves clarity, avoids ambiguous output, and keeps crushr out of the parity/reconstruction space.
-
 
 ## 2026-03-08 — Dictionary placement is per tail frame
 
 - Decision: DCT1 is embedded per tail frame so each tail frame is self-contained for decode. Dictionary entries carry BLAKE3 hashes.
 - Rationale: improves tail survivability without relying on external dictionary state.
 
-
 ## 2026-03-08 — TUI supports live and snapshot modes
 
 - Decision: TUI is planned for both live archive access and versioned snapshot loading.
 - Rationale: easier offline analysis, reproducible demos, and lower coupling.
-
 
 ## 2026-03-08 — Adaptive planning starts opt-in
 
@@ -114,7 +110,6 @@
   - Propagation schema/contract/tests and `crushr-info` report consumers must adopt renamed fields.
   - No extraction behavior or archive format changes.
 
-
 ## 2026-03-12 — CRUSHR-1.1-B follow-up: structural-current-state propagation fallback implemented
 
 - Decision:
@@ -126,8 +121,6 @@
 - Blast radius:
   - Propagation field semantics return to current-state structural reporting (`corrupted_structure_nodes`, `actual_impacts_from_current_corruption`).
   - Extraction JSON/schema/docs no longer include salvage fields.
-
-
 
 ## 2026-03-12 — CRUSHR-CLEANUP-2.0-A: remove remaining legacy recovery/salvage surfaces
 
@@ -159,7 +152,6 @@
   - Documentation-only contract/control cleanup; no product behavior change.
   - Fresh contributors now have one deterministic reading path.
 
-
 ## 2026-03-12 — CRUSHR-P2.1-A: deterministic Phase 2 scenario IDs and enumeration order locked
 
 - Decision:
@@ -190,7 +182,6 @@
   - Default paths for `crushr-lab` Phase 2 commands changed; operators relying on old defaults must use explicit flags or migrate to new root.
   - Repo docs/control references now point to `PHASE2_RESEARCH/` as canonical Phase 2 workspace.
 
-
 ## 2026-03-13 — CRUSHR-P2-CLEAN-04: replace 7z comparator with tar.gz and tar.xz in locked core matrix
 
 - Decision:
@@ -206,7 +197,6 @@
   - Phase 2 manifest/schema enums, scenario count/ordering tests, foundation archive build logic, runner observation/version probes, and lock docs now align on the 5-format set.
   - Any downstream artifacts/scripts assuming 2160 scenarios or 7z comparator names must migrate to 2700 and tar variants.
 
-
 ## 2026-03-13 — CRUSHR-P2-CLEAN-04 follow-up: suppress command-line unknown-lint diagnostic for required clippy invocation
 
 - Decision:
@@ -219,3 +209,60 @@
 - Blast radius:
   - Affects lint-diagnostic behavior only; no runtime/archive-contract behavior changes.
 
+## 2026-03-13 — Phase-2 Evidence Pipeline Required for White-Paper Trials
+
+- Status: Accepted
+- Rationale:
+  - The credibility of the white paper depends on producing reproducible and auditable experimental results.
+- Decision:
+  - The repository will implement a formal experimental evidence system including:
+    - deterministic scenario manifests
+    - raw execution records
+    - normalized result schema
+    - completeness auditing
+    - reproducibility metadata
+- Scope constraint:
+  - This system governs experimental methodology only and does not modify the crushr archive format.
+
+## 2026-03-13 — White-paper baseline scope excludes recoverability, random access, and deduplication
+
+- Status: Accepted
+- Decision:
+  - The baseline Phase-2 white-paper evaluation remains limited to the current crushr implementation.
+  - The following capabilities are explicitly deferred until after the white-paper trials:
+    - recoverable archive extraction
+    - true random-access extraction
+    - built-in deduplication
+- Rationale:
+  - Each of these features would materially change archive structure, corruption semantics, or extraction behavior.
+  - Adding them before trials would weaken the validity of the baseline comparison corpus.
+- Blast radius:
+  - Planning and roadmap only.
+  - No baseline format or trial-matrix behavior changes.
+
+## 2026-03-13 — Deterministic archive generation included before white-paper trials
+
+- Status: Accepted
+- Decision:
+  - Include minimal deterministic archive generation before the white-paper trials.
+  - The deterministic rules are limited to:
+    1. deterministic file ordering
+    2. normalized timestamps
+    3. normalized permissions
+    4. deterministic compression parameters
+    5. deterministic metadata ordering
+- Rationale:
+  - Reproducible archives strengthen the experimental methodology and trust in published results without changing corruption semantics.
+- Scope constraint:
+  - Implementation must not alter archive structure or corruption semantics.
+
+## 2026-03-13 — V2 architectural direction locks content-addressed block identity
+
+- Status: Accepted
+- Decision:
+  - The long-term v2 direction for crushr is content-addressed block identity with deterministic on-disk indexing over content identities.
+  - File records should ultimately reference verified block identities rather than positional-only storage.
+- Rationale:
+  - This gives recoverability, random access, and deduplication a coherent architectural foundation instead of layering them onto positional assumptions.
+- Scope constraint:
+  - This is roadmap/architecture guidance only and must not create ambiguity in the baseline white-paper implementation.

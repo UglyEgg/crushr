@@ -122,7 +122,7 @@ pub fn run_phase2_execution(
 
     let mut archive_index = HashMap::new();
     for build in &foundation.archive_builds {
-        archive_index.insert((build.dataset, build.archive_kind), build);
+        archive_index.insert((build.dataset, build.archive_format), build);
     }
 
     let mut version_cache = HashMap::new();

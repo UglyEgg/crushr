@@ -27,3 +27,45 @@
 - [ ] 2.1 pre-trial audit milestone
 - [ ] 2.2 Cross-Format Comparison
 - [ ] 2.3 Experimental Reporting
+
+## Phase 2 — Experimental Evidence System (White-Paper Critical)
+
+Purpose:
+
+Ensure the Phase-2 corruption trials produce a fully auditable research corpus suitable for white-paper publication.
+
+This layer is not a format feature. It is a research evidence pipeline.
+
+Required components:
+
+1. locked scenario manifest
+2. raw per-run execution record
+3. normalized result schema
+4. trial completeness audit
+5. reproducibility metadata
+
+Goals:
+
+- every experimental scenario has a deterministic ID
+- every run produces machine-readable records
+- every summary result can be traced back to raw execution
+- missing or duplicate runs are detected automatically
+- the experiment can be rerun later with identical inputs
+
+This system is required before the white-paper trials begin.
+
+Implementation reference:
+
+- `CRUSHR-P2-TRIAL-READY-01`
+
+## Post-Paper Feature Direction (planned, not active scope)
+
+The following capabilities are explicitly preserved for post-paper work and must not alter baseline Phase-2 trial scope:
+
+- recoverable archive extraction
+- true random-access extraction
+- built-in deduplication
+
+## Pre-Paper Feature Addition
+
+Before white-paper trials, the baseline implementation may include minimal deterministic archive generation so long as it does not alter archive structure or corruption semantics.

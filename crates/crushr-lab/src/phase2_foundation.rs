@@ -79,7 +79,7 @@ pub struct CommandExecutionRecord {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArchiveBuildRecord {
     pub dataset: Dataset,
-    pub archive_kind: ArchiveFormat,
+    pub archive_format: ArchiveFormat,
     pub output_path: String,
     pub build: CommandExecutionRecord,
 }
@@ -139,9 +139,9 @@ pub fn build_archives_for_dataset(
     let files = collect_relative_files(dataset_dir)?;
     let mut records = Vec::new();
 
-    for archive_kind in ArchiveFormat::ordered_locked_core() {
-        let output_path = archives_dir.join(archive_kind.output_file_name(dataset));
-        let build = match archive_kind {
+    for archive_format in ArchiveFormat::ordered_locked_core() {
+        let output_path = archives_dir.join(archive_format.output_file_name(dataset));
+        let build = match archive_format {
             ArchiveFormat::Crushr => run_crushr_pack(
                 workspace_root,
                 dataset_dir,
@@ -187,7 +187,7 @@ pub fn build_archives_for_dataset(
 
         records.push(ArchiveBuildRecord {
             dataset,
-            archive_kind: *archive_kind,
+            archive_format: *archive_format,
             output_path: rel_path(artifact_root, &output_path),
             build,
         });
@@ -696,7 +696,7 @@ mod tests {
                         .iter()
                         .map(|kind| ArchiveBuildRecord {
                             dataset: *dataset,
-                            archive_kind: *kind,
+                            archive_format: *kind,
                             output_path: format!("archives/{}_{}.out", dataset.slug(), kind.slug()),
                             build: skipped_record("test", "not executed"),
                         })

@@ -6,6 +6,8 @@ crushr is an integrity-first archival compression container and tool suite.
 
 It is built around one core promise: when corruption occurs, the system reports what is trustworthy and what is not, deterministically.
 
+This repository contains the baseline crushr format evaluated in the Phase-2 white-paper trials.
+
 ## Read first
 
 Canonical reading/authority path:
@@ -20,10 +22,12 @@ Canonical reading/authority path:
 8. `.ai/DECISION_LOG.md`
 9. `SPEC.md`
 10. `docs/ARCHITECTURE.md`
-11. `docs/SNAPSHOT_FORMAT.md`
-12. `docs/CONTRACTS/README.md`
-13. `PHASE2_RESEARCH/README.md`
-14. `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`
+11. `docs/ARCHITECTURE_V2.md`
+12. `docs/SNAPSHOT_FORMAT.md`
+13. `docs/CONTRACTS/README.md`
+14. `PHASE2_RESEARCH/README.md`
+15. `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`
+16. `docs/ROADMAP.md`
 
 ## What is active
 
@@ -45,3 +49,11 @@ Canonical reading/authority path:
 - recovery/salvage/reconstruction workflows
 - parity-based repair systems
 - generic replacement for zip or tar-family formats
+
+## White-paper baseline and future direction
+
+The white-paper trials evaluate the baseline crushr format as currently implemented.
+
+Planned future capabilities such as recoverable extraction, true random access, and deduplication are intentionally deferred until after the baseline trial phase so the published results remain methodologically clean.
+
+The locked long-term v2 direction is content-addressed block identity with deterministic on-disk indexing. See `docs/ARCHITECTURE_V2.md` and `docs/ROADMAP.md`.
