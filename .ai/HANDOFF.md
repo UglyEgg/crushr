@@ -31,6 +31,7 @@ Phase 2.2 — cross-format comparison and normalized result mapping from Phase 2
 - CRUSHR-P2-CLEAN-03 finished: canonical Phase 2 workspace now lives at `PHASE2_RESEARCH/`; defaults for manifest/foundation/execution outputs no longer target `docs/RESEARCH/artifacts/`, and lock guidance now lives in `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`.
 - CRUSHR-P2-CLEAN-04 finished: Phase 2 locked comparator set is now `crushr`, `zip`, `tar+zstd`, `tar+gz`, `tar+xz`; 7z/lzma is removed from manifest/schema/foundation/runner/docs/tests and core scenario count is now 2700.
 - CRUSHR-P2-CLEAN-04 follow-up finished: required clippy invocation diagnostic is resolved via workspace cargo config (`-A unknown-lints`).
+- CRUSHR-P2-CLEAN-06 finished: added shared `phase2_domain` types/helpers and removed duplicate manifest/foundation/runner domain enums plus dataset/format map shims so Phase 2 uses one canonical model.
 - CRUSHR-P2.1-D finished: `crushr-lab run-phase2-execution` now executes locked manifest scenarios against Phase 2 foundation archives and emits deterministic raw evidence under `PHASE2_RESEARCH/generated/execution`; completeness auditing detects missing, duplicate, and mismatched scenario IDs and writes `completeness_audit.json`.
 
 ## Next expected packet

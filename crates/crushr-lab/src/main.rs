@@ -4,15 +4,17 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 mod phase2_corruption;
+mod phase2_domain;
 mod phase2_foundation;
 mod phase2_manifest;
 mod phase2_runner;
 
 use phase2_corruption::{apply_locked_corruption, CorruptionRequest};
+use phase2_domain::{CorruptionType, Magnitude, TargetClass};
 use phase2_foundation::{build_phase2_foundation, validate_archive_coverage};
 use phase2_manifest::{
-    validate_manifest_shape, CorruptionType, Magnitude, Phase2ExperimentManifest, TargetClass,
-    PHASE2_MANIFEST_SCHEMA_ID, PHASE2_MANIFEST_SCHEMA_PATH,
+    validate_manifest_shape, Phase2ExperimentManifest, PHASE2_MANIFEST_SCHEMA_ID,
+    PHASE2_MANIFEST_SCHEMA_PATH,
 };
 use phase2_runner::run_phase2_execution;
 

@@ -2,162 +2,15 @@ use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::phase2_domain::{
+    locked_core_scenario_id, ArchiveFormat, CorruptionType, Dataset, Magnitude, TargetClass,
+    LOCKED_CORE_SEEDS, PHASE2_SCENARIO_ID_FORMAT,
+};
+
 pub const PHASE2_MANIFEST_SCHEMA_PATH: &str =
     "schemas/crushr-lab-experiment-manifest.phase2.v1.schema.json";
 pub const PHASE2_MANIFEST_SCHEMA_ID: &str =
     "https://crushr.dev/schemas/crushr-lab-experiment-manifest.phase2.v1.schema.json";
-pub const PHASE2_SCENARIO_ID_FORMAT: &str =
-    "p2-core-{dataset}-{format_id}-{corruption_type}-{target_class}-{magnitude}-{seed}";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Dataset {
-    Smallfiles,
-    Mixed,
-    Largefiles,
-}
-
-impl Dataset {
-    fn id_slug(self) -> &'static str {
-        match self {
-            Self::Smallfiles => "smallfiles",
-            Self::Mixed => "mixed",
-            Self::Largefiles => "largefiles",
-        }
-    }
-
-    fn ordered_locked_core() -> &'static [Self] {
-        &[Self::Smallfiles, Self::Mixed, Self::Largefiles]
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ArchiveFormat {
-    #[serde(rename = "crushr")]
-    Crushr,
-    #[serde(rename = "zip")]
-    Zip,
-    #[serde(rename = "tar+zstd")]
-    TarZstd,
-    #[serde(rename = "tar+gz")]
-    TarGz,
-    #[serde(rename = "tar+xz")]
-    TarXz,
-}
-
-impl ArchiveFormat {
-    fn id_slug(self) -> &'static str {
-        match self {
-            Self::Crushr => "crushr",
-            Self::Zip => "zip",
-            Self::TarZstd => "tar_zstd",
-            Self::TarGz => "tar_gz",
-            Self::TarXz => "tar_xz",
-        }
-    }
-
-    fn ordered_locked_core() -> &'static [Self] {
-        &[
-            Self::Crushr,
-            Self::Zip,
-            Self::TarZstd,
-            Self::TarGz,
-            Self::TarXz,
-        ]
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CorruptionType {
-    BitFlip,
-    ByteOverwrite,
-    ZeroFill,
-    Truncation,
-    TailDamage,
-}
-
-impl CorruptionType {
-    fn id_slug(self) -> &'static str {
-        match self {
-            Self::BitFlip => "bit_flip",
-            Self::ByteOverwrite => "byte_overwrite",
-            Self::ZeroFill => "zero_fill",
-            Self::Truncation => "truncation",
-            Self::TailDamage => "tail_damage",
-        }
-    }
-
-    fn ordered_locked_core() -> &'static [Self] {
-        &[
-            Self::BitFlip,
-            Self::ByteOverwrite,
-            Self::ZeroFill,
-            Self::Truncation,
-            Self::TailDamage,
-        ]
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum TargetClass {
-    Header,
-    Index,
-    Payload,
-    Tail,
-}
-
-impl TargetClass {
-    fn id_slug(self) -> &'static str {
-        match self {
-            Self::Header => "header",
-            Self::Index => "index",
-            Self::Payload => "payload",
-            Self::Tail => "tail",
-        }
-    }
-
-    fn ordered_locked_core() -> &'static [Self] {
-        &[Self::Header, Self::Index, Self::Payload, Self::Tail]
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Magnitude {
-    #[serde(rename = "1B")]
-    OneByte,
-    #[serde(rename = "256B")]
-    TwoHundredFiftySixBytes,
-    #[serde(rename = "4KB")]
-    FourKilobytes,
-}
-
-impl Magnitude {
-    pub fn bytes(self) -> u64 {
-        match self {
-            Self::OneByte => 1,
-            Self::TwoHundredFiftySixBytes => 256,
-            Self::FourKilobytes => 4096,
-        }
-    }
-
-    fn id_slug(self) -> &'static str {
-        match self {
-            Self::OneByte => "1B",
-            Self::TwoHundredFiftySixBytes => "256B",
-            Self::FourKilobytes => "4KB",
-        }
-    }
-
-    fn ordered_locked_core() -> &'static [Self] {
-        &[
-            Self::OneByte,
-            Self::TwoHundredFiftySixBytes,
-            Self::FourKilobytes,
-        ]
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Phase2Scenario {
@@ -192,15 +45,14 @@ pub fn enumerate_locked_core_scenarios() -> Vec<Phase2Scenario> {
             for corruption_type in CorruptionType::ordered_locked_core() {
                 for target_class in TargetClass::ordered_locked_core() {
                     for magnitude in Magnitude::ordered_locked_core() {
-                        for seed in [1337_u64, 2600, 65535] {
+                        for seed in LOCKED_CORE_SEEDS {
                             scenarios.push(Phase2Scenario {
-                                scenario_id: format!(
-                                    "p2-core-{}-{}-{}-{}-{}-{}",
-                                    dataset.id_slug(),
-                                    format.id_slug(),
-                                    corruption_type.id_slug(),
-                                    target_class.id_slug(),
-                                    magnitude.id_slug(),
+                                scenario_id: locked_core_scenario_id(
+                                    *dataset,
+                                    *format,
+                                    *corruption_type,
+                                    *target_class,
+                                    *magnitude,
                                     seed,
                                 ),
                                 dataset: *dataset,
@@ -238,7 +90,7 @@ impl Phase2ExperimentManifest {
             corruption_types: CorruptionType::ordered_locked_core().to_vec(),
             target_classes: TargetClass::ordered_locked_core().to_vec(),
             magnitudes: Magnitude::ordered_locked_core().to_vec(),
-            seeds: vec![1337, 2600, 65535],
+            seeds: LOCKED_CORE_SEEDS.to_vec(),
             scenarios: enumerate_locked_core_scenarios(),
         }
     }

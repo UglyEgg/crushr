@@ -1,5 +1,12 @@
 # .ai/CHANGELOG.md
 
+## 2026-03-13 — Phase 2, Step 2.1 cleanup (CRUSHR-P2-CLEAN-06 domain model unification)
+
+- Added `crates/crushr-lab/src/phase2_domain.rs` as the canonical Phase 2 model for dataset, archive format, corruption type, target class, magnitude tiers, locked seeds, and scenario ID generation helper.
+- Removed duplicated Phase 2 domain enums from `phase2_manifest` and `phase2_foundation`, and updated `phase2_runner` to consume shared domain types directly.
+- Deleted translation shims (`map_dataset`, `map_format`) and centralized ordering/slug/scenario-id semantics through the shared domain model.
+- Updated `crushr-lab` imports/tests so manifest generation, foundation archive prep, corruption requests, and execution records all use one Phase 2 type system.
+
 ## 2026-02-17 — Phase 0, Step 0.1 (migration)
 
 - Created canonical repo root from prime scaffold.

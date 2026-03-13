@@ -1,10 +1,7 @@
 use crate::phase2_corruption::{apply_locked_corruption, CorruptionRequest};
-use crate::phase2_foundation::{
-    ArchiveBuildRecord, ArchiveKind, ExecutionStatus, FixtureDataset, Phase2FoundationReport,
-};
-use crate::phase2_manifest::{
-    ArchiveFormat, CorruptionType, Phase2ExperimentManifest, Phase2Scenario, TargetClass,
-};
+use crate::phase2_domain::{ArchiveFormat, CorruptionType, Dataset, TargetClass};
+use crate::phase2_foundation::{ArchiveBuildRecord, ExecutionStatus, Phase2FoundationReport};
+use crate::phase2_manifest::{Phase2ExperimentManifest, Phase2Scenario};
 use anyhow::{anyhow, bail, Context, Result};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
@@ -25,7 +22,7 @@ pub struct ExecutionMetadata {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct InvocationMetadata {
-    pub tool_kind: ArchiveKind,
+    pub tool_kind: ArchiveFormat,
     pub executable: String,
     pub argv: Vec<String>,
     pub cwd: Option<String>,
@@ -37,8 +34,8 @@ pub struct InvocationMetadata {
 #[derive(Debug, Clone, Serialize)]
 pub struct RawRunRecord {
     pub scenario_id: String,
-    pub dataset: FixtureDataset,
-    pub format: ArchiveKind,
+    pub dataset: Dataset,
+    pub format: ArchiveFormat,
     pub corruption_type: CorruptionType,
     pub target_class: TargetClass,
     pub magnitude_bytes: u64,
@@ -174,26 +171,27 @@ fn execute_scenario(
     artifact_root: &Path,
     raw_root: &Path,
     scenario: &Phase2Scenario,
-    archive_index: &HashMap<(FixtureDataset, ArchiveKind), &ArchiveBuildRecord>,
-    version_cache: &mut HashMap<ArchiveKind, String>,
+    archive_index: &HashMap<(Dataset, ArchiveFormat), &ArchiveBuildRecord>,
+    version_cache: &mut HashMap<ArchiveFormat, String>,
 ) -> Result<RawRunRecord> {
-    let dataset = map_dataset(scenario.dataset);
-    let format = map_format(scenario.format);
-    let build = archive_index.get(&(dataset, format)).with_context(|| {
-        format!(
-            "missing archive build for dataset={} format={}",
-            dataset.slug(),
-            format.slug()
-        )
-    })?;
+    let build = archive_index
+        .get(&(scenario.dataset, scenario.format))
+        .with_context(|| {
+            format!(
+                "missing archive build for dataset={} format={}",
+                scenario.dataset.slug(),
+                scenario.format.slug()
+            )
+        })?;
     if !matches!(build.build.status, ExecutionStatus::Success) {
         bail!(
             "archive build for {} {} is not successful",
-            dataset.slug(),
-            format.slug()
+            scenario.dataset.slug(),
+            scenario.format.slug()
         );
     }
 
+    let format = scenario.format;
     let source_archive = artifact_root.join(&build.output_path);
     let scenario_dir = raw_root.join(&scenario.scenario_id);
     fs::create_dir_all(&scenario_dir)?;
@@ -257,7 +255,7 @@ fn execute_scenario(
 
     Ok(RawRunRecord {
         scenario_id: scenario.scenario_id.clone(),
-        dataset,
+        dataset: scenario.dataset,
         format,
         corruption_type: scenario.corruption_type,
         target_class: scenario.target_class,
@@ -298,11 +296,11 @@ fn maybe_write_json_result(scenario_dir: &Path, stdout: &[u8]) -> Result<Option<
 
 fn observe_command(
     workspace_root: &Path,
-    format: ArchiveKind,
+    format: ArchiveFormat,
     archive_path: &Path,
 ) -> Result<Command> {
     match format {
-        ArchiveKind::Crushr => {
+        ArchiveFormat::Crushr => {
             let mut cmd = Command::new("cargo");
             cmd.current_dir(workspace_root)
                 .arg("run")
@@ -316,24 +314,24 @@ fn observe_command(
                 .arg("--json");
             Ok(cmd)
         }
-        ArchiveKind::Zip => {
+        ArchiveFormat::Zip => {
             let mut cmd = Command::new("zip");
             cmd.arg("-T").arg(archive_path);
             Ok(cmd)
         }
-        ArchiveKind::TarZstd => {
+        ArchiveFormat::TarZstd => {
             let mut cmd = Command::new("tar");
             cmd.arg("--use-compress-program=zstd")
                 .arg("-tf")
                 .arg(archive_path);
             Ok(cmd)
         }
-        ArchiveKind::TarGz => {
+        ArchiveFormat::TarGz => {
             let mut cmd = Command::new("tar");
             cmd.arg("-tzf").arg(archive_path);
             Ok(cmd)
         }
-        ArchiveKind::TarXz => {
+        ArchiveFormat::TarXz => {
             let mut cmd = Command::new("tar");
             cmd.arg("-tJf").arg(archive_path);
             Ok(cmd)
@@ -341,9 +339,9 @@ fn observe_command(
     }
 }
 
-fn detect_tool_version(workspace_root: &Path, format: ArchiveKind) -> Result<String> {
+fn detect_tool_version(workspace_root: &Path, format: ArchiveFormat) -> Result<String> {
     let mut cmd = match format {
-        ArchiveKind::Crushr => {
+        ArchiveFormat::Crushr => {
             let mut c = Command::new("cargo");
             c.current_dir(workspace_root)
                 .arg("run")
@@ -356,17 +354,17 @@ fn detect_tool_version(workspace_root: &Path, format: ArchiveKind) -> Result<Str
                 .arg("--version");
             c
         }
-        ArchiveKind::Zip => {
+        ArchiveFormat::Zip => {
             let mut c = Command::new("zip");
             c.arg("--version");
             c
         }
-        ArchiveKind::TarZstd => {
+        ArchiveFormat::TarZstd => {
             let mut c = Command::new("zstd");
             c.arg("--version");
             c
         }
-        ArchiveKind::TarGz | ArchiveKind::TarXz => {
+        ArchiveFormat::TarGz | ArchiveFormat::TarXz => {
             let mut c = Command::new("tar");
             c.arg("--version");
             c
@@ -399,24 +397,6 @@ fn now_ms() -> Result<u128> {
         .as_millis())
 }
 
-fn map_dataset(dataset: crate::phase2_manifest::Dataset) -> FixtureDataset {
-    match dataset {
-        crate::phase2_manifest::Dataset::Smallfiles => FixtureDataset::Smallfiles,
-        crate::phase2_manifest::Dataset::Mixed => FixtureDataset::Mixed,
-        crate::phase2_manifest::Dataset::Largefiles => FixtureDataset::Largefiles,
-    }
-}
-
-fn map_format(format: ArchiveFormat) -> ArchiveKind {
-    match format {
-        ArchiveFormat::Crushr => ArchiveKind::Crushr,
-        ArchiveFormat::Zip => ArchiveKind::Zip,
-        ArchiveFormat::TarZstd => ArchiveKind::TarZstd,
-        ArchiveFormat::TarGz => ArchiveKind::TarGz,
-        ArchiveFormat::TarXz => ArchiveKind::TarXz,
-    }
-}
-
 fn rel_path(root: &Path, path: &Path) -> String {
     path.strip_prefix(root)
         .unwrap_or(path)
@@ -438,8 +418,8 @@ mod tests {
 
         let base = RawRunRecord {
             scenario_id: first.scenario_id.clone(),
-            dataset: FixtureDataset::Smallfiles,
-            format: ArchiveKind::Crushr,
+            dataset: Dataset::Smallfiles,
+            format: ArchiveFormat::Crushr,
             corruption_type: first.corruption_type,
             target_class: first.target_class,
             magnitude_bytes: first.magnitude_bytes,
@@ -451,7 +431,7 @@ mod tests {
             tool_version: "tool 1.0".to_string(),
             execution_metadata: ExecutionMetadata {
                 invocation: InvocationMetadata {
-                    tool_kind: ArchiveKind::Crushr,
+                    tool_kind: ArchiveFormat::Crushr,
                     executable: "cargo".to_string(),
                     argv: vec!["run".to_string()],
                     cwd: Some("/workspace/crushr".to_string()),
