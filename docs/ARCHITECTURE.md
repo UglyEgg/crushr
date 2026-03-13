@@ -44,6 +44,12 @@ This document describes the current implemented boundary without speculative mat
 - minimal v1: regular files only
 - one block per file
 - deterministic refusal reporting for unsafe files
+- baseline `crushr-pack` archive generation is deterministic for identical logical inputs:
+  - files are archived in lexicographic relative-path order
+  - timestamps are normalized to `mtime=0`
+  - permissions are normalized to `mode=0`
+  - xattrs are not emitted (empty metadata list)
+  - zstd compression uses fixed encoder settings (single-thread, checksum off, content size on, dict id off)
 
 ## Active phase
 

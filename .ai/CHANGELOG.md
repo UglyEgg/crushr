@@ -354,3 +354,9 @@
 
 - Added workspace cargo config `.cargo/config.toml` with rustc flag `-A unknown-lints` so required command `cargo clippy --workspace --all-targets -- -D warning` runs without unknown-lint diagnostic noise.
 
+
+## 2026-03-13 — Phase 2 pre-trial reproducibility prep (CRUSHR-P2-PRETRIAL-DET-01)
+
+- Implemented deterministic baseline archive generation in `crushr-pack`: stable lexicographic relative-path ordering, normalized metadata (`mode=0`, `mtime=0`, empty xattrs), and fixed zstd encoder flags (`checksum=false`, `content-size=true`, `dict-id=false`).
+- Added focused integration tests proving repeated runs over identical logical inputs produce byte-identical archives and that index entry ordering/metadata normalization are stable.
+- Updated architecture documentation to reflect implemented deterministic baseline archive-generation behavior.
