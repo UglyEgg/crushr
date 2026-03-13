@@ -2,9 +2,9 @@
 
 Current Phase: Phase 2 — Comparative Corruption Research
 
-Current Step: 2.1 cleanup complete (CRUSHR-P2-CLEAN-02 structured invocation provenance in Phase 2 execution records)
+Current Step: 2.1 cleanup complete (CRUSHR-P2-CLEAN-03 Phase 2 research root canonicalization and output path migration)
 
-Recent completed packet: CRUSHR-P2-CLEAN-02 (removed narrative command-string provenance from Phase 2 execution records; added structured invocation metadata captured from actual command execution path)
+Recent completed packet: CRUSHR-P2-CLEAN-03 (created PHASE2_RESEARCH canonical root, moved Phase 2 lock doc, and migrated default Phase 2 output roots out of docs/)
 
 ## Current truth
 
@@ -13,6 +13,7 @@ Recent completed packet: CRUSHR-P2-CLEAN-02 (removed narrative command-string pr
 - Cleanup packets CRUSHR-CLEANUP-2.0-C and CRUSHR-CLEANUP-2.0-D are complete.
 - Cleanup packet CRUSHR-P2-CLEAN-01 is complete: deleted packet-era scaffold experiment commands/helpers/tests and reduced `crushr-lab` main dispatch/help surface to `corrupt`, `write-phase2-manifest`, `build-phase2-foundation`, and `run-phase2-execution`.
 - Cleanup packet CRUSHR-P2-CLEAN-02 is complete: replaced hand-authored command prose (`observed_command`) in `RawRunRecord.execution_metadata` with structured invocation metadata (`tool_kind`, executable, argv, cwd, exit status, stdout/stderr artifact paths) captured directly from the real `Command` invocation before/after execution.
+- Cleanup packet CRUSHR-P2-CLEAN-03 is complete: established `PHASE2_RESEARCH/` as canonical Phase 2 workspace (`methodology/`, `manifests/`, `generated/`, `normalized/`, `summaries/`, `whitepaper_support/`), moved lock guidance to `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`, and migrated Phase 2 default output roots out of `docs/`.
 - Active machine-readable schemas are now tightened contracts for: `crushr-info` snapshot, `crushr-fsck` snapshot, `crushr-impact` report, extraction result, and propagation graph.
 - Integration tests now perform real JSON Schema instance-vs-schema validation for active outputs.
 

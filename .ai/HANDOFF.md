@@ -32,10 +32,11 @@ Phase 2.2 — cross-format comparison execution harnessing from Phase 2 manifest
 
 - CRUSHR-P2-CLEAN-01 finished: removed obsolete `run-first-experiment`/`run-competitor-scaffold` command paths and associated helper sediment from `crushr-lab` main so only the Phase 2 core pipeline remains.
 - CRUSHR-P2-CLEAN-02 finished: Phase 2 execution raw records now store structured invocation provenance from actual command execution (tool kind, executable, argv, cwd, exit status, stdout/stderr artifact paths) and no longer store narrative command strings.
+- CRUSHR-P2-CLEAN-03 finished: canonical Phase 2 workspace now lives at `PHASE2_RESEARCH/`; defaults for manifest/foundation/execution outputs no longer target `docs/RESEARCH/artifacts/`, and lock guidance now lives in `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`.
 
 
 ## 2026-03-12 update (CRUSHR-P2.1-D)
-- Added `crushr-lab run-phase2-execution` to execute locked manifest scenarios against Phase 2 foundation archives and emit deterministic raw evidence under `docs/RESEARCH/artifacts/phase2_execution`.
+- Added `crushr-lab run-phase2-execution` to execute locked manifest scenarios against Phase 2 foundation archives and emit deterministic raw evidence under `PHASE2_RESEARCH/generated/execution`.
 - Raw records are typed (`RawRunRecord`) and include required scenario fields, exit code, stdout/stderr paths, optional JSON result path, tool version, and execution metadata.
 - Completeness auditing now detects missing, duplicate, and mismatched scenario IDs and writes `completeness_audit.json`.
 - Next expected packet should map raw records into normalized comparative results (Phase 2.2).

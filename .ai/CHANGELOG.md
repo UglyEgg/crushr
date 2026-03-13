@@ -314,3 +314,11 @@
 - Added typed `InvocationMetadata` to `ExecutionMetadata` capturing truthful invocation fields from actual `Command` execution: `tool_kind`, `executable`, `argv`, `cwd`, `exit_status_code`, and stdout/stderr artifact paths.
 - Updated Tar+Zstd observation path to execute directly via `tar --use-compress-program=zstd -tf <archive>` so invocation provenance is represented as a real executable + argv path rather than shell storytelling.
 - Updated/kept Phase 2 runner tests aligned to the new structured provenance model.
+
+## 2026-03-13 — Phase 2, Step cleanup (CRUSHR-P2-CLEAN-03)
+
+- Created canonical `PHASE2_RESEARCH/` root with concrete subdirectories for methodology, manifests, generated outputs, normalized results, summaries, and whitepaper support.
+- Moved active Phase 2 lock guidance from `.ai/PHASE2_LOCKS.md` to `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`.
+- Updated `crushr-lab` defaults so `write-phase2-manifest`, `build-phase2-foundation`, and `run-phase2-execution` write/read under `PHASE2_RESEARCH/*` instead of `docs/RESEARCH/artifacts/*`.
+- Updated repository docs/control references to identify `PHASE2_RESEARCH/` as canonical Phase 2 workspace and keep product docs separate from generated research outputs.
+

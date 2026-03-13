@@ -22,11 +22,12 @@ Canonical reading/authority path:
 10. `docs/ARCHITECTURE.md`
 11. `docs/SNAPSHOT_FORMAT.md`
 12. `docs/CONTRACTS/README.md`
+13. `PHASE2_RESEARCH/README.md`
 
 ## What is active
 
 - Phase 1 is complete.
-- Active focus is Phase 2 comparative corruption research.
+- Active focus is Phase 2 comparative corruption research, with canonical Phase 2 materials rooted at `PHASE2_RESEARCH/`.
 - Next packet is Phase 2.1 controlled corruption matrix manifest/schema.
 
 ## Tooling surface
