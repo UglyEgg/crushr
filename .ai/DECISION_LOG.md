@@ -174,3 +174,19 @@
 - Blast radius:
   - `crushr-lab` manifest producers/consumers and any downstream report tooling now rely on this stable ID and ordering contract.
   - No runtime execution semantics changed in this packet.
+
+## 2026-03-13 — CRUSHR-P2-CLEAN-03: canonical Phase 2 research workspace root
+
+- Decision:
+  - Create `PHASE2_RESEARCH/` as the canonical Phase 2 research root and move active Phase 2 lock guidance to `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`.
+  - Change `crushr-lab` Phase 2 default output paths to `PHASE2_RESEARCH/manifests/` and `PHASE2_RESEARCH/generated/{foundation,execution}/`.
+- Alternatives:
+  1. Keep emitting defaults under `docs/RESEARCH/artifacts/*`.
+  2. Keep lock docs in `.ai/` while only moving generated outputs.
+- Rationale:
+  - Product/reference docs and generated research state must remain separated to reduce drift and operator confusion.
+  - A dedicated root makes Phase 2 methodology, manifests, generated artifacts, normalized outputs, summaries, and whitepaper support discoverable and bounded.
+- Blast radius:
+  - Default paths for `crushr-lab` Phase 2 commands changed; operators relying on old defaults must use explicit flags or migrate to new root.
+  - Repo docs/control references now point to `PHASE2_RESEARCH/` as canonical Phase 2 workspace.
+

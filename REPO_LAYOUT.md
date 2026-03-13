@@ -18,7 +18,8 @@ This document defines where active truth lives.
 - `docs/ARCHITECTURE.md` — truthful crate/tool architecture boundary
 - `docs/SNAPSHOT_FORMAT.md` — canonical snapshot contract boundary
 - `docs/CONTRACTS/*` — policy contracts
-- `docs/RESEARCH/*` — experiment formalization and evidence scaffolding
+- `docs/RESEARCH/*` — product-level experiment formalization/reference docs (not generated artifacts)
+- `PHASE2_RESEARCH/` — canonical Phase 2 research workspace (methodology, manifests, generated outputs, normalized results, summaries, whitepaper support)
 
 ## Code and supporting dirs
 

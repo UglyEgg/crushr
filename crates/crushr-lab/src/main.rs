@@ -62,7 +62,7 @@ fn main() -> Result<()> {
 
 fn run_phase2_foundation(raw_args: Vec<String>) -> Result<()> {
     let mut args = raw_args.into_iter();
-    let mut artifact_dir = workspace_root()?.join("docs/RESEARCH/artifacts/phase2_foundation");
+    let mut artifact_dir = workspace_root()?.join("PHASE2_RESEARCH/generated/foundation");
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--artifact-dir" => {
@@ -86,10 +86,10 @@ fn run_phase2_foundation(raw_args: Vec<String>) -> Result<()> {
 fn run_phase2_execution_cmd(raw_args: Vec<String>) -> Result<()> {
     let mut args = raw_args.into_iter();
     let root = workspace_root()?;
-    let mut manifest_path = root.join("docs/RESEARCH/artifacts/phase2_core_manifest.json");
+    let mut manifest_path = root.join("PHASE2_RESEARCH/manifests/phase2_core_manifest.json");
     let mut foundation_report_path =
-        root.join("docs/RESEARCH/artifacts/phase2_foundation/foundation_report.json");
-    let mut artifact_dir = root.join("docs/RESEARCH/artifacts/phase2_execution");
+        root.join("PHASE2_RESEARCH/generated/foundation/foundation_report.json");
+    let mut artifact_dir = root.join("PHASE2_RESEARCH/generated/execution");
 
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -130,7 +130,7 @@ fn run_phase2_execution_cmd(raw_args: Vec<String>) -> Result<()> {
 
 fn write_phase2_manifest(raw_args: Vec<String>) -> Result<()> {
     let mut args = raw_args.into_iter();
-    let mut output = workspace_root()?.join("docs/RESEARCH/artifacts/phase2_core_manifest.json");
+    let mut output = workspace_root()?.join("PHASE2_RESEARCH/manifests/phase2_core_manifest.json");
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--output" => {

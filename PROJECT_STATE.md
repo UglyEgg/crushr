@@ -48,3 +48,4 @@ Verification progression:
 - Cleanup packet: complete.
 - Phase 2: active engineering focus.
 - Next packet: Phase 2.1 controlled corruption matrix manifest/schema.
+- Canonical Phase 2 research workspace root: `PHASE2_RESEARCH/`.
