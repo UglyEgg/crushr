@@ -6,6 +6,7 @@ mod phase2_corruption;
 mod phase2_domain;
 mod phase2_foundation;
 mod phase2_manifest;
+mod phase2_normalization;
 mod phase2_runner;
 
 use cli::{print_usage, Command};
@@ -13,6 +14,7 @@ use phase2_audit::run_phase2_pretrial_audit_cmd;
 use phase2_corruption::run_corrupt;
 use phase2_foundation::run_phase2_foundation;
 use phase2_manifest::write_phase2_manifest;
+use phase2_normalization::run_phase2_normalization_cmd;
 use phase2_runner::run_phase2_execution_cmd;
 
 fn main() -> Result<()> {
@@ -26,6 +28,7 @@ fn main() -> Result<()> {
         Some(Command::BuildPhase2Foundation) => run_phase2_foundation(raw_args),
         Some(Command::RunPhase2Execution) => run_phase2_execution_cmd(raw_args),
         Some(Command::RunPhase2PretrialAudit) => run_phase2_pretrial_audit_cmd(raw_args),
+        Some(Command::RunPhase2Normalization) => run_phase2_normalization_cmd(raw_args),
         None => {
             print_usage();
             std::process::exit(1);

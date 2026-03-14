@@ -30,6 +30,7 @@
 - [x] 2.1 execution foundation — Phase 2 datasets + baseline archive corpus + foundation report metadata (CRUSHR-P2-EXEC-02)
 - [x] 2.1 execution runner path/default fix — resolve foundation archive paths from workspace root and align execution defaults to canonical Phase 2 layout (CRUSHR-P2-EXEC-03A)
 - [x] 2.1 execution evidence enrichment — white-paper-grade structured run records/report, truthful tool-version capture, execution schemas, focused tests (CRUSHR-P2-EXEC-03B)
+- [x] 2.2 execution normalization — deterministic comparison-ready normalized evidence dataset, summary artifacts, schemas, and focused tests (CRUSHR-P2-EXEC-04)
 - [ ] 2.2 Cross-Format Comparison
 - [ ] 2.3 Experimental Reporting
 

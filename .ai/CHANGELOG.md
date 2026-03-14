@@ -394,3 +394,12 @@
 - Restricted `artifact_dir` usage to generated execution outputs and kept source archive loading independent from artifact output location.
 - Updated `run-phase2-execution` defaults to canonical Phase 2 layout: manifest `PHASE2_RESEARCH/manifest/phase2_manifest.json`, foundation report `PHASE2_RESEARCH/foundation/foundation_report.json`, and execution artifact dir `PHASE2_RESEARCH/trials`.
 - Added focused unit tests for relative/absolute source path handling, artifact output placement under `artifact_dir`, and canonical default-path constants; updated `PHASE2_RESEARCH/README.md` execution example paths.
+
+
+## 2026-03-14 — CRUSHR-P2-EXEC-04 (normalized comparison-ready evidence dataset)
+
+- Added `crushr-lab run-phase2-normalization` and a deterministic normalization module that converts Phase 2 `raw_run_records.json` + per-run stdout/stderr/result artifacts into normalized per-scenario records with explicit `result_class`, `failure_stage`, `detected_pre_extract`, `diagnostic_specificity`, file-level nullable counts, and evidence-strength provenance.
+- Emitted canonical normalized artifacts at `PHASE2_RESEARCH/results/normalized_results.json` and `PHASE2_RESEARCH/results/normalization_summary.json` without rerunning trials.
+- Added strict normalization schemas: `schemas/crushr-lab-phase2-normalized-results.v1.schema.json` and `schemas/crushr-lab-phase2-normalization-summary.v1.schema.json`.
+- Added focused normalization tests for representative cases, deterministic ordering, classification mapping, and schema-ID/shape validation.
+- Updated Phase 2 research docs with normalization command/output references and rule documentation (`PHASE2_RESEARCH/normalized/NORMALIZATION_RULES.md`).

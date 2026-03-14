@@ -281,3 +281,19 @@
 - Blast radius:
   - `crushr-lab` raw execution records/report schema and consuming analysis tooling now read typed version observations instead of a plain version string.
 
+
+
+## 2026-03-14 — CRUSHR-P2-EXEC-04: Phase 2 normalization contract and classification ladder
+
+- Decision:
+  - Introduce a deterministic normalization command/output contract for the completed Phase 2 execution corpus: `run-phase2-normalization` emits `PHASE2_RESEARCH/results/normalized_results.json` and `normalization_summary.json` with explicit enums for `result_class`, `failure_stage`, and `diagnostic_specificity`.
+  - Keep file-level counts nullable when extraction-outcome evidence is unavailable; do not infer file-level outcomes from unstructured comparator logs.
+- Alternatives:
+  1. Infer per-file outcomes from stdout/stderr heuristics for comparator tools.
+  2. Delay normalization until extraction-mode reruns are available.
+- Rationale:
+  - The packet requires truthful, comparison-ready normalization over existing corpus evidence without rerunning trials.
+  - Nullable file-level fields prevent overclaiming where the corpus does not include extraction-result artifacts.
+- Blast radius:
+  - Adds a new Phase 2 results artifact family and schema contracts consumed by downstream comparative analysis/reporting.
+  - No changes to locked matrix axes, trial execution corpus, or archive-format behavior.

@@ -15,6 +15,7 @@ Canonical workspace for all Phase 2 research materials.
   - `completeness_audit.json` — run completeness checks
   - `execution_report.json` — summary counts/histograms/tool versions/completeness
 - `normalized/` — normalized cross-tool result contracts and mapped records
+- `results/` — Phase 2 normalization outputs (`normalized_results.json`, `normalization_summary.json`)
 - `summaries/` — aggregate tables/CSVs and publication-facing summary views
 - `whitepaper_support/` — figures, tables, and source support files for whitepaper claims
 
@@ -24,7 +25,8 @@ Canonical workspace for all Phase 2 research materials.
 2. Run pre-trial audit gate: `crushr-lab run-phase2-pretrial-audit --manifest PHASE2_RESEARCH/manifest/phase2_core_manifest.json --artifact-dir PHASE2_RESEARCH/generated/audit`
 3. Build foundation: `crushr-lab build-phase2-foundation --artifact-dir PHASE2_RESEARCH/generated/foundation`
 4. Run execution: `crushr-lab run-phase2-execution --manifest PHASE2_RESEARCH/manifest/phase2_manifest.json --foundation-report PHASE2_RESEARCH/generated/foundation/foundation_report.json --artifact-dir PHASE2_RESEARCH/trials`
-5. Inspect outputs: audit report in `PHASE2_RESEARCH/generated/audit/phase2_pretrial_audit.json`, raw evidence in `PHASE2_RESEARCH/trials/`, normalized mappings in `PHASE2_RESEARCH/normalized/`, summaries in `PHASE2_RESEARCH/summaries/`
+5. Normalize execution evidence: `crushr-lab run-phase2-normalization --trials-dir PHASE2_RESEARCH/trials --output-dir PHASE2_RESEARCH/results`
+6. Inspect outputs: audit report in `PHASE2_RESEARCH/generated/audit/phase2_pretrial_audit.json`, raw evidence in `PHASE2_RESEARCH/trials/`, normalization outputs in `PHASE2_RESEARCH/results/`, normalized mapping contracts in `PHASE2_RESEARCH/normalized/`, summaries in `PHASE2_RESEARCH/summaries/`
 
 ## Policy boundary
 
