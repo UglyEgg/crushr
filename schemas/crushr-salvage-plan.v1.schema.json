@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crushr.dev/schemas/crushr-salvage-plan.v1.schema.json",
+  "title": "crushr-salvage plan v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tool",
+    "tool_version",
+    "verification_contract_label",
+    "archive",
+    "footer_analysis",
+    "index_analysis",
+    "dictionary_analysis",
+    "block_candidates",
+    "file_plans",
+    "orphan_candidate_summary",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": { "const": "crushr-salvage-plan.v1" },
+    "tool": { "const": "crushr-salvage" },
+    "tool_version": { "type": "string", "minLength": 1 },
+    "verification_contract_label": {
+      "const": "UNVERIFIED_RESEARCH_OUTPUT_NOT_CANONICAL_EXTRACTION"
+    },
+    "archive": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["archive_path", "archive_size", "archive_blake3"],
+      "properties": {
+        "archive_path": { "type": "string", "minLength": 1 },
+        "archive_size": { "type": "integer", "minimum": 0 },
+        "archive_blake3": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "footer_analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason", "blocks_end_offset", "footer_offset"],
+      "properties": {
+        "status": { "enum": ["valid", "invalid", "missing"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "blocks_end_offset": { "type": ["integer", "null"], "minimum": 0 },
+        "footer_offset": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "index_analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason", "index_offset", "index_len", "entry_count"],
+      "properties": {
+        "status": { "enum": ["valid", "invalid", "unavailable"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "index_offset": { "type": ["integer", "null"], "minimum": 0 },
+        "index_len": { "type": ["integer", "null"], "minimum": 0 },
+        "entry_count": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "dictionary_analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason", "verified_dict_ids"],
+      "properties": {
+        "status": { "enum": ["available", "unavailable"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "verified_dict_ids": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "block_candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scan_offset",
+          "parse_status",
+          "parse_reason",
+          "payload_bounds_ok",
+          "payload_hash_status",
+          "payload_hash_reason",
+          "dictionary_required",
+          "dictionary_id",
+          "usable_for_indexed_planning"
+        ],
+        "properties": {
+          "scan_offset": { "type": "integer", "minimum": 0 },
+          "parse_status": { "enum": ["valid", "invalid"] },
+          "parse_reason": { "type": "string", "minLength": 1 },
+          "payload_bounds_ok": { "type": "boolean" },
+          "payload_hash_status": { "enum": ["verified", "failed", "unavailable"] },
+          "payload_hash_reason": { "type": "string", "minLength": 1 },
+          "dictionary_required": { "type": "boolean" },
+          "dictionary_id": { "type": ["integer", "null"], "minimum": 1 },
+          "usable_for_indexed_planning": { "type": "boolean" }
+        }
+      }
+    },
+    "file_plans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file_path", "status", "reason", "required_block_ids"],
+        "properties": {
+          "file_path": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["SALVAGEABLE", "UNSALVAGEABLE", "UNMAPPABLE"] },
+          "reason": { "type": "string", "minLength": 1 },
+          "required_block_ids": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "orphan_candidate_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total_candidates",
+        "usable_candidates",
+        "mapped_candidates",
+        "orphan_unmappable_candidates"
+      ],
+      "properties": {
+        "total_candidates": { "type": "integer", "minimum": 0 },
+        "usable_candidates": { "type": "integer", "minimum": 0 },
+        "mapped_candidates": { "type": "integer", "minimum": 0 },
+        "orphan_unmappable_candidates": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["salvageable_files", "unsalvageable_files", "unmappable_files"],
+      "properties": {
+        "salvageable_files": { "type": "integer", "minimum": 0 },
+        "unsalvageable_files": { "type": "integer", "minimum": 0 },
+        "unmappable_files": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

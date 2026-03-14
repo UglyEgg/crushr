@@ -415,3 +415,10 @@
 - Added `crushr-lab run-phase2-comparison` to compute deterministic per-format comparison metrics from `PHASE2_RESEARCH/results/normalized_results.json` without trial recomputation.
 - Added schema contracts for comparison tables and format rankings, plus focused `crushr-lab` tests for output-shape validation and schema ID integrity.
 - Generated canonical summary outputs under `PHASE2_RESEARCH/summaries/comparison_tables.json` and `PHASE2_RESEARCH/summaries/format_rankings.json`.
+
+## 2026-03-14 — CRUSHR-SALVAGE-01 (plan-only deterministic salvage planning)
+
+- Added standalone `crushr-salvage` executable with deterministic damaged-archive inspection and plan JSON output (`--json-out` optional).
+- Added deterministic BLK3 candidate scanning, authoritative IDX3-aware file classification, dictionary dependency gating, and unverified research labeling.
+- Added salvage plan JSON schema and focused integration tests covering damaged footer/invalid index/no invented mappings/missing dictionary dependency/deterministic ordering/schema validation.
+- Reconciled active control docs so salvage is clearly separate from strict extraction and CRUSHR-SALVAGE-01 is explicitly plan-only.

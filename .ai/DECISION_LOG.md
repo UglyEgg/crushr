@@ -342,14 +342,15 @@ This tool is **not part of strict extraction semantics** and must not be
 implemented as a mode or flag of `crushr-extract`.
 
 Purpose:
-Best-effort recovery of payload fragments from structurally damaged archives
-for forensic analysis and research purposes.
+Deterministic salvage planning over structurally damaged archives
+for research analysis without fragment emission or reconstruction.
 
 Constraints:
 - `crushr-extract` remains strict-only.
 - `crushr-salvage` must never modify archives.
-- output must clearly label recovered fragments as **unverified**.
-- salvage results must not be represented as safe or canonical extraction.
+- output must clearly label salvage plans as **unverified research output**.
+- salvage plans/results must not be represented as safe or canonical extraction.
+- CRUSHR-SALVAGE-01 remains plan-only (no fragment emission, no reconstruction).
 
 Tool placement:
 

@@ -7,7 +7,7 @@
 - [x] 1.2 Maximum Safe Extraction Formalization
 - [x] 1.3 Extraction Result Formalization
 
-## Phase 2 — Comparative Corruption Research (active)
+## Phase 2 — Comparative Corruption Research
 
 - [x] 2.0-A Legacy recovery/salvage surface deletion
 - [x] 2.0-B Documentation/control cleanup and canonicalization
@@ -17,108 +17,20 @@
 - [x] 2.1-B Dataset fixture + archive build foundation (CRUSHR-P2.1-B)
 - [x] 2.1-C Deterministic corruption injection engine (CRUSHR-P2.1-C)
 - [x] 2.1-D Phase 2 execution runner + raw result capture + completeness auditing (CRUSHR-P2.1-D)
-- [x] 2.1 cleanup — delete obsolete scaffold experiment flows and slim `crushr-lab` main path (CRUSHR-P2-CLEAN-01)
-- [x] 2.1 cleanup — replace narrative command-string provenance with structured invocation metadata in execution records (CRUSHR-P2-CLEAN-02)
-- [x] 2.1 cleanup — create canonical `PHASE2_RESEARCH/` workspace and migrate Phase 2 defaults/docs (CRUSHR-P2-CLEAN-03)
-- [x] 2.1 cleanup — replace 7z comparator with tar+gz/tar+xz across Phase 2 manifest/foundation/runner/docs/tests (CRUSHR-P2-CLEAN-04)
-- [x] 2.1 cleanup — unify Phase 2 domain model across manifest/foundation/runner and remove translation seams (CRUSHR-P2-CLEAN-06)
-- [x] 2.1 cleanup — slim `crushr-lab` main dispatch edge and relocate residual command logic to owner modules (CRUSHR-P2-CLEAN-07)
-- [x] 2.1 cleanup — final control/doc hygiene pass after `PHASE2_RESEARCH/` migration (CRUSHR-P2-CLEAN-08)
 - [x] 2.1 pre-trial reproducibility prep — deterministic baseline archive generation (CRUSHR-P2-PRETRIAL-DET-01)
 - [x] 2.1 pre-trial audit milestone (CRUSHR-P2-TRIAL-READY-01)
-- [x] 2.1 execution freeze — canonical Phase 2 trial manifest + summary artifacts (CRUSHR-P2-EXEC-01)
-- [x] 2.1 execution foundation — Phase 2 datasets + baseline archive corpus + foundation report metadata (CRUSHR-P2-EXEC-02)
-- [x] 2.1 execution runner path/default fix — resolve foundation archive paths from workspace root and align execution defaults to canonical Phase 2 layout (CRUSHR-P2-EXEC-03A)
-- [x] 2.1 execution evidence enrichment — white-paper-grade structured run records/report, truthful tool-version capture, execution schemas, focused tests (CRUSHR-P2-EXEC-03B)
-- [x] 2.2 execution normalization — deterministic comparison-ready normalized evidence dataset, summary artifacts, schemas, and focused tests (CRUSHR-P2-EXEC-04)
-- [x] 2.2 execution recovery instrumentation — extraction-output recovery accounting (files/bytes), blast-radius mapping, enriched normalization summary/schema/tests without full-matrix rerun artifacts (CRUSHR-P2-EXEC-06A)
-- [x] 2.2 Cross-Format Comparison (CRUSHR-P2-ANALYSIS-01)
-- [ ] 2.3 Experimental Reporting
+- [x] 2.1 execution freeze + foundation + execution evidence (CRUSHR-P2-EXEC-01/02/03A/03B)
+- [x] 2.2 execution normalization + recovery accounting enrichment (CRUSHR-P2-EXEC-04/06A)
+- [x] 2.2 cross-format comparison (CRUSHR-P2-ANALYSIS-01)
 
-## Phase 2 — Experimental Evidence System (White-Paper Critical)
+## Phase 3 — Standalone Salvage Planning (active)
 
-Purpose:
-
-Ensure the Phase-2 corruption trials produce a fully auditable research corpus suitable for white-paper publication.
-
-This layer is not a format feature. It is a research evidence pipeline.
-
-Required components:
-
-1. locked scenario manifest
-2. raw per-run execution record
-3. normalized result schema
-4. trial completeness audit
-5. reproducibility metadata
-
-Goals:
-
-- every experimental scenario has a deterministic ID
-- every run produces machine-readable records
-- every summary result can be traced back to raw execution
-- missing or duplicate runs are detected automatically
-- the experiment can be rerun later with identical inputs
-
-This system is required before the white-paper trials begin.
-
-Implementation reference:
-
-- `CRUSHR-P2-TRIAL-READY-01`
-
-## Post-Paper Feature Direction (planned, not active scope)
-
-The following capabilities are explicitly preserved for post-paper work and must not alter baseline Phase-2 trial scope:
-
-- recoverable archive extraction
-- true random-access extraction
-- built-in deduplication
-
-## Pre-Paper Feature Addition
-
-Before white-paper trials, the baseline implementation may include minimal deterministic archive generation so long as it does not alter archive structure or corruption semantics.
-
-
-## Phase 3 — Salvage Research Tooling
-
-Purpose:
-Explore best-effort recovery strategies without contaminating the
-integrity-first extraction model.
-
-### 3.1 Standalone salvage tool
-
-Introduce CLI:
-
-crushr-salvage
-
-Capabilities:
-
-- scan damaged archives without requiring valid footer/index
-- locate candidate BLK3 blocks
-- attempt decompression
-- emit recovered payload fragments
-- produce structured salvage report
-
-### 3.2 Salvage evidence model
-
-Define structured outputs:
-
-salvage_report.json
-
-Fields:
-
-- archive_path
-- blocks_scanned
-- blocks_salvaged
-- fragments_recovered
-- bytes_recovered
-- verification_status
-
-### 3.3 Salvage experiment framework
-
-Extend `crushr-lab` to support:
-
-run-phase3-salvage-experiments
-
-Outputs stored under:
-
-PHASE2_RESEARCH/salvage_trials/
+- [ ] 3.1 CRUSHR-SALVAGE-01 (plan-only)
+  - standalone executable: `crushr-salvage`
+  - deterministic salvage planning over damaged archives
+  - machine-readable salvage plan JSON output
+  - deterministic BLK3 candidate scan + authoritative-mapping-aware file classification
+  - no speculative recovery
+  - no guessed reconstruction
+  - no fragment emission/output carving directories
+  - no archive mutation

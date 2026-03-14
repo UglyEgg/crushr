@@ -7,7 +7,8 @@ This document describes the current implemented boundary without speculative mat
 - integrity-first archive semantics
 - strict extraction (verified-safe only)
 - deterministic corruption impact reporting
-- no recovery/salvage/reconstruction product path
+- no recovery/salvage/reconstruction path inside canonical `crushr-extract` semantics
+- separate experimental salvage planning executable (`crushr-salvage`) is allowed as unverified research output
 
 ## Crate boundaries
 
@@ -54,6 +55,6 @@ This document describes the current implemented boundary without speculative mat
 ## Active phase
 
 - Phase 1 complete
-- Phase 2 active
-- next required milestone: Phase 2 pre-trial audit over `PHASE2_RESEARCH/` flow
-- next packet after audit: Phase 2.2 cross-format comparison and normalized result mapping
+- Phase 2 execution/normalization/comparison are complete and frozen
+- active implementation workstream: standalone deterministic salvage planning (`crushr-salvage`)
+- strict extraction semantics remain unchanged
