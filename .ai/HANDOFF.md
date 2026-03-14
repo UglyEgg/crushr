@@ -10,12 +10,12 @@
 
 ## Immediate next packet
 
-Phase 2.3 comparative reporting/aggregation on top of frozen manifest + deterministic execution outputs and normalized evidence artifacts under `PHASE2_RESEARCH/`.
+Phase 2.3 experimental reporting on top of frozen manifest + deterministic normalized/comparison evidence artifacts under `PHASE2_RESEARCH/results/` and `PHASE2_RESEARCH/summaries/`.
 
 ## First actions for a fresh instance
 
 1. Read startup order from `../AI_BOOTSTRAP.md`.
-2. Confirm `STATUS.md` and `PHASE_PLAN.md` show CRUSHR-P2-EXEC-04 complete and Phase 2.3 comparative reporting as the next active step.
+2. Confirm `STATUS.md` and `PHASE_PLAN.md` show CRUSHR-P2-ANALYSIS-01 complete and Phase 2.3 reporting as the next active step.
 3. Keep strict extraction + integrity-first thesis unchanged.
 4. Treat `PHASE2_RESEARCH/` as the canonical Phase 2 workspace and `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md` as the active lock document.
 5. Consume `crushr-lab` Phase 2 manifest/scenario enumeration plus the deterministic foundation builder (`build-phase2-foundation`) and execution runner (`run-phase2-execution`) as canonical Phase 2 inputs; do not mutate locked matrix semantics.

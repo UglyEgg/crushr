@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crushr.dev/schemas/crushr-lab-phase2-format-rankings.v1.schema.json",
+  "title": "crushr-lab phase2 format rankings v1",
+  "type": "object",
+  "required": ["survivability", "diagnostic_quality", "corruption_containment"],
+  "additionalProperties": false,
+  "properties": {
+    "survivability": { "$ref": "#/$defs/ranking_list" },
+    "diagnostic_quality": { "$ref": "#/$defs/ranking_list" },
+    "corruption_containment": { "$ref": "#/$defs/ranking_list" }
+  },
+  "$defs": {
+    "ranking_list": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rank", "format", "score"],
+        "additionalProperties": false,
+        "properties": {
+          "rank": { "type": "integer", "minimum": 1 },
+          "format": {
+            "type": "string",
+            "enum": ["crushr", "zip", "tar+zstd", "tar+gz", "tar+xz"]
+          },
+          "score": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    }
+  }
+}

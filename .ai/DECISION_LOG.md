@@ -314,3 +314,18 @@
 - Blast radius:
   - Changes raw run record and normalization schemas/consumers, execution command behavior (list/test probes -> extraction runs), and summary aggregation fields used by downstream analysis/reporting.
   - Full matrix rerun remains external to this PR workflow.
+
+## 2026-03-14 — CRUSHR-P2-ANALYSIS-01: deterministic comparison metric and ranking formulas
+
+- Decision:
+  - Define per-format comparison metrics from normalized Phase-2 records as: `recovery_success_rate` (`recovery_ratio_files > 0` frequency), mean file/byte recovery ratios, `detection_rate` (`detected_pre_extract` frequency), plus normalized blast-radius and diagnostic-specificity distributions.
+  - Emit three deterministic ranking ladders from those metrics: survivability (success rate primary), diagnostic quality (detection + weighted specificity composite), and corruption containment (weighted blast-radius containment score).
+- Alternatives:
+  1. Rank solely by mean recovery ratios without separate success/detection/containment views.
+  2. Delay rankings until additional post-normalization heuristics/content validation are introduced.
+- Rationale:
+  - White-paper table generation requires direct cross-format ordering on survivability, diagnostic quality, and containment from the frozen normalized corpus with no experiment rerun.
+  - Explicit formulas keep outputs reproducible and auditable.
+- Blast radius:
+  - Adds new analysis-only summary artifacts/schemas and `crushr-lab` command surface for Phase 2 reporting.
+  - Does not change manifest locks, trial execution semantics, or normalized input contracts.

@@ -1,0 +1,100 @@
+{
+  "rows": [
+    {
+      "format": "crushr",
+      "total_runs": 540,
+      "recovery_success_rate": 0.0,
+      "mean_recovery_ratio_files": 0.0,
+      "mean_recovery_ratio_bytes": 0.0,
+      "detection_rate": 0.4462962962962963,
+      "blast_radius_distribution": {
+        "TOTAL": 1.0
+      },
+      "diagnostic_specificity_distribution": {
+        "GENERIC": 0.05740740740740741,
+        "PRECISE": 0.46296296296296297,
+        "STRUCTURAL": 0.47962962962962963
+      }
+    },
+    {
+      "format": "tar+gz",
+      "total_runs": 540,
+      "recovery_success_rate": 0.7018518518518518,
+      "mean_recovery_ratio_files": 0.5822222222222223,
+      "mean_recovery_ratio_bytes": 0.6055152942991747,
+      "detection_rate": 0.39444444444444443,
+      "blast_radius_distribution": {
+        "LOCALIZED": 0.06296296296296296,
+        "NONE": 0.4074074074074074,
+        "PARTIAL_SET": 0.1388888888888889,
+        "TOTAL": 0.29814814814814816,
+        "WIDESPREAD": 0.09259259259259259
+      },
+      "diagnostic_specificity_distribution": {
+        "GENERIC": 0.016666666666666666,
+        "NONE": 0.007407407407407408,
+        "PRECISE": 0.3277777777777778,
+        "STRUCTURAL": 0.6481481481481481
+      }
+    },
+    {
+      "format": "tar+xz",
+      "total_runs": 540,
+      "recovery_success_rate": 0.8481481481481481,
+      "mean_recovery_ratio_files": 0.591064814814816,
+      "mean_recovery_ratio_bytes": 0.5811059591930258,
+      "detection_rate": 0.3111111111111111,
+      "blast_radius_distribution": {
+        "LOCALIZED": 0.08703703703703704,
+        "NONE": 0.3888888888888889,
+        "PARTIAL_SET": 0.1037037037037037,
+        "TOTAL": 0.15185185185185185,
+        "WIDESPREAD": 0.26851851851851855
+      },
+      "diagnostic_specificity_distribution": {
+        "NONE": 0.001851851851851852,
+        "PRECISE": 0.11481481481481481,
+        "STRUCTURAL": 0.8833333333333333
+      }
+    },
+    {
+      "format": "tar+zstd",
+      "total_runs": 540,
+      "recovery_success_rate": 0.3592592592592593,
+      "mean_recovery_ratio_files": 0.33888888888888874,
+      "mean_recovery_ratio_bytes": 0.28552712410697056,
+      "detection_rate": 0.3,
+      "blast_radius_distribution": {
+        "NONE": 0.29814814814814816,
+        "PARTIAL_SET": 0.06111111111111111,
+        "TOTAL": 0.6407407407407407
+      },
+      "diagnostic_specificity_distribution": {
+        "GENERIC": 0.001851851851851852,
+        "NONE": 0.003703703703703704,
+        "PRECISE": 0.012962962962962963,
+        "STRUCTURAL": 0.9814814814814815
+      }
+    },
+    {
+      "format": "zip",
+      "total_runs": 540,
+      "recovery_success_rate": 0.6777777777777778,
+      "mean_recovery_ratio_files": 0.6087037037037035,
+      "mean_recovery_ratio_bytes": 0.5665798282137599,
+      "detection_rate": 0.0,
+      "blast_radius_distribution": {
+        "LOCALIZED": 0.13148148148148148,
+        "NONE": 0.3888888888888889,
+        "PARTIAL_SET": 0.11481481481481481,
+        "TOTAL": 0.32222222222222224,
+        "WIDESPREAD": 0.04259259259259259
+      },
+      "diagnostic_specificity_distribution": {
+        "NONE": 0.005555555555555556,
+        "PRECISE": 0.7222222222222222,
+        "STRUCTURAL": 0.2722222222222222
+      }
+    }
+  ]
+}

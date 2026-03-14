@@ -952,7 +952,57 @@ mod tests {
 
     #[test]
     fn normalizes_known_crushr_and_comparator_cases() {
-        let corpus = normalize_from_trials(&trials_dir()).expect("normalize");
+        let unique = format!(
+            "phase2-normalize-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("unix epoch")
+                .as_nanos()
+        );
+        let trials = std::env::temp_dir().join(unique);
+        fs::create_dir_all(trials.join("raw/scenario")).expect("create test trials dir");
+
+        let mut crushr = sample_raw_record();
+        crushr.scenario_id = "p2-core-smallfiles-crushr-bit_flip-header-1B-1337".to_string();
+        crushr.stdout_path = "raw/scenario/crushr_stdout.txt".to_string();
+        crushr.stderr_path = "raw/scenario/crushr_stderr.txt".to_string();
+        crushr.json_result_path = Some("raw/scenario/crushr_result.json".to_string());
+        crushr.has_json_result = true;
+        crushr.exit_code = 0;
+
+        let mut zip = sample_raw_record();
+        zip.scenario_id = "p2-core-smallfiles-zip-bit_flip-header-1B-1337".to_string();
+        zip.format = ArchiveFormat::Zip;
+        zip.tool_kind = ArchiveFormat::Zip;
+        zip.stdout_path = "raw/scenario/zip_stdout.txt".to_string();
+        zip.stderr_path = "raw/scenario/zip_stderr.txt".to_string();
+        zip.json_result_path = None;
+        zip.has_json_result = false;
+        zip.exit_code = 2;
+
+        fs::write(trials.join(&crushr.stdout_path), "ok").expect("write crushr stdout");
+        fs::write(trials.join(&crushr.stderr_path), "").expect("write crushr stderr");
+        fs::write(
+            trials.join(crushr.json_result_path.as_ref().expect("crushr json path")),
+            "{}",
+        )
+        .expect("write crushr result");
+
+        fs::write(trials.join(&zip.stdout_path), "").expect("write zip stdout");
+        fs::write(
+            trials.join(&zip.stderr_path),
+            "End-of-central-directory signature not found",
+        )
+        .expect("write zip stderr");
+
+        fs::write(
+            trials.join("raw_run_records.json"),
+            serde_json::to_vec_pretty(&vec![crushr, zip]).expect("serialize records"),
+        )
+        .expect("write raw records");
+
+        let corpus = normalize_from_trials(&trials).expect("normalize");
 
         let crushr = corpus
             .records
@@ -969,5 +1019,7 @@ mod tests {
             .expect("zip sample");
         assert!(!zip.has_json_result);
         assert_ne!(zip.result_class, ResultClass::Success);
+
+        fs::remove_dir_all(&trials).expect("cleanup test trials dir");
     }
 }

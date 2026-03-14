@@ -32,7 +32,7 @@
 - [x] 2.1 execution evidence enrichment — white-paper-grade structured run records/report, truthful tool-version capture, execution schemas, focused tests (CRUSHR-P2-EXEC-03B)
 - [x] 2.2 execution normalization — deterministic comparison-ready normalized evidence dataset, summary artifacts, schemas, and focused tests (CRUSHR-P2-EXEC-04)
 - [x] 2.2 execution recovery instrumentation — extraction-output recovery accounting (files/bytes), blast-radius mapping, enriched normalization summary/schema/tests without full-matrix rerun artifacts (CRUSHR-P2-EXEC-06A)
-- [ ] 2.2 Cross-Format Comparison
+- [x] 2.2 Cross-Format Comparison (CRUSHR-P2-ANALYSIS-01)
 - [ ] 2.3 Experimental Reporting
 
 ## Phase 2 — Experimental Evidence System (White-Paper Critical)

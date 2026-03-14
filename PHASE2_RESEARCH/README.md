@@ -26,7 +26,8 @@ Canonical workspace for all Phase 2 research materials.
 3. Build foundation: `crushr-lab build-phase2-foundation --artifact-dir PHASE2_RESEARCH/generated/foundation`
 4. Run execution: `crushr-lab run-phase2-execution --manifest PHASE2_RESEARCH/manifest/phase2_manifest.json --foundation-report PHASE2_RESEARCH/generated/foundation/foundation_report.json --artifact-dir PHASE2_RESEARCH/trials`
 5. Normalize execution evidence: `crushr-lab run-phase2-normalization --trials-dir PHASE2_RESEARCH/trials --output-dir PHASE2_RESEARCH/results`
-6. Inspect outputs: audit report in `PHASE2_RESEARCH/generated/audit/phase2_pretrial_audit.json`, raw evidence in `PHASE2_RESEARCH/trials/`, normalization outputs in `PHASE2_RESEARCH/results/`, normalized mapping contracts in `PHASE2_RESEARCH/normalized/`, summaries in `PHASE2_RESEARCH/summaries/`
+6. Build cross-format comparison tables/rankings: `crushr-lab run-phase2-comparison --input PHASE2_RESEARCH/results/normalized_results.json --output-dir PHASE2_RESEARCH/summaries`
+7. Inspect outputs: audit report in `PHASE2_RESEARCH/generated/audit/phase2_pretrial_audit.json`, raw evidence in `PHASE2_RESEARCH/trials/`, normalization outputs in `PHASE2_RESEARCH/results/`, normalized mapping contracts in `PHASE2_RESEARCH/normalized/`, and comparison summaries in `PHASE2_RESEARCH/summaries/`
 
 ## Policy boundary
 

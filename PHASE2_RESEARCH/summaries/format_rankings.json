@@ -1,0 +1,83 @@
+{
+  "survivability": [
+    {
+      "rank": 1,
+      "format": "tar+xz",
+      "score": 0.8481481481481481
+    },
+    {
+      "rank": 2,
+      "format": "tar+gz",
+      "score": 0.7018518518518518
+    },
+    {
+      "rank": 3,
+      "format": "zip",
+      "score": 0.6777777777777778
+    },
+    {
+      "rank": 4,
+      "format": "tar+zstd",
+      "score": 0.3592592592592593
+    },
+    {
+      "rank": 5,
+      "format": "crushr",
+      "score": 0.0
+    }
+  ],
+  "diagnostic_quality": [
+    {
+      "rank": 1,
+      "format": "crushr",
+      "score": 0.624074074074074
+    },
+    {
+      "rank": 2,
+      "format": "tar+gz",
+      "score": 0.5799382716049383
+    },
+    {
+      "rank": 3,
+      "format": "tar+xz",
+      "score": 0.5074074074074074
+    },
+    {
+      "rank": 4,
+      "format": "tar+zstd",
+      "score": 0.4839506172839506
+    },
+    {
+      "rank": 5,
+      "format": "zip",
+      "score": 0.4518518518518518
+    }
+  ],
+  "corruption_containment": [
+    {
+      "rank": 1,
+      "format": "tar+xz",
+      "score": 0.5731481481481482
+    },
+    {
+      "rank": 2,
+      "format": "zip",
+      "score": 0.5555555555555556
+    },
+    {
+      "rank": 3,
+      "format": "tar+gz",
+      "score": 0.5472222222222222
+    },
+    {
+      "rank": 4,
+      "format": "tar+zstd",
+      "score": 0.3287037037037037
+    },
+    {
+      "rank": 5,
+      "format": "crushr",
+      "score": 0.0
+    }
+  ]
+}
