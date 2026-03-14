@@ -10,45 +10,230 @@
     "failure_stage_counts",
     "diagnostic_specificity_counts",
     "per_format_result_class_counts",
-    "runs_with_file_level_detail",
     "per_format_notes",
-    "mapping_report"
+    "mapping_report",
+    "runs_with_recovery_accounting",
+    "recovery_evidence_strength_counts",
+    "per_format_average_recovery_ratio_files",
+    "per_format_average_recovery_ratio_bytes",
+    "per_format_blast_radius_class_counts",
+    "per_corruption_type_average_recovery_ratio_files",
+    "per_target_average_recovery_ratio_files"
   ],
   "properties": {
-    "total_normalized_runs": { "type": "integer", "minimum": 0 },
+    "total_normalized_runs": {
+      "type": "integer",
+      "minimum": 0
+    },
     "result_class_counts": {
       "type": "object",
-      "propertyNames": { "enum": ["SUCCESS", "PARTIAL", "REFUSED", "STRUCTURAL_FAIL", "TOOL_ERROR"] },
-      "additionalProperties": { "type": "integer", "minimum": 0 }
+      "propertyNames": {
+        "enum": [
+          "SUCCESS",
+          "PARTIAL",
+          "REFUSED",
+          "STRUCTURAL_FAIL",
+          "TOOL_ERROR"
+        ]
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
     },
     "failure_stage_counts": {
       "type": "object",
-      "propertyNames": { "enum": ["NONE", "PRE_EXTRACT", "EXTRACTION", "UNKNOWN"] },
-      "additionalProperties": { "type": "integer", "minimum": 0 }
+      "propertyNames": {
+        "enum": [
+          "NONE",
+          "PRE_EXTRACT",
+          "EXTRACTION",
+          "UNKNOWN"
+        ]
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
     },
     "diagnostic_specificity_counts": {
       "type": "object",
-      "propertyNames": { "enum": ["NONE", "GENERIC", "STRUCTURAL", "PRECISE"] },
-      "additionalProperties": { "type": "integer", "minimum": 0 }
+      "propertyNames": {
+        "enum": [
+          "NONE",
+          "GENERIC",
+          "STRUCTURAL",
+          "PRECISE"
+        ]
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
     },
     "per_format_result_class_counts": {
       "type": "object",
-      "propertyNames": { "enum": ["crushr", "zip", "tar+zstd", "tar+gz", "tar+xz"] },
+      "propertyNames": {
+        "enum": [
+          "crushr",
+          "zip",
+          "tar+zstd",
+          "tar+gz",
+          "tar+xz"
+        ]
+      },
       "additionalProperties": {
         "type": "object",
-        "propertyNames": { "enum": ["SUCCESS", "PARTIAL", "REFUSED", "STRUCTURAL_FAIL", "TOOL_ERROR"] },
-        "additionalProperties": { "type": "integer", "minimum": 0 }
+        "propertyNames": {
+          "enum": [
+            "SUCCESS",
+            "PARTIAL",
+            "REFUSED",
+            "STRUCTURAL_FAIL",
+            "TOOL_ERROR"
+          ]
+        },
+        "additionalProperties": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
-    "runs_with_file_level_detail": { "type": "integer", "minimum": 0 },
     "per_format_notes": {
       "type": "object",
-      "propertyNames": { "enum": ["crushr", "zip", "tar+zstd", "tar+gz", "tar+xz"] },
-      "additionalProperties": { "type": "string", "minLength": 1 }
+      "propertyNames": {
+        "enum": [
+          "crushr",
+          "zip",
+          "tar+zstd",
+          "tar+gz",
+          "tar+xz"
+        ]
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "mapping_report": {
       "type": "object",
-      "additionalProperties": { "type": "string", "minLength": 1 }
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "runs_with_recovery_accounting": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "recovery_evidence_strength_counts": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "FILE_PRESENCE_ONLY",
+          "FILE_AND_BYTE_COUNTS",
+          "FILE_BYTE_AND_CONTENT_VALIDATION"
+        ]
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "per_format_average_recovery_ratio_files": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "crushr",
+          "zip",
+          "tar+zstd",
+          "tar+gz",
+          "tar+xz"
+        ]
+      },
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0
+      }
+    },
+    "per_format_average_recovery_ratio_bytes": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "crushr",
+          "zip",
+          "tar+zstd",
+          "tar+gz",
+          "tar+xz"
+        ]
+      },
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0
+      }
+    },
+    "per_format_blast_radius_class_counts": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "crushr",
+          "zip",
+          "tar+zstd",
+          "tar+gz",
+          "tar+xz"
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": {
+          "enum": [
+            "NONE",
+            "LOCALIZED",
+            "PARTIAL_SET",
+            "WIDESPREAD",
+            "TOTAL"
+          ]
+        },
+        "additionalProperties": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "per_corruption_type_average_recovery_ratio_files": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "bit_flip",
+          "byte_overwrite",
+          "zero_fill",
+          "truncation",
+          "tail_damage"
+        ]
+      },
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0
+      }
+    },
+    "per_target_average_recovery_ratio_files": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "header",
+          "index",
+          "payload",
+          "tail"
+        ]
+      },
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0
+      }
     }
   }
 }

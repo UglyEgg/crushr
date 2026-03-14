@@ -75,7 +75,18 @@ fn raw_run_record_schema_accepts_rich_execution_record() {
           "source_archive_path": "../baselines/crushr/smallfiles.crs",
           "corrupted_archive_path": "raw/s1/smallfiles.crs.corrupt",
           "corruption_log_path": "raw/s1/corruption_provenance.json"
-        }
+        },
+        "extraction_output_dir": "raw/s1/extracted",
+        "recovery_report_path": "raw/s1/recovery_report.json",
+        "recovery_accounting": {
+          "files_expected": 24,
+          "files_recovered": 24,
+          "files_missing": 0,
+          "bytes_expected": 1024,
+          "bytes_recovered": 1024,
+          "recovery_ratio_files": 1.0,
+          "recovery_ratio_bytes": 1.0
+        },
       }
     ]);
 
@@ -114,7 +125,10 @@ fn raw_run_record_schema_rejects_broken_tool_version_string() {
         "tool_version": "unsupported flag: --version",
         "result_artifacts": {"stdout_path": "o", "stderr_path": "e", "json_result_path": null},
         "result_completeness": "stdout_and_stderr",
-        "run_context_paths": {"source_archive_path": "a", "corrupted_archive_path": "b", "corruption_log_path": "c"}
+        "run_context_paths": {"source_archive_path": "a", "corrupted_archive_path": "b", "corruption_log_path": "c"},
+        "extraction_output_dir": "raw/s1/extracted",
+        "recovery_report_path": "raw/s1/recovery_report.json",
+        "recovery_accounting": {"files_expected": 1, "files_recovered": 0, "files_missing": 1, "bytes_expected": 10, "bytes_recovered": 0, "recovery_ratio_files": 0.0, "recovery_ratio_bytes": 0.0}
       }
     ]);
 

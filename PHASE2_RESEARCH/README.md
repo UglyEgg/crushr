@@ -15,7 +15,7 @@ Canonical workspace for all Phase 2 research materials.
   - `completeness_audit.json` — run completeness checks
   - `execution_report.json` — summary counts/histograms/tool versions/completeness
 - `normalized/` — normalized cross-tool result contracts and mapped records
-- `results/` — Phase 2 normalization outputs (`normalized_results.json`, `normalization_summary.json`)
+- `results/` — Phase 2 normalization outputs (`normalized_results.json`, `normalization_summary.json`) with file/byte recovery accounting and blast-radius classification
 - `summaries/` — aggregate tables/CSVs and publication-facing summary views
 - `whitepaper_support/` — figures, tables, and source support files for whitepaper claims
 

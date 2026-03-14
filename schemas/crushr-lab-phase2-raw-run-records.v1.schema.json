@@ -3,44 +3,141 @@
   "$id": "https://crushr.dev/schemas/crushr-lab-phase2-raw-run-records.v1.schema.json",
   "title": "crushr-lab phase2 raw run records v1",
   "type": "array",
-  "items": { "$ref": "#/$defs/raw_run_record" },
+  "items": {
+    "$ref": "#/$defs/raw_run_record"
+  },
   "$defs": {
-    "dataset": { "enum": ["smallfiles", "mixed", "largefiles"] },
-    "archive_format": { "enum": ["crushr", "zip", "tar+zstd", "tar+gz", "tar+xz"] },
-    "corruption_type": { "enum": ["bit_flip", "byte_overwrite", "zero_fill", "truncation", "tail_damage"] },
-    "target_class": { "enum": ["header", "index", "payload", "tail"] },
-    "magnitude": { "enum": ["1B", "256B", "4KB"] },
-    "invocation_status": { "enum": ["completed"] },
-    "evidence_quality": { "enum": ["stdout_only", "stdout_and_stderr", "structured_json_result"] },
-    "tool_version_status": { "enum": ["detected", "unsupported", "unavailable"] },
+    "dataset": {
+      "enum": [
+        "smallfiles",
+        "mixed",
+        "largefiles"
+      ]
+    },
+    "archive_format": {
+      "enum": [
+        "crushr",
+        "zip",
+        "tar+zstd",
+        "tar+gz",
+        "tar+xz"
+      ]
+    },
+    "corruption_type": {
+      "enum": [
+        "bit_flip",
+        "byte_overwrite",
+        "zero_fill",
+        "truncation",
+        "tail_damage"
+      ]
+    },
+    "target_class": {
+      "enum": [
+        "header",
+        "index",
+        "payload",
+        "tail"
+      ]
+    },
+    "magnitude": {
+      "enum": [
+        "1B",
+        "256B",
+        "4KB"
+      ]
+    },
+    "invocation_status": {
+      "enum": [
+        "completed"
+      ]
+    },
+    "evidence_quality": {
+      "enum": [
+        "stdout_only",
+        "stdout_and_stderr",
+        "structured_json_result"
+      ]
+    },
+    "tool_version_status": {
+      "enum": [
+        "detected",
+        "unsupported",
+        "unavailable"
+      ]
+    },
     "tool_version_observation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "version", "detail"],
+      "required": [
+        "status",
+        "version",
+        "detail"
+      ],
       "properties": {
-        "status": { "$ref": "#/$defs/tool_version_status" },
-        "version": { "type": ["string", "null"] },
-        "detail": { "type": ["string", "null"] }
+        "status": {
+          "$ref": "#/$defs/tool_version_status"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "detail": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "result_artifacts": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["stdout_path", "stderr_path", "json_result_path"],
+      "required": [
+        "stdout_path",
+        "stderr_path",
+        "json_result_path"
+      ],
       "properties": {
-        "stdout_path": { "type": "string", "minLength": 1 },
-        "stderr_path": { "type": "string", "minLength": 1 },
-        "json_result_path": { "type": ["string", "null"] }
+        "stdout_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stderr_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "json_result_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "run_context_paths": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source_archive_path", "corrupted_archive_path", "corruption_log_path"],
+      "required": [
+        "source_archive_path",
+        "corrupted_archive_path",
+        "corruption_log_path"
+      ],
       "properties": {
-        "source_archive_path": { "type": "string", "minLength": 1 },
-        "corrupted_archive_path": { "type": "string", "minLength": 1 },
-        "corruption_log_path": { "type": "string", "minLength": 1 }
+        "source_archive_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "corrupted_archive_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "corruption_log_path": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "raw_run_record": {
@@ -71,37 +168,163 @@
         "tool_version",
         "result_artifacts",
         "result_completeness",
-        "run_context_paths"
+        "run_context_paths",
+        "extraction_output_dir",
+        "recovery_report_path",
+        "recovery_accounting"
       ],
       "properties": {
-        "scenario_id": { "type": "string", "minLength": 1 },
-        "dataset": { "$ref": "#/$defs/dataset" },
-        "format": { "$ref": "#/$defs/archive_format" },
-        "corruption_type": { "$ref": "#/$defs/corruption_type" },
-        "target_class": { "$ref": "#/$defs/target_class" },
-        "magnitude": { "$ref": "#/$defs/magnitude" },
-        "magnitude_bytes": { "type": "integer", "minimum": 1 },
-        "seed": { "type": "integer", "minimum": 0 },
-        "source_archive_path": { "type": "string", "minLength": 1 },
-        "corrupted_archive_path": { "type": "string", "minLength": 1 },
-        "tool_kind": { "$ref": "#/$defs/archive_format" },
-        "executable": { "type": "string", "minLength": 1 },
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataset": {
+          "$ref": "#/$defs/dataset"
+        },
+        "format": {
+          "$ref": "#/$defs/archive_format"
+        },
+        "corruption_type": {
+          "$ref": "#/$defs/corruption_type"
+        },
+        "target_class": {
+          "$ref": "#/$defs/target_class"
+        },
+        "magnitude": {
+          "$ref": "#/$defs/magnitude"
+        },
+        "magnitude_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_archive_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "corrupted_archive_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_kind": {
+          "$ref": "#/$defs/archive_format"
+        },
+        "executable": {
+          "type": "string",
+          "minLength": 1
+        },
         "argv": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
-        "cwd": { "type": ["string", "null"] },
-        "exit_code": { "type": "integer" },
-        "stdout_path": { "type": "string", "minLength": 1 },
-        "stderr_path": { "type": "string", "minLength": 1 },
-        "json_result_path": { "type": ["string", "null"] },
-        "has_json_result": { "type": "boolean" },
-        "invocation_status": { "$ref": "#/$defs/invocation_status" },
-        "stage_classification": { "type": ["string", "null"] },
-        "tool_version": { "$ref": "#/$defs/tool_version_observation" },
-        "result_artifacts": { "$ref": "#/$defs/result_artifacts" },
-        "result_completeness": { "$ref": "#/$defs/evidence_quality" },
-        "run_context_paths": { "$ref": "#/$defs/run_context_paths" }
+        "cwd": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "exit_code": {
+          "type": "integer"
+        },
+        "stdout_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stderr_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "json_result_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "has_json_result": {
+          "type": "boolean"
+        },
+        "invocation_status": {
+          "$ref": "#/$defs/invocation_status"
+        },
+        "stage_classification": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tool_version": {
+          "$ref": "#/$defs/tool_version_observation"
+        },
+        "result_artifacts": {
+          "$ref": "#/$defs/result_artifacts"
+        },
+        "result_completeness": {
+          "$ref": "#/$defs/evidence_quality"
+        },
+        "run_context_paths": {
+          "$ref": "#/$defs/run_context_paths"
+        },
+        "extraction_output_dir": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recovery_report_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recovery_accounting": {
+          "$ref": "#/$defs/recovery_accounting"
+        }
+      }
+    },
+    "recovery_accounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "files_expected",
+        "files_recovered",
+        "files_missing",
+        "bytes_expected",
+        "bytes_recovered",
+        "recovery_ratio_files",
+        "recovery_ratio_bytes"
+      ],
+      "properties": {
+        "files_expected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "files_recovered": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "files_missing": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bytes_expected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bytes_recovered": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recovery_ratio_files": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "recovery_ratio_bytes": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
       }
     }
   }
