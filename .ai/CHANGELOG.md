@@ -441,3 +441,11 @@
   - Added `crushr-lab-salvage` deterministic research harness for batch salvage experiments over `.crushr` archives.
   - Added experiment manifest + per-run metadata output layout with deterministic archive ordering and run IDs.
   - Added integration tests covering structure generation, deterministic ordering, export-enabled/disabled behavior, and summary population.
+
+
+## 2026-03-14 — CRUSHR-SALVAGE-05
+
+- Extended `crushr-lab-salvage` to generate deterministic compact experiment summaries (`summary.json`, `summary.md`) after experiment runs.
+- Added stable per-run outcome categories and aggregate counters for verified blocks, salvageability, and exported artifact classes.
+- Added `--resummarize <experiment_dir>` for summary-only regeneration from existing experiment outputs without rerunning salvage.
+- Added focused harness tests for summary generation, aggregate correctness, deterministic ordering, classification coverage, export-aware totals, and resummarize behavior.

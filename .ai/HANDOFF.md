@@ -2,12 +2,12 @@
 
 ## Immediate next packet
 
-Next salvage packet (TBD): build on CRUSHR-SALVAGE-04 harness outputs without adding reconstruction.
+Next salvage packet (TBD): build on CRUSHR-SALVAGE-05 summary outputs without adding reconstruction.
 
 ## First actions for a fresh instance
 
 1. Read startup order from `AI_BOOTSTRAP.md`.
-2. Confirm `STATUS.md` and `PHASE_PLAN.md` show CRUSHR-SALVAGE-04 complete and salvage remains separate from strict extraction.
+2. Confirm `STATUS.md` and `PHASE_PLAN.md` show CRUSHR-SALVAGE-05 complete and salvage remains separate from strict extraction.
 3. Keep strict extraction (`crushr-extract`) semantics unchanged.
 4. Treat salvage as a separate experimental executable only.
 5. Run workspace gates (`fmt`, `test`, `clippy`).
@@ -42,3 +42,10 @@ Next salvage packet (TBD): build on CRUSHR-SALVAGE-04 harness outputs without ad
 - stable per-run directories with salvage plan capture + run metadata
 - top-level `experiment_manifest.json` with run ordering and unverified research label
 - optional delegated fragment export integration via `crushr-salvage --export-fragments`
+
+
+## Completed CRUSHR-SALVAGE-05 outputs
+
+- compact deterministic experiment summaries at `<experiment_dir>/summary.json` and `<experiment_dir>/summary.md`
+- stable run-level outcome categories: `NO_VERIFIED_EVIDENCE`, `ORPHAN_EVIDENCE_ONLY`, `PARTIAL_FILE_SALVAGE`, `FULL_FILE_SALVAGE_AVAILABLE`
+- `--resummarize <experiment_dir>` mode to regenerate summaries from existing manifest/run metadata without rerunning salvage

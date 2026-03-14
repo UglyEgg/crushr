@@ -51,3 +51,8 @@ Expected payload families:
 - Phase 2 used these snapshots as experiment harness inputs
 - Phase 2 execution/normalization/comparison are complete and frozen
 - salvage planning output uses dedicated schemas (`crushr-salvage-plan.v1` legacy, `crushr-salvage-plan.v2` active) and remains unverified research output
+
+
+## Salvage experiment summary artifacts (research-only)
+
+`crushr-lab-salvage` also emits compact deterministic experiment-level summary files (`summary.json`, `summary.md`) from run metadata. These are research-only aggregates and are not canonical extraction snapshots or reconstruction semantics.
