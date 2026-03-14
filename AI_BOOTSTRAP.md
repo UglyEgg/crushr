@@ -1,6 +1,8 @@
 # AI Bootstrap
 
-Use this exact startup order before making changes:
+## Startup checklist
+
+Read in order:
 
 1. `AGENTS.md`
 2. `REPO_GUARDRAILS.md`
@@ -9,15 +11,13 @@ Use this exact startup order before making changes:
 5. `.ai/STATUS.md`
 6. `.ai/PHASE_PLAN.md`
 7. `.ai/DECISION_LOG.md`
-8. Task packet + directly affected docs/contracts
 
-If conflicts exist, do not proceed until resolved using the hierarchy in `AGENTS.md`.
+Then confirm active phase/step from `.ai/STATUS.md` before coding.
 
-Current orientation:
+## Current baseline summary
 
-- Phase 1 is complete.
-- Cleanup is complete enough to proceed with Phase 2 packets.
-- Immediate milestone is a Phase 2 pre-trial audit pass over manifest/foundation/execution paths.
-- Active engineering focus after pre-trial audit is Phase 2.2 cross-format comparison and normalized result mapping.
-- Canonical Phase 2 research workspace root is `PHASE2_RESEARCH/`.
-- Active Phase 2 methodology and lock guidance live under `PHASE2_RESEARCH/methodology/`.
+- Integrity-first thesis remains unchanged.
+- `crushr-extract` is strict-only canonical extraction.
+- Phase 2 execution/normalization/comparison are complete and frozen.
+- Active workstream is CRUSHR-SALVAGE-01: standalone deterministic salvage planning via `crushr-salvage`.
+- Salvage outputs are unverified research outputs and must not be presented as canonical extraction.

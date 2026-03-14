@@ -48,6 +48,6 @@ Expected payload families:
 ## Current phase alignment
 
 - Phase 1 contracts are complete and active
-- Phase 2 uses these snapshots as experiment harness inputs
-- next required milestone: Phase 2 pre-trial audit over `PHASE2_RESEARCH/` flow
-- next packet after audit: Phase 2.2 cross-format comparison and normalized result mapping
+- Phase 2 used these snapshots as experiment harness inputs
+- Phase 2 execution/normalization/comparison are complete and frozen
+- salvage planning output uses a separate dedicated schema and remains unverified research output

@@ -36,10 +36,12 @@ If conflict remains, stop and resolve explicitly.
 
 AI contributors must not:
 
-- reintroduce recovery/salvage/reconstruction product surfaces
-- treat legacy monolith behavior as canonical direction
+- reintroduce recovery/salvage/reconstruction into `crushr-extract`
+- weaken strict extraction semantics or redefine the integrity-first thesis
 - silently broaden scope beyond the packet
 - alter thesis/scope/format contracts without explicit decision logging
+
+A separate experimental executable `crushr-salvage` is allowed, but it must remain clearly outside canonical extraction semantics.
 
 ## Required output discipline
 
@@ -54,7 +56,6 @@ Each implementation response must include:
 ## Current direction
 
 - Phase 1 complete.
-- Phase 2 active.
-- Next required milestone: Phase 2 pre-trial audit over `PHASE2_RESEARCH/` controls and output paths.
-- Next packet after audit: Phase 2.2 cross-format comparison and normalized result mapping.
+- Phase 2 execution, normalization, and comparison are complete and frozen.
+- Active implementation workstream: standalone deterministic salvage planning via `crushr-salvage`.
 - Canonical Phase 2 research workspace root: `PHASE2_RESEARCH/`.
