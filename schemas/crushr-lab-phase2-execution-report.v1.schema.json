@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crushr.dev/schemas/crushr-lab-phase2-execution-report.v1.schema.json",
+  "title": "crushr-lab phase2 execution report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "expected_runs",
+    "actual_runs",
+    "records_path",
+    "completeness_path",
+    "scenario_count_by_format",
+    "scenario_count_by_dataset",
+    "exit_code_histogram",
+    "has_json_result_counts",
+    "tool_versions",
+    "completeness_audit_passed"
+  ],
+  "properties": {
+    "expected_runs": { "type": "integer", "minimum": 0 },
+    "actual_runs": { "type": "integer", "minimum": 0 },
+    "records_path": { "type": "string", "minLength": 1 },
+    "completeness_path": { "type": "string", "minLength": 1 },
+    "scenario_count_by_format": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 },
+      "propertyNames": { "minLength": 1 }
+    },
+    "scenario_count_by_dataset": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 },
+      "propertyNames": { "minLength": 1 }
+    },
+    "exit_code_histogram": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 },
+      "propertyNames": { "pattern": "^-?[0-9]+$" }
+    },
+    "has_json_result_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["true_count", "false_count"],
+      "properties": {
+        "true_count": { "type": "integer", "minimum": 0 },
+        "false_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "tool_versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["by_tool"],
+      "properties": {
+        "by_tool": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/tool_version_summary" }
+        }
+      }
+    },
+    "completeness_audit_passed": { "type": "boolean" }
+  },
+  "$defs": {
+    "archive_format": {
+      "enum": ["crushr", "zip", "tar+zstd", "tar+gz", "tar+xz"]
+    },
+    "tool_version_status": {
+      "enum": ["detected", "unsupported", "unavailable"]
+    },
+    "tool_version_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool_kind", "executable", "status", "version", "detail"],
+      "properties": {
+        "tool_kind": { "$ref": "#/$defs/archive_format" },
+        "executable": { "type": "string", "minLength": 1 },
+        "status": { "$ref": "#/$defs/tool_version_status" },
+        "version": { "type": ["string", "null"] },
+        "detail": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

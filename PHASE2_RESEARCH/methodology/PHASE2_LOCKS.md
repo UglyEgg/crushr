@@ -94,8 +94,15 @@ Each run record must capture at minimum:
 - format
 - corruption_type
 - target_class
+- magnitude
 - magnitude_bytes
 - seed
+- source_archive_path
+- corrupted_archive_path
+- tool_kind
+- executable
+- argv
+- cwd (if available)
 - detected_pre_extract
 - outcome_class
 - files_total
@@ -107,7 +114,9 @@ Each run record must capture at minimum:
 - stdout_path
 - stderr_path
 - json_result_path (if available)
-- tool_version
+- has_json_result
+- invocation_status
+- tool_version (truthful detection/unsupported/unavailable)
 
 ## Outcome classes
 The normalized result surface must classify outcomes into:
