@@ -19,55 +19,149 @@
     "summary"
   ],
   "properties": {
-    "schema_version": { "const": "crushr-salvage-plan.v2" },
-    "tool": { "const": "crushr-salvage" },
-    "tool_version": { "type": "string", "minLength": 1 },
+    "schema_version": {
+      "const": "crushr-salvage-plan.v2"
+    },
+    "tool": {
+      "const": "crushr-salvage"
+    },
+    "tool_version": {
+      "type": "string",
+      "minLength": 1
+    },
     "verification_contract_label": {
       "const": "UNVERIFIED_RESEARCH_OUTPUT_NOT_CANONICAL_EXTRACTION"
     },
     "archive": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["archive_path", "archive_size", "archive_blake3"],
+      "required": [
+        "archive_path",
+        "archive_size",
+        "archive_blake3"
+      ],
       "properties": {
-        "archive_path": { "type": "string", "minLength": 1 },
-        "archive_size": { "type": "integer", "minimum": 0 },
-        "archive_blake3": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        "archive_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "archive_size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "archive_blake3": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
       }
     },
     "footer_analysis": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "reason", "blocks_end_offset", "footer_offset"],
+      "required": [
+        "status",
+        "reason",
+        "blocks_end_offset",
+        "footer_offset"
+      ],
       "properties": {
-        "status": { "enum": ["valid", "invalid", "missing"] },
-        "reason": { "type": "string", "minLength": 1 },
-        "blocks_end_offset": { "type": ["integer", "null"], "minimum": 0 },
-        "footer_offset": { "type": ["integer", "null"], "minimum": 0 }
+        "status": {
+          "enum": [
+            "valid",
+            "invalid",
+            "missing"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "blocks_end_offset": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "footer_offset": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
       }
     },
     "index_analysis": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "reason", "index_offset", "index_len", "entry_count"],
+      "required": [
+        "status",
+        "reason",
+        "index_offset",
+        "index_len",
+        "entry_count"
+      ],
       "properties": {
-        "status": { "enum": ["valid", "invalid", "unavailable"] },
-        "reason": { "type": "string", "minLength": 1 },
-        "index_offset": { "type": ["integer", "null"], "minimum": 0 },
-        "index_len": { "type": ["integer", "null"], "minimum": 0 },
-        "entry_count": { "type": ["integer", "null"], "minimum": 0 }
+        "status": {
+          "enum": [
+            "valid",
+            "invalid",
+            "unavailable"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "index_offset": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "index_len": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "entry_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
       }
     },
     "dictionary_analysis": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "reason", "verified_dict_ids"],
+      "required": [
+        "status",
+        "reason",
+        "verified_dict_ids"
+      ],
       "properties": {
-        "status": { "enum": ["available", "unavailable"] },
-        "reason": { "type": "string", "minLength": 1 },
+        "status": {
+          "enum": [
+            "available",
+            "unavailable"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
         "verified_dict_ids": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 1 }
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       }
     },
@@ -95,31 +189,102 @@
           "verified_raw_len"
         ],
         "properties": {
-          "scan_offset": { "type": "integer", "minimum": 0 },
-          "mapped_block_id": { "type": ["integer", "null"], "minimum": 0 },
-          "structural_status": { "const": "detected" },
-          "header_status": { "enum": ["valid", "invalid"] },
-          "header_reason": { "type": "string", "minLength": 1 },
-          "payload_bounds_status": { "enum": ["in_bounds", "out_of_bounds", "unknown"] },
-          "payload_hash_status": { "enum": ["verified", "mismatch", "unavailable"] },
-          "dictionary_required": { "type": "boolean" },
-          "dictionary_id": { "type": ["integer", "null"], "minimum": 1 },
+          "scan_offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mapped_block_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "structural_status": {
+            "const": "detected"
+          },
+          "header_status": {
+            "enum": [
+              "valid",
+              "invalid"
+            ]
+          },
+          "header_reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "payload_bounds_status": {
+            "enum": [
+              "in_bounds",
+              "out_of_bounds",
+              "unknown"
+            ]
+          },
+          "payload_hash_status": {
+            "enum": [
+              "verified",
+              "mismatch",
+              "unavailable"
+            ]
+          },
+          "dictionary_required": {
+            "type": "boolean"
+          },
+          "dictionary_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
           "dictionary_dependency_status": {
-            "enum": ["not_required", "satisfied", "missing", "invalid", "unresolved"]
+            "enum": [
+              "not_required",
+              "satisfied",
+              "missing",
+              "invalid",
+              "unresolved"
+            ]
           },
           "decompression_status": {
-            "enum": ["not_attempted", "success", "failed", "unsupported_codec"]
+            "enum": [
+              "not_attempted",
+              "success",
+              "failed",
+              "unsupported_codec"
+            ]
           },
           "raw_hash_status": {
-            "enum": ["verified", "mismatch", "unavailable", "not_attempted"]
+            "enum": [
+              "verified",
+              "mismatch",
+              "unavailable",
+              "not_attempted"
+            ]
           },
-          "content_verification_status": { "enum": ["content_verified", "not_content_verified"] },
+          "content_verification_status": {
+            "enum": [
+              "content_verified",
+              "not_content_verified"
+            ]
+          },
           "content_verification_reasons": {
             "type": "array",
-            "items": { "type": "string", "minLength": 1 }
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           },
-          "usable_for_indexed_planning": { "type": "boolean" },
-          "verified_raw_len": { "type": ["integer", "null"], "minimum": 0 }
+          "usable_for_indexed_planning": {
+            "type": "boolean"
+          },
+          "verified_raw_len": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
         }
       }
     },
@@ -128,18 +293,42 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["file_path", "status", "reason", "failure_reasons", "required_block_ids"],
+        "required": [
+          "file_path",
+          "status",
+          "reason",
+          "failure_reasons",
+          "required_block_ids"
+        ],
         "properties": {
-          "file_path": { "type": "string", "minLength": 1 },
-          "status": { "enum": ["SALVAGEABLE", "UNSALVAGEABLE", "UNMAPPABLE"] },
-          "reason": { "type": "string", "minLength": 1 },
+          "file_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "SALVAGEABLE",
+              "UNSALVAGEABLE",
+              "UNMAPPABLE"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
           "failure_reasons": {
             "type": "array",
-            "items": { "type": "string", "minLength": 1 }
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           "required_block_ids": {
             "type": "array",
-            "items": { "type": "integer", "minimum": 0 }
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         }
       }
@@ -154,20 +343,77 @@
         "orphan_unmappable_candidates"
       ],
       "properties": {
-        "total_candidates": { "type": "integer", "minimum": 0 },
-        "usable_candidates": { "type": "integer", "minimum": 0 },
-        "mapped_candidates": { "type": "integer", "minimum": 0 },
-        "orphan_unmappable_candidates": { "type": "integer", "minimum": 0 }
+        "total_candidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "usable_candidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mapped_candidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "orphan_unmappable_candidates": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
     "summary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["salvageable_files", "unsalvageable_files", "unmappable_files"],
+      "required": [
+        "salvageable_files",
+        "unsalvageable_files",
+        "unmappable_files"
+      ],
       "properties": {
-        "salvageable_files": { "type": "integer", "minimum": 0 },
-        "unsalvageable_files": { "type": "integer", "minimum": 0 },
-        "unmappable_files": { "type": "integer", "minimum": 0 }
+        "salvageable_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unsalvageable_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unmappable_files": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "exported_artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exported_block_artifacts",
+        "exported_fragment_artifacts",
+        "exported_complete_file_artifacts"
+      ],
+      "properties": {
+        "exported_block_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "exported_fragment_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "exported_complete_file_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     }
   }

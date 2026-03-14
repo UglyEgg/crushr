@@ -80,6 +80,19 @@ fn run_salvage_json(archive: &Path) -> Value {
     serde_json::from_slice(&out.stdout).unwrap()
 }
 
+fn run_salvage_json_with_export(archive: &Path, export_dir: &Path) -> Value {
+    let out = run_bin(
+        "crushr-salvage",
+        &[
+            archive.to_str().unwrap(),
+            "--export-fragments",
+            export_dir.to_str().unwrap(),
+        ],
+    );
+    assert_ok(&out);
+    serde_json::from_slice(&out.stdout).unwrap()
+}
+
 fn find_candidate(plan: &Value, offset: u64) -> &Value {
     plan["block_candidates"]
         .as_array()
@@ -312,6 +325,189 @@ fn candidate_and_file_ordering_are_stable() {
     let mut sorted_paths = paths.clone();
     sorted_paths.sort_unstable();
     assert_eq!(paths, sorted_paths);
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn verified_block_exports_payload_and_sidecar() {
+    ensure_bins_built();
+    let root = unique_dir("crushr-salvage-export-block");
+    fs::create_dir_all(&root).unwrap();
+
+    let archive = make_single_file_archive(&root, "block.txt", b"block\n");
+    let export_dir = root.join("out");
+    let plan = run_salvage_json_with_export(&archive, &export_dir);
+
+    assert!(export_dir.join("SALVAGE_RESEARCH_OUTPUT.txt").exists());
+    let blocks = plan["exported_artifacts"]["exported_block_artifacts"]
+        .as_array()
+        .unwrap();
+    assert!(!blocks.is_empty());
+
+    let block_json = blocks
+        .iter()
+        .find(|v| v.as_str().unwrap().ends_with(".json"))
+        .unwrap()
+        .as_str()
+        .unwrap();
+    let sidecar: Value =
+        serde_json::from_slice(&fs::read(export_dir.join(block_json)).unwrap()).unwrap();
+    assert_eq!(sidecar["verification_label"], "UNVERIFIED_RESEARCH_OUTPUT");
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn export_disabled_does_not_create_artifact_directory() {
+    ensure_bins_built();
+    let root = unique_dir("crushr-salvage-export-disabled");
+    fs::create_dir_all(&root).unwrap();
+
+    let archive = make_single_file_archive(&root, "disabled.txt", b"disabled\n");
+    let _ = run_salvage_json(&archive);
+    assert!(!root.join("out").exists());
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn decompression_failure_block_is_not_exported() {
+    ensure_bins_built();
+    let root = unique_dir("crushr-salvage-export-decode-fail");
+    fs::create_dir_all(&root).unwrap();
+
+    let archive = make_single_file_archive(&root, "decode.txt", b"decode\n");
+    let mut bytes = fs::read(&archive).unwrap();
+    let header_len = u16::from_le_bytes([bytes[4], bytes[5]]) as usize;
+    bytes[header_len] ^= 0xff;
+    let broken = root.join("decode-broken.crs");
+    fs::write(&broken, bytes).unwrap();
+
+    let export_dir = root.join("out");
+    let plan = run_salvage_json_with_export(&broken, &export_dir);
+    assert!(plan["exported_artifacts"]["exported_block_artifacts"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn missing_dictionary_dependency_block_is_not_exported() {
+    ensure_bins_built();
+    let root = unique_dir("crushr-salvage-export-dict-fail");
+    fs::create_dir_all(&root).unwrap();
+
+    let archive = make_single_file_archive(&root, "dict.txt", b"dict\n");
+    let mut bytes = fs::read(&archive).unwrap();
+    let flags = u16::from_le_bytes([bytes[6], bytes[7]]);
+    let uses_dict = flags | (1 << 2);
+    bytes[6..8].copy_from_slice(&uses_dict.to_le_bytes());
+    bytes[16..20].copy_from_slice(&1u32.to_le_bytes());
+    let mutated = root.join("dict-required-no-dct1.crs");
+    fs::write(&mutated, bytes).unwrap();
+
+    let export_dir = root.join("out");
+    let plan = run_salvage_json_with_export(&mutated, &export_dir);
+    assert!(plan["exported_artifacts"]["exported_block_artifacts"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn partial_fragment_export_has_extents_but_no_complete_file() {
+    ensure_bins_built();
+    let root = unique_dir("crushr-salvage-export-partial");
+    fs::create_dir_all(&root).unwrap();
+
+    let source = root.join("src");
+    fs::create_dir_all(&source).unwrap();
+    fs::write(source.join("a.txt"), b"a").unwrap();
+    fs::write(source.join("b.txt"), b"b").unwrap();
+    let archive = root.join("partial.crs");
+    let packed = run_bin(
+        "crushr-pack",
+        &[source.to_str().unwrap(), "-o", archive.to_str().unwrap()],
+    );
+    assert_ok(&packed);
+
+    let mut bytes = fs::read(&archive).unwrap();
+    let second_header = bytes
+        .windows(4)
+        .enumerate()
+        .filter_map(|(i, w)| if w == b"BLK3" { Some(i) } else { None })
+        .nth(1)
+        .unwrap();
+    let header_len =
+        u16::from_le_bytes([bytes[second_header + 4], bytes[second_header + 5]]) as usize;
+    bytes[second_header + header_len] ^= 0xff;
+    let broken = root.join("partial-broken.crs");
+    fs::write(&broken, bytes).unwrap();
+
+    let export_dir = root.join("out");
+    let plan = run_salvage_json_with_export(&broken, &export_dir);
+    assert!(!plan["exported_artifacts"]["exported_fragment_artifacts"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    let fulls = plan["exported_artifacts"]["exported_complete_file_artifacts"]
+        .as_array()
+        .unwrap();
+    let file_count = plan["file_plans"].as_array().unwrap().len();
+    assert!(fulls.len() < file_count);
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn full_file_export_only_for_fully_verified_file() {
+    ensure_bins_built();
+    let root = unique_dir("crushr-salvage-export-full");
+    fs::create_dir_all(&root).unwrap();
+
+    let archive = make_single_file_archive(&root, "full.txt", b"full\n");
+    let export_dir = root.join("out");
+    let plan = run_salvage_json_with_export(&archive, &export_dir);
+
+    let fulls = plan["exported_artifacts"]["exported_complete_file_artifacts"]
+        .as_array()
+        .unwrap();
+    assert_eq!(fulls.len(), 1);
+    assert!(export_dir.join(fulls[0].as_str().unwrap()).exists());
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn export_ordering_is_deterministic_across_runs() {
+    ensure_bins_built();
+    let root = unique_dir("crushr-salvage-export-order");
+    fs::create_dir_all(&root).unwrap();
+
+    let source = root.join("src");
+    fs::create_dir_all(&source).unwrap();
+    fs::write(source.join("z.txt"), b"z").unwrap();
+    fs::write(source.join("a.txt"), b"a").unwrap();
+    let archive = root.join("ordered.crs");
+    let packed = run_bin(
+        "crushr-pack",
+        &[source.to_str().unwrap(), "-o", archive.to_str().unwrap()],
+    );
+    assert_ok(&packed);
+
+    let out1 = root.join("out1");
+    let out2 = root.join("out2");
+    let plan1 = run_salvage_json_with_export(&archive, &out1);
+    let plan2 = run_salvage_json_with_export(&archive, &out2);
+    assert_eq!(
+        plan1["exported_artifacts"], plan2["exported_artifacts"],
+        "exported artifact references must be deterministic"
+    );
 
     let _ = fs::remove_dir_all(&root);
 }

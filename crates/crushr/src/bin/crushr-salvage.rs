@@ -1,5 +1,5 @@
 use anyhow::{bail, Context, Result};
-use crushr::format::{EntryKind, IDX_MAGIC_V3};
+use crushr::format::{EntryKind, Extent, IDX_MAGIC_V3};
 use crushr::index_codec::decode_index;
 use crushr_core::{
     io::{Len, ReadAt},
@@ -17,7 +17,9 @@ use std::fs::File;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-const USAGE: &str = "usage: crushr-salvage <archive> [--json-out <path>]";
+const USAGE: &str =
+    "usage: crushr-salvage <archive> [--json-out <path>] [--export-fragments <dir>]";
+const RESEARCH_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
 
 struct FileReader {
     file: File,
@@ -40,6 +42,7 @@ impl Len for FileReader {
 struct CliOptions {
     archive: PathBuf,
     json_out: Option<PathBuf>,
+    export_fragments: Option<PathBuf>,
 }
 
 #[derive(Debug, Serialize)]
@@ -56,6 +59,15 @@ struct SalvagePlanV2 {
     file_plans: Vec<FilePlan>,
     orphan_candidate_summary: OrphanCandidateSummary,
     summary: PlanSummary,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    exported_artifacts: Option<ExportedArtifacts>,
+}
+
+#[derive(Debug, Serialize, Default)]
+struct ExportedArtifacts {
+    exported_block_artifacts: Vec<String>,
+    exported_fragment_artifacts: Vec<String>,
+    exported_complete_file_artifacts: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -116,6 +128,10 @@ struct FilePlan {
     reason: &'static str,
     failure_reasons: Vec<&'static str>,
     required_block_ids: Vec<u32>,
+    #[serde(skip_serializing)]
+    extents: Vec<Extent>,
+    #[serde(skip_serializing)]
+    file_size: u64,
 }
 
 #[derive(Debug, Serialize)]
@@ -133,15 +149,35 @@ struct PlanSummary {
     unmappable_files: u64,
 }
 
+#[derive(Debug, Clone)]
+struct BlockVerification {
+    content_verified: bool,
+    verified_raw_len: Option<u64>,
+}
+
+#[derive(Debug)]
+struct BlockExportData {
+    archive_offset: u64,
+    block_id: u32,
+    codec: u32,
+    dictionary_dependency_status: &'static str,
+    raw_hash: Option<String>,
+    payload: Vec<u8>,
+}
+
 fn parse_cli_options() -> Result<CliOptions> {
     let mut archive = None;
     let mut json_out = None;
+    let mut export_fragments = None;
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         if arg == "--json-out" {
             let path = args.next().context(USAGE)?;
             json_out = Some(PathBuf::from(path));
+        } else if arg == "--export-fragments" {
+            let path = args.next().context(USAGE)?;
+            export_fragments = Some(PathBuf::from(path));
         } else if arg.starts_with('-') {
             bail!("unsupported flag: {arg}");
         } else if archive.is_none() {
@@ -154,6 +190,7 @@ fn parse_cli_options() -> Result<CliOptions> {
     Ok(CliOptions {
         archive: archive.context(USAGE)?,
         json_out,
+        export_fragments,
     })
 }
 
@@ -332,7 +369,330 @@ fn to_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-fn build_plan(opts: &CliOptions) -> Result<SalvagePlanV2> {
+fn build_block_verification<R: ReadAt + Len>(
+    reader: &R,
+    footer: &Ftr4,
+    archive_bytes: &[u8],
+    verified_dict_ids: &[u32],
+) -> BTreeMap<u32, BlockVerification> {
+    let mut out = BTreeMap::new();
+    let spans = match scan_blocks_v1(reader, footer.blocks_end_offset) {
+        Ok(v) => v,
+        Err(_) => return out,
+    };
+
+    let candidates = scan_blk3_candidates(archive_bytes, verified_dict_ids, true)
+        .into_iter()
+        .map(|c| (c.scan_offset, c))
+        .collect::<BTreeMap<_, _>>();
+
+    for span in spans {
+        if let Some(candidate) = candidates.get(&span.header_offset) {
+            out.insert(
+                span.block_id,
+                BlockVerification {
+                    content_verified: candidate.content_verification_status == "content_verified",
+                    verified_raw_len: candidate.verified_raw_len,
+                },
+            );
+        }
+    }
+
+    out
+}
+
+fn classify_file(
+    extents: &[Extent],
+    required_block_ids: &[u32],
+    block_verification: &BTreeMap<u32, BlockVerification>,
+) -> (&'static str, &'static str, Vec<&'static str>) {
+    if required_block_ids.is_empty() {
+        return (
+            "UNSALVAGEABLE",
+            "no_required_blocks",
+            vec!["no_required_blocks"],
+        );
+    }
+
+    let mut failure_reasons = BTreeSet::new();
+
+    for block_id in required_block_ids {
+        let state = match block_verification.get(block_id) {
+            Some(v) => v,
+            None => {
+                failure_reasons.insert("required_block_unmapped");
+                continue;
+            }
+        };
+
+        if !state.content_verified {
+            failure_reasons.insert("required_block_not_content_verified");
+        }
+    }
+
+    for extent in extents {
+        if let Some(state) = block_verification.get(&extent.block_id) {
+            if let Some(raw_len) = state.verified_raw_len {
+                let end = extent.offset.saturating_add(extent.len);
+                if end > raw_len {
+                    failure_reasons.insert("required_extent_out_of_bounds");
+                }
+            }
+        }
+    }
+
+    if failure_reasons.is_empty() {
+        (
+            "SALVAGEABLE",
+            "all_required_dependencies_verified",
+            Vec::new(),
+        )
+    } else {
+        let reasons = failure_reasons.into_iter().collect::<Vec<_>>();
+        ("UNSALVAGEABLE", reasons[0], reasons)
+    }
+}
+
+fn decode_verified_blocks(
+    archive_bytes: &[u8],
+    candidates: &[BlockCandidate],
+) -> BTreeMap<u32, BlockExportData> {
+    let mut out = BTreeMap::new();
+
+    for candidate in candidates {
+        let Some(block_id) = candidate.mapped_block_id else {
+            continue;
+        };
+        if candidate.content_verification_status != "content_verified" {
+            continue;
+        }
+
+        let offset = candidate.scan_offset as usize;
+        if offset + 6 > archive_bytes.len() {
+            continue;
+        }
+        let header_len =
+            u16::from_le_bytes([archive_bytes[offset + 4], archive_bytes[offset + 5]]) as usize;
+        if offset + header_len > archive_bytes.len() {
+            continue;
+        }
+
+        let Ok(header) = read_blk3_header(Cursor::new(&archive_bytes[offset..offset + header_len]))
+        else {
+            continue;
+        };
+
+        let payload_offset = offset + header.header_len as usize;
+        let Some(payload_end) = payload_offset.checked_add(header.comp_len as usize) else {
+            continue;
+        };
+        if payload_end > archive_bytes.len() || header.codec != 1 {
+            continue;
+        }
+
+        let Ok(raw) = zstd::decode_all(Cursor::new(&archive_bytes[payload_offset..payload_end]))
+        else {
+            continue;
+        };
+
+        if let Some(raw_hash) = header.raw_hash {
+            if blake3::hash(&raw).as_bytes() != &raw_hash {
+                continue;
+            }
+        }
+
+        out.insert(
+            block_id,
+            BlockExportData {
+                archive_offset: candidate.scan_offset,
+                block_id,
+                codec: header.codec,
+                dictionary_dependency_status: candidate.dictionary_dependency_status,
+                raw_hash: header.raw_hash.map(|v| to_hex(&v)),
+                payload: raw,
+            },
+        );
+    }
+
+    out
+}
+
+fn sanitize_component(value: &str) -> String {
+    let mut out = String::new();
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.') {
+            out.push(ch);
+        } else {
+            out.push('_');
+        }
+    }
+    if out.is_empty() {
+        "_".to_string()
+    } else {
+        out
+    }
+}
+
+fn sanitize_rel_path(path: &str) -> PathBuf {
+    let mut out = PathBuf::new();
+    for component in Path::new(path).components() {
+        let text = component.as_os_str().to_string_lossy();
+        if text == "/" || text == "." || text == ".." || text.is_empty() {
+            continue;
+        }
+        out.push(sanitize_component(&text));
+    }
+    if out.as_os_str().is_empty() {
+        out.push("_");
+    }
+    out
+}
+
+fn write_json_output(path: &Path, rendered: &str) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
+    }
+    fs::write(path, rendered).with_context(|| format!("write {}", path.display()))?;
+    Ok(())
+}
+
+fn export_artifacts(
+    export_dir: &Path,
+    archive_bytes: &[u8],
+    candidates: &[BlockCandidate],
+    file_plans: &[FilePlan],
+) -> Result<ExportedArtifacts> {
+    fs::create_dir_all(export_dir).with_context(|| format!("create {}", export_dir.display()))?;
+    fs::write(
+        export_dir.join("SALVAGE_RESEARCH_OUTPUT.txt"),
+        "Output produced by crushr-salvage.\nArtifacts are UNVERIFIED research outputs and are not canonical extraction.\nArtifacts may be incomplete or partial. Use at your own risk.\n",
+    )
+    .with_context(|| format!("write {}", export_dir.join("SALVAGE_RESEARCH_OUTPUT.txt").display()))?;
+
+    let mut exported = ExportedArtifacts::default();
+    let verified_blocks = decode_verified_blocks(archive_bytes, candidates);
+
+    let blocks_dir = export_dir.join("blocks");
+    fs::create_dir_all(&blocks_dir).with_context(|| format!("create {}", blocks_dir.display()))?;
+
+    let mut block_entries = verified_blocks.values().collect::<Vec<_>>();
+    block_entries.sort_by_key(|b| b.archive_offset);
+
+    for block in block_entries {
+        let base = format!("block_{}_{}", block.archive_offset, block.block_id);
+        let bin_rel = format!("blocks/{base}.bin");
+        let json_rel = format!("blocks/{base}.json");
+        fs::write(export_dir.join(&bin_rel), &block.payload)
+            .with_context(|| format!("write {}", export_dir.join(&bin_rel).display()))?;
+        let sidecar = serde_json::json!({
+            "block_offset": block.archive_offset,
+            "block_id": block.block_id,
+            "codec": block.codec,
+            "verification_status": "content_verified",
+            "raw_hash": block.raw_hash,
+            "dependency_state": block.dictionary_dependency_status,
+            "verification_label": RESEARCH_LABEL,
+        });
+        fs::write(
+            export_dir.join(&json_rel),
+            serde_json::to_string_pretty(&sidecar)?,
+        )
+        .with_context(|| format!("write {}", export_dir.join(&json_rel).display()))?;
+        exported.exported_block_artifacts.push(bin_rel);
+        exported.exported_block_artifacts.push(json_rel);
+    }
+
+    let mut sorted_files = file_plans.iter().collect::<Vec<_>>();
+    sorted_files.sort_by(|a, b| a.file_path.cmp(&b.file_path));
+
+    for file in sorted_files {
+        let file_root = export_dir
+            .join("files")
+            .join(sanitize_rel_path(&file.file_path));
+        fs::create_dir_all(&file_root)
+            .with_context(|| format!("create {}", file_root.display()))?;
+
+        let mut extents = file.extents.clone();
+        extents.sort_by_key(|e| e.offset);
+
+        let mut verified_extent_payloads = Vec::new();
+        for (idx, extent) in extents.iter().enumerate() {
+            let Some(block) = verified_blocks.get(&extent.block_id) else {
+                continue;
+            };
+            let start = extent.offset as usize;
+            let Some(end) = start.checked_add(extent.len as usize) else {
+                continue;
+            };
+            if end > block.payload.len() {
+                continue;
+            }
+
+            let payload = block.payload[start..end].to_vec();
+            verified_extent_payloads.push((idx, extent, payload));
+        }
+
+        for (idx, extent, payload) in &verified_extent_payloads {
+            let bin_rel = format!(
+                "files/{}/extent_{}.bin",
+                sanitize_rel_path(&file.file_path).display(),
+                idx
+            );
+            let json_rel = format!(
+                "files/{}/extent_{}.json",
+                sanitize_rel_path(&file.file_path).display(),
+                idx
+            );
+            fs::write(export_dir.join(&bin_rel), payload)
+                .with_context(|| format!("write {}", export_dir.join(&bin_rel).display()))?;
+            let sidecar = serde_json::json!({
+                "original_file_path": file.file_path,
+                "extent_index": idx,
+                "offset_within_file": extent.offset,
+                "source_block_id": extent.block_id,
+                "verification_status": "content_verified",
+                "verification_label": RESEARCH_LABEL,
+            });
+            fs::write(
+                export_dir.join(&json_rel),
+                serde_json::to_string_pretty(&sidecar)?,
+            )
+            .with_context(|| format!("write {}", export_dir.join(&json_rel).display()))?;
+            exported.exported_fragment_artifacts.push(bin_rel);
+            exported.exported_fragment_artifacts.push(json_rel);
+        }
+
+        let is_full = file.status == "SALVAGEABLE"
+            && !extents.is_empty()
+            && verified_extent_payloads.len() == extents.len()
+            && extents.first().map(|e| e.offset) == Some(0)
+            && extents
+                .windows(2)
+                .all(|w| w[0].offset.saturating_add(w[0].len) == w[1].offset)
+            && extents
+                .iter()
+                .fold(0u64, |acc, e| acc.saturating_add(e.len))
+                == file.file_size;
+
+        if is_full {
+            let mut buf = Vec::new();
+            for (_, _, payload) in &verified_extent_payloads {
+                buf.extend_from_slice(payload);
+            }
+            let rel = format!(
+                "files/{}/file_verified.bin",
+                sanitize_rel_path(&file.file_path).display()
+            );
+            fs::write(export_dir.join(&rel), buf)
+                .with_context(|| format!("write {}", export_dir.join(&rel).display()))?;
+            exported.exported_complete_file_artifacts.push(rel);
+        }
+    }
+
+    Ok(exported)
+}
+
+fn build_plan(opts: &CliOptions) -> Result<(SalvagePlanV2, Vec<u8>)> {
     let reader = FileReader {
         file: File::open(&opts.archive)
             .with_context(|| format!("open {}", opts.archive.display()))?,
@@ -428,6 +788,8 @@ fn build_plan(opts: &CliOptions) -> Result<SalvagePlanV2> {
                                     reason,
                                     failure_reasons,
                                     required_block_ids,
+                                    extents: entry.extents,
+                                    file_size: entry.size,
                                 });
                             }
                         } else {
@@ -515,147 +877,63 @@ fn build_plan(opts: &CliOptions) -> Result<SalvagePlanV2> {
             .count() as u64
     };
 
-    Ok(SalvagePlanV2 {
-        schema_version: "crushr-salvage-plan.v2",
-        tool: "crushr-salvage",
-        tool_version: env!("CARGO_PKG_VERSION"),
-        verification_contract_label: "UNVERIFIED_RESEARCH_OUTPUT_NOT_CANONICAL_EXTRACTION",
-        archive: ArchiveIdentity {
-            archive_path: opts.archive.display().to_string(),
-            archive_size,
-            archive_blake3: to_hex(blake3::hash(&archive_bytes).as_bytes()),
+    Ok((
+        SalvagePlanV2 {
+            schema_version: "crushr-salvage-plan.v2",
+            tool: "crushr-salvage",
+            tool_version: env!("CARGO_PKG_VERSION"),
+            verification_contract_label: "UNVERIFIED_RESEARCH_OUTPUT_NOT_CANONICAL_EXTRACTION",
+            archive: ArchiveIdentity {
+                archive_path: opts.archive.display().to_string(),
+                archive_size,
+                archive_blake3: to_hex(blake3::hash(&archive_bytes).as_bytes()),
+            },
+            footer_analysis,
+            index_analysis,
+            dictionary_analysis,
+            block_candidates: candidates,
+            file_plans,
+            orphan_candidate_summary: OrphanCandidateSummary {
+                total_candidates: archive_bytes
+                    .windows(4)
+                    .filter(|w| *w == BLK3_MAGIC)
+                    .count() as u64,
+                usable_candidates,
+                mapped_candidates,
+                orphan_unmappable_candidates: orphan_unmappable,
+            },
+            summary: PlanSummary {
+                salvageable_files,
+                unsalvageable_files,
+                unmappable_files,
+            },
+            exported_artifacts: None,
         },
-        footer_analysis,
-        index_analysis,
-        dictionary_analysis,
-        block_candidates: candidates,
-        file_plans,
-        orphan_candidate_summary: OrphanCandidateSummary {
-            total_candidates: archive_bytes
-                .windows(4)
-                .filter(|w| *w == BLK3_MAGIC)
-                .count() as u64,
-            usable_candidates,
-            mapped_candidates,
-            orphan_unmappable_candidates: orphan_unmappable,
-        },
-        summary: PlanSummary {
-            salvageable_files,
-            unsalvageable_files,
-            unmappable_files,
-        },
-    })
-}
-
-#[derive(Debug, Clone)]
-struct BlockVerification {
-    content_verified: bool,
-    verified_raw_len: Option<u64>,
-}
-
-fn build_block_verification<R: ReadAt + Len>(
-    reader: &R,
-    footer: &Ftr4,
-    archive_bytes: &[u8],
-    verified_dict_ids: &[u32],
-) -> BTreeMap<u32, BlockVerification> {
-    let mut out = BTreeMap::new();
-    let spans = match scan_blocks_v1(reader, footer.blocks_end_offset) {
-        Ok(v) => v,
-        Err(_) => return out,
-    };
-
-    let candidates = scan_blk3_candidates(archive_bytes, verified_dict_ids, true)
-        .into_iter()
-        .map(|c| (c.scan_offset, c))
-        .collect::<BTreeMap<_, _>>();
-
-    for span in spans {
-        if let Some(candidate) = candidates.get(&span.header_offset) {
-            out.insert(
-                span.block_id,
-                BlockVerification {
-                    content_verified: candidate.content_verification_status == "content_verified",
-                    verified_raw_len: candidate.verified_raw_len,
-                },
-            );
-        }
-    }
-
-    out
-}
-
-fn classify_file(
-    extents: &[crushr::format::Extent],
-    required_block_ids: &[u32],
-    block_verification: &BTreeMap<u32, BlockVerification>,
-) -> (&'static str, &'static str, Vec<&'static str>) {
-    if required_block_ids.is_empty() {
-        return (
-            "UNSALVAGEABLE",
-            "no_required_blocks",
-            vec!["no_required_blocks"],
-        );
-    }
-
-    let mut failure_reasons = BTreeSet::new();
-
-    for block_id in required_block_ids {
-        let state = match block_verification.get(block_id) {
-            Some(v) => v,
-            None => {
-                failure_reasons.insert("required_block_unmapped");
-                continue;
-            }
-        };
-
-        if !state.content_verified {
-            failure_reasons.insert("required_block_not_content_verified");
-        }
-    }
-
-    for extent in extents {
-        if let Some(state) = block_verification.get(&extent.block_id) {
-            if let Some(raw_len) = state.verified_raw_len {
-                let end = extent.offset.saturating_add(extent.len);
-                if end > raw_len {
-                    failure_reasons.insert("required_extent_out_of_bounds");
-                }
-            }
-        }
-    }
-
-    if failure_reasons.is_empty() {
-        (
-            "SALVAGEABLE",
-            "all_required_dependencies_verified",
-            Vec::new(),
-        )
-    } else {
-        let reasons = failure_reasons.into_iter().collect::<Vec<_>>();
-        ("UNSALVAGEABLE", reasons[0], reasons)
-    }
+        archive_bytes,
+    ))
 }
 
 fn run() -> Result<()> {
     let opts = parse_cli_options()?;
-    let plan = build_plan(&opts)?;
-    let rendered = serde_json::to_string_pretty(&plan)?;
+    let (mut plan, archive_bytes) = build_plan(&opts)?;
 
+    if let Some(export_dir) = &opts.export_fragments {
+        let exported = export_artifacts(
+            export_dir,
+            &archive_bytes,
+            &plan.block_candidates,
+            &plan.file_plans,
+        )?;
+        plan.exported_artifacts = Some(exported);
+    }
+
+    let rendered = serde_json::to_string_pretty(&plan)?;
     if let Some(path) = opts.json_out {
         write_json_output(&path, &rendered)?;
     } else {
         println!("{rendered}");
     }
 
-    Ok(())
-}
-
-fn write_json_output(path: &Path, rendered: &str) -> Result<()> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
-    }
-    fs::write(path, rendered).with_context(|| format!("write {}", path.display()))?;
     Ok(())
 }
 

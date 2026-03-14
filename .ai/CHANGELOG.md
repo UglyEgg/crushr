@@ -428,3 +428,11 @@
 - Extended `crushr-salvage` candidate model with deterministic verification states (header validity, payload bounds, dictionary dependency status, decompression result, raw-hash result, content-verification status).
 - Added verification-backed file salvageability classification that requires authoritative IDX3 mappings plus content-verified dependencies and verified extent bounds.
 - Introduced `schemas/crushr-salvage-plan.v2.schema.json` and updated salvage tests to validate v2 shape plus deterministic success/failure scenarios (decode failure, raw-hash mismatch, missing dictionary dependency, ordering stability).
+
+
+## 2026-03-14 — CRUSHR-SALVAGE-03 verified fragment export (research-only)
+
+- Added optional `crushr-salvage --export-fragments <dir>` output path for research artifacts from content-verified blocks and verified extents only.
+- Added deterministic block/extents/full-file artifact export rules with `SALVAGE_RESEARCH_OUTPUT.txt` marker and per-sidecar `verification_label = UNVERIFIED_RESEARCH_OUTPUT`.
+- Extended salvage plan v2 output/schema with optional `exported_artifacts` references when export mode is enabled.
+- Added focused salvage integration tests for export success/failure gating, partial-vs-full export behavior, deterministic ordering, export-disabled behavior, and schema compatibility.

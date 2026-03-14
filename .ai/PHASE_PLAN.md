@@ -35,3 +35,9 @@
   - no guessed reconstruction
   - no fragment emission/output carving directories
   - no archive mutation
+
+- [x] 3.3 CRUSHR-SALVAGE-03 (verified fragment export, research-only)
+  - `--export-fragments <dir>` optional artifact emission
+  - deterministic block/extent/full-file export gating on content verification
+  - SALVAGE_RESEARCH_OUTPUT marker + `UNVERIFIED_RESEARCH_OUTPUT` sidecar labels
+  - optional `exported_artifacts` section in salvage-plan v2 output
