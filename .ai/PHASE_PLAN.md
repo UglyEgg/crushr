@@ -76,3 +76,49 @@ The following capabilities are explicitly preserved for post-paper work and must
 ## Pre-Paper Feature Addition
 
 Before white-paper trials, the baseline implementation may include minimal deterministic archive generation so long as it does not alter archive structure or corruption semantics.
+
+
+## Phase 3 — Salvage Research Tooling
+
+Purpose:
+Explore best-effort recovery strategies without contaminating the
+integrity-first extraction model.
+
+### 3.1 Standalone salvage tool
+
+Introduce CLI:
+
+crushr-salvage
+
+Capabilities:
+
+- scan damaged archives without requiring valid footer/index
+- locate candidate BLK3 blocks
+- attempt decompression
+- emit recovered payload fragments
+- produce structured salvage report
+
+### 3.2 Salvage evidence model
+
+Define structured outputs:
+
+salvage_report.json
+
+Fields:
+
+- archive_path
+- blocks_scanned
+- blocks_salvaged
+- fragments_recovered
+- bytes_recovered
+- verification_status
+
+### 3.3 Salvage experiment framework
+
+Extend `crushr-lab` to support:
+
+run-phase3-salvage-experiments
+
+Outputs stored under:
+
+PHASE2_RESEARCH/salvage_trials/

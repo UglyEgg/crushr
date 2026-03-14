@@ -39,3 +39,20 @@ Recent completed packet: CRUSHR-P2-ANALYSIS-01 (comparison table/ranking generat
 ## Next action
 
 Proceed with Phase 2.3 experimental reporting using `PHASE2_RESEARCH/summaries/comparison_tables.json` and `format_rankings.json` as canonical cross-format ranking inputs; keep matrix axes locked and avoid reruns unless explicitly requested.
+
+
+## Toolchain update
+
+Active tools now include:
+
+crushr-pack
+crushr-info
+crushr-fsck
+crushr-extract
+crushr-salvage
+crushr-lab
+
+Important distinction:
+
+crushr-extract → strict extraction
+crushr-salvage → best-effort recovery research

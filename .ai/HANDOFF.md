@@ -53,3 +53,32 @@ Phase 2.3 experimental reporting on top of frozen manifest + deterministic norma
 ## Next expected packet
 
 Use `PHASE2_RESEARCH/results/{normalized_results.json,normalization_summary.json}` to build Phase 2.3 comparative reporting outputs (tables/aggregates) without modifying the frozen execution corpus.
+
+
+## New tool introduction
+
+The project now includes a new research tool:
+
+crushr-salvage
+
+Purpose:
+best-effort recovery of payload fragments from damaged archives.
+
+Important rules:
+
+- salvage is **not** part of `crushr-extract`
+- salvage output must always be marked **unverified**
+- salvage must never modify the archive
+- salvage results are experimental artifacts, not canonical extraction
+
+Initial expected capabilities:
+
+1. scan BLK3 block region even if index/footer are corrupt
+2. attempt decompression of candidate blocks
+3. emit recovered payload fragments
+4. produce machine-readable recovery report
+
+Example output locations:
+
+PHASE2_RESEARCH/salvage_runs/
+PHASE2_RESEARCH/salvage_reports/

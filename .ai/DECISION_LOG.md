@@ -329,3 +329,42 @@
 - Blast radius:
   - Adds new analysis-only summary artifacts/schemas and `crushr-lab` command surface for Phase 2 reporting.
   - Does not change manifest locks, trial execution semantics, or normalized input contracts.
+
+
+## 2026-03-14 — CRUSHR-SALVAGE-01: introduce standalone salvage research tool
+
+Status: Accepted
+
+Decision:
+A new standalone tool `crushr-salvage` will be introduced.
+
+This tool is **not part of strict extraction semantics** and must not be
+implemented as a mode or flag of `crushr-extract`.
+
+Purpose:
+Best-effort recovery of payload fragments from structurally damaged archives
+for forensic analysis and research purposes.
+
+Constraints:
+- `crushr-extract` remains strict-only.
+- `crushr-salvage` must never modify archives.
+- output must clearly label recovered fragments as **unverified**.
+- salvage results must not be represented as safe or canonical extraction.
+
+Tool placement:
+
+crushr-pack
+crushr-info
+crushr-fsck
+crushr-extract
+crushr-salvage
+crushr-lab
+
+Rationale:
+Allows experimentation with recovery algorithms while preserving the
+integrity-first product contract and white-paper baseline.
+
+Blast radius:
+- documentation
+- workspace CLI registry
+- future Phase 3 implementation work

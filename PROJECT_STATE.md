@@ -17,7 +17,8 @@ Active tools:
 - `crushr-info`
 - `crushr-fsck`
 - `crushr-extract`
-- `crushr-lab`
+- `crushr-lab
+- crushr-salvage`
 
 Active libraries:
 
@@ -151,3 +152,24 @@ This direction is intended to support later implementation of:
 - recoverable extraction
 
 Detailed v2 design remains separate from the baseline white-paper implementation and must not be allowed to create ambiguity in current Phase-2 evaluation scope.
+
+
+## Salvage tool model
+
+`crushr-salvage` is a separate research tool designed to recover
+payload fragments from damaged archives.
+
+Key properties:
+
+- operates without requiring valid footer/index
+- performs best-effort block scanning
+- emits unverified payload fragments
+- produces structured salvage reports
+
+Relationship to extraction:
+
+crushr-extract:
+    strict verified extraction only
+
+crushr-salvage:
+    experimental recovery tool
