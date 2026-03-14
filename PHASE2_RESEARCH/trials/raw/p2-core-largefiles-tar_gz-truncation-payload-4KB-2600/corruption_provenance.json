@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_gz/largefiles.tar.gz",
+  "scenario_id": "p2-core-largefiles-tar_gz-truncation-payload-4KB-2600",
+  "corruption_type": "truncation",
+  "target": "payload",
+  "magnitude": "4KB",
+  "seed": 2600,
+  "concrete_mutation_details": [
+    {
+      "operation": "truncation",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 4096,
+      "range_start": 67374,
+      "range_end": 71470,
+      "bit_index": null
+    }
+  ]
+}

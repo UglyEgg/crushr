@@ -1,0 +1,8 @@
+bin/blob_00.bin:  mismatching "local" filename (rI.¯cnkjO^Pp®ckjkpD"æ`ggïðÄ¢fàçç^_),
+         continuing with "central" filename version
+  error:  invalid compressed data to inflate bin/blob_00.bin
+error: invalid zip file with overlapped components (possible zip bomb)
+ To unzip the file anyway, rerun the command with UNZIP_DISABLE_ZIPBOMB_DETECTION=TRUE environmnent variable
+test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-bit_flip-header-256B-2600/mixed.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

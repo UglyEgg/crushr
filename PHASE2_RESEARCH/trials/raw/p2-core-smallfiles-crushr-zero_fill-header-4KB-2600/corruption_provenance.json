@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/crushr/smallfiles.crs",
+  "scenario_id": "p2-core-smallfiles-crushr-zero_fill-header-4KB-2600",
+  "corruption_type": "zero_fill",
+  "target": "header",
+  "magnitude": "4KB",
+  "seed": 2600,
+  "concrete_mutation_details": [
+    {
+      "operation": "zero_fill",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 888,
+      "range_start": 0,
+      "range_end": 888,
+      "bit_index": null
+    }
+  ]
+}

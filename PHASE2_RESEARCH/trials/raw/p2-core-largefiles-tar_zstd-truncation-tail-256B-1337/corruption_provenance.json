@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_zstd/largefiles.tar.zst",
+  "scenario_id": "p2-core-largefiles-tar_zstd-truncation-tail-256B-1337",
+  "corruption_type": "truncation",
+  "target": "tail",
+  "magnitude": "256B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "truncation",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 256,
+      "range_start": 35510,
+      "range_end": 35766,
+      "bit_index": null
+    }
+  ]
+}

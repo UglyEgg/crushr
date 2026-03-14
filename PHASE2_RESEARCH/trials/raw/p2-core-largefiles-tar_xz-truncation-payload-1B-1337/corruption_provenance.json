@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_xz/largefiles.tar.xz",
+  "scenario_id": "p2-core-largefiles-tar_xz-truncation-payload-1B-1337",
+  "corruption_type": "truncation",
+  "target": "payload",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "truncation",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 1,
+      "range_start": 29199,
+      "range_end": 29200,
+      "bit_index": null
+    }
+  ]
+}

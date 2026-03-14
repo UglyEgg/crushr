@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/zip/largefiles.zip",
+  "scenario_id": "p2-core-largefiles-zip-bit_flip-payload-1B-2600",
+  "corruption_type": "bit_flip",
+  "target": "payload",
+  "magnitude": "1B",
+  "seed": 2600,
+  "concrete_mutation_details": [
+    {
+      "operation": "bit_flip",
+      "offset": 37190,
+      "before": 71,
+      "after": 70,
+      "length": 1,
+      "range_start": 37190,
+      "range_end": 37191,
+      "bit_index": 0
+    }
+  ]
+}

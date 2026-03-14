@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/crushr/smallfiles.crs",
+  "scenario_id": "p2-core-smallfiles-crushr-byte_overwrite-header-1B-65535",
+  "corruption_type": "byte_overwrite",
+  "target": "header",
+  "magnitude": "1B",
+  "seed": 65535,
+  "concrete_mutation_details": [
+    {
+      "operation": "byte_overwrite",
+      "offset": 711,
+      "before": 9,
+      "after": 190,
+      "length": 1,
+      "range_start": 711,
+      "range_end": 712,
+      "bit_index": null
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/crushr/mixed.crs",
+  "scenario_id": "p2-core-mixed-crushr-truncation-index-1B-1337",
+  "corruption_type": "truncation",
+  "target": "index",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "truncation",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 1,
+      "range_start": 5426,
+      "range_end": 5427,
+      "bit_index": null
+    }
+  ]
+}

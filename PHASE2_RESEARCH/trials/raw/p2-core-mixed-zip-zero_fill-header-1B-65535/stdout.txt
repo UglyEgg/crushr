@@ -1,0 +1,1 @@
+test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-zero_fill-header-1B-65535/mixed.zip.corrupt OK

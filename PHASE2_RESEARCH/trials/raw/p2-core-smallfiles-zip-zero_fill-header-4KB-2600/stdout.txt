@@ -1,0 +1,8 @@
+file #1:  bad zipfile offset (local header sig):  0
+file #2:  bad zipfile offset (local header sig):  123
+file #3:  bad zipfile offset (local header sig):  263
+file #4:  bad zipfile offset (local header sig):  418
+file #5:  bad zipfile offset (local header sig):  589
+test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-zero_fill-header-4KB-2600/smallfiles.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

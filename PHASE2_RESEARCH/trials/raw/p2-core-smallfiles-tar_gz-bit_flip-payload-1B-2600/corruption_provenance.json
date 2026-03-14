@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_gz/smallfiles.tar.gz",
+  "scenario_id": "p2-core-smallfiles-tar_gz-bit_flip-payload-1B-2600",
+  "corruption_type": "bit_flip",
+  "target": "payload",
+  "magnitude": "1B",
+  "seed": 2600,
+  "concrete_mutation_details": [
+    {
+      "operation": "bit_flip",
+      "offset": 1464,
+      "before": 77,
+      "after": 76,
+      "length": 1,
+      "range_start": 1464,
+      "range_end": 1465,
+      "bit_index": 0
+    }
+  ]
+}

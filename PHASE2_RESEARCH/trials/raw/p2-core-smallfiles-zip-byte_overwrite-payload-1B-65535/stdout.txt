@@ -1,0 +1,1 @@
+test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-byte_overwrite-payload-1B-65535/smallfiles.zip.corrupt OK

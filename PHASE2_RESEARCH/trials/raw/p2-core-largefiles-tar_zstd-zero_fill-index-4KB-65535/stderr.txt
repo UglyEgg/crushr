@@ -1,0 +1,3 @@
+/*stdin*\ : Decoding error (36) : Data corruption detected 
+tar: Unexpected EOF in archive
+tar: Error is not recoverable: exiting now

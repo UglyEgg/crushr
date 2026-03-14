@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_xz/mixed.tar.xz",
+  "scenario_id": "p2-core-mixed-tar_xz-truncation-tail-256B-65535",
+  "corruption_type": "truncation",
+  "target": "tail",
+  "magnitude": "256B",
+  "seed": 65535,
+  "concrete_mutation_details": [
+    {
+      "operation": "truncation",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 56,
+      "range_start": 800,
+      "range_end": 856,
+      "bit_index": null
+    }
+  ]
+}

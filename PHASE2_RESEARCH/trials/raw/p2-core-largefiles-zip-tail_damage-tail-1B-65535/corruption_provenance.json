@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/zip/largefiles.zip",
+  "scenario_id": "p2-core-largefiles-zip-tail_damage-tail-1B-65535",
+  "corruption_type": "tail_damage",
+  "target": "tail",
+  "magnitude": "1B",
+  "seed": 65535,
+  "concrete_mutation_details": [
+    {
+      "operation": "tail_damage",
+      "offset": 69180,
+      "before": 0,
+      "after": 43,
+      "length": 1,
+      "range_start": 69180,
+      "range_end": 69181,
+      "bit_index": null
+    }
+  ]
+}

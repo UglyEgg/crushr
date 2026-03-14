@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_gz/largefiles.tar.gz",
+  "scenario_id": "p2-core-largefiles-tar_gz-bit_flip-index-1B-1337",
+  "corruption_type": "bit_flip",
+  "target": "index",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "bit_flip",
+      "offset": 10270,
+      "before": 58,
+      "after": 56,
+      "length": 1,
+      "range_start": 10270,
+      "range_end": 10271,
+      "bit_index": 1
+    }
+  ]
+}

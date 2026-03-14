@@ -1,0 +1,4 @@
+payload/large_text.txt  bad CRC 7fc73243  (should be a7841382)
+test of PHASE2_RESEARCH/trials/raw/p2-core-largefiles-zip-tail_damage-header-256B-1337/largefiles.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

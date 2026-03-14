@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_zstd/largefiles.tar.zst",
+  "scenario_id": "p2-core-largefiles-tar_zstd-bit_flip-tail-1B-1337",
+  "corruption_type": "bit_flip",
+  "target": "tail",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "bit_flip",
+      "offset": 32632,
+      "before": 221,
+      "after": 223,
+      "length": 1,
+      "range_start": 32632,
+      "range_end": 32633,
+      "bit_index": 1
+    }
+  ]
+}

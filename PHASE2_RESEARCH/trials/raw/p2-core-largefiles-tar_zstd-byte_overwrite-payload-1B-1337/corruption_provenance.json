@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_zstd/largefiles.tar.zst",
+  "scenario_id": "p2-core-largefiles-tar_zstd-byte_overwrite-payload-1B-1337",
+  "corruption_type": "byte_overwrite",
+  "target": "payload",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "byte_overwrite",
+      "offset": 19220,
+      "before": 162,
+      "after": 126,
+      "length": 1,
+      "range_start": 19220,
+      "range_end": 19221,
+      "bit_index": null
+    }
+  ]
+}

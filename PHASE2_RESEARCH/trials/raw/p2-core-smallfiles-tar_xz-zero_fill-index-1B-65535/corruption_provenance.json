@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_xz/smallfiles.tar.xz",
+  "scenario_id": "p2-core-smallfiles-tar_xz-zero_fill-index-1B-65535",
+  "corruption_type": "zero_fill",
+  "target": "index",
+  "magnitude": "1B",
+  "seed": 65535,
+  "concrete_mutation_details": [
+    {
+      "operation": "zero_fill",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 1,
+      "range_start": 395,
+      "range_end": 396,
+      "bit_index": null
+    }
+  ]
+}

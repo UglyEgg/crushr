@@ -1,0 +1,2 @@
+
+zip error: Unexpected end of zip file (PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-truncation-header-1B-2600/mixed.zip.corrupt)

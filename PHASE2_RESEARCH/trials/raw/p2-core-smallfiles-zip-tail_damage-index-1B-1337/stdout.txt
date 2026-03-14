@@ -1,0 +1,5 @@
+src/file_07.txt:  mismatching "local" filename (src/file_07.Cxt),
+         continuing with "central" filename version
+test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-tail_damage-index-1B-1337/smallfiles.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

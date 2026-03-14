@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/zip/largefiles.zip",
+  "scenario_id": "p2-core-largefiles-zip-zero_fill-payload-1B-1337",
+  "corruption_type": "zero_fill",
+  "target": "payload",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "zero_fill",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 1,
+      "range_start": 35927,
+      "range_end": 35928,
+      "bit_index": null
+    }
+  ]
+}

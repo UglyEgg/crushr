@@ -1,0 +1,4 @@
+  error:  invalid compressed data to inflate payload/large_text.txt
+test of PHASE2_RESEARCH/trials/raw/p2-core-largefiles-zip-tail_damage-index-4KB-65535/largefiles.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

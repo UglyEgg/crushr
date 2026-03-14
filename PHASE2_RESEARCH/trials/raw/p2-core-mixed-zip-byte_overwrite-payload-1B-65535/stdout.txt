@@ -1,0 +1,5 @@
+bin”blob_03.bin:  mismatching "local" filename (bin/blob_03.bin),
+         continuing with "central" filename version
+test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-byte_overwrite-payload-1B-65535/mixed.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

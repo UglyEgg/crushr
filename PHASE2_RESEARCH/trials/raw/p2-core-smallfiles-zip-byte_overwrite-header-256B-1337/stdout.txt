@@ -1,0 +1,6 @@
+cfg/file_09.txt         bad CRC a8db0c19  (should be af17abd5)
+file #3:  bad zipfile offset (local header sig):  263
+file #4:  bad zipfile offset (local header sig):  418
+test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-byte_overwrite-header-256B-1337/smallfiles.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

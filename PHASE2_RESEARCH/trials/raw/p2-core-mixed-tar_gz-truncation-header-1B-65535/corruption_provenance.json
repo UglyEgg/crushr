@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_gz/mixed.tar.gz",
+  "scenario_id": "p2-core-mixed-tar_gz-truncation-header-1B-65535",
+  "corruption_type": "truncation",
+  "target": "header",
+  "magnitude": "1B",
+  "seed": 65535,
+  "concrete_mutation_details": [
+    {
+      "operation": "truncation",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 1,
+      "range_start": 1096,
+      "range_end": 1097,
+      "bit_index": null
+    }
+  ]
+}

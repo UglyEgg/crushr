@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_xz/smallfiles.tar.xz",
+  "scenario_id": "p2-core-smallfiles-tar_xz-truncation-payload-256B-1337",
+  "corruption_type": "truncation",
+  "target": "payload",
+  "magnitude": "256B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "truncation",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 256,
+      "range_start": 804,
+      "range_end": 1060,
+      "bit_index": null
+    }
+  ]
+}

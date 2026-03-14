@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_xz/largefiles.tar.xz",
+  "scenario_id": "p2-core-largefiles-tar_xz-zero_fill-tail-256B-1337",
+  "corruption_type": "zero_fill",
+  "target": "tail",
+  "magnitude": "256B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "zero_fill",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 256,
+      "range_start": 26887,
+      "range_end": 27143,
+      "bit_index": null
+    }
+  ]
+}

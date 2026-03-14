@@ -1,0 +1,34 @@
+{
+  "archive_fingerprint": "0cb0859a984d0027f7b79b91af77a7d9c08768fb0b801ec925b9ab9d33808029",
+  "generated_at_utc": "1970-01-01T00:00:00Z",
+  "payload": {
+    "dicts": {
+      "count": 0
+    },
+    "summary": {
+      "archive_len": 7107,
+      "footer_len": 192,
+      "footer_offset": 6915,
+      "has_dct1": false,
+      "has_footer": true,
+      "has_ldg1": false,
+      "raw_idx3_len": 1640,
+      "tail_frame_len": 1832,
+      "tail_frame_offset": 5275
+    },
+    "tail_frames": [
+      {
+        "blocks_end_offset": 5275,
+        "dct_len": 0,
+        "dct_offset": 0,
+        "index_len": 1640,
+        "index_offset": 5275,
+        "ledger_len": 0,
+        "ledger_offset": 0
+      }
+    ]
+  },
+  "schema_version": 1,
+  "tool": "crushr-info",
+  "tool_version": "0.2.2"
+}

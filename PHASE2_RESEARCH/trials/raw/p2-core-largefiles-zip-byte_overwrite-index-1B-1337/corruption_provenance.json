@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/zip/largefiles.zip",
+  "scenario_id": "p2-core-largefiles-zip-byte_overwrite-index-1B-1337",
+  "corruption_type": "byte_overwrite",
+  "target": "index",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "byte_overwrite",
+      "offset": 9984,
+      "before": 246,
+      "after": 1,
+      "length": 1,
+      "range_start": 9984,
+      "range_end": 9985,
+      "bit_index": null
+    }
+  ]
+}

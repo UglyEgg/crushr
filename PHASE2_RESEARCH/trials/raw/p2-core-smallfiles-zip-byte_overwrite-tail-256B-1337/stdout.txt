@@ -1,0 +1,3 @@
+	zip warning: expected 24 entries but found 20
+
+zip error: Zip file structure invalid (PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-byte_overwrite-tail-256B-1337/smallfiles.zip.corrupt)

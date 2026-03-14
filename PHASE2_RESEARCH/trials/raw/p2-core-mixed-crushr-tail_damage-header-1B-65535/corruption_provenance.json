@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/crushr/mixed.crs",
+  "scenario_id": "p2-core-mixed-crushr-tail_damage-header-1B-65535",
+  "corruption_type": "tail_damage",
+  "target": "header",
+  "magnitude": "1B",
+  "seed": 65535,
+  "concrete_mutation_details": [
+    {
+      "operation": "tail_damage",
+      "offset": 677,
+      "before": 213,
+      "after": 216,
+      "length": 1,
+      "range_start": 677,
+      "range_end": 678,
+      "bit_index": null
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_gz/smallfiles.tar.gz",
+  "scenario_id": "p2-core-smallfiles-tar_gz-tail_damage-payload-1B-65535",
+  "corruption_type": "tail_damage",
+  "target": "payload",
+  "magnitude": "1B",
+  "seed": 65535,
+  "concrete_mutation_details": [
+    {
+      "operation": "tail_damage",
+      "offset": 1587,
+      "before": 191,
+      "after": 206,
+      "length": 1,
+      "range_start": 1587,
+      "range_end": 1588,
+      "bit_index": null
+    }
+  ]
+}

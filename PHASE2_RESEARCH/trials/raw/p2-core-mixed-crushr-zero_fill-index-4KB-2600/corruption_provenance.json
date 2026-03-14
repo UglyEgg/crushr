@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/crushr/mixed.crs",
+  "scenario_id": "p2-core-mixed-crushr-zero_fill-index-4KB-2600",
+  "corruption_type": "zero_fill",
+  "target": "index",
+  "magnitude": "4KB",
+  "seed": 2600,
+  "concrete_mutation_details": [
+    {
+      "operation": "zero_fill",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 2035,
+      "range_start": 678,
+      "range_end": 2713,
+      "bit_index": null
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_zstd/mixed.tar.zst",
+  "scenario_id": "p2-core-mixed-tar_zstd-truncation-header-4KB-1337",
+  "corruption_type": "truncation",
+  "target": "header",
+  "magnitude": "4KB",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "truncation",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 812,
+      "range_start": 94,
+      "range_end": 906,
+      "bit_index": null
+    }
+  ]
+}

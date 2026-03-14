@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_xz/smallfiles.tar.xz",
+  "scenario_id": "p2-core-smallfiles-tar_xz-byte_overwrite-tail-1B-1337",
+  "corruption_type": "byte_overwrite",
+  "target": "tail",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "byte_overwrite",
+      "offset": 934,
+      "before": 40,
+      "after": 78,
+      "length": 1,
+      "range_start": 934,
+      "range_end": 935,
+      "bit_index": null
+    }
+  ]
+}

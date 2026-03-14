@@ -1,0 +1,7 @@
+text/doc_00.txt         bad CRC f38ab5a3  (should be d0bd3abc)
+file #10:  bad zipfile offset (local header sig):  1721
+file #11:  bad zipfile offset (local header sig):  1807
+file #12:  bad zipfile offset (local header sig):  1893
+test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-tail_damage-index-256B-1337/mixed.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

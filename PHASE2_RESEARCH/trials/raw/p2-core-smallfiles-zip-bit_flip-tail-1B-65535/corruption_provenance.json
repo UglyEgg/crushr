@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/zip/smallfiles.zip",
+  "scenario_id": "p2-core-smallfiles-zip-bit_flip-tail-1B-65535",
+  "corruption_type": "bit_flip",
+  "target": "tail",
+  "magnitude": "1B",
+  "seed": 65535,
+  "concrete_mutation_details": [
+    {
+      "operation": "bit_flip",
+      "offset": 4613,
+      "before": 0,
+      "after": 128,
+      "length": 1,
+      "range_start": 4613,
+      "range_end": 4614,
+      "bit_index": 7
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+parse FTR4: bad footer magic: [6, 212, 83, 54]

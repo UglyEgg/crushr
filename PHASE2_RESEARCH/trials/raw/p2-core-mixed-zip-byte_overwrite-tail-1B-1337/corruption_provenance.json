@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/zip/mixed.zip",
+  "scenario_id": "p2-core-mixed-zip-byte_overwrite-tail-1B-1337",
+  "corruption_type": "byte_overwrite",
+  "target": "tail",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "byte_overwrite",
+      "offset": 3783,
+      "before": 0,
+      "after": 189,
+      "length": 1,
+      "range_start": 3783,
+      "range_end": 3784,
+      "bit_index": null
+    }
+  ]
+}

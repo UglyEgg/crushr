@@ -1,0 +1,4 @@
+bin/blob_00.bin         bad CRC a5460873  (should be dd34ad61)
+test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-zero_fill-header-1B-2600/mixed.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_zstd/mixed.tar.zst",
+  "scenario_id": "p2-core-mixed-tar_zstd-tail_damage-index-1B-1337",
+  "corruption_type": "tail_damage",
+  "target": "index",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "tail_damage",
+      "offset": 452,
+      "before": 250,
+      "after": 104,
+      "length": 1,
+      "range_start": 452,
+      "range_end": 453,
+      "bit_index": null
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_zstd/mixed.tar.zst",
+  "scenario_id": "p2-core-mixed-tar_zstd-byte_overwrite-tail-1B-65535",
+  "corruption_type": "byte_overwrite",
+  "target": "tail",
+  "magnitude": "1B",
+  "seed": 65535,
+  "concrete_mutation_details": [
+    {
+      "operation": "byte_overwrite",
+      "offset": 891,
+      "before": 24,
+      "after": 147,
+      "length": 1,
+      "range_start": 891,
+      "range_end": 892,
+      "bit_index": null
+    }
+  ]
+}

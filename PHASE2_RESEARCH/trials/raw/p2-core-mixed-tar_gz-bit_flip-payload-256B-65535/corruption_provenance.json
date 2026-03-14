@@ -1,0 +1,2570 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_gz/mixed.tar.gz",
+  "scenario_id": "p2-core-mixed-tar_gz-bit_flip-payload-256B-65535",
+  "corruption_type": "bit_flip",
+  "target": "payload",
+  "magnitude": "256B",
+  "seed": 65535,
+  "concrete_mutation_details": [
+    {
+      "operation": "bit_flip",
+      "offset": 563,
+      "before": 156,
+      "after": 28,
+      "length": 1,
+      "range_start": 563,
+      "range_end": 564,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 564,
+      "before": 41,
+      "after": 40,
+      "length": 1,
+      "range_start": 564,
+      "range_end": 565,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 565,
+      "before": 182,
+      "after": 180,
+      "length": 1,
+      "range_start": 565,
+      "range_end": 566,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 566,
+      "before": 233,
+      "after": 237,
+      "length": 1,
+      "range_start": 566,
+      "range_end": 567,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 567,
+      "before": 233,
+      "after": 225,
+      "length": 1,
+      "range_start": 567,
+      "range_end": 568,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 568,
+      "before": 213,
+      "after": 197,
+      "length": 1,
+      "range_start": 568,
+      "range_end": 569,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 569,
+      "before": 9,
+      "after": 41,
+      "length": 1,
+      "range_start": 569,
+      "range_end": 570,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 570,
+      "before": 39,
+      "after": 103,
+      "length": 1,
+      "range_start": 570,
+      "range_end": 571,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 571,
+      "before": 221,
+      "after": 93,
+      "length": 1,
+      "range_start": 571,
+      "range_end": 572,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 572,
+      "before": 96,
+      "after": 97,
+      "length": 1,
+      "range_start": 572,
+      "range_end": 573,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 573,
+      "before": 13,
+      "after": 15,
+      "length": 1,
+      "range_start": 573,
+      "range_end": 574,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 574,
+      "before": 171,
+      "after": 175,
+      "length": 1,
+      "range_start": 574,
+      "range_end": 575,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 575,
+      "before": 26,
+      "after": 18,
+      "length": 1,
+      "range_start": 575,
+      "range_end": 576,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 576,
+      "before": 145,
+      "after": 129,
+      "length": 1,
+      "range_start": 576,
+      "range_end": 577,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 577,
+      "before": 113,
+      "after": 81,
+      "length": 1,
+      "range_start": 577,
+      "range_end": 578,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 578,
+      "before": 74,
+      "after": 10,
+      "length": 1,
+      "range_start": 578,
+      "range_end": 579,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 579,
+      "before": 50,
+      "after": 178,
+      "length": 1,
+      "range_start": 579,
+      "range_end": 580,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 580,
+      "before": 0,
+      "after": 1,
+      "length": 1,
+      "range_start": 580,
+      "range_end": 581,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 581,
+      "before": 22,
+      "after": 20,
+      "length": 1,
+      "range_start": 581,
+      "range_end": 582,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 582,
+      "before": 153,
+      "after": 157,
+      "length": 1,
+      "range_start": 582,
+      "range_end": 583,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 583,
+      "before": 255,
+      "after": 247,
+      "length": 1,
+      "range_start": 583,
+      "range_end": 584,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 584,
+      "before": 252,
+      "after": 236,
+      "length": 1,
+      "range_start": 584,
+      "range_end": 585,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 585,
+      "before": 9,
+      "after": 41,
+      "length": 1,
+      "range_start": 585,
+      "range_end": 586,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 586,
+      "before": 48,
+      "after": 112,
+      "length": 1,
+      "range_start": 586,
+      "range_end": 587,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 587,
+      "before": 52,
+      "after": 180,
+      "length": 1,
+      "range_start": 587,
+      "range_end": 588,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 588,
+      "before": 255,
+      "after": 254,
+      "length": 1,
+      "range_start": 588,
+      "range_end": 589,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 589,
+      "before": 105,
+      "after": 107,
+      "length": 1,
+      "range_start": 589,
+      "range_end": 590,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 590,
+      "before": 152,
+      "after": 156,
+      "length": 1,
+      "range_start": 590,
+      "range_end": 591,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 591,
+      "before": 255,
+      "after": 247,
+      "length": 1,
+      "range_start": 591,
+      "range_end": 592,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 592,
+      "before": 232,
+      "after": 248,
+      "length": 1,
+      "range_start": 592,
+      "range_end": 593,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 593,
+      "before": 208,
+      "after": 240,
+      "length": 1,
+      "range_start": 593,
+      "range_end": 594,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 594,
+      "before": 204,
+      "after": 140,
+      "length": 1,
+      "range_start": 594,
+      "range_end": 595,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 595,
+      "before": 165,
+      "after": 37,
+      "length": 1,
+      "range_start": 595,
+      "range_end": 596,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 596,
+      "before": 117,
+      "after": 116,
+      "length": 1,
+      "range_start": 596,
+      "range_end": 597,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 597,
+      "before": 219,
+      "after": 217,
+      "length": 1,
+      "range_start": 597,
+      "range_end": 598,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 598,
+      "before": 228,
+      "after": 224,
+      "length": 1,
+      "range_start": 598,
+      "range_end": 599,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 599,
+      "before": 234,
+      "after": 226,
+      "length": 1,
+      "range_start": 599,
+      "range_end": 600,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 600,
+      "before": 56,
+      "after": 40,
+      "length": 1,
+      "range_start": 600,
+      "range_end": 601,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 601,
+      "before": 219,
+      "after": 251,
+      "length": 1,
+      "range_start": 601,
+      "range_end": 602,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 602,
+      "before": 202,
+      "after": 138,
+      "length": 1,
+      "range_start": 602,
+      "range_end": 603,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 603,
+      "before": 153,
+      "after": 25,
+      "length": 1,
+      "range_start": 603,
+      "range_end": 604,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 604,
+      "before": 73,
+      "after": 72,
+      "length": 1,
+      "range_start": 604,
+      "range_end": 605,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 605,
+      "before": 142,
+      "after": 140,
+      "length": 1,
+      "range_start": 605,
+      "range_end": 606,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 606,
+      "before": 231,
+      "after": 227,
+      "length": 1,
+      "range_start": 606,
+      "range_end": 607,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 607,
+      "before": 154,
+      "after": 146,
+      "length": 1,
+      "range_start": 607,
+      "range_end": 608,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 608,
+      "before": 76,
+      "after": 92,
+      "length": 1,
+      "range_start": 608,
+      "range_end": 609,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 609,
+      "before": 55,
+      "after": 23,
+      "length": 1,
+      "range_start": 609,
+      "range_end": 610,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 610,
+      "before": 99,
+      "after": 35,
+      "length": 1,
+      "range_start": 610,
+      "range_end": 611,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 611,
+      "before": 57,
+      "after": 185,
+      "length": 1,
+      "range_start": 611,
+      "range_end": 612,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 612,
+      "before": 105,
+      "after": 104,
+      "length": 1,
+      "range_start": 612,
+      "range_end": 613,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 613,
+      "before": 174,
+      "after": 172,
+      "length": 1,
+      "range_start": 613,
+      "range_end": 614,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 614,
+      "before": 78,
+      "after": 74,
+      "length": 1,
+      "range_start": 614,
+      "range_end": 615,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 615,
+      "before": 224,
+      "after": 232,
+      "length": 1,
+      "range_start": 615,
+      "range_end": 616,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 616,
+      "before": 57,
+      "after": 41,
+      "length": 1,
+      "range_start": 616,
+      "range_end": 617,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 617,
+      "before": 255,
+      "after": 223,
+      "length": 1,
+      "range_start": 617,
+      "range_end": 618,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 618,
+      "before": 171,
+      "after": 235,
+      "length": 1,
+      "range_start": 618,
+      "range_end": 619,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 619,
+      "before": 49,
+      "after": 177,
+      "length": 1,
+      "range_start": 619,
+      "range_end": 620,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 620,
+      "before": 82,
+      "after": 83,
+      "length": 1,
+      "range_start": 620,
+      "range_end": 621,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 621,
+      "before": 254,
+      "after": 252,
+      "length": 1,
+      "range_start": 621,
+      "range_end": 622,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 622,
+      "before": 78,
+      "after": 74,
+      "length": 1,
+      "range_start": 622,
+      "range_end": 623,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 623,
+      "before": 207,
+      "after": 199,
+      "length": 1,
+      "range_start": 623,
+      "range_end": 624,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 624,
+      "before": 205,
+      "after": 221,
+      "length": 1,
+      "range_start": 624,
+      "range_end": 625,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 625,
+      "before": 154,
+      "after": 186,
+      "length": 1,
+      "range_start": 625,
+      "range_end": 626,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 626,
+      "before": 99,
+      "after": 35,
+      "length": 1,
+      "range_start": 626,
+      "range_end": 627,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 627,
+      "before": 98,
+      "after": 226,
+      "length": 1,
+      "range_start": 627,
+      "range_end": 628,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 628,
+      "before": 172,
+      "after": 173,
+      "length": 1,
+      "range_start": 628,
+      "range_end": 629,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 629,
+      "before": 63,
+      "after": 61,
+      "length": 1,
+      "range_start": 629,
+      "range_end": 630,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 630,
+      "before": 42,
+      "after": 46,
+      "length": 1,
+      "range_start": 630,
+      "range_end": 631,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 631,
+      "before": 40,
+      "after": 32,
+      "length": 1,
+      "range_start": 631,
+      "range_end": 632,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 632,
+      "before": 1,
+      "after": 17,
+      "length": 1,
+      "range_start": 632,
+      "range_end": 633,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 633,
+      "before": 5,
+      "after": 37,
+      "length": 1,
+      "range_start": 633,
+      "range_end": 634,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 634,
+      "before": 255,
+      "after": 191,
+      "length": 1,
+      "range_start": 634,
+      "range_end": 635,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 635,
+      "before": 51,
+      "after": 179,
+      "length": 1,
+      "range_start": 635,
+      "range_end": 636,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 636,
+      "before": 89,
+      "after": 88,
+      "length": 1,
+      "range_start": 636,
+      "range_end": 637,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 637,
+      "before": 219,
+      "after": 217,
+      "length": 1,
+      "range_start": 637,
+      "range_end": 638,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 638,
+      "before": 214,
+      "after": 210,
+      "length": 1,
+      "range_start": 638,
+      "range_end": 639,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 639,
+      "before": 221,
+      "after": 213,
+      "length": 1,
+      "range_start": 639,
+      "range_end": 640,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 640,
+      "before": 124,
+      "after": 108,
+      "length": 1,
+      "range_start": 640,
+      "range_end": 641,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 641,
+      "before": 169,
+      "after": 137,
+      "length": 1,
+      "range_start": 641,
+      "range_end": 642,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 642,
+      "before": 10,
+      "after": 74,
+      "length": 1,
+      "range_start": 642,
+      "range_end": 643,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 643,
+      "before": 64,
+      "after": 192,
+      "length": 1,
+      "range_start": 643,
+      "range_end": 644,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 644,
+      "before": 81,
+      "after": 80,
+      "length": 1,
+      "range_start": 644,
+      "range_end": 645,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 645,
+      "before": 255,
+      "after": 253,
+      "length": 1,
+      "range_start": 645,
+      "range_end": 646,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 646,
+      "before": 131,
+      "after": 135,
+      "length": 1,
+      "range_start": 646,
+      "range_end": 647,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 647,
+      "before": 125,
+      "after": 117,
+      "length": 1,
+      "range_start": 647,
+      "range_end": 648,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 648,
+      "before": 255,
+      "after": 239,
+      "length": 1,
+      "range_start": 648,
+      "range_end": 649,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 649,
+      "before": 248,
+      "after": 216,
+      "length": 1,
+      "range_start": 649,
+      "range_end": 650,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 650,
+      "before": 47,
+      "after": 111,
+      "length": 1,
+      "range_start": 650,
+      "range_end": 651,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 651,
+      "before": 136,
+      "after": 8,
+      "length": 1,
+      "range_start": 651,
+      "range_end": 652,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 652,
+      "before": 34,
+      "after": 35,
+      "length": 1,
+      "range_start": 652,
+      "range_end": 653,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 653,
+      "before": 252,
+      "after": 254,
+      "length": 1,
+      "range_start": 653,
+      "range_end": 654,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 654,
+      "before": 167,
+      "after": 163,
+      "length": 1,
+      "range_start": 654,
+      "range_end": 655,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 655,
+      "before": 66,
+      "after": 74,
+      "length": 1,
+      "range_start": 655,
+      "range_end": 656,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 656,
+      "before": 51,
+      "after": 35,
+      "length": 1,
+      "range_start": 656,
+      "range_end": 657,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 657,
+      "before": 231,
+      "after": 199,
+      "length": 1,
+      "range_start": 657,
+      "range_end": 658,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 658,
+      "before": 58,
+      "after": 122,
+      "length": 1,
+      "range_start": 658,
+      "range_end": 659,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 659,
+      "before": 163,
+      "after": 35,
+      "length": 1,
+      "range_start": 659,
+      "range_end": 660,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 660,
+      "before": 50,
+      "after": 51,
+      "length": 1,
+      "range_start": 660,
+      "range_end": 661,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 661,
+      "before": 92,
+      "after": 94,
+      "length": 1,
+      "range_start": 661,
+      "range_end": 662,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 662,
+      "before": 157,
+      "after": 153,
+      "length": 1,
+      "range_start": 662,
+      "range_end": 663,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 663,
+      "before": 200,
+      "after": 192,
+      "length": 1,
+      "range_start": 663,
+      "range_end": 664,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 664,
+      "before": 115,
+      "after": 99,
+      "length": 1,
+      "range_start": 664,
+      "range_end": 665,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 665,
+      "before": 13,
+      "after": 45,
+      "length": 1,
+      "range_start": 665,
+      "range_end": 666,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 666,
+      "before": 142,
+      "after": 206,
+      "length": 1,
+      "range_start": 666,
+      "range_end": 667,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 667,
+      "before": 107,
+      "after": 235,
+      "length": 1,
+      "range_start": 667,
+      "range_end": 668,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 668,
+      "before": 235,
+      "after": 234,
+      "length": 1,
+      "range_start": 668,
+      "range_end": 669,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 669,
+      "before": 158,
+      "after": 156,
+      "length": 1,
+      "range_start": 669,
+      "range_end": 670,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 670,
+      "before": 95,
+      "after": 91,
+      "length": 1,
+      "range_start": 670,
+      "range_end": 671,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 671,
+      "before": 10,
+      "after": 2,
+      "length": 1,
+      "range_start": 671,
+      "range_end": 672,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 672,
+      "before": 146,
+      "after": 130,
+      "length": 1,
+      "range_start": 672,
+      "range_end": 673,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 673,
+      "before": 166,
+      "after": 134,
+      "length": 1,
+      "range_start": 673,
+      "range_end": 674,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 674,
+      "before": 103,
+      "after": 39,
+      "length": 1,
+      "range_start": 674,
+      "range_end": 675,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 675,
+      "before": 186,
+      "after": 58,
+      "length": 1,
+      "range_start": 675,
+      "range_end": 676,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 676,
+      "before": 182,
+      "after": 183,
+      "length": 1,
+      "range_start": 676,
+      "range_end": 677,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 677,
+      "before": 149,
+      "after": 151,
+      "length": 1,
+      "range_start": 677,
+      "range_end": 678,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 678,
+      "before": 182,
+      "after": 178,
+      "length": 1,
+      "range_start": 678,
+      "range_end": 679,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 679,
+      "before": 50,
+      "after": 58,
+      "length": 1,
+      "range_start": 679,
+      "range_end": 680,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 680,
+      "before": 158,
+      "after": 142,
+      "length": 1,
+      "range_start": 680,
+      "range_end": 681,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 681,
+      "before": 149,
+      "after": 181,
+      "length": 1,
+      "range_start": 681,
+      "range_end": 682,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 682,
+      "before": 224,
+      "after": 160,
+      "length": 1,
+      "range_start": 682,
+      "range_end": 683,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 683,
+      "before": 32,
+      "after": 160,
+      "length": 1,
+      "range_start": 683,
+      "range_end": 684,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 684,
+      "before": 126,
+      "after": 127,
+      "length": 1,
+      "range_start": 684,
+      "range_end": 685,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 685,
+      "before": 57,
+      "after": 59,
+      "length": 1,
+      "range_start": 685,
+      "range_end": 686,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 686,
+      "before": 83,
+      "after": 87,
+      "length": 1,
+      "range_start": 686,
+      "range_end": 687,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 687,
+      "before": 240,
+      "after": 248,
+      "length": 1,
+      "range_start": 687,
+      "range_end": 688,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 688,
+      "before": 191,
+      "after": 175,
+      "length": 1,
+      "range_start": 688,
+      "range_end": 689,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 689,
+      "before": 80,
+      "after": 112,
+      "length": 1,
+      "range_start": 689,
+      "range_end": 690,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 690,
+      "before": 230,
+      "after": 166,
+      "length": 1,
+      "range_start": 690,
+      "range_end": 691,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 691,
+      "before": 235,
+      "after": 107,
+      "length": 1,
+      "range_start": 691,
+      "range_end": 692,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 692,
+      "before": 245,
+      "after": 244,
+      "length": 1,
+      "range_start": 692,
+      "range_end": 693,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 693,
+      "before": 170,
+      "after": 168,
+      "length": 1,
+      "range_start": 693,
+      "range_end": 694,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 694,
+      "before": 68,
+      "after": 64,
+      "length": 1,
+      "range_start": 694,
+      "range_end": 695,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 695,
+      "before": 166,
+      "after": 174,
+      "length": 1,
+      "range_start": 695,
+      "range_end": 696,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 696,
+      "before": 169,
+      "after": 185,
+      "length": 1,
+      "range_start": 696,
+      "range_end": 697,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 697,
+      "before": 20,
+      "after": 52,
+      "length": 1,
+      "range_start": 697,
+      "range_end": 698,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 698,
+      "before": 199,
+      "after": 135,
+      "length": 1,
+      "range_start": 698,
+      "range_end": 699,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 699,
+      "before": 40,
+      "after": 168,
+      "length": 1,
+      "range_start": 699,
+      "range_end": 700,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 700,
+      "before": 234,
+      "after": 235,
+      "length": 1,
+      "range_start": 700,
+      "range_end": 701,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 701,
+      "before": 191,
+      "after": 189,
+      "length": 1,
+      "range_start": 701,
+      "range_end": 702,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 702,
+      "before": 20,
+      "after": 16,
+      "length": 1,
+      "range_start": 702,
+      "range_end": 703,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 703,
+      "before": 250,
+      "after": 242,
+      "length": 1,
+      "range_start": 703,
+      "range_end": 704,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 704,
+      "before": 255,
+      "after": 239,
+      "length": 1,
+      "range_start": 704,
+      "range_end": 705,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 705,
+      "before": 167,
+      "after": 135,
+      "length": 1,
+      "range_start": 705,
+      "range_end": 706,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 706,
+      "before": 230,
+      "after": 166,
+      "length": 1,
+      "range_start": 706,
+      "range_end": 707,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 707,
+      "before": 111,
+      "after": 239,
+      "length": 1,
+      "range_start": 707,
+      "range_end": 708,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 708,
+      "before": 130,
+      "after": 131,
+      "length": 1,
+      "range_start": 708,
+      "range_end": 709,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 709,
+      "before": 255,
+      "after": 253,
+      "length": 1,
+      "range_start": 709,
+      "range_end": 710,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 710,
+      "before": 20,
+      "after": 16,
+      "length": 1,
+      "range_start": 710,
+      "range_end": 711,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 711,
+      "before": 176,
+      "after": 184,
+      "length": 1,
+      "range_start": 711,
+      "range_end": 712,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 712,
+      "before": 146,
+      "after": 130,
+      "length": 1,
+      "range_start": 712,
+      "range_end": 713,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 713,
+      "before": 124,
+      "after": 92,
+      "length": 1,
+      "range_start": 713,
+      "range_end": 714,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 714,
+      "before": 147,
+      "after": 211,
+      "length": 1,
+      "range_start": 714,
+      "range_end": 715,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 715,
+      "before": 158,
+      "after": 30,
+      "length": 1,
+      "range_start": 715,
+      "range_end": 716,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 716,
+      "before": 202,
+      "after": 203,
+      "length": 1,
+      "range_start": 716,
+      "range_end": 717,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 717,
+      "before": 154,
+      "after": 152,
+      "length": 1,
+      "range_start": 717,
+      "range_end": 718,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 718,
+      "before": 49,
+      "after": 53,
+      "length": 1,
+      "range_start": 718,
+      "range_end": 719,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 719,
+      "before": 129,
+      "after": 137,
+      "length": 1,
+      "range_start": 719,
+      "range_end": 720,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 720,
+      "before": 215,
+      "after": 199,
+      "length": 1,
+      "range_start": 720,
+      "range_end": 721,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 721,
+      "before": 83,
+      "after": 115,
+      "length": 1,
+      "range_start": 721,
+      "range_end": 722,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 722,
+      "before": 141,
+      "after": 205,
+      "length": 1,
+      "range_start": 722,
+      "range_end": 723,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 723,
+      "before": 195,
+      "after": 67,
+      "length": 1,
+      "range_start": 723,
+      "range_end": 724,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 724,
+      "before": 245,
+      "after": 244,
+      "length": 1,
+      "range_start": 724,
+      "range_end": 725,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 725,
+      "before": 152,
+      "after": 154,
+      "length": 1,
+      "range_start": 725,
+      "range_end": 726,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 726,
+      "before": 200,
+      "after": 204,
+      "length": 1,
+      "range_start": 726,
+      "range_end": 727,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 727,
+      "before": 27,
+      "after": 19,
+      "length": 1,
+      "range_start": 727,
+      "range_end": 728,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 728,
+      "before": 254,
+      "after": 238,
+      "length": 1,
+      "range_start": 728,
+      "range_end": 729,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 729,
+      "before": 79,
+      "after": 111,
+      "length": 1,
+      "range_start": 729,
+      "range_end": 730,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 730,
+      "before": 2,
+      "after": 66,
+      "length": 1,
+      "range_start": 730,
+      "range_end": 731,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 731,
+      "before": 206,
+      "after": 78,
+      "length": 1,
+      "range_start": 731,
+      "range_end": 732,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 732,
+      "before": 87,
+      "after": 86,
+      "length": 1,
+      "range_start": 732,
+      "range_end": 733,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 733,
+      "before": 8,
+      "after": 10,
+      "length": 1,
+      "range_start": 733,
+      "range_end": 734,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 734,
+      "before": 45,
+      "after": 41,
+      "length": 1,
+      "range_start": 734,
+      "range_end": 735,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 735,
+      "before": 252,
+      "after": 244,
+      "length": 1,
+      "range_start": 735,
+      "range_end": 736,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 736,
+      "before": 55,
+      "after": 39,
+      "length": 1,
+      "range_start": 736,
+      "range_end": 737,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 737,
+      "before": 152,
+      "after": 184,
+      "length": 1,
+      "range_start": 737,
+      "range_end": 738,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 738,
+      "before": 249,
+      "after": 185,
+      "length": 1,
+      "range_start": 738,
+      "range_end": 739,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 739,
+      "before": 47,
+      "after": 175,
+      "length": 1,
+      "range_start": 739,
+      "range_end": 740,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 740,
+      "before": 182,
+      "after": 183,
+      "length": 1,
+      "range_start": 740,
+      "range_end": 741,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 741,
+      "before": 62,
+      "after": 60,
+      "length": 1,
+      "range_start": 741,
+      "range_end": 742,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 742,
+      "before": 255,
+      "after": 251,
+      "length": 1,
+      "range_start": 742,
+      "range_end": 743,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 743,
+      "before": 251,
+      "after": 243,
+      "length": 1,
+      "range_start": 743,
+      "range_end": 744,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 744,
+      "before": 254,
+      "after": 238,
+      "length": 1,
+      "range_start": 744,
+      "range_end": 745,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 745,
+      "before": 227,
+      "after": 195,
+      "length": 1,
+      "range_start": 745,
+      "range_end": 746,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 746,
+      "before": 255,
+      "after": 191,
+      "length": 1,
+      "range_start": 746,
+      "range_end": 747,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 747,
+      "before": 63,
+      "after": 191,
+      "length": 1,
+      "range_start": 747,
+      "range_end": 748,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 748,
+      "before": 84,
+      "after": 85,
+      "length": 1,
+      "range_start": 748,
+      "range_end": 749,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 749,
+      "before": 24,
+      "after": 26,
+      "length": 1,
+      "range_start": 749,
+      "range_end": 750,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 750,
+      "before": 105,
+      "after": 109,
+      "length": 1,
+      "range_start": 750,
+      "range_end": 751,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 751,
+      "before": 230,
+      "after": 238,
+      "length": 1,
+      "range_start": 751,
+      "range_end": 752,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 752,
+      "before": 249,
+      "after": 233,
+      "length": 1,
+      "range_start": 752,
+      "range_end": 753,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 753,
+      "before": 132,
+      "after": 164,
+      "length": 1,
+      "range_start": 753,
+      "range_end": 754,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 754,
+      "before": 147,
+      "after": 211,
+      "length": 1,
+      "range_start": 754,
+      "range_end": 755,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 755,
+      "before": 77,
+      "after": 205,
+      "length": 1,
+      "range_start": 755,
+      "range_end": 756,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 756,
+      "before": 123,
+      "after": 122,
+      "length": 1,
+      "range_start": 756,
+      "range_end": 757,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 757,
+      "before": 177,
+      "after": 179,
+      "length": 1,
+      "range_start": 757,
+      "range_end": 758,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 758,
+      "before": 28,
+      "after": 24,
+      "length": 1,
+      "range_start": 758,
+      "range_end": 759,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 759,
+      "before": 47,
+      "after": 39,
+      "length": 1,
+      "range_start": 759,
+      "range_end": 760,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 760,
+      "before": 144,
+      "after": 128,
+      "length": 1,
+      "range_start": 760,
+      "range_end": 761,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 761,
+      "before": 88,
+      "after": 120,
+      "length": 1,
+      "range_start": 761,
+      "range_end": 762,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 762,
+      "before": 158,
+      "after": 222,
+      "length": 1,
+      "range_start": 762,
+      "range_end": 763,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 763,
+      "before": 23,
+      "after": 151,
+      "length": 1,
+      "range_start": 763,
+      "range_end": 764,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 764,
+      "before": 9,
+      "after": 8,
+      "length": 1,
+      "range_start": 764,
+      "range_end": 765,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 765,
+      "before": 220,
+      "after": 222,
+      "length": 1,
+      "range_start": 765,
+      "range_end": 766,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 766,
+      "before": 175,
+      "after": 171,
+      "length": 1,
+      "range_start": 766,
+      "range_end": 767,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 767,
+      "before": 32,
+      "after": 40,
+      "length": 1,
+      "range_start": 767,
+      "range_end": 768,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 768,
+      "before": 60,
+      "after": 44,
+      "length": 1,
+      "range_start": 768,
+      "range_end": 769,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 769,
+      "before": 51,
+      "after": 19,
+      "length": 1,
+      "range_start": 769,
+      "range_end": 770,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 770,
+      "before": 231,
+      "after": 167,
+      "length": 1,
+      "range_start": 770,
+      "range_end": 771,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 771,
+      "before": 85,
+      "after": 213,
+      "length": 1,
+      "range_start": 771,
+      "range_end": 772,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 772,
+      "before": 39,
+      "after": 38,
+      "length": 1,
+      "range_start": 772,
+      "range_end": 773,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 773,
+      "before": 157,
+      "after": 159,
+      "length": 1,
+      "range_start": 773,
+      "range_end": 774,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 774,
+      "before": 196,
+      "after": 192,
+      "length": 1,
+      "range_start": 774,
+      "range_end": 775,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 775,
+      "before": 250,
+      "after": 242,
+      "length": 1,
+      "range_start": 775,
+      "range_end": 776,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 776,
+      "before": 231,
+      "after": 247,
+      "length": 1,
+      "range_start": 776,
+      "range_end": 777,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 777,
+      "before": 63,
+      "after": 31,
+      "length": 1,
+      "range_start": 777,
+      "range_end": 778,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 778,
+      "before": 120,
+      "after": 56,
+      "length": 1,
+      "range_start": 778,
+      "range_end": 779,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 779,
+      "before": 57,
+      "after": 185,
+      "length": 1,
+      "range_start": 779,
+      "range_end": 780,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 780,
+      "before": 175,
+      "after": 174,
+      "length": 1,
+      "range_start": 780,
+      "range_end": 781,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 781,
+      "before": 36,
+      "after": 38,
+      "length": 1,
+      "range_start": 781,
+      "range_end": 782,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 782,
+      "before": 199,
+      "after": 195,
+      "length": 1,
+      "range_start": 782,
+      "range_end": 783,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 783,
+      "before": 40,
+      "after": 32,
+      "length": 1,
+      "range_start": 783,
+      "range_end": 784,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 784,
+      "before": 222,
+      "after": 206,
+      "length": 1,
+      "range_start": 784,
+      "range_end": 785,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 785,
+      "before": 255,
+      "after": 223,
+      "length": 1,
+      "range_start": 785,
+      "range_end": 786,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 786,
+      "before": 43,
+      "after": 107,
+      "length": 1,
+      "range_start": 786,
+      "range_end": 787,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 787,
+      "before": 173,
+      "after": 45,
+      "length": 1,
+      "range_start": 787,
+      "range_end": 788,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 788,
+      "before": 253,
+      "after": 252,
+      "length": 1,
+      "range_start": 788,
+      "range_end": 789,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 789,
+      "before": 151,
+      "after": 149,
+      "length": 1,
+      "range_start": 789,
+      "range_end": 790,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 790,
+      "before": 53,
+      "after": 49,
+      "length": 1,
+      "range_start": 790,
+      "range_end": 791,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 791,
+      "before": 5,
+      "after": 13,
+      "length": 1,
+      "range_start": 791,
+      "range_end": 792,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 792,
+      "before": 254,
+      "after": 238,
+      "length": 1,
+      "range_start": 792,
+      "range_end": 793,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 793,
+      "before": 211,
+      "after": 243,
+      "length": 1,
+      "range_start": 793,
+      "range_end": 794,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 794,
+      "before": 160,
+      "after": 224,
+      "length": 1,
+      "range_start": 794,
+      "range_end": 795,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 795,
+      "before": 48,
+      "after": 176,
+      "length": 1,
+      "range_start": 795,
+      "range_end": 796,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 796,
+      "before": 246,
+      "after": 247,
+      "length": 1,
+      "range_start": 796,
+      "range_end": 797,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 797,
+      "before": 199,
+      "after": 197,
+      "length": 1,
+      "range_start": 797,
+      "range_end": 798,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 798,
+      "before": 215,
+      "after": 211,
+      "length": 1,
+      "range_start": 798,
+      "range_end": 799,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 799,
+      "before": 255,
+      "after": 247,
+      "length": 1,
+      "range_start": 799,
+      "range_end": 800,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 800,
+      "before": 10,
+      "after": 26,
+      "length": 1,
+      "range_start": 800,
+      "range_end": 801,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 801,
+      "before": 226,
+      "after": 194,
+      "length": 1,
+      "range_start": 801,
+      "range_end": 802,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 802,
+      "before": 141,
+      "after": 205,
+      "length": 1,
+      "range_start": 802,
+      "range_end": 803,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 803,
+      "before": 122,
+      "after": 250,
+      "length": 1,
+      "range_start": 803,
+      "range_end": 804,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 804,
+      "before": 62,
+      "after": 63,
+      "length": 1,
+      "range_start": 804,
+      "range_end": 805,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 805,
+      "before": 229,
+      "after": 231,
+      "length": 1,
+      "range_start": 805,
+      "range_end": 806,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 806,
+      "before": 232,
+      "after": 236,
+      "length": 1,
+      "range_start": 806,
+      "range_end": 807,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 807,
+      "before": 201,
+      "after": 193,
+      "length": 1,
+      "range_start": 807,
+      "range_end": 808,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 808,
+      "before": 184,
+      "after": 168,
+      "length": 1,
+      "range_start": 808,
+      "range_end": 809,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 809,
+      "before": 149,
+      "after": 181,
+      "length": 1,
+      "range_start": 809,
+      "range_end": 810,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 810,
+      "before": 204,
+      "after": 140,
+      "length": 1,
+      "range_start": 810,
+      "range_end": 811,
+      "bit_index": 6
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 811,
+      "before": 245,
+      "after": 117,
+      "length": 1,
+      "range_start": 811,
+      "range_end": 812,
+      "bit_index": 7
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 812,
+      "before": 36,
+      "after": 37,
+      "length": 1,
+      "range_start": 812,
+      "range_end": 813,
+      "bit_index": 0
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 813,
+      "before": 177,
+      "after": 179,
+      "length": 1,
+      "range_start": 813,
+      "range_end": 814,
+      "bit_index": 1
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 814,
+      "before": 148,
+      "after": 144,
+      "length": 1,
+      "range_start": 814,
+      "range_end": 815,
+      "bit_index": 2
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 815,
+      "before": 227,
+      "after": 235,
+      "length": 1,
+      "range_start": 815,
+      "range_end": 816,
+      "bit_index": 3
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 816,
+      "before": 154,
+      "after": 138,
+      "length": 1,
+      "range_start": 816,
+      "range_end": 817,
+      "bit_index": 4
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 817,
+      "before": 118,
+      "after": 86,
+      "length": 1,
+      "range_start": 817,
+      "range_end": 818,
+      "bit_index": 5
+    },
+    {
+      "operation": "bit_flip",
+      "offset": 818,
+      "before": 220,
+      "after": 156,
+      "length": 1,
+      "range_start": 818,
+      "range_end": 819,
+      "bit_index": 6
+    }
+  ]
+}

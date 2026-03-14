@@ -1,0 +1,4 @@
+cfg/file_03.txt         bad CRC 31086146  (should be 39ea8117)
+test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-byte_overwrite-header-1B-2600/smallfiles.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

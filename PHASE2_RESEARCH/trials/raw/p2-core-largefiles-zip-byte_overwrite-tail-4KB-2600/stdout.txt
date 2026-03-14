@@ -1,0 +1,4 @@
+payload/large_text.txt  bad CRC df30158c  (should be a7841382)
+test of PHASE2_RESEARCH/trials/raw/p2-core-largefiles-zip-byte_overwrite-tail-4KB-2600/largefiles.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

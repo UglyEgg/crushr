@@ -1,0 +1,3 @@
+xz: (stdin): Compressed data is corrupt
+tar: Unexpected EOF in archive
+tar: Error is not recoverable: exiting now

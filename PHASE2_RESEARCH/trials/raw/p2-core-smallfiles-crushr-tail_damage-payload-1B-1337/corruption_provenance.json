@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/crushr/smallfiles.crs",
+  "scenario_id": "p2-core-smallfiles-crushr-tail_damage-payload-1B-1337",
+  "corruption_type": "tail_damage",
+  "target": "payload",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "tail_damage",
+      "offset": 6217,
+      "before": 0,
+      "after": 14,
+      "length": 1,
+      "range_start": 6217,
+      "range_end": 6218,
+      "bit_index": null
+    }
+  ]
+}

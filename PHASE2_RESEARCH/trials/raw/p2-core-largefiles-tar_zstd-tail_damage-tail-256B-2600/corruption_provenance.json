@@ -1,0 +1,2570 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_zstd/largefiles.tar.zst",
+  "scenario_id": "p2-core-largefiles-tar_zstd-tail_damage-tail-256B-2600",
+  "corruption_type": "tail_damage",
+  "target": "tail",
+  "magnitude": "256B",
+  "seed": 2600,
+  "concrete_mutation_details": [
+    {
+      "operation": "tail_damage",
+      "offset": 35510,
+      "before": 162,
+      "after": 1,
+      "length": 1,
+      "range_start": 35510,
+      "range_end": 35511,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35511,
+      "before": 162,
+      "after": 143,
+      "length": 1,
+      "range_start": 35511,
+      "range_end": 35512,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35512,
+      "before": 162,
+      "after": 140,
+      "length": 1,
+      "range_start": 35512,
+      "range_end": 35513,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35513,
+      "before": 162,
+      "after": 1,
+      "length": 1,
+      "range_start": 35513,
+      "range_end": 35514,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35514,
+      "before": 162,
+      "after": 4,
+      "length": 1,
+      "range_start": 35514,
+      "range_end": 35515,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35515,
+      "before": 162,
+      "after": 132,
+      "length": 1,
+      "range_start": 35515,
+      "range_end": 35516,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35516,
+      "before": 162,
+      "after": 129,
+      "length": 1,
+      "range_start": 35516,
+      "range_end": 35517,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35517,
+      "before": 162,
+      "after": 60,
+      "length": 1,
+      "range_start": 35517,
+      "range_end": 35518,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35518,
+      "before": 105,
+      "after": 200,
+      "length": 1,
+      "range_start": 35518,
+      "range_end": 35519,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35519,
+      "before": 154,
+      "after": 249,
+      "length": 1,
+      "range_start": 35519,
+      "range_end": 35520,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35520,
+      "before": 166,
+      "after": 129,
+      "length": 1,
+      "range_start": 35520,
+      "range_end": 35521,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35521,
+      "before": 105,
+      "after": 8,
+      "length": 1,
+      "range_start": 35521,
+      "range_end": 35522,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35522,
+      "before": 154,
+      "after": 58,
+      "length": 1,
+      "range_start": 35522,
+      "range_end": 35523,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35523,
+      "before": 166,
+      "after": 201,
+      "length": 1,
+      "range_start": 35523,
+      "range_end": 35524,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35524,
+      "before": 105,
+      "after": 73,
+      "length": 1,
+      "range_start": 35524,
+      "range_end": 35525,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35525,
+      "before": 154,
+      "after": 251,
+      "length": 1,
+      "range_start": 35525,
+      "range_end": 35526,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35526,
+      "before": 166,
+      "after": 1,
+      "length": 1,
+      "range_start": 35526,
+      "range_end": 35527,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35527,
+      "before": 105,
+      "after": 10,
+      "length": 1,
+      "range_start": 35527,
+      "range_end": 35528,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35528,
+      "before": 154,
+      "after": 187,
+      "length": 1,
+      "range_start": 35528,
+      "range_end": 35529,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35529,
+      "before": 166,
+      "after": 216,
+      "length": 1,
+      "range_start": 35529,
+      "range_end": 35530,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35530,
+      "before": 105,
+      "after": 203,
+      "length": 1,
+      "range_start": 35530,
+      "range_end": 35531,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35531,
+      "before": 154,
+      "after": 252,
+      "length": 1,
+      "range_start": 35531,
+      "range_end": 35532,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35532,
+      "before": 166,
+      "after": 128,
+      "length": 1,
+      "range_start": 35532,
+      "range_end": 35533,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35533,
+      "before": 105,
+      "after": 10,
+      "length": 1,
+      "range_start": 35533,
+      "range_end": 35534,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35534,
+      "before": 154,
+      "after": 52,
+      "length": 1,
+      "range_start": 35534,
+      "range_end": 35535,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35535,
+      "before": 6,
+      "after": 107,
+      "length": 1,
+      "range_start": 35535,
+      "range_end": 35536,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35536,
+      "before": 33,
+      "after": 2,
+      "length": 1,
+      "range_start": 35536,
+      "range_end": 35537,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35537,
+      "before": 67,
+      "after": 39,
+      "length": 1,
+      "range_start": 35537,
+      "range_end": 35538,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35538,
+      "before": 134,
+      "after": 35,
+      "length": 1,
+      "range_start": 35538,
+      "range_end": 35539,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35539,
+      "before": 12,
+      "after": 80,
+      "length": 1,
+      "range_start": 35539,
+      "range_end": 35540,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35540,
+      "before": 25,
+      "after": 70,
+      "length": 1,
+      "range_start": 35540,
+      "range_end": 35541,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35541,
+      "before": 50,
+      "after": 111,
+      "length": 1,
+      "range_start": 35541,
+      "range_end": 35542,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35542,
+      "before": 100,
+      "after": 193,
+      "length": 1,
+      "range_start": 35542,
+      "range_end": 35543,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35543,
+      "before": 200,
+      "after": 111,
+      "length": 1,
+      "range_start": 35543,
+      "range_end": 35544,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35544,
+      "before": 144,
+      "after": 58,
+      "length": 1,
+      "range_start": 35544,
+      "range_end": 35545,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35545,
+      "before": 33,
+      "after": 140,
+      "length": 1,
+      "range_start": 35545,
+      "range_end": 35546,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35546,
+      "before": 67,
+      "after": 237,
+      "length": 1,
+      "range_start": 35546,
+      "range_end": 35547,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35547,
+      "before": 134,
+      "after": 44,
+      "length": 1,
+      "range_start": 35547,
+      "range_end": 35548,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35548,
+      "before": 12,
+      "after": 165,
+      "length": 1,
+      "range_start": 35548,
+      "range_end": 35549,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35549,
+      "before": 25,
+      "after": 191,
+      "length": 1,
+      "range_start": 35549,
+      "range_end": 35550,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35550,
+      "before": 50,
+      "after": 137,
+      "length": 1,
+      "range_start": 35550,
+      "range_end": 35551,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35551,
+      "before": 228,
+      "after": 93,
+      "length": 1,
+      "range_start": 35551,
+      "range_end": 35552,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35552,
+      "before": 232,
+      "after": 81,
+      "length": 1,
+      "range_start": 35552,
+      "range_end": 35553,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35553,
+      "before": 232,
+      "after": 83,
+      "length": 1,
+      "range_start": 35553,
+      "range_end": 35554,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35554,
+      "before": 232,
+      "after": 80,
+      "length": 1,
+      "range_start": 35554,
+      "range_end": 35555,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35555,
+      "before": 232,
+      "after": 64,
+      "length": 1,
+      "range_start": 35555,
+      "range_end": 35556,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35556,
+      "before": 232,
+      "after": 64,
+      "length": 1,
+      "range_start": 35556,
+      "range_end": 35557,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35557,
+      "before": 232,
+      "after": 71,
+      "length": 1,
+      "range_start": 35557,
+      "range_end": 35558,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35558,
+      "before": 232,
+      "after": 65,
+      "length": 1,
+      "range_start": 35558,
+      "range_end": 35559,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35559,
+      "before": 232,
+      "after": 65,
+      "length": 1,
+      "range_start": 35559,
+      "range_end": 35560,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35560,
+      "before": 232,
+      "after": 127,
+      "length": 1,
+      "range_start": 35560,
+      "range_end": 35561,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35561,
+      "before": 232,
+      "after": 50,
+      "length": 1,
+      "range_start": 35561,
+      "range_end": 35562,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35562,
+      "before": 232,
+      "after": 114,
+      "length": 1,
+      "range_start": 35562,
+      "range_end": 35563,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35563,
+      "before": 232,
+      "after": 182,
+      "length": 1,
+      "range_start": 35563,
+      "range_end": 35564,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35564,
+      "before": 232,
+      "after": 114,
+      "length": 1,
+      "range_start": 35564,
+      "range_end": 35565,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35565,
+      "before": 232,
+      "after": 61,
+      "length": 1,
+      "range_start": 35565,
+      "range_end": 35566,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35566,
+      "before": 232,
+      "after": 126,
+      "length": 1,
+      "range_start": 35566,
+      "range_end": 35567,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35567,
+      "before": 232,
+      "after": 131,
+      "length": 1,
+      "range_start": 35567,
+      "range_end": 35568,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35568,
+      "before": 232,
+      "after": 69,
+      "length": 1,
+      "range_start": 35568,
+      "range_end": 35569,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35569,
+      "before": 232,
+      "after": 4,
+      "length": 1,
+      "range_start": 35569,
+      "range_end": 35570,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35570,
+      "before": 232,
+      "after": 67,
+      "length": 1,
+      "range_start": 35570,
+      "range_end": 35571,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35571,
+      "before": 232,
+      "after": 156,
+      "length": 1,
+      "range_start": 35571,
+      "range_end": 35572,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35572,
+      "before": 232,
+      "after": 92,
+      "length": 1,
+      "range_start": 35572,
+      "range_end": 35573,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35573,
+      "before": 232,
+      "after": 20,
+      "length": 1,
+      "range_start": 35573,
+      "range_end": 35574,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35574,
+      "before": 232,
+      "after": 87,
+      "length": 1,
+      "range_start": 35574,
+      "range_end": 35575,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35575,
+      "before": 232,
+      "after": 149,
+      "length": 1,
+      "range_start": 35575,
+      "range_end": 35576,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35576,
+      "before": 232,
+      "after": 90,
+      "length": 1,
+      "range_start": 35576,
+      "range_end": 35577,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35577,
+      "before": 232,
+      "after": 31,
+      "length": 1,
+      "range_start": 35577,
+      "range_end": 35578,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35578,
+      "before": 232,
+      "after": 90,
+      "length": 1,
+      "range_start": 35578,
+      "range_end": 35579,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35579,
+      "before": 232,
+      "after": 154,
+      "length": 1,
+      "range_start": 35579,
+      "range_end": 35580,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35580,
+      "before": 232,
+      "after": 70,
+      "length": 1,
+      "range_start": 35580,
+      "range_end": 35581,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35581,
+      "before": 232,
+      "after": 58,
+      "length": 1,
+      "range_start": 35581,
+      "range_end": 35582,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35582,
+      "before": 232,
+      "after": 57,
+      "length": 1,
+      "range_start": 35582,
+      "range_end": 35583,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35583,
+      "before": 168,
+      "after": 255,
+      "length": 1,
+      "range_start": 35583,
+      "range_end": 35584,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35584,
+      "before": 168,
+      "after": 251,
+      "length": 1,
+      "range_start": 35584,
+      "range_end": 35585,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35585,
+      "before": 168,
+      "after": 121,
+      "length": 1,
+      "range_start": 35585,
+      "range_end": 35586,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35586,
+      "before": 168,
+      "after": 120,
+      "length": 1,
+      "range_start": 35586,
+      "range_end": 35587,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35587,
+      "before": 168,
+      "after": 251,
+      "length": 1,
+      "range_start": 35587,
+      "range_end": 35588,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35588,
+      "before": 104,
+      "after": 56,
+      "length": 1,
+      "range_start": 35588,
+      "range_end": 35589,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35589,
+      "before": 128,
+      "after": 80,
+      "length": 1,
+      "range_start": 35589,
+      "range_end": 35590,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35590,
+      "before": 57,
+      "after": 234,
+      "length": 1,
+      "range_start": 35590,
+      "range_end": 35591,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35591,
+      "before": 231,
+      "after": 168,
+      "length": 1,
+      "range_start": 35591,
+      "range_end": 35592,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35592,
+      "before": 156,
+      "after": 173,
+      "length": 1,
+      "range_start": 35592,
+      "range_end": 35593,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35593,
+      "before": 115,
+      "after": 193,
+      "length": 1,
+      "range_start": 35593,
+      "range_end": 35594,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35594,
+      "before": 206,
+      "after": 121,
+      "length": 1,
+      "range_start": 35594,
+      "range_end": 35595,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35595,
+      "before": 57,
+      "after": 11,
+      "length": 1,
+      "range_start": 35595,
+      "range_end": 35596,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35596,
+      "before": 231,
+      "after": 213,
+      "length": 1,
+      "range_start": 35596,
+      "range_end": 35597,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35597,
+      "before": 156,
+      "after": 35,
+      "length": 1,
+      "range_start": 35597,
+      "range_end": 35598,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35598,
+      "before": 115,
+      "after": 193,
+      "length": 1,
+      "range_start": 35598,
+      "range_end": 35599,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35599,
+      "before": 206,
+      "after": 251,
+      "length": 1,
+      "range_start": 35599,
+      "range_end": 35600,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35600,
+      "before": 57,
+      "after": 14,
+      "length": 1,
+      "range_start": 35600,
+      "range_end": 35601,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35601,
+      "before": 231,
+      "after": 84,
+      "length": 1,
+      "range_start": 35601,
+      "range_end": 35602,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35602,
+      "before": 156,
+      "after": 17,
+      "length": 1,
+      "range_start": 35602,
+      "range_end": 35603,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35603,
+      "before": 115,
+      "after": 63,
+      "length": 1,
+      "range_start": 35603,
+      "range_end": 35604,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35604,
+      "before": 206,
+      "after": 194,
+      "length": 1,
+      "range_start": 35604,
+      "range_end": 35605,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35605,
+      "before": 57,
+      "after": 109,
+      "length": 1,
+      "range_start": 35605,
+      "range_end": 35606,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35606,
+      "before": 231,
+      "after": 115,
+      "length": 1,
+      "range_start": 35606,
+      "range_end": 35607,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35607,
+      "before": 156,
+      "after": 199,
+      "length": 1,
+      "range_start": 35607,
+      "range_end": 35608,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35608,
+      "before": 115,
+      "after": 111,
+      "length": 1,
+      "range_start": 35608,
+      "range_end": 35609,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35609,
+      "before": 206,
+      "after": 147,
+      "length": 1,
+      "range_start": 35609,
+      "range_end": 35610,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35610,
+      "before": 144,
+      "after": 10,
+      "length": 1,
+      "range_start": 35610,
+      "range_end": 35611,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35611,
+      "before": 33,
+      "after": 119,
+      "length": 1,
+      "range_start": 35611,
+      "range_end": 35612,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35612,
+      "before": 67,
+      "after": 73,
+      "length": 1,
+      "range_start": 35612,
+      "range_end": 35613,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35613,
+      "before": 134,
+      "after": 204,
+      "length": 1,
+      "range_start": 35613,
+      "range_end": 35614,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35614,
+      "before": 12,
+      "after": 131,
+      "length": 1,
+      "range_start": 35614,
+      "range_end": 35615,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35615,
+      "before": 25,
+      "after": 80,
+      "length": 1,
+      "range_start": 35615,
+      "range_end": 35616,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35616,
+      "before": 50,
+      "after": 59,
+      "length": 1,
+      "range_start": 35616,
+      "range_end": 35617,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35617,
+      "before": 100,
+      "after": 19,
+      "length": 1,
+      "range_start": 35617,
+      "range_end": 35618,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35618,
+      "before": 200,
+      "after": 112,
+      "length": 1,
+      "range_start": 35618,
+      "range_end": 35619,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35619,
+      "before": 144,
+      "after": 233,
+      "length": 1,
+      "range_start": 35619,
+      "range_end": 35620,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35620,
+      "before": 33,
+      "after": 25,
+      "length": 1,
+      "range_start": 35620,
+      "range_end": 35621,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35621,
+      "before": 67,
+      "after": 59,
+      "length": 1,
+      "range_start": 35621,
+      "range_end": 35622,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35622,
+      "before": 134,
+      "after": 63,
+      "length": 1,
+      "range_start": 35622,
+      "range_end": 35623,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35623,
+      "before": 12,
+      "after": 68,
+      "length": 1,
+      "range_start": 35623,
+      "range_end": 35624,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35624,
+      "before": 25,
+      "after": 82,
+      "length": 1,
+      "range_start": 35624,
+      "range_end": 35625,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35625,
+      "before": 50,
+      "after": 123,
+      "length": 1,
+      "range_start": 35625,
+      "range_end": 35626,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35626,
+      "before": 100,
+      "after": 45,
+      "length": 1,
+      "range_start": 35626,
+      "range_end": 35627,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35627,
+      "before": 200,
+      "after": 130,
+      "length": 1,
+      "range_start": 35627,
+      "range_end": 35628,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35628,
+      "before": 144,
+      "after": 214,
+      "length": 1,
+      "range_start": 35628,
+      "range_end": 35629,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35629,
+      "before": 33,
+      "after": 100,
+      "length": 1,
+      "range_start": 35629,
+      "range_end": 35630,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35630,
+      "before": 3,
+      "after": 89,
+      "length": 1,
+      "range_start": 35630,
+      "range_end": 35631,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35631,
+      "before": 129,
+      "after": 222,
+      "length": 1,
+      "range_start": 35631,
+      "range_end": 35632,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35632,
+      "before": 150,
+      "after": 203,
+      "length": 1,
+      "range_start": 35632,
+      "range_end": 35633,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35633,
+      "before": 168,
+      "after": 237,
+      "length": 1,
+      "range_start": 35633,
+      "range_end": 35634,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35634,
+      "before": 17,
+      "after": 86,
+      "length": 1,
+      "range_start": 35634,
+      "range_end": 35635,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35635,
+      "before": 16,
+      "after": 84,
+      "length": 1,
+      "range_start": 35635,
+      "range_end": 35636,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35636,
+      "before": 250,
+      "after": 182,
+      "length": 1,
+      "range_start": 35636,
+      "range_end": 35637,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35637,
+      "before": 3,
+      "after": 79,
+      "length": 1,
+      "range_start": 35637,
+      "range_end": 35638,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35638,
+      "before": 225,
+      "after": 173,
+      "length": 1,
+      "range_start": 35638,
+      "range_end": 35639,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35639,
+      "before": 143,
+      "after": 202,
+      "length": 1,
+      "range_start": 35639,
+      "range_end": 35640,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35640,
+      "before": 1,
+      "after": 69,
+      "length": 1,
+      "range_start": 35640,
+      "range_end": 35641,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35641,
+      "before": 18,
+      "after": 81,
+      "length": 1,
+      "range_start": 35641,
+      "range_end": 35642,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35642,
+      "before": 64,
+      "after": 253,
+      "length": 1,
+      "range_start": 35642,
+      "range_end": 35643,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35643,
+      "before": 16,
+      "after": 174,
+      "length": 1,
+      "range_start": 35643,
+      "range_end": 35644,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35644,
+      "before": 88,
+      "after": 218,
+      "length": 1,
+      "range_start": 35644,
+      "range_end": 35645,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35645,
+      "before": 96,
+      "after": 166,
+      "length": 1,
+      "range_start": 35645,
+      "range_end": 35646,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35646,
+      "before": 240,
+      "after": 113,
+      "length": 1,
+      "range_start": 35646,
+      "range_end": 35647,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35647,
+      "before": 159,
+      "after": 221,
+      "length": 1,
+      "range_start": 35647,
+      "range_end": 35648,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35648,
+      "before": 191,
+      "after": 48,
+      "length": 1,
+      "range_start": 35648,
+      "range_end": 35649,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35649,
+      "before": 255,
+      "after": 62,
+      "length": 1,
+      "range_start": 35649,
+      "range_end": 35650,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35650,
+      "before": 223,
+      "after": 95,
+      "length": 1,
+      "range_start": 35650,
+      "range_end": 35651,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35651,
+      "before": 1,
+      "after": 70,
+      "length": 1,
+      "range_start": 35651,
+      "range_end": 35652,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35652,
+      "before": 101,
+      "after": 229,
+      "length": 1,
+      "range_start": 35652,
+      "range_end": 35653,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35653,
+      "before": 72,
+      "after": 136,
+      "length": 1,
+      "range_start": 35653,
+      "range_end": 35654,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35654,
+      "before": 11,
+      "after": 139,
+      "length": 1,
+      "range_start": 35654,
+      "range_end": 35655,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35655,
+      "before": 253,
+      "after": 189,
+      "length": 1,
+      "range_start": 35655,
+      "range_end": 35656,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35656,
+      "before": 234,
+      "after": 107,
+      "length": 1,
+      "range_start": 35656,
+      "range_end": 35657,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35657,
+      "before": 250,
+      "after": 61,
+      "length": 1,
+      "range_start": 35657,
+      "range_end": 35658,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35658,
+      "before": 191,
+      "after": 60,
+      "length": 1,
+      "range_start": 35658,
+      "range_end": 35659,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35659,
+      "before": 111,
+      "after": 46,
+      "length": 1,
+      "range_start": 35659,
+      "range_end": 35660,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35660,
+      "before": 223,
+      "after": 81,
+      "length": 1,
+      "range_start": 35660,
+      "range_end": 35661,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35661,
+      "before": 247,
+      "after": 53,
+      "length": 1,
+      "range_start": 35661,
+      "range_end": 35662,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35662,
+      "before": 245,
+      "after": 115,
+      "length": 1,
+      "range_start": 35662,
+      "range_end": 35663,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35663,
+      "before": 125,
+      "after": 56,
+      "length": 1,
+      "range_start": 35663,
+      "range_end": 35664,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35664,
+      "before": 251,
+      "after": 120,
+      "length": 1,
+      "range_start": 35664,
+      "range_end": 35665,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35665,
+      "before": 171,
+      "after": 84,
+      "length": 1,
+      "range_start": 35665,
+      "range_end": 35666,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35666,
+      "before": 235,
+      "after": 22,
+      "length": 1,
+      "range_start": 35666,
+      "range_end": 35667,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35667,
+      "before": 255,
+      "after": 187,
+      "length": 1,
+      "range_start": 35667,
+      "range_end": 35668,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35668,
+      "before": 190,
+      "after": 249,
+      "length": 1,
+      "range_start": 35668,
+      "range_end": 35669,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35669,
+      "before": 190,
+      "after": 122,
+      "length": 1,
+      "range_start": 35669,
+      "range_end": 35670,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35670,
+      "before": 207,
+      "after": 3,
+      "length": 1,
+      "range_start": 35670,
+      "range_end": 35671,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35671,
+      "before": 215,
+      "after": 152,
+      "length": 1,
+      "range_start": 35671,
+      "range_end": 35672,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35672,
+      "before": 247,
+      "after": 187,
+      "length": 1,
+      "range_start": 35672,
+      "range_end": 35673,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35673,
+      "before": 237,
+      "after": 40,
+      "length": 1,
+      "range_start": 35673,
+      "range_end": 35674,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35674,
+      "before": 175,
+      "after": 104,
+      "length": 1,
+      "range_start": 35674,
+      "range_end": 35675,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35675,
+      "before": 174,
+      "after": 245,
+      "length": 1,
+      "range_start": 35675,
+      "range_end": 35676,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35676,
+      "before": 255,
+      "after": 162,
+      "length": 1,
+      "range_start": 35676,
+      "range_end": 35677,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35677,
+      "before": 251,
+      "after": 37,
+      "length": 1,
+      "range_start": 35677,
+      "range_end": 35678,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35678,
+      "before": 250,
+      "after": 33,
+      "length": 1,
+      "range_start": 35678,
+      "range_end": 35679,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35679,
+      "before": 190,
+      "after": 248,
+      "length": 1,
+      "range_start": 35679,
+      "range_end": 35680,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35680,
+      "before": 175,
+      "after": 230,
+      "length": 1,
+      "range_start": 35680,
+      "range_end": 35681,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35681,
+      "before": 219,
+      "after": 16,
+      "length": 1,
+      "range_start": 35681,
+      "range_end": 35682,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35682,
+      "before": 183,
+      "after": 127,
+      "length": 1,
+      "range_start": 35682,
+      "range_end": 35683,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35683,
+      "before": 191,
+      "after": 246,
+      "length": 1,
+      "range_start": 35683,
+      "range_end": 35684,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35684,
+      "before": 186,
+      "after": 242,
+      "length": 1,
+      "range_start": 35684,
+      "range_end": 35685,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35685,
+      "before": 254,
+      "after": 54,
+      "length": 1,
+      "range_start": 35685,
+      "range_end": 35686,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35686,
+      "before": 239,
+      "after": 23,
+      "length": 1,
+      "range_start": 35686,
+      "range_end": 35687,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35687,
+      "before": 235,
+      "after": 211,
+      "length": 1,
+      "range_start": 35687,
+      "range_end": 35688,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35688,
+      "before": 251,
+      "after": 132,
+      "length": 1,
+      "range_start": 35688,
+      "range_end": 35689,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35689,
+      "before": 190,
+      "after": 135,
+      "length": 1,
+      "range_start": 35689,
+      "range_end": 35690,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35690,
+      "before": 190,
+      "after": 71,
+      "length": 1,
+      "range_start": 35690,
+      "range_end": 35691,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35691,
+      "before": 111,
+      "after": 88,
+      "length": 1,
+      "range_start": 35691,
+      "range_end": 35692,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35692,
+      "before": 253,
+      "after": 247,
+      "length": 1,
+      "range_start": 35692,
+      "range_end": 35693,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35693,
+      "before": 234,
+      "after": 163,
+      "length": 1,
+      "range_start": 35693,
+      "range_end": 35694,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35694,
+      "before": 250,
+      "after": 116,
+      "length": 1,
+      "range_start": 35694,
+      "range_end": 35695,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35695,
+      "before": 191,
+      "after": 245,
+      "length": 1,
+      "range_start": 35695,
+      "range_end": 35696,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35696,
+      "before": 175,
+      "after": 186,
+      "length": 1,
+      "range_start": 35696,
+      "range_end": 35697,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35697,
+      "before": 239,
+      "after": 186,
+      "length": 1,
+      "range_start": 35697,
+      "range_end": 35698,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35698,
+      "before": 251,
+      "after": 96,
+      "length": 1,
+      "range_start": 35698,
+      "range_end": 35699,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35699,
+      "before": 250,
+      "after": 166,
+      "length": 1,
+      "range_start": 35699,
+      "range_end": 35700,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35700,
+      "before": 190,
+      "after": 163,
+      "length": 1,
+      "range_start": 35700,
+      "range_end": 35701,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35701,
+      "before": 253,
+      "after": 169,
+      "length": 1,
+      "range_start": 35701,
+      "range_end": 35702,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35702,
+      "before": 85,
+      "after": 193,
+      "length": 1,
+      "range_start": 35702,
+      "range_end": 35703,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35703,
+      "before": 235,
+      "after": 190,
+      "length": 1,
+      "range_start": 35703,
+      "range_end": 35704,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35704,
+      "before": 255,
+      "after": 243,
+      "length": 1,
+      "range_start": 35704,
+      "range_end": 35705,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35705,
+      "before": 190,
+      "after": 241,
+      "length": 1,
+      "range_start": 35705,
+      "range_end": 35706,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35706,
+      "before": 190,
+      "after": 51,
+      "length": 1,
+      "range_start": 35706,
+      "range_end": 35707,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35707,
+      "before": 239,
+      "after": 154,
+      "length": 1,
+      "range_start": 35707,
+      "range_end": 35708,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35708,
+      "before": 235,
+      "after": 156,
+      "length": 1,
+      "range_start": 35708,
+      "range_end": 35709,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35709,
+      "before": 251,
+      "after": 137,
+      "length": 1,
+      "range_start": 35709,
+      "range_end": 35710,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35710,
+      "before": 246,
+      "after": 132,
+      "length": 1,
+      "range_start": 35710,
+      "range_end": 35711,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35711,
+      "before": 87,
+      "after": 41,
+      "length": 1,
+      "range_start": 35711,
+      "range_end": 35712,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35712,
+      "before": 215,
+      "after": 165,
+      "length": 1,
+      "range_start": 35712,
+      "range_end": 35713,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35713,
+      "before": 223,
+      "after": 174,
+      "length": 1,
+      "range_start": 35713,
+      "range_end": 35714,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35714,
+      "before": 251,
+      "after": 138,
+      "length": 1,
+      "range_start": 35714,
+      "range_end": 35715,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35715,
+      "before": 250,
+      "after": 137,
+      "length": 1,
+      "range_start": 35715,
+      "range_end": 35716,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35716,
+      "before": 190,
+      "after": 206,
+      "length": 1,
+      "range_start": 35716,
+      "range_end": 35717,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35717,
+      "before": 175,
+      "after": 255,
+      "length": 1,
+      "range_start": 35717,
+      "range_end": 35718,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35718,
+      "before": 239,
+      "after": 191,
+      "length": 1,
+      "range_start": 35718,
+      "range_end": 35719,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35719,
+      "before": 219,
+      "after": 139,
+      "length": 1,
+      "range_start": 35719,
+      "range_end": 35720,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35720,
+      "before": 95,
+      "after": 14,
+      "length": 1,
+      "range_start": 35720,
+      "range_end": 35721,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35721,
+      "before": 93,
+      "after": 13,
+      "length": 1,
+      "range_start": 35721,
+      "range_end": 35722,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35722,
+      "before": 255,
+      "after": 160,
+      "length": 1,
+      "range_start": 35722,
+      "range_end": 35723,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35723,
+      "before": 247,
+      "after": 166,
+      "length": 1,
+      "range_start": 35723,
+      "range_end": 35724,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35724,
+      "before": 229,
+      "after": 183,
+      "length": 1,
+      "range_start": 35724,
+      "range_end": 35725,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35725,
+      "before": 251,
+      "after": 172,
+      "length": 1,
+      "range_start": 35725,
+      "range_end": 35726,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35726,
+      "before": 190,
+      "after": 236,
+      "length": 1,
+      "range_start": 35726,
+      "range_end": 35727,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35727,
+      "before": 190,
+      "after": 236,
+      "length": 1,
+      "range_start": 35727,
+      "range_end": 35728,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35728,
+      "before": 111,
+      "after": 1,
+      "length": 1,
+      "range_start": 35728,
+      "range_end": 35729,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35729,
+      "before": 127,
+      "after": 77,
+      "length": 1,
+      "range_start": 35729,
+      "range_end": 35730,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35730,
+      "before": 117,
+      "after": 0,
+      "length": 1,
+      "range_start": 35730,
+      "range_end": 35731,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35731,
+      "before": 253,
+      "after": 73,
+      "length": 1,
+      "range_start": 35731,
+      "range_end": 35732,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35732,
+      "before": 223,
+      "after": 172,
+      "length": 1,
+      "range_start": 35732,
+      "range_end": 35733,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35733,
+      "before": 215,
+      "after": 235,
+      "length": 1,
+      "range_start": 35733,
+      "range_end": 35734,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35734,
+      "before": 247,
+      "after": 139,
+      "length": 1,
+      "range_start": 35734,
+      "range_end": 35735,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35735,
+      "before": 249,
+      "after": 77,
+      "length": 1,
+      "range_start": 35735,
+      "range_end": 35736,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35736,
+      "before": 250,
+      "after": 142,
+      "length": 1,
+      "range_start": 35736,
+      "range_end": 35737,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35737,
+      "before": 190,
+      "after": 139,
+      "length": 1,
+      "range_start": 35737,
+      "range_end": 35738,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35738,
+      "before": 253,
+      "after": 150,
+      "length": 1,
+      "range_start": 35738,
+      "range_end": 35739,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35739,
+      "before": 213,
+      "after": 122,
+      "length": 1,
+      "range_start": 35739,
+      "range_end": 35740,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35740,
+      "before": 245,
+      "after": 152,
+      "length": 1,
+      "range_start": 35740,
+      "range_end": 35741,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35741,
+      "before": 127,
+      "after": 85,
+      "length": 1,
+      "range_start": 35741,
+      "range_end": 35742,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35742,
+      "before": 95,
+      "after": 200,
+      "length": 1,
+      "range_start": 35742,
+      "range_end": 35743,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35743,
+      "before": 223,
+      "after": 133,
+      "length": 1,
+      "range_start": 35743,
+      "range_end": 35744,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35744,
+      "before": 247,
+      "after": 109,
+      "length": 1,
+      "range_start": 35744,
+      "range_end": 35745,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35745,
+      "before": 117,
+      "after": 170,
+      "length": 1,
+      "range_start": 35745,
+      "range_end": 35746,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35746,
+      "before": 251,
+      "after": 97,
+      "length": 1,
+      "range_start": 35746,
+      "range_end": 35747,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35747,
+      "before": 246,
+      "after": 175,
+      "length": 1,
+      "range_start": 35747,
+      "range_end": 35748,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35748,
+      "before": 87,
+      "after": 63,
+      "length": 1,
+      "range_start": 35748,
+      "range_end": 35749,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35749,
+      "before": 215,
+      "after": 60,
+      "length": 1,
+      "range_start": 35749,
+      "range_end": 35750,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35750,
+      "before": 255,
+      "after": 23,
+      "length": 1,
+      "range_start": 35750,
+      "range_end": 35751,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35751,
+      "before": 125,
+      "after": 21,
+      "length": 1,
+      "range_start": 35751,
+      "range_end": 35752,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35752,
+      "before": 125,
+      "after": 22,
+      "length": 1,
+      "range_start": 35752,
+      "range_end": 35753,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35753,
+      "before": 223,
+      "after": 55,
+      "length": 1,
+      "range_start": 35753,
+      "range_end": 35754,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35754,
+      "before": 215,
+      "after": 46,
+      "length": 1,
+      "range_start": 35754,
+      "range_end": 35755,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35755,
+      "before": 247,
+      "after": 140,
+      "length": 1,
+      "range_start": 35755,
+      "range_end": 35756,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35756,
+      "before": 173,
+      "after": 211,
+      "length": 1,
+      "range_start": 35756,
+      "range_end": 35757,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35757,
+      "before": 95,
+      "after": 166,
+      "length": 1,
+      "range_start": 35757,
+      "range_end": 35758,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35758,
+      "before": 29,
+      "after": 231,
+      "length": 1,
+      "range_start": 35758,
+      "range_end": 35759,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35759,
+      "before": 153,
+      "after": 255,
+      "length": 1,
+      "range_start": 35759,
+      "range_end": 35760,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35760,
+      "before": 162,
+      "after": 200,
+      "length": 1,
+      "range_start": 35760,
+      "range_end": 35761,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35761,
+      "before": 10,
+      "after": 224,
+      "length": 1,
+      "range_start": 35761,
+      "range_end": 35762,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35762,
+      "before": 20,
+      "after": 251,
+      "length": 1,
+      "range_start": 35762,
+      "range_end": 35763,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35763,
+      "before": 71,
+      "after": 42,
+      "length": 1,
+      "range_start": 35763,
+      "range_end": 35764,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35764,
+      "before": 48,
+      "after": 85,
+      "length": 1,
+      "range_start": 35764,
+      "range_end": 35765,
+      "bit_index": null
+    },
+    {
+      "operation": "tail_damage",
+      "offset": 35765,
+      "before": 177,
+      "after": 85,
+      "length": 1,
+      "range_start": 35765,
+      "range_end": 35766,
+      "bit_index": null
+    }
+  ]
+}

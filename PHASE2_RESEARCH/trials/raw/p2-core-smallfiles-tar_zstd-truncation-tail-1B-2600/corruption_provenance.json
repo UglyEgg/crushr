@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_zstd/smallfiles.tar.zst",
+  "scenario_id": "p2-core-smallfiles-tar_zstd-truncation-tail-1B-2600",
+  "corruption_type": "truncation",
+  "target": "tail",
+  "magnitude": "1B",
+  "seed": 2600,
+  "concrete_mutation_details": [
+    {
+      "operation": "truncation",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 1,
+      "range_start": 1208,
+      "range_end": 1209,
+      "bit_index": null
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_gz/smallfiles.tar.gz",
+  "scenario_id": "p2-core-smallfiles-tar_gz-byte_overwrite-header-1B-1337",
+  "corruption_type": "byte_overwrite",
+  "target": "header",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "byte_overwrite",
+      "offset": 207,
+      "before": 73,
+      "after": 115,
+      "length": 1,
+      "range_start": 207,
+      "range_end": 208,
+      "bit_index": null
+    }
+  ]
+}

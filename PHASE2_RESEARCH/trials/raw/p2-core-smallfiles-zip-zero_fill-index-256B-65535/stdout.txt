@@ -1,0 +1,6 @@
+  error:  invalid compressed data to inflate docs/file_18.txt
+file #9:  bad zipfile offset (local header sig):  1146
+file #10:  bad zipfile offset (local header sig):  1267
+test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-zero_fill-index-256B-65535/smallfiles.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

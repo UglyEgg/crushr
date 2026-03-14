@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_xz/mixed.tar.xz",
+  "scenario_id": "p2-core-mixed-tar_xz-bit_flip-index-1B-1337",
+  "corruption_type": "bit_flip",
+  "target": "index",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "bit_flip",
+      "offset": 160,
+      "before": 90,
+      "after": 88,
+      "length": 1,
+      "range_start": 160,
+      "range_end": 161,
+      "bit_index": 1
+    }
+  ]
+}

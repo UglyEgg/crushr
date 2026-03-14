@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/crushr/mixed.crs",
+  "scenario_id": "p2-core-mixed-crushr-bit_flip-index-1B-2600",
+  "corruption_type": "bit_flip",
+  "target": "index",
+  "magnitude": "1B",
+  "seed": 2600,
+  "concrete_mutation_details": [
+    {
+      "operation": "bit_flip",
+      "offset": 1243,
+      "before": 73,
+      "after": 72,
+      "length": 1,
+      "range_start": 1243,
+      "range_end": 1244,
+      "bit_index": 0
+    }
+  ]
+}

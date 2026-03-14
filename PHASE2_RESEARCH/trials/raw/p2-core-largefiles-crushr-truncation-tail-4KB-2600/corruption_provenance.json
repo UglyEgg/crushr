@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/crushr/largefiles.crs",
+  "scenario_id": "p2-core-largefiles-crushr-truncation-tail-4KB-2600",
+  "corruption_type": "truncation",
+  "target": "tail",
+  "magnitude": "4KB",
+  "seed": 2600,
+  "concrete_mutation_details": [
+    {
+      "operation": "truncation",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 1992,
+      "range_start": 34742,
+      "range_end": 36734,
+      "bit_index": null
+    }
+  ]
+}

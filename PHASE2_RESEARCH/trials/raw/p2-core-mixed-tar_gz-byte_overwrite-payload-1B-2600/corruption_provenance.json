@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_gz/mixed.tar.gz",
+  "scenario_id": "p2-core-mixed-tar_gz-byte_overwrite-payload-1B-2600",
+  "corruption_type": "byte_overwrite",
+  "target": "payload",
+  "magnitude": "1B",
+  "seed": 2600,
+  "concrete_mutation_details": [
+    {
+      "operation": "byte_overwrite",
+      "offset": 682,
+      "before": 224,
+      "after": 200,
+      "length": 1,
+      "range_start": 682,
+      "range_end": 683,
+      "bit_index": null
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+meta/t`ble_a.csv:  mismatching "local" filename (meta/table_a.csv),
+         continuing with "central" filename version
+test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-bit_flip-payload-1B-2600/mixed.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

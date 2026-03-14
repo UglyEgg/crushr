@@ -1,0 +1,4 @@
+bin/blob_00.bin
+bin/blob_01.bin
+bin/blob_02.bin
+bin/blob_03.bin

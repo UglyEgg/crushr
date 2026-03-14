@@ -1,0 +1,68 @@
+{
+  "expected_runs": 2700,
+  "actual_runs": 2700,
+  "records_path": "raw_run_records.json",
+  "completeness_path": "completeness_audit.json",
+  "scenario_count_by_format": {
+    "crushr": 540,
+    "tar_gz": 540,
+    "tar_xz": 540,
+    "tar_zstd": 540,
+    "zip": 540
+  },
+  "scenario_count_by_dataset": {
+    "largefiles": 900,
+    "mixed": 900,
+    "smallfiles": 900
+  },
+  "exit_code_histogram": {
+    "0": 331,
+    "2": 1909,
+    "3": 156,
+    "8": 304
+  },
+  "has_json_result_counts": {
+    "true_count": 297,
+    "false_count": 2403
+  },
+  "tool_versions": {
+    "by_tool": [
+      {
+        "tool_kind": "crushr",
+        "executable": "cargo",
+        "status": "unsupported",
+        "version": null,
+        "detail": "version command exited with status Some(1)"
+      },
+      {
+        "tool_kind": "tar+gz",
+        "executable": "tar",
+        "status": "unsupported",
+        "version": null,
+        "detail": "version is shared with tar executable; captured under tar+gz/tar+xz command observations"
+      },
+      {
+        "tool_kind": "tar+xz",
+        "executable": "tar",
+        "status": "unsupported",
+        "version": null,
+        "detail": "version is shared with tar executable; captured under tar+gz/tar+xz command observations"
+      },
+      {
+        "tool_kind": "tar+zstd",
+        "executable": "tar",
+        "status": "detected",
+        "version": "*** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***",
+        "detail": null
+      },
+      {
+        "tool_kind": "zip",
+        "executable": "zip",
+        "status": "detected",
+        "version": "Copyright (c) 1990-2008 Info-ZIP - Type 'zip \"-L\"' for software license.",
+        "detail": null
+      }
+    ]
+  },
+  "completeness_audit_passed": true
+}

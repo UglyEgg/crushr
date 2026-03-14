@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_zstd/smallfiles.tar.zst",
+  "scenario_id": "p2-core-smallfiles-tar_zstd-zero_fill-header-256B-1337",
+  "corruption_type": "zero_fill",
+  "target": "header",
+  "magnitude": "256B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "zero_fill",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 151,
+      "range_start": 0,
+      "range_end": 151,
+      "bit_index": null
+    }
+  ]
+}

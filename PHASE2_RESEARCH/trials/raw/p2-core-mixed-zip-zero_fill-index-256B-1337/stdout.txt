@@ -1,0 +1,5 @@
+bin/blob_01.bin         bad CRC 7d75bbfb  (should be 7f1a39da)
+file #3:  bad zipfile offset (local header sig):  661
+test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-zero_fill-index-256B-1337/mixed.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

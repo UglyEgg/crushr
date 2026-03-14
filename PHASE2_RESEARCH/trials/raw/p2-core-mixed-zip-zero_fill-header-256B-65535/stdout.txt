@@ -1,0 +1,6 @@
+bin/blob_00.bin:  mismatching "local" filename (text/doc_11.txt),
+         continuing with "central" filename version
+  error:  invalid compressed data to inflate bin/blob_00.bin
+test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-zero_fill-header-256B-65535/mixed.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

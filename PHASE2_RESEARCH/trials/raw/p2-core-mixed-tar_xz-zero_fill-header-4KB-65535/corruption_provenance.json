@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_xz/mixed.tar.xz",
+  "scenario_id": "p2-core-mixed-tar_xz-zero_fill-header-4KB-65535",
+  "corruption_type": "zero_fill",
+  "target": "header",
+  "magnitude": "4KB",
+  "seed": 65535,
+  "concrete_mutation_details": [
+    {
+      "operation": "zero_fill",
+      "offset": null,
+      "before": null,
+      "after": null,
+      "length": 107,
+      "range_start": 0,
+      "range_end": 107,
+      "bit_index": null
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_xz/smallfiles.tar.xz",
+  "scenario_id": "p2-core-smallfiles-tar_xz-tail_damage-header-1B-1337",
+  "corruption_type": "tail_damage",
+  "target": "header",
+  "magnitude": "1B",
+  "seed": 1337,
+  "concrete_mutation_details": [
+    {
+      "operation": "tail_damage",
+      "offset": 131,
+      "before": 27,
+      "after": 81,
+      "length": 1,
+      "range_start": 131,
+      "range_end": 132,
+      "bit_index": null
+    }
+  ]
+}

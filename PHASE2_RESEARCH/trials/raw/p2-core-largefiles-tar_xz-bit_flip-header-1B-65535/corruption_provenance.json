@@ -1,0 +1,20 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_xz/largefiles.tar.xz",
+  "scenario_id": "p2-core-largefiles-tar_xz-bit_flip-header-1B-65535",
+  "corruption_type": "bit_flip",
+  "target": "header",
+  "magnitude": "1B",
+  "seed": 65535,
+  "concrete_mutation_details": [
+    {
+      "operation": "bit_flip",
+      "offset": 3485,
+      "before": 80,
+      "after": 208,
+      "length": 1,
+      "range_start": 3485,
+      "range_end": 3486,
+      "bit_index": 7
+    }
+  ]
+}

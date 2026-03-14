@@ -1,0 +1,4 @@
+file #16:  bad zipfile offset (local header sig):  2171
+test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-zero_fill-index-1B-65535/smallfiles.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

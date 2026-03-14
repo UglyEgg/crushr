@@ -1,0 +1,3 @@
+meta/table_a.csv
+text/doc_02.txt
+text/doc_09.txt

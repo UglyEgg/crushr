@@ -1,0 +1,19 @@
+docs/file_00.txt:  mismatching "local" filename (docs/filä"³ò¬6ú¹),
+         continuing with "central" filename version
+  error:  invalid compressed data to inflate docs/file_00.txt
+file #6:  bad zipfile offset (local header sig):  701
+file #7:  bad zipfile offset (local header sig):  832
+file #8:  bad zipfile offset (local header sig):  981
+file #9:  bad zipfile offset (local header sig):  1146
+file #10:  bad zipfile offset (local header sig):  1267
+file #11:  bad zipfile offset (local header sig):  1406
+file #12:  bad zipfile offset (local header sig):  1560
+file #13:  bad zipfile offset (local header sig):  1730
+file #14:  bad zipfile offset (local header sig):  1860
+file #15:  bad zipfile offset (local header sig):  2007
+file #16:  bad zipfile offset (local header sig):  2171
+file #17:  bad zipfile offset (local header sig):  2349
+file #18:  bad zipfile offset (local header sig):  2466
+test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-tail_damage-index-4KB-65535/smallfiles.zip.corrupt FAILED
+
+zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

@@ -1,0 +1,3 @@
+/*stdin*\ : Decoding error (36) : Destination buffer is too small 
+tar: Unexpected EOF in archive
+tar: Error is not recoverable: exiting now

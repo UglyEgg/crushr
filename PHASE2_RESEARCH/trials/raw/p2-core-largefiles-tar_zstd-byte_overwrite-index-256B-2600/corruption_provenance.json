@@ -1,0 +1,2570 @@
+{
+  "source_archive": "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_zstd/largefiles.tar.zst",
+  "scenario_id": "p2-core-largefiles-tar_zstd-byte_overwrite-index-256B-2600",
+  "corruption_type": "byte_overwrite",
+  "target": "index",
+  "magnitude": "256B",
+  "seed": 2600,
+  "concrete_mutation_details": [
+    {
+      "operation": "byte_overwrite",
+      "offset": 7070,
+      "before": 212,
+      "after": 7,
+      "length": 1,
+      "range_start": 7070,
+      "range_end": 7071,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7071,
+      "before": 209,
+      "after": 194,
+      "length": 1,
+      "range_start": 7071,
+      "range_end": 7072,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7072,
+      "before": 70,
+      "after": 0,
+      "length": 1,
+      "range_start": 7072,
+      "range_end": 7073,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7073,
+      "before": 27,
+      "after": 72,
+      "length": 1,
+      "range_start": 7073,
+      "range_end": 7074,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7074,
+      "before": 109,
+      "after": 10,
+      "length": 1,
+      "range_start": 7074,
+      "range_end": 7075,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7075,
+      "before": 116,
+      "after": 201,
+      "length": 1,
+      "range_start": 7075,
+      "range_end": 7076,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7076,
+      "before": 162,
+      "after": 112,
+      "length": 1,
+      "range_start": 7076,
+      "range_end": 7077,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7077,
+      "before": 19,
+      "after": 49,
+      "length": 1,
+      "range_start": 7077,
+      "range_end": 7078,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7078,
+      "before": 157,
+      "after": 113,
+      "length": 1,
+      "range_start": 7078,
+      "range_end": 7079,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7079,
+      "before": 168,
+      "after": 136,
+      "length": 1,
+      "range_start": 7079,
+      "range_end": 7080,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7080,
+      "before": 68,
+      "after": 137,
+      "length": 1,
+      "range_start": 7080,
+      "range_end": 7081,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7081,
+      "before": 37,
+      "after": 14,
+      "length": 1,
+      "range_start": 7081,
+      "range_end": 7082,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7082,
+      "before": 42,
+      "after": 0,
+      "length": 1,
+      "range_start": 7082,
+      "range_end": 7083,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7083,
+      "before": 209,
+      "after": 128,
+      "length": 1,
+      "range_start": 7083,
+      "range_end": 7084,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7084,
+      "before": 136,
+      "after": 142,
+      "length": 1,
+      "range_start": 7084,
+      "range_end": 7085,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7085,
+      "before": 70,
+      "after": 11,
+      "length": 1,
+      "range_start": 7085,
+      "range_end": 7086,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7086,
+      "before": 52,
+      "after": 12,
+      "length": 1,
+      "range_start": 7086,
+      "range_end": 7087,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7087,
+      "before": 162,
+      "after": 143,
+      "length": 1,
+      "range_start": 7087,
+      "range_end": 7088,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7088,
+      "before": 17,
+      "after": 146,
+      "length": 1,
+      "range_start": 7088,
+      "range_end": 7089,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7089,
+      "before": 101,
+      "after": 12,
+      "length": 1,
+      "range_start": 7089,
+      "range_end": 7090,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7090,
+      "before": 148,
+      "after": 12,
+      "length": 1,
+      "range_start": 7090,
+      "range_end": 7091,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7091,
+      "before": 81,
+      "after": 138,
+      "length": 1,
+      "range_start": 7091,
+      "range_end": 7092,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7092,
+      "before": 70,
+      "after": 141,
+      "length": 1,
+      "range_start": 7092,
+      "range_end": 7093,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7093,
+      "before": 33,
+      "after": 13,
+      "length": 1,
+      "range_start": 7093,
+      "range_end": 7094,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7094,
+      "before": 10,
+      "after": 13,
+      "length": 1,
+      "range_start": 7094,
+      "range_end": 7095,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7095,
+      "before": 81,
+      "after": 141,
+      "length": 1,
+      "range_start": 7095,
+      "range_end": 7096,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7096,
+      "before": 136,
+      "after": 140,
+      "length": 1,
+      "range_start": 7096,
+      "range_end": 7097,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7097,
+      "before": 46,
+      "after": 13,
+      "length": 1,
+      "range_start": 7097,
+      "range_end": 7098,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7098,
+      "before": 186,
+      "after": 14,
+      "length": 1,
+      "range_start": 7098,
+      "range_end": 7099,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7099,
+      "before": 232,
+      "after": 140,
+      "length": 1,
+      "range_start": 7099,
+      "range_end": 7100,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7100,
+      "before": 162,
+      "after": 179,
+      "length": 1,
+      "range_start": 7100,
+      "range_end": 7101,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7101,
+      "before": 138,
+      "after": 206,
+      "length": 1,
+      "range_start": 7101,
+      "range_end": 7102,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7102,
+      "before": 42,
+      "after": 11,
+      "length": 1,
+      "range_start": 7102,
+      "range_end": 7103,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7103,
+      "before": 170,
+      "after": 203,
+      "length": 1,
+      "range_start": 7103,
+      "range_end": 7104,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7104,
+      "before": 168,
+      "after": 143,
+      "length": 1,
+      "range_start": 7104,
+      "range_end": 7105,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7105,
+      "before": 162,
+      "after": 194,
+      "length": 1,
+      "range_start": 7105,
+      "range_end": 7106,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7106,
+      "before": 103,
+      "after": 0,
+      "length": 1,
+      "range_start": 7106,
+      "range_end": 7107,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7107,
+      "before": 207,
+      "after": 201,
+      "length": 1,
+      "range_start": 7107,
+      "range_end": 7108,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7108,
+      "before": 158,
+      "after": 138,
+      "length": 1,
+      "range_start": 7108,
+      "range_end": 7109,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7109,
+      "before": 53,
+      "after": 201,
+      "length": 1,
+      "range_start": 7109,
+      "range_end": 7110,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7110,
+      "before": 107,
+      "after": 17,
+      "length": 1,
+      "range_start": 7110,
+      "range_end": 7111,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7111,
+      "before": 214,
+      "after": 209,
+      "length": 1,
+      "range_start": 7111,
+      "range_end": 7112,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7112,
+      "before": 108,
+      "after": 145,
+      "length": 1,
+      "range_start": 7112,
+      "range_end": 7113,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7113,
+      "before": 217,
+      "after": 200,
+      "length": 1,
+      "range_start": 7113,
+      "range_end": 7114,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7114,
+      "before": 178,
+      "after": 10,
+      "length": 1,
+      "range_start": 7114,
+      "range_end": 7115,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7115,
+      "before": 101,
+      "after": 198,
+      "length": 1,
+      "range_start": 7115,
+      "range_end": 7116,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7116,
+      "before": 135,
+      "after": 128,
+      "length": 1,
+      "range_start": 7116,
+      "range_end": 7117,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7117,
+      "before": 29,
+      "after": 195,
+      "length": 1,
+      "range_start": 7117,
+      "range_end": 7118,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7118,
+      "before": 118,
+      "after": 6,
+      "length": 1,
+      "range_start": 7118,
+      "range_end": 7119,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7119,
+      "before": 88,
+      "after": 203,
+      "length": 1,
+      "range_start": 7119,
+      "range_end": 7120,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7120,
+      "before": 97,
+      "after": 139,
+      "length": 1,
+      "range_start": 7120,
+      "range_end": 7121,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7121,
+      "before": 133,
+      "after": 246,
+      "length": 1,
+      "range_start": 7121,
+      "range_end": 7122,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7122,
+      "before": 21,
+      "after": 242,
+      "length": 1,
+      "range_start": 7122,
+      "range_end": 7123,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7123,
+      "before": 86,
+      "after": 244,
+      "length": 1,
+      "range_start": 7123,
+      "range_end": 7124,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7124,
+      "before": 216,
+      "after": 245,
+      "length": 1,
+      "range_start": 7124,
+      "range_end": 7125,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7125,
+      "before": 96,
+      "after": 10,
+      "length": 1,
+      "range_start": 7125,
+      "range_end": 7126,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7126,
+      "before": 131,
+      "after": 5,
+      "length": 1,
+      "range_start": 7126,
+      "range_end": 7127,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7127,
+      "before": 13,
+      "after": 5,
+      "length": 1,
+      "range_start": 7127,
+      "range_end": 7128,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7128,
+      "before": 214,
+      "after": 2,
+      "length": 1,
+      "range_start": 7128,
+      "range_end": 7129,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7129,
+      "before": 1,
+      "after": 5,
+      "length": 1,
+      "range_start": 7129,
+      "range_end": 7130,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7130,
+      "before": 20,
+      "after": 4,
+      "length": 1,
+      "range_start": 7130,
+      "range_end": 7131,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7131,
+      "before": 141,
+      "after": 26,
+      "length": 1,
+      "range_start": 7131,
+      "range_end": 7132,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7132,
+      "before": 162,
+      "after": 23,
+      "length": 1,
+      "range_start": 7132,
+      "range_end": 7133,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7133,
+      "before": 81,
+      "after": 20,
+      "length": 1,
+      "range_start": 7133,
+      "range_end": 7134,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7134,
+      "before": 52,
+      "after": 19,
+      "length": 1,
+      "range_start": 7134,
+      "range_end": 7135,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7135,
+      "before": 142,
+      "after": 23,
+      "length": 1,
+      "range_start": 7135,
+      "range_end": 7136,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7136,
+      "before": 162,
+      "after": 27,
+      "length": 1,
+      "range_start": 7136,
+      "range_end": 7137,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7137,
+      "before": 81,
+      "after": 27,
+      "length": 1,
+      "range_start": 7137,
+      "range_end": 7138,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7138,
+      "before": 52,
+      "after": 6,
+      "length": 1,
+      "range_start": 7138,
+      "range_end": 7139,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7139,
+      "before": 138,
+      "after": 1,
+      "length": 1,
+      "range_start": 7139,
+      "range_end": 7140,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7140,
+      "before": 70,
+      "after": 0,
+      "length": 1,
+      "range_start": 7140,
+      "range_end": 7141,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7141,
+      "before": 209,
+      "after": 121,
+      "length": 1,
+      "range_start": 7141,
+      "range_end": 7142,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7142,
+      "before": 40,
+      "after": 57,
+      "length": 1,
+      "range_start": 7142,
+      "range_end": 7143,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7143,
+      "before": 26,
+      "after": 249,
+      "length": 1,
+      "range_start": 7143,
+      "range_end": 7144,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7144,
+      "before": 69,
+      "after": 49,
+      "length": 1,
+      "range_start": 7144,
+      "range_end": 7145,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7145,
+      "before": 163,
+      "after": 114,
+      "length": 1,
+      "range_start": 7145,
+      "range_end": 7146,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7146,
+      "before": 104,
+      "after": 48,
+      "length": 1,
+      "range_start": 7146,
+      "range_end": 7147,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7147,
+      "before": 20,
+      "after": 248,
+      "length": 1,
+      "range_start": 7147,
+      "range_end": 7148,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7148,
+      "before": 141,
+      "after": 58,
+      "length": 1,
+      "range_start": 7148,
+      "range_end": 7149,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7149,
+      "before": 162,
+      "after": 127,
+      "length": 1,
+      "range_start": 7149,
+      "range_end": 7150,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7150,
+      "before": 81,
+      "after": 0,
+      "length": 1,
+      "range_start": 7150,
+      "range_end": 7151,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7151,
+      "before": 52,
+      "after": 195,
+      "length": 1,
+      "range_start": 7151,
+      "range_end": 7152,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7152,
+      "before": 138,
+      "after": 31,
+      "length": 1,
+      "range_start": 7152,
+      "range_end": 7153,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7153,
+      "before": 70,
+      "after": 92,
+      "length": 1,
+      "range_start": 7153,
+      "range_end": 7154,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7154,
+      "before": 209,
+      "after": 27,
+      "length": 1,
+      "range_start": 7154,
+      "range_end": 7155,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7155,
+      "before": 40,
+      "after": 222,
+      "length": 1,
+      "range_start": 7155,
+      "range_end": 7156,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7156,
+      "before": 26,
+      "after": 29,
+      "length": 1,
+      "range_start": 7156,
+      "range_end": 7157,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7157,
+      "before": 69,
+      "after": 92,
+      "length": 1,
+      "range_start": 7157,
+      "range_end": 7158,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7158,
+      "before": 163,
+      "after": 29,
+      "length": 1,
+      "range_start": 7158,
+      "range_end": 7159,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7159,
+      "before": 104,
+      "after": 221,
+      "length": 1,
+      "range_start": 7159,
+      "range_end": 7160,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7160,
+      "before": 20,
+      "after": 28,
+      "length": 1,
+      "range_start": 7160,
+      "range_end": 7161,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7161,
+      "before": 141,
+      "after": 93,
+      "length": 1,
+      "range_start": 7161,
+      "range_end": 7162,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7162,
+      "before": 162,
+      "after": 98,
+      "length": 1,
+      "range_start": 7162,
+      "range_end": 7163,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7163,
+      "before": 81,
+      "after": 252,
+      "length": 1,
+      "range_start": 7163,
+      "range_end": 7164,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7164,
+      "before": 78,
+      "after": 252,
+      "length": 1,
+      "range_start": 7164,
+      "range_end": 7165,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7165,
+      "before": 209,
+      "after": 122,
+      "length": 1,
+      "range_start": 7165,
+      "range_end": 7166,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7166,
+      "before": 40,
+      "after": 127,
+      "length": 1,
+      "range_start": 7166,
+      "range_end": 7167,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7167,
+      "before": 26,
+      "after": 255,
+      "length": 1,
+      "range_start": 7167,
+      "range_end": 7168,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7168,
+      "before": 67,
+      "after": 243,
+      "length": 1,
+      "range_start": 7168,
+      "range_end": 7169,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7169,
+      "before": 99,
+      "after": 127,
+      "length": 1,
+      "range_start": 7169,
+      "range_end": 7170,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7170,
+      "before": 104,
+      "after": 120,
+      "length": 1,
+      "range_start": 7170,
+      "range_end": 7171,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7171,
+      "before": 12,
+      "after": 251,
+      "length": 1,
+      "range_start": 7171,
+      "range_end": 7172,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7172,
+      "before": 141,
+      "after": 254,
+      "length": 1,
+      "range_start": 7172,
+      "range_end": 7173,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7173,
+      "before": 161,
+      "after": 97,
+      "length": 1,
+      "range_start": 7173,
+      "range_end": 7174,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7174,
+      "before": 49,
+      "after": 97,
+      "length": 1,
+      "range_start": 7174,
+      "range_end": 7175,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7175,
+      "before": 52,
+      "after": 153,
+      "length": 1,
+      "range_start": 7175,
+      "range_end": 7176,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7176,
+      "before": 134,
+      "after": 153,
+      "length": 1,
+      "range_start": 7176,
+      "range_end": 7177,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7177,
+      "before": 198,
+      "after": 24,
+      "length": 1,
+      "range_start": 7177,
+      "range_end": 7178,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7178,
+      "before": 208,
+      "after": 17,
+      "length": 1,
+      "range_start": 7178,
+      "range_end": 7179,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7179,
+      "before": 24,
+      "after": 146,
+      "length": 1,
+      "range_start": 7179,
+      "range_end": 7180,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7180,
+      "before": 26,
+      "after": 144,
+      "length": 1,
+      "range_start": 7180,
+      "range_end": 7181,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7181,
+      "before": 67,
+      "after": 23,
+      "length": 1,
+      "range_start": 7181,
+      "range_end": 7182,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7182,
+      "before": 99,
+      "after": 26,
+      "length": 1,
+      "range_start": 7182,
+      "range_end": 7183,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7183,
+      "before": 104,
+      "after": 231,
+      "length": 1,
+      "range_start": 7183,
+      "range_end": 7184,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7184,
+      "before": 12,
+      "after": 167,
+      "length": 1,
+      "range_start": 7184,
+      "range_end": 7185,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7185,
+      "before": 141,
+      "after": 227,
+      "length": 1,
+      "range_start": 7185,
+      "range_end": 7186,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7186,
+      "before": 161,
+      "after": 39,
+      "length": 1,
+      "range_start": 7186,
+      "range_end": 7187,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7187,
+      "before": 49,
+      "after": 228,
+      "length": 1,
+      "range_start": 7187,
+      "range_end": 7188,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7188,
+      "before": 52,
+      "after": 186,
+      "length": 1,
+      "range_start": 7188,
+      "range_end": 7189,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7189,
+      "before": 134,
+      "after": 246,
+      "length": 1,
+      "range_start": 7189,
+      "range_end": 7190,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7190,
+      "before": 198,
+      "after": 52,
+      "length": 1,
+      "range_start": 7190,
+      "range_end": 7191,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7191,
+      "before": 208,
+      "after": 245,
+      "length": 1,
+      "range_start": 7191,
+      "range_end": 7192,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7192,
+      "before": 24,
+      "after": 181,
+      "length": 1,
+      "range_start": 7192,
+      "range_end": 7193,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7193,
+      "before": 26,
+      "after": 245,
+      "length": 1,
+      "range_start": 7193,
+      "range_end": 7194,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7194,
+      "before": 203,
+      "after": 36,
+      "length": 1,
+      "range_start": 7194,
+      "range_end": 7195,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7195,
+      "before": 208,
+      "after": 230,
+      "length": 1,
+      "range_start": 7195,
+      "range_end": 7196,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7196,
+      "before": 24,
+      "after": 162,
+      "length": 1,
+      "range_start": 7196,
+      "range_end": 7197,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7197,
+      "before": 26,
+      "after": 228,
+      "length": 1,
+      "range_start": 7197,
+      "range_end": 7198,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7198,
+      "before": 67,
+      "after": 39,
+      "length": 1,
+      "range_start": 7198,
+      "range_end": 7199,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7199,
+      "before": 99,
+      "after": 234,
+      "length": 1,
+      "range_start": 7199,
+      "range_end": 7200,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7200,
+      "before": 104,
+      "after": 151,
+      "length": 1,
+      "range_start": 7200,
+      "range_end": 7201,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7201,
+      "before": 12,
+      "after": 215,
+      "length": 1,
+      "range_start": 7201,
+      "range_end": 7202,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7202,
+      "before": 141,
+      "after": 18,
+      "length": 1,
+      "range_start": 7202,
+      "range_end": 7203,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7203,
+      "before": 161,
+      "after": 215,
+      "length": 1,
+      "range_start": 7203,
+      "range_end": 7204,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7204,
+      "before": 49,
+      "after": 232,
+      "length": 1,
+      "range_start": 7204,
+      "range_end": 7205,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7205,
+      "before": 52,
+      "after": 234,
+      "length": 1,
+      "range_start": 7205,
+      "range_end": 7206,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7206,
+      "before": 134,
+      "after": 233,
+      "length": 1,
+      "range_start": 7206,
+      "range_end": 7207,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7207,
+      "before": 198,
+      "after": 224,
+      "length": 1,
+      "range_start": 7207,
+      "range_end": 7208,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7208,
+      "before": 24,
+      "after": 225,
+      "length": 1,
+      "range_start": 7208,
+      "range_end": 7209,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7209,
+      "before": 134,
+      "after": 238,
+      "length": 1,
+      "range_start": 7209,
+      "range_end": 7210,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7210,
+      "before": 198,
+      "after": 233,
+      "length": 1,
+      "range_start": 7210,
+      "range_end": 7211,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7211,
+      "before": 208,
+      "after": 232,
+      "length": 1,
+      "range_start": 7211,
+      "range_end": 7212,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7212,
+      "before": 24,
+      "after": 238,
+      "length": 1,
+      "range_start": 7212,
+      "range_end": 7213,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7213,
+      "before": 26,
+      "after": 243,
+      "length": 1,
+      "range_start": 7213,
+      "range_end": 7214,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7214,
+      "before": 67,
+      "after": 240,
+      "length": 1,
+      "range_start": 7214,
+      "range_end": 7215,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7215,
+      "before": 99,
+      "after": 239,
+      "length": 1,
+      "range_start": 7215,
+      "range_end": 7216,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7216,
+      "before": 104,
+      "after": 235,
+      "length": 1,
+      "range_start": 7216,
+      "range_end": 7217,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7217,
+      "before": 164,
+      "after": 239,
+      "length": 1,
+      "range_start": 7217,
+      "range_end": 7218,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7218,
+      "before": 70,
+      "after": 239,
+      "length": 1,
+      "range_start": 7218,
+      "range_end": 7219,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7219,
+      "before": 106,
+      "after": 226,
+      "length": 1,
+      "range_start": 7219,
+      "range_end": 7220,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7220,
+      "before": 164,
+      "after": 236,
+      "length": 1,
+      "range_start": 7220,
+      "range_end": 7221,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7221,
+      "before": 70,
+      "after": 236,
+      "length": 1,
+      "range_start": 7221,
+      "range_end": 7222,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7222,
+      "before": 33,
+      "after": 234,
+      "length": 1,
+      "range_start": 7222,
+      "range_end": 7223,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7223,
+      "before": 53,
+      "after": 237,
+      "length": 1,
+      "range_start": 7223,
+      "range_end": 7224,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7224,
+      "before": 82,
+      "after": 236,
+      "length": 1,
+      "range_start": 7224,
+      "range_end": 7225,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7225,
+      "before": 35,
+      "after": 109,
+      "length": 1,
+      "range_start": 7225,
+      "range_end": 7226,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7226,
+      "before": 53,
+      "after": 46,
+      "length": 1,
+      "range_start": 7226,
+      "range_end": 7227,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7227,
+      "before": 82,
+      "after": 236,
+      "length": 1,
+      "range_start": 7227,
+      "range_end": 7228,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7228,
+      "before": 35,
+      "after": 44,
+      "length": 1,
+      "range_start": 7228,
+      "range_end": 7229,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7229,
+      "before": 53,
+      "after": 110,
+      "length": 1,
+      "range_start": 7229,
+      "range_end": 7230,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7230,
+      "before": 82,
+      "after": 35,
+      "length": 1,
+      "range_start": 7230,
+      "range_end": 7231,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7231,
+      "before": 35,
+      "after": 236,
+      "length": 1,
+      "range_start": 7231,
+      "range_end": 7232,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7232,
+      "before": 53,
+      "after": 47,
+      "length": 1,
+      "range_start": 7232,
+      "range_end": 7233,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7233,
+      "before": 82,
+      "after": 107,
+      "length": 1,
+      "range_start": 7233,
+      "range_end": 7234,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7234,
+      "before": 99,
+      "after": 40,
+      "length": 1,
+      "range_start": 7234,
+      "range_end": 7235,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7235,
+      "before": 144,
+      "after": 239,
+      "length": 1,
+      "range_start": 7235,
+      "range_end": 7236,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7236,
+      "before": 26,
+      "after": 50,
+      "length": 1,
+      "range_start": 7236,
+      "range_end": 7237,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7237,
+      "before": 169,
+      "after": 112,
+      "length": 1,
+      "range_start": 7237,
+      "range_end": 7238,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7238,
+      "before": 145,
+      "after": 40,
+      "length": 1,
+      "range_start": 7238,
+      "range_end": 7239,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7239,
+      "before": 26,
+      "after": 234,
+      "length": 1,
+      "range_start": 7239,
+      "range_end": 7240,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7240,
+      "before": 169,
+      "after": 41,
+      "length": 1,
+      "range_start": 7240,
+      "range_end": 7241,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7241,
+      "before": 145,
+      "after": 97,
+      "length": 1,
+      "range_start": 7241,
+      "range_end": 7242,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7242,
+      "before": 26,
+      "after": 33,
+      "length": 1,
+      "range_start": 7242,
+      "range_end": 7243,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7243,
+      "before": 169,
+      "after": 230,
+      "length": 1,
+      "range_start": 7243,
+      "range_end": 7244,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7244,
+      "before": 145,
+      "after": 40,
+      "length": 1,
+      "range_start": 7244,
+      "range_end": 7245,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7245,
+      "before": 26,
+      "after": 104,
+      "length": 1,
+      "range_start": 7245,
+      "range_end": 7246,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7246,
+      "before": 169,
+      "after": 86,
+      "length": 1,
+      "range_start": 7246,
+      "range_end": 7247,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7247,
+      "before": 145,
+      "after": 211,
+      "length": 1,
+      "range_start": 7247,
+      "range_end": 7248,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7248,
+      "before": 36,
+      "after": 211,
+      "length": 1,
+      "range_start": 7248,
+      "range_end": 7249,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7249,
+      "before": 53,
+      "after": 87,
+      "length": 1,
+      "range_start": 7249,
+      "range_end": 7250,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7250,
+      "before": 82,
+      "after": 107,
+      "length": 1,
+      "range_start": 7250,
+      "range_end": 7251,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7251,
+      "before": 35,
+      "after": 228,
+      "length": 1,
+      "range_start": 7251,
+      "range_end": 7252,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7252,
+      "before": 53,
+      "after": 231,
+      "length": 1,
+      "range_start": 7252,
+      "range_end": 7253,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7253,
+      "before": 82,
+      "after": 98,
+      "length": 1,
+      "range_start": 7253,
+      "range_end": 7254,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7254,
+      "before": 35,
+      "after": 100,
+      "length": 1,
+      "range_start": 7254,
+      "range_end": 7255,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7255,
+      "before": 53,
+      "after": 229,
+      "length": 1,
+      "range_start": 7255,
+      "range_end": 7256,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7256,
+      "before": 82,
+      "after": 234,
+      "length": 1,
+      "range_start": 7256,
+      "range_end": 7257,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7257,
+      "before": 35,
+      "after": 117,
+      "length": 1,
+      "range_start": 7257,
+      "range_end": 7258,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7258,
+      "before": 53,
+      "after": 117,
+      "length": 1,
+      "range_start": 7258,
+      "range_end": 7259,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7259,
+      "before": 130,
+      "after": 245,
+      "length": 1,
+      "range_start": 7259,
+      "range_end": 7260,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7260,
+      "before": 70,
+      "after": 246,
+      "length": 1,
+      "range_start": 7260,
+      "range_end": 7261,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7261,
+      "before": 32,
+      "after": 116,
+      "length": 1,
+      "range_start": 7261,
+      "range_end": 7262,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7262,
+      "before": 104,
+      "after": 123,
+      "length": 1,
+      "range_start": 7262,
+      "range_end": 7263,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7263,
+      "before": 4,
+      "after": 230,
+      "length": 1,
+      "range_start": 7263,
+      "range_end": 7264,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7264,
+      "before": 141,
+      "after": 227,
+      "length": 1,
+      "range_start": 7264,
+      "range_end": 7265,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7265,
+      "before": 160,
+      "after": 99,
+      "length": 1,
+      "range_start": 7265,
+      "range_end": 7266,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7266,
+      "before": 17,
+      "after": 103,
+      "length": 1,
+      "range_start": 7266,
+      "range_end": 7267,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7267,
+      "before": 52,
+      "after": 155,
+      "length": 1,
+      "range_start": 7267,
+      "range_end": 7268,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7268,
+      "before": 130,
+      "after": 216,
+      "length": 1,
+      "range_start": 7268,
+      "range_end": 7269,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7269,
+      "before": 70,
+      "after": 150,
+      "length": 1,
+      "range_start": 7269,
+      "range_end": 7270,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7270,
+      "before": 208,
+      "after": 82,
+      "length": 1,
+      "range_start": 7270,
+      "range_end": 7271,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7271,
+      "before": 8,
+      "after": 144,
+      "length": 1,
+      "range_start": 7271,
+      "range_end": 7272,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7272,
+      "before": 26,
+      "after": 217,
+      "length": 1,
+      "range_start": 7272,
+      "range_end": 7273,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7273,
+      "before": 65,
+      "after": 153,
+      "length": 1,
+      "range_start": 7273,
+      "range_end": 7274,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7274,
+      "before": 227,
+      "after": 89,
+      "length": 1,
+      "range_start": 7274,
+      "range_end": 7275,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7275,
+      "before": 8,
+      "after": 225,
+      "length": 1,
+      "range_start": 7275,
+      "range_end": 7276,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7276,
+      "before": 26,
+      "after": 162,
+      "length": 1,
+      "range_start": 7276,
+      "range_end": 7277,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7277,
+      "before": 65,
+      "after": 254,
+      "length": 1,
+      "range_start": 7277,
+      "range_end": 7278,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7278,
+      "before": 35,
+      "after": 56,
+      "length": 1,
+      "range_start": 7278,
+      "range_end": 7279,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7279,
+      "before": 104,
+      "after": 251,
+      "length": 1,
+      "range_start": 7279,
+      "range_end": 7280,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7280,
+      "before": 4,
+      "after": 191,
+      "length": 1,
+      "range_start": 7280,
+      "range_end": 7281,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7281,
+      "before": 141,
+      "after": 243,
+      "length": 1,
+      "range_start": 7281,
+      "range_end": 7282,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7282,
+      "before": 160,
+      "after": 51,
+      "length": 1,
+      "range_start": 7282,
+      "range_end": 7283,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7283,
+      "before": 17,
+      "after": 254,
+      "length": 1,
+      "range_start": 7283,
+      "range_end": 7284,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7284,
+      "before": 52,
+      "after": 187,
+      "length": 1,
+      "range_start": 7284,
+      "range_end": 7285,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7285,
+      "before": 130,
+      "after": 252,
+      "length": 1,
+      "range_start": 7285,
+      "range_end": 7286,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7286,
+      "before": 70,
+      "after": 62,
+      "length": 1,
+      "range_start": 7286,
+      "range_end": 7287,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7287,
+      "before": 208,
+      "after": 253,
+      "length": 1,
+      "range_start": 7287,
+      "range_end": 7288,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7288,
+      "before": 8,
+      "after": 220,
+      "length": 1,
+      "range_start": 7288,
+      "range_end": 7289,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7289,
+      "before": 26,
+      "after": 221,
+      "length": 1,
+      "range_start": 7289,
+      "range_end": 7290,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7290,
+      "before": 65,
+      "after": 221,
+      "length": 1,
+      "range_start": 7290,
+      "range_end": 7291,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7291,
+      "before": 35,
+      "after": 221,
+      "length": 1,
+      "range_start": 7291,
+      "range_end": 7292,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7292,
+      "before": 104,
+      "after": 221,
+      "length": 1,
+      "range_start": 7292,
+      "range_end": 7293,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7293,
+      "before": 4,
+      "after": 210,
+      "length": 1,
+      "range_start": 7293,
+      "range_end": 7294,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7294,
+      "before": 141,
+      "after": 220,
+      "length": 1,
+      "range_start": 7294,
+      "range_end": 7295,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7295,
+      "before": 160,
+      "after": 220,
+      "length": 1,
+      "range_start": 7295,
+      "range_end": 7296,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7296,
+      "before": 17,
+      "after": 219,
+      "length": 1,
+      "range_start": 7296,
+      "range_end": 7297,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7297,
+      "before": 52,
+      "after": 223,
+      "length": 1,
+      "range_start": 7297,
+      "range_end": 7298,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7298,
+      "before": 130,
+      "after": 195,
+      "length": 1,
+      "range_start": 7298,
+      "range_end": 7299,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7299,
+      "before": 70,
+      "after": 195,
+      "length": 1,
+      "range_start": 7299,
+      "range_end": 7300,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7300,
+      "before": 208,
+      "after": 254,
+      "length": 1,
+      "range_start": 7300,
+      "range_end": 7301,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7301,
+      "before": 8,
+      "after": 248,
+      "length": 1,
+      "range_start": 7301,
+      "range_end": 7302,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7302,
+      "before": 26,
+      "after": 248,
+      "length": 1,
+      "range_start": 7302,
+      "range_end": 7303,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7303,
+      "before": 65,
+      "after": 254,
+      "length": 1,
+      "range_start": 7303,
+      "range_end": 7304,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7304,
+      "before": 227,
+      "after": 241,
+      "length": 1,
+      "range_start": 7304,
+      "range_end": 7305,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7305,
+      "before": 52,
+      "after": 240,
+      "length": 1,
+      "range_start": 7305,
+      "range_end": 7306,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7306,
+      "before": 78,
+      "after": 249,
+      "length": 1,
+      "range_start": 7306,
+      "range_end": 7307,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7307,
+      "before": 227,
+      "after": 249,
+      "length": 1,
+      "range_start": 7307,
+      "range_end": 7308,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7308,
+      "before": 52,
+      "after": 248,
+      "length": 1,
+      "range_start": 7308,
+      "range_end": 7309,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7309,
+      "before": 78,
+      "after": 129,
+      "length": 1,
+      "range_start": 7309,
+      "range_end": 7310,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7310,
+      "before": 227,
+      "after": 194,
+      "length": 1,
+      "range_start": 7310,
+      "range_end": 7311,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7311,
+      "before": 52,
+      "after": 0,
+      "length": 1,
+      "range_start": 7311,
+      "range_end": 7312,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7312,
+      "before": 78,
+      "after": 216,
+      "length": 1,
+      "range_start": 7312,
+      "range_end": 7313,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7313,
+      "before": 227,
+      "after": 155,
+      "length": 1,
+      "range_start": 7313,
+      "range_end": 7314,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7314,
+      "before": 52,
+      "after": 215,
+      "length": 1,
+      "range_start": 7314,
+      "range_end": 7315,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7315,
+      "before": 78,
+      "after": 20,
+      "length": 1,
+      "range_start": 7315,
+      "range_end": 7316,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7316,
+      "before": 227,
+      "after": 211,
+      "length": 1,
+      "range_start": 7316,
+      "range_end": 7317,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7317,
+      "before": 52,
+      "after": 150,
+      "length": 1,
+      "range_start": 7317,
+      "range_end": 7318,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7318,
+      "before": 78,
+      "after": 212,
+      "length": 1,
+      "range_start": 7318,
+      "range_end": 7319,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7319,
+      "before": 227,
+      "after": 4,
+      "length": 1,
+      "range_start": 7319,
+      "range_end": 7320,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7320,
+      "before": 52,
+      "after": 198,
+      "length": 1,
+      "range_start": 7320,
+      "range_end": 7321,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7321,
+      "before": 78,
+      "after": 133,
+      "length": 1,
+      "range_start": 7321,
+      "range_end": 7322,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7322,
+      "before": 227,
+      "after": 197,
+      "length": 1,
+      "range_start": 7322,
+      "range_end": 7323,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7323,
+      "before": 52,
+      "after": 5,
+      "length": 1,
+      "range_start": 7323,
+      "range_end": 7324,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7324,
+      "before": 78,
+      "after": 197,
+      "length": 1,
+      "range_start": 7324,
+      "range_end": 7325,
+      "bit_index": null
+    },
+    {
+      "operation": "byte_overwrite",
+      "offset": 7325,
+      "before": 227,
+      "after": 116,
+      "length": 1,
+      "range_start": 7325,
+      "range_end": 7326,
+      "bit_index": null
+    }
+  ]
+}
