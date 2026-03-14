@@ -39,7 +39,7 @@ This document describes the current implemented boundary without speculative mat
 - `crushr-fsck`: verify/analyze corruption and emit bounded diagnostics
 - `crushr-extract`: strict safe extraction + refusal reporting
 - `crushr-lab`: experiment orchestration support
-- `crushr-lab-salvage`: salvage experiment orchestration (`experiment_manifest.json` + per-run metadata + compact `summary.json`/`summary.md`), delegating salvage execution to `crushr-salvage`; supports summary-only regeneration via `--resummarize <experiment_dir>`
+- `crushr-lab-salvage`: salvage experiment orchestration (`experiment_manifest.json` + per-run metadata + compact `summary.json`/`summary.md` + compact grouped `analysis.json`/`analysis.md`), delegating salvage execution to `crushr-salvage`; supports summary/analysis regeneration via `--resummarize <experiment_dir>`
 
 ## Current implementation constraints
 

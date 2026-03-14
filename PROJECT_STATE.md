@@ -33,16 +33,16 @@ Non-negotiable baseline:
 - Phase 2 execution matrix: complete and frozen.
 - Phase 2 normalization: complete and frozen.
 - Phase 2 comparison/ranking analysis: complete and frozen.
-- Current salvage baseline: `CRUSHR-SALVAGE-05` deterministic research harness (`crushr-lab-salvage`) that orchestrates standalone salvage runs and emits experiment manifests, per-run metadata, and compact experiment summaries (`summary.json`, `summary.md`).
+- Current salvage baseline: `CRUSHR-SALVAGE-06` deterministic research harness (`crushr-lab-salvage`) that orchestrates standalone salvage runs and emits experiment manifests, per-run metadata, compact summaries (`summary.json`, `summary.md`), and compact grouped analysis views (`analysis.json`, `analysis.md`).
 
 Canonical Phase 2 workspace root remains `PHASE2_RESEARCH/`.
 
-## `CRUSHR-SALVAGE-05` boundary
+## `CRUSHR-SALVAGE-06` boundary
 
 This packet adds deterministic salvage experiment orchestration and must:
 
 - keep standalone `crushr-salvage` separation
-- emit deterministic experiment output layout with machine-readable salvage plan/metadata JSON plus compact deterministic experiment summaries
+- emit deterministic experiment output layout with machine-readable salvage plan/metadata JSON plus compact deterministic experiment summaries and grouped analysis views
 - avoid speculative reconstruction or guessed mappings
 - never modify archives
 - label outputs as unverified research output
@@ -55,4 +55,4 @@ Out of scope for this packet (unchanged):
 - integration into `crushr-extract`
 
 
-`--resummarize <experiment_dir>` regenerates only summary outputs from existing experiment artifacts and does not rerun salvage.
+`--resummarize <experiment_dir>` regenerates summary and analysis outputs from existing experiment artifacts and does not rerun salvage.

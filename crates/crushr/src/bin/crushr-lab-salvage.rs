@@ -10,6 +10,13 @@ const USAGE: &str = "usage: crushr-lab-salvage <input_dir> --output <experiment_
 const VERIFICATION_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
 const EXPERIMENT_SCHEMA_VERSION: &str = "crushr-lab-salvage-experiment.v1";
 const SUMMARY_SCHEMA_VERSION: &str = "crushr-lab-salvage-summary.v1";
+const ANALYSIS_SCHEMA_VERSION: &str = "crushr-lab-salvage-analysis.v1";
+const OUTCOME_ORDER: [&str; 4] = [
+    "FULL_FILE_SALVAGE_AVAILABLE",
+    "PARTIAL_FILE_SALVAGE",
+    "ORPHAN_EVIDENCE_ONLY",
+    "NO_VERIFIED_EVIDENCE",
+];
 
 #[derive(Debug)]
 struct CliOptions {
@@ -133,6 +140,77 @@ struct PlanSummary {
     salvageable_files: u64,
     unsalvageable_files: u64,
     unmappable_files: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct ExperimentAnalysis {
+    schema_version: &'static str,
+    tool: &'static str,
+    tool_version: &'static str,
+    experiment_id: String,
+    verification_label: &'static str,
+    run_count: usize,
+    grouping_strategy: GroupingStrategy,
+    outcome_groups: Vec<OutcomeGroup>,
+    export_mode_groups: Vec<ExportModeGroup>,
+    evidence_rankings: EvidenceRankings,
+    profile_groups: Vec<ProfileGroup>,
+    notes: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct GroupingStrategy {
+    outcome_order: Vec<&'static str>,
+    profile_inference_priority: Vec<&'static str>,
+    ranking_tie_breaker: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct OutcomeGroup {
+    outcome: &'static str,
+    run_count: usize,
+    archive_ids: Vec<String>,
+    aggregate_verified_block_count: u64,
+    aggregate_salvageable_file_count: u64,
+    aggregate_exported_block_artifact_count: usize,
+    aggregate_exported_extent_artifact_count: usize,
+    aggregate_exported_full_file_artifact_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct ExportModeGroup {
+    export_fragments_enabled: bool,
+    run_count: usize,
+    aggregate_exported_block_artifact_count: usize,
+    aggregate_exported_extent_artifact_count: usize,
+    aggregate_exported_full_file_artifact_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct EvidenceRankings {
+    top_runs_by_verified_blocks: Vec<RankingEntry>,
+    top_runs_by_salvageable_files: Vec<RankingEntry>,
+    top_runs_by_exported_full_files: Vec<RankingEntry>,
+    bottom_runs_with_no_verified_evidence: Vec<RankingEntry>,
+}
+
+#[derive(Debug, Serialize)]
+struct RankingEntry {
+    archive_id: String,
+    archive_path: String,
+    verified_block_count: u64,
+    salvageable_file_count: u64,
+    exported_full_file_artifact_count: usize,
+    outcome: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct ProfileGroup {
+    profile_key: String,
+    run_count: usize,
+    outcome_counts: BTreeMap<&'static str, usize>,
+    aggregate_verified_block_count: u64,
+    aggregate_salvageable_file_count: u64,
 }
 
 fn parse_cli_options() -> Result<CliOptions> {
@@ -376,6 +454,280 @@ fn classify_outcome(run: &RunMetadata) -> &'static str {
     }
 }
 
+fn infer_profile_key(path: &str) -> String {
+    let normalized = path.replace('\\', "/").to_ascii_lowercase();
+    let name = normalized.rsplit('/').next().unwrap_or(&normalized);
+    for marker in ["_profile_", "-profile-", "_damage_", "-damage-"] {
+        if let Some(idx) = name.find(marker) {
+            let suffix = &name[idx + marker.len()..];
+            let key = suffix.split(['.', '_', '-']).next().unwrap_or("").trim();
+            if !key.is_empty() {
+                return key.to_ascii_uppercase();
+            }
+        }
+    }
+    "UNKNOWN_PROFILE".to_string()
+}
+
+fn to_ranking_entry(run: &RunMetadata) -> RankingEntry {
+    RankingEntry {
+        archive_id: run.archive_id.clone(),
+        archive_path: run.archive_path.clone(),
+        verified_block_count: run.verified_block_count,
+        salvageable_file_count: run.salvageable_file_count,
+        exported_full_file_artifact_count: run.exported_full_file_artifact_count,
+        outcome: classify_outcome(run),
+    }
+}
+
+fn generate_analysis_files(
+    experiment_dir: &Path,
+    experiment_id: &str,
+    export_fragments_enabled: bool,
+    runs: &[RunMetadata],
+) -> Result<()> {
+    let mut ordered_runs: Vec<&RunMetadata> = runs.iter().collect();
+    ordered_runs.sort_by(|a, b| a.archive_id.cmp(&b.archive_id));
+
+    let mut outcome_groups = Vec::new();
+    for outcome in OUTCOME_ORDER {
+        let grouped: Vec<&RunMetadata> = ordered_runs
+            .iter()
+            .copied()
+            .filter(|run| classify_outcome(run) == outcome)
+            .collect();
+        outcome_groups.push(OutcomeGroup {
+            outcome,
+            run_count: grouped.len(),
+            archive_ids: grouped.iter().map(|run| run.archive_id.clone()).collect(),
+            aggregate_verified_block_count: grouped
+                .iter()
+                .map(|run| run.verified_block_count)
+                .sum(),
+            aggregate_salvageable_file_count: grouped
+                .iter()
+                .map(|run| run.salvageable_file_count)
+                .sum(),
+            aggregate_exported_block_artifact_count: grouped
+                .iter()
+                .map(|run| run.exported_block_artifact_count)
+                .sum(),
+            aggregate_exported_extent_artifact_count: grouped
+                .iter()
+                .map(|run| run.exported_extent_artifact_count)
+                .sum(),
+            aggregate_exported_full_file_artifact_count: grouped
+                .iter()
+                .map(|run| run.exported_full_file_artifact_count)
+                .sum(),
+        });
+    }
+
+    let export_mode_groups = vec![ExportModeGroup {
+        export_fragments_enabled,
+        run_count: ordered_runs.len(),
+        aggregate_exported_block_artifact_count: ordered_runs
+            .iter()
+            .map(|run| run.exported_block_artifact_count)
+            .sum(),
+        aggregate_exported_extent_artifact_count: ordered_runs
+            .iter()
+            .map(|run| run.exported_extent_artifact_count)
+            .sum(),
+        aggregate_exported_full_file_artifact_count: ordered_runs
+            .iter()
+            .map(|run| run.exported_full_file_artifact_count)
+            .sum(),
+    }];
+
+    let mut top_verified = ordered_runs.clone();
+    top_verified.sort_by(|a, b| {
+        b.verified_block_count
+            .cmp(&a.verified_block_count)
+            .then_with(|| a.archive_id.cmp(&b.archive_id))
+    });
+    let mut top_salvageable = ordered_runs.clone();
+    top_salvageable.sort_by(|a, b| {
+        b.salvageable_file_count
+            .cmp(&a.salvageable_file_count)
+            .then_with(|| a.archive_id.cmp(&b.archive_id))
+    });
+    let mut top_full_exports = ordered_runs.clone();
+    top_full_exports.sort_by(|a, b| {
+        b.exported_full_file_artifact_count
+            .cmp(&a.exported_full_file_artifact_count)
+            .then_with(|| a.archive_id.cmp(&b.archive_id))
+    });
+
+    let no_verified: Vec<RankingEntry> = ordered_runs
+        .iter()
+        .copied()
+        .filter(|run| run.verified_block_count == 0)
+        .map(to_ranking_entry)
+        .collect();
+
+    let evidence_rankings = EvidenceRankings {
+        top_runs_by_verified_blocks: top_verified.into_iter().map(to_ranking_entry).collect(),
+        top_runs_by_salvageable_files: top_salvageable.into_iter().map(to_ranking_entry).collect(),
+        top_runs_by_exported_full_files: top_full_exports
+            .into_iter()
+            .map(to_ranking_entry)
+            .collect(),
+        bottom_runs_with_no_verified_evidence: no_verified,
+    };
+
+    let mut profile_map: BTreeMap<String, Vec<&RunMetadata>> = BTreeMap::new();
+    for run in &ordered_runs {
+        profile_map
+            .entry(infer_profile_key(&run.archive_path))
+            .or_default()
+            .push(*run);
+    }
+
+    let mut profile_groups = Vec::new();
+    for (profile_key, profile_runs) in profile_map {
+        let mut outcome_counts: BTreeMap<&'static str, usize> =
+            OUTCOME_ORDER.iter().map(|o| (*o, 0usize)).collect();
+        for run in &profile_runs {
+            let outcome = classify_outcome(run);
+            *outcome_counts.entry(outcome).or_insert(0) += 1;
+        }
+
+        profile_groups.push(ProfileGroup {
+            profile_key,
+            run_count: profile_runs.len(),
+            outcome_counts,
+            aggregate_verified_block_count: profile_runs
+                .iter()
+                .map(|run| run.verified_block_count)
+                .sum(),
+            aggregate_salvageable_file_count: profile_runs
+                .iter()
+                .map(|run| run.salvageable_file_count)
+                .sum(),
+        });
+    }
+
+    let analysis = ExperimentAnalysis {
+        schema_version: ANALYSIS_SCHEMA_VERSION,
+        tool: "crushr-lab-salvage",
+        tool_version: env!("CARGO_PKG_VERSION"),
+        experiment_id: experiment_id.to_string(),
+        verification_label: VERIFICATION_LABEL,
+        run_count: ordered_runs.len(),
+        grouping_strategy: GroupingStrategy {
+            outcome_order: OUTCOME_ORDER.to_vec(),
+            profile_inference_priority: vec![
+                "explicit_profile_metadata",
+                "filename_path_derived_profile",
+                "UNKNOWN_PROFILE_fallback",
+            ],
+            ranking_tie_breaker: "archive_id_ascending",
+        },
+        outcome_groups,
+        export_mode_groups,
+        evidence_rankings,
+        profile_groups,
+        notes: vec![
+            "Compact deterministic grouped analysis over experiment metadata only".to_string(),
+            "Research-only outputs; not canonical extraction semantics".to_string(),
+        ],
+    };
+
+    fs::write(
+        experiment_dir.join("analysis.json"),
+        serde_json::to_string_pretty(&analysis)?,
+    )
+    .with_context(|| format!("write {}", experiment_dir.join("analysis.json").display()))?;
+
+    let mut markdown = String::new();
+    markdown.push_str("# Salvage Experiment Grouped Analysis\n\n");
+    markdown.push_str(&format!("- Experiment ID: `{}`\n", analysis.experiment_id));
+    markdown.push_str(&format!("- Run count: `{}`\n", analysis.run_count));
+    markdown.push_str(&format!(
+        "- Verification label: `{}`\n",
+        analysis.verification_label
+    ));
+    markdown.push_str(&format!(
+        "- Fragment export enabled: `{}`\n\n",
+        if export_fragments_enabled {
+            "yes"
+        } else {
+            "no"
+        }
+    ));
+    markdown.push_str(
+        "All grouped analysis outputs are research-only (`UNVERIFIED_RESEARCH_OUTPUT`).\n\n",
+    );
+    markdown.push_str("## Grouped outcome counts\n\n");
+    for group in &analysis.outcome_groups {
+        markdown.push_str(&format!(
+            "- {}: {} runs (verified_blocks={}, salvageable_files={}, exported b/e/f={}/{}/{})\n",
+            group.outcome,
+            group.run_count,
+            group.aggregate_verified_block_count,
+            group.aggregate_salvageable_file_count,
+            group.aggregate_exported_block_artifact_count,
+            group.aggregate_exported_extent_artifact_count,
+            group.aggregate_exported_full_file_artifact_count
+        ));
+    }
+    markdown.push_str("\n## Grouped profile counts\n\n");
+    for group in &analysis.profile_groups {
+        markdown.push_str(&format!(
+            "- `{}`: {} runs, verified_blocks={}, salvageable_files={}\n",
+            group.profile_key,
+            group.run_count,
+            group.aggregate_verified_block_count,
+            group.aggregate_salvageable_file_count
+        ));
+    }
+    markdown.push_str("\n## Top evidence\n\n");
+    for entry in analysis
+        .evidence_rankings
+        .top_runs_by_verified_blocks
+        .iter()
+        .take(5)
+    {
+        markdown.push_str(&format!(
+            "- `{}` (`{}`): verified_blocks={}, salvageable_files={}, outcome={}\n",
+            entry.archive_id,
+            entry.archive_path,
+            entry.verified_block_count,
+            entry.salvageable_file_count,
+            entry.outcome
+        ));
+    }
+    markdown.push_str("\n## No verified evidence\n\n");
+    for entry in &analysis
+        .evidence_rankings
+        .bottom_runs_with_no_verified_evidence
+    {
+        markdown.push_str(&format!(
+            "- `{}` (`{}`): outcome={}\n",
+            entry.archive_id, entry.archive_path, entry.outcome
+        ));
+    }
+    markdown.push_str("\n## Orphan-only evidence\n\n");
+    for entry in analysis
+        .evidence_rankings
+        .top_runs_by_verified_blocks
+        .iter()
+        .filter(|entry| entry.outcome == "ORPHAN_EVIDENCE_ONLY")
+        .take(5)
+    {
+        markdown.push_str(&format!(
+            "- `{}` (`{}`): verified_blocks={}\n",
+            entry.archive_id, entry.archive_path, entry.verified_block_count
+        ));
+    }
+
+    fs::write(experiment_dir.join("analysis.md"), markdown)
+        .with_context(|| format!("write {}", experiment_dir.join("analysis.md").display()))?;
+
+    Ok(())
+}
+
 fn generate_summary_files(
     experiment_dir: &Path,
     experiment_id: &str,
@@ -518,7 +870,12 @@ fn generate_summary_files(
     fs::write(experiment_dir.join("summary.md"), markdown)
         .with_context(|| format!("write {}", experiment_dir.join("summary.md").display()))?;
 
-    Ok(())
+    generate_analysis_files(
+        experiment_dir,
+        experiment_id,
+        export_fragments_enabled,
+        &runs,
+    )
 }
 
 fn load_runs_from_experiment(
