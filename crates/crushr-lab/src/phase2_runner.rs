@@ -1,6 +1,9 @@
 use crate::phase2_corruption::{apply_locked_corruption, CorruptionRequest};
 use crate::phase2_domain::{ArchiveFormat, CorruptionType, Dataset, Magnitude, TargetClass};
-use crate::phase2_foundation::{ArchiveBuildRecord, ExecutionStatus, Phase2FoundationReport};
+use crate::phase2_foundation::{
+    ArchiveBuildRecord, DatasetInventory, ExecutionStatus, FileInventoryEntry,
+    Phase2FoundationReport,
+};
 use crate::phase2_manifest::{Phase2ExperimentManifest, Phase2Scenario};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
@@ -77,6 +80,41 @@ pub struct RunContextPaths {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecoveryAccounting {
+    pub files_expected: u64,
+    pub files_recovered: u64,
+    pub files_missing: u64,
+    pub bytes_expected: u64,
+    pub bytes_recovered: u64,
+    pub recovery_ratio_files: f64,
+    pub recovery_ratio_bytes: f64,
+}
+
+impl Default for RecoveryAccounting {
+    fn default() -> Self {
+        Self {
+            files_expected: 0,
+            files_recovered: 0,
+            files_missing: 0,
+            bytes_expected: 0,
+            bytes_recovered: 0,
+            recovery_ratio_files: 0.0,
+            recovery_ratio_bytes: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecoveryReport {
+    pub scenario_id: String,
+    pub dataset: Dataset,
+    pub extraction_output_dir: String,
+    pub missing_files: Vec<String>,
+    pub present_files: Vec<String>,
+    pub accounting: RecoveryAccounting,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RawRunRecord {
     pub scenario_id: String,
     pub dataset: Dataset,
@@ -103,6 +141,12 @@ pub struct RawRunRecord {
     pub result_artifacts: ResultArtifacts,
     pub result_completeness: EvidenceQuality,
     pub run_context_paths: RunContextPaths,
+    #[serde(default)]
+    pub extraction_output_dir: String,
+    #[serde(default)]
+    pub recovery_report_path: String,
+    #[serde(default)]
+    pub recovery_accounting: RecoveryAccounting,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -187,6 +231,8 @@ pub fn run_phase2_execution(
         archive_index.insert((build.dataset, build.archive_format), build);
     }
 
+    let inventory_index = load_inventory_index(workspace_root, foundation)?;
+
     let mut version_cache = HashMap::new();
     let mut records = Vec::with_capacity(manifest.scenarios.len());
     for scenario in &manifest.scenarios {
@@ -196,6 +242,7 @@ pub fn run_phase2_execution(
             &raw_root,
             scenario,
             &archive_index,
+            &inventory_index,
             &mut version_cache,
         )?;
         records.push(record);
@@ -343,6 +390,7 @@ fn execute_scenario(
     raw_root: &Path,
     scenario: &Phase2Scenario,
     archive_index: &HashMap<(Dataset, ArchiveFormat), &ArchiveBuildRecord>,
+    inventory_index: &HashMap<Dataset, DatasetInventory>,
     version_cache: &mut HashMap<ArchiveFormat, ToolVersionObservation>,
 ) -> Result<RawRunRecord> {
     let build = archive_index
@@ -394,7 +442,9 @@ fn execute_scenario(
         serde_json::to_vec_pretty(&provenance)?,
     )?;
 
-    let mut cmd = observe_command(workspace_root, format, &corrupted_archive)?;
+    let extraction_dir = scenario_dir.join("extracted");
+    fs::create_dir_all(&extraction_dir)?;
+    let mut cmd = observe_command(workspace_root, format, &corrupted_archive, &extraction_dir)?;
     let executable = cmd.get_program().to_string_lossy().to_string();
     let argv = cmd
         .get_args()
@@ -414,6 +464,19 @@ fn execute_scenario(
     let exit_status_code = output.status.code().unwrap_or(-1);
 
     let json_result_path = maybe_write_json_result(&scenario_dir, &output.stdout)?;
+    let recovery_report_path = scenario_dir.join("recovery_report.json");
+    let recovery_report = build_recovery_report(
+        workspace_root,
+        scenario,
+        &extraction_dir,
+        inventory_index.get(&scenario.dataset).with_context(|| {
+            format!("missing dataset inventory for {}", scenario.dataset.slug())
+        })?,
+    )?;
+    fs::write(
+        &recovery_report_path,
+        serde_json::to_vec_pretty(&recovery_report)?,
+    )?;
     let tool_version = if let Some(existing) = version_cache.get(&format) {
         existing.clone()
     } else {
@@ -428,6 +491,8 @@ fn execute_scenario(
     let source_archive_rel = rel_path(artifact_root, &source_archive);
     let corrupted_archive_rel = rel_path(artifact_root, &corrupted_archive);
     let corruption_log_rel = rel_path(artifact_root, &corruption_log_path);
+    let extraction_dir_rel = rel_path(artifact_root, &extraction_dir);
+    let recovery_report_rel = rel_path(artifact_root, &recovery_report_path);
     let has_json_result = json_rel.is_some();
     let result_completeness = if has_json_result {
         EvidenceQuality::StructuredJsonResult
@@ -471,7 +536,118 @@ fn execute_scenario(
             corrupted_archive_path: corrupted_archive_rel,
             corruption_log_path: corruption_log_rel,
         },
+        extraction_output_dir: extraction_dir_rel,
+        recovery_report_path: recovery_report_rel,
+        recovery_accounting: recovery_report.accounting,
     })
+}
+
+fn load_inventory_index(
+    workspace_root: &Path,
+    foundation: &Phase2FoundationReport,
+) -> Result<HashMap<Dataset, DatasetInventory>> {
+    let mut index = HashMap::new();
+    for dataset in &foundation.datasets {
+        let inventory_path = workspace_root.join(&dataset.inventory_path);
+        let inventory: DatasetInventory = serde_json::from_slice(
+            &fs::read(&inventory_path)
+                .with_context(|| format!("reading {}", inventory_path.display()))?,
+        )
+        .with_context(|| format!("parsing {}", inventory_path.display()))?;
+        index.insert(inventory.dataset, inventory);
+    }
+    Ok(index)
+}
+
+fn build_recovery_report(
+    workspace_root: &Path,
+    scenario: &Phase2Scenario,
+    extraction_dir: &Path,
+    inventory: &DatasetInventory,
+) -> Result<RecoveryReport> {
+    let extracted = collect_extracted_file_sizes(extraction_dir)?;
+    let mut missing_files = Vec::new();
+    let mut present_files = Vec::new();
+    let mut bytes_recovered = 0_u64;
+
+    for expected in &inventory.files {
+        if let Some(actual_bytes) = extracted.get(expected.path.as_str()) {
+            present_files.push(expected.path.clone());
+            bytes_recovered += recovered_bytes_for_file(expected, *actual_bytes);
+        } else {
+            missing_files.push(expected.path.clone());
+        }
+    }
+
+    missing_files.sort();
+    present_files.sort();
+    let files_expected = inventory.file_count as u64;
+    let files_recovered = present_files.len() as u64;
+    let files_missing = files_expected.saturating_sub(files_recovered);
+    let bytes_expected = inventory.total_bytes;
+
+    let accounting = RecoveryAccounting {
+        files_expected,
+        files_recovered,
+        files_missing,
+        bytes_expected,
+        bytes_recovered,
+        recovery_ratio_files: ratio(files_recovered, files_expected),
+        recovery_ratio_bytes: ratio(bytes_recovered, bytes_expected),
+    };
+
+    Ok(RecoveryReport {
+        scenario_id: scenario.scenario_id.clone(),
+        dataset: scenario.dataset,
+        extraction_output_dir: rel_path(workspace_root, extraction_dir),
+        missing_files,
+        present_files,
+        accounting,
+    })
+}
+
+fn recovered_bytes_for_file(expected: &FileInventoryEntry, actual_bytes: u64) -> u64 {
+    expected.bytes.min(actual_bytes)
+}
+
+fn ratio(numerator: u64, denominator: u64) -> f64 {
+    if denominator == 0 {
+        0.0
+    } else {
+        numerator as f64 / denominator as f64
+    }
+}
+
+fn collect_extracted_file_sizes(root: &Path) -> Result<HashMap<String, u64>> {
+    let mut files = HashMap::new();
+    if !root.exists() {
+        return Ok(files);
+    }
+    collect_extracted_file_sizes_inner(root, root, &mut files)?;
+    Ok(files)
+}
+
+fn collect_extracted_file_sizes_inner(
+    base: &Path,
+    current: &Path,
+    files: &mut HashMap<String, u64>,
+) -> Result<()> {
+    for entry in fs::read_dir(current).with_context(|| format!("reading {}", current.display()))? {
+        let entry = entry?;
+        let path = entry.path();
+        let metadata = entry.metadata()?;
+        if metadata.is_dir() {
+            collect_extracted_file_sizes_inner(base, &path, files)?;
+        } else if metadata.is_file() {
+            let rel = path
+                .strip_prefix(base)
+                .with_context(|| format!("computing relative path for {}", path.display()))?
+                .to_string_lossy()
+                .replace('\\', "/");
+            files.insert(rel, metadata.len());
+        }
+    }
+    Ok(())
 }
 
 fn maybe_write_json_result(scenario_dir: &Path, stdout: &[u8]) -> Result<Option<PathBuf>> {
@@ -500,6 +676,7 @@ fn observe_command(
     workspace_root: &Path,
     format: ArchiveFormat,
     archive_path: &Path,
+    extraction_dir: &Path,
 ) -> Result<Command> {
     match format {
         ArchiveFormat::Crushr => {
@@ -510,32 +687,45 @@ fn observe_command(
                 .arg("-p")
                 .arg("crushr")
                 .arg("--bin")
-                .arg("crushr-info")
+                .arg("crushr-extract")
                 .arg("--")
                 .arg(archive_path)
+                .arg("-o")
+                .arg(extraction_dir)
+                .arg("--overwrite")
                 .arg("--json");
             Ok(cmd)
         }
         ArchiveFormat::Zip => {
-            let mut cmd = Command::new("zip");
-            cmd.arg("-T").arg(archive_path);
+            let mut cmd = Command::new("unzip");
+            cmd.arg("-o")
+                .arg(archive_path)
+                .arg("-d")
+                .arg(extraction_dir);
             Ok(cmd)
         }
         ArchiveFormat::TarZstd => {
             let mut cmd = Command::new("tar");
             cmd.arg("--use-compress-program=zstd")
-                .arg("-tf")
+                .arg("-xf")
                 .arg(archive_path);
+            cmd.arg("-C").arg(extraction_dir);
             Ok(cmd)
         }
         ArchiveFormat::TarGz => {
             let mut cmd = Command::new("tar");
-            cmd.arg("-tzf").arg(archive_path);
+            cmd.arg("-xzf")
+                .arg(archive_path)
+                .arg("-C")
+                .arg(extraction_dir);
             Ok(cmd)
         }
         ArchiveFormat::TarXz => {
             let mut cmd = Command::new("tar");
-            cmd.arg("-tJf").arg(archive_path);
+            cmd.arg("-xJf")
+                .arg(archive_path)
+                .arg("-C")
+                .arg(extraction_dir);
             Ok(cmd)
         }
     }
@@ -683,6 +873,17 @@ mod tests {
                 source_archive_path: "archives/a".to_string(),
                 corrupted_archive_path: "raw/x/corrupt".to_string(),
                 corruption_log_path: "raw/x/log".to_string(),
+            },
+            extraction_output_dir: "raw/x/extracted".to_string(),
+            recovery_report_path: "raw/x/recovery_report.json".to_string(),
+            recovery_accounting: RecoveryAccounting {
+                files_expected: 10,
+                files_recovered: 10,
+                files_missing: 0,
+                bytes_expected: 1000,
+                bytes_recovered: 1000,
+                recovery_ratio_files: 1.0,
+                recovery_ratio_bytes: 1.0,
             },
         }
     }

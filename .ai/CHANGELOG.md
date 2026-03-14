@@ -1,3 +1,9 @@
+## 2026-03-14 — CRUSHR-P2-EXEC-06A recovery-accounting harness upgrade
+
+- Upgraded `crushr-lab` Phase 2 execution to run real extraction commands per format (`crushr-extract`, `unzip`, `tar`) and produce per-run recovery evidence artifacts (`extracted/`, `recovery_report.json`) plus structured file/byte accounting in `RawRunRecord`.
+- Extended normalization outputs with deterministic recoverability metrics (`files_expected/recovered/missing`, `bytes_expected/recovered`, recovery ratios), blast-radius classes, and explicit `recovery_evidence_strength` enum values.
+- Extended normalization summary with recovery aggregate rollups by format/corruption/target and blast-radius distributions, updated schemas/contracts, and added focused tests for recovery accounting behavior and blast-radius thresholds.
+
 ## 2026-03-14 — CRUSHR-P2-EXEC-03B: white-paper-grade Phase 2 execution evidence enrichment
 
 - Enriched `crushr-lab` Phase 2 `RawRunRecord` output with first-class scenario axes + invocation + path + result fields, added deterministic `result_artifacts`/`result_completeness`, and removed ambient wall-clock timestamps from run metadata.

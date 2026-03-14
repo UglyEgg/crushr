@@ -297,3 +297,20 @@
 - Blast radius:
   - Adds a new Phase 2 results artifact family and schema contracts consumed by downstream comparative analysis/reporting.
   - No changes to locked matrix axes, trial execution corpus, or archive-format behavior.
+
+
+## 2026-03-14 — CRUSHR-P2-EXEC-06A: recovery accounting is extracted-output based and byte accounting is size-clamped
+
+- Decision:
+  - Phase 2 execution evidence now derives recoverability from actual extraction outputs for all formats and records deterministic per-run accounting (`files_expected/recovered/missing`, `bytes_expected/recovered`, ratio fields) plus extraction/recovery artifact paths.
+  - `bytes_recovered` is computed as `sum(min(actual_size, expected_size))` over recovered expected files to treat truncated output as partial byte recovery without overcounting oversized outputs.
+  - Normalization blast-radius class is determined solely from `recovery_ratio_files` thresholds: `NONE=1.0`, `LOCALIZED>=0.9`, `PARTIAL_SET>=0.5`, `WIDESPREAD>0.0`, `TOTAL=0.0`.
+- Alternatives:
+  1. Infer recoverability heuristically from exit codes/diagnostic text only.
+  2. Require checksum/content validation in this packet before any recovery accounting is emitted.
+- Rationale:
+  - Exit/diagnostic-only evidence could not answer the white-paper recoverability thesis.
+  - File+byte counts from extracted trees are deterministic, cheap, and comparable across formats while keeping this packet bounded (no full content verification requirement).
+- Blast radius:
+  - Changes raw run record and normalization schemas/consumers, execution command behavior (list/test probes -> extraction runs), and summary aggregation fields used by downstream analysis/reporting.
+  - Full matrix rerun remains external to this PR workflow.
