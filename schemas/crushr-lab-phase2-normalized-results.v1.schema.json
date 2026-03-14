@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crushr.dev/schemas/crushr-lab-phase2-normalized-results.v1.schema.json",
+  "title": "crushr-lab phase2 normalized results v1",
+  "type": "array",
+  "items": { "$ref": "#/$defs/normalized_run_record" },
+  "$defs": {
+    "dataset": { "enum": ["smallfiles", "mixed", "largefiles"] },
+    "archive_format": { "enum": ["crushr", "zip", "tar+zstd", "tar+gz", "tar+xz"] },
+    "corruption_type": { "enum": ["bit_flip", "byte_overwrite", "zero_fill", "truncation", "tail_damage"] },
+    "target_class": { "enum": ["header", "index", "payload", "tail"] },
+    "magnitude": { "enum": ["1B", "256B", "4KB"] },
+    "result_class": { "enum": ["SUCCESS", "PARTIAL", "REFUSED", "STRUCTURAL_FAIL", "TOOL_ERROR"] },
+    "failure_stage": { "enum": ["NONE", "PRE_EXTRACT", "EXTRACTION", "UNKNOWN"] },
+    "diagnostic_specificity": { "enum": ["NONE", "GENERIC", "STRUCTURAL", "PRECISE"] },
+    "evidence_strength": { "enum": ["structured_json", "stdout_stderr", "mixed"] },
+    "evidence_quality": { "enum": ["stdout_only", "stdout_and_stderr", "structured_json_result"] },
+    "normalized_run_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "dataset",
+        "format",
+        "corruption_type",
+        "target_class",
+        "magnitude",
+        "magnitude_bytes",
+        "seed",
+        "tool_kind",
+        "exit_code",
+        "has_json_result",
+        "result_completeness",
+        "detected_pre_extract",
+        "failure_stage",
+        "result_class",
+        "diagnostic_specificity",
+        "files_safe",
+        "files_refused",
+        "files_unknown",
+        "normalization_notes",
+        "evidence_strength"
+      ],
+      "properties": {
+        "scenario_id": { "type": "string", "minLength": 1 },
+        "dataset": { "$ref": "#/$defs/dataset" },
+        "format": { "$ref": "#/$defs/archive_format" },
+        "corruption_type": { "$ref": "#/$defs/corruption_type" },
+        "target_class": { "$ref": "#/$defs/target_class" },
+        "magnitude": { "$ref": "#/$defs/magnitude" },
+        "magnitude_bytes": { "type": "integer", "minimum": 1 },
+        "seed": { "type": "integer", "minimum": 0 },
+        "tool_kind": { "$ref": "#/$defs/archive_format" },
+        "exit_code": { "type": "integer" },
+        "has_json_result": { "type": "boolean" },
+        "result_completeness": { "$ref": "#/$defs/evidence_quality" },
+        "detected_pre_extract": { "type": "boolean" },
+        "failure_stage": { "$ref": "#/$defs/failure_stage" },
+        "result_class": { "$ref": "#/$defs/result_class" },
+        "diagnostic_specificity": { "$ref": "#/$defs/diagnostic_specificity" },
+        "files_safe": { "type": ["integer", "null"], "minimum": 0 },
+        "files_refused": { "type": ["integer", "null"], "minimum": 0 },
+        "files_unknown": { "type": ["integer", "null"], "minimum": 0 },
+        "normalization_notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "evidence_strength": { "$ref": "#/$defs/evidence_strength" }
+      }
+    }
+  }
+}

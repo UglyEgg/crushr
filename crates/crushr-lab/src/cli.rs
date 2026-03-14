@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
-pub const USAGE: &str = "usage:\n  crushr-lab corrupt <input> <output> [--model <bit_flip|byte_overwrite|zero_fill|truncation|tail_damage> --target <header|index|payload|tail> --magnitude <1B|256B|4KB> --seed <1337|2600|65535> --scenario-id <id> [--offset <u64>]]\n  crushr-lab write-phase2-manifest [--output <path>]\n  crushr-lab build-phase2-foundation [--artifact-dir <path>]\n  crushr-lab run-phase2-execution [--manifest <path> --foundation-report <path> --artifact-dir <path>]\n  crushr-lab run-phase2-pretrial-audit [--manifest <path> --artifact-dir <path>]";
+pub const USAGE: &str = "usage:\n  crushr-lab corrupt <input> <output> [--model <bit_flip|byte_overwrite|zero_fill|truncation|tail_damage> --target <header|index|payload|tail> --magnitude <1B|256B|4KB> --seed <1337|2600|65535> --scenario-id <id> [--offset <u64>]]\n  crushr-lab write-phase2-manifest [--output <path>]\n  crushr-lab build-phase2-foundation [--artifact-dir <path>]\n  crushr-lab run-phase2-execution [--manifest <path> --foundation-report <path> --artifact-dir <path>]\n  crushr-lab run-phase2-pretrial-audit [--manifest <path> --artifact-dir <path>]
+  run-phase2-normalization [--trials-dir <path> --output-dir <path>]";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Command {
@@ -10,6 +11,7 @@ pub enum Command {
     BuildPhase2Foundation,
     RunPhase2Execution,
     RunPhase2PretrialAudit,
+    RunPhase2Normalization,
 }
 
 impl Command {
@@ -20,6 +22,7 @@ impl Command {
             "build-phase2-foundation" => Some(Self::BuildPhase2Foundation),
             "run-phase2-execution" => Some(Self::RunPhase2Execution),
             "run-phase2-pretrial-audit" => Some(Self::RunPhase2PretrialAudit),
+            "run-phase2-normalization" => Some(Self::RunPhase2Normalization),
             _ => None,
         }
     }
@@ -47,6 +50,10 @@ mod tests {
         assert_eq!(
             Command::from_str("run-phase2-pretrial-audit"),
             Some(Command::RunPhase2PretrialAudit)
+        );
+        assert_eq!(
+            Command::from_str("run-phase2-normalization"),
+            Some(Command::RunPhase2Normalization)
         );
         assert_eq!(Command::from_str(""), None);
         assert_eq!(Command::from_str("unknown"), None);

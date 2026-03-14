@@ -2,9 +2,9 @@
 
 Current Phase: Phase 2 — Comparative Corruption Research
 
-Current Step: CRUSHR-P2-EXEC-03B complete (white-paper-grade structured execution evidence records)
+Current Step: CRUSHR-P2-EXEC-04 complete (normalized comparison-ready evidence dataset)
 
-Recent completed packet: CRUSHR-P2-EXEC-03B (richer execution records/reporting, truthful tool-version capture, execution schemas, and focused tests)
+Recent completed packet: CRUSHR-P2-EXEC-04 (deterministic normalization pipeline, normalized artifacts, normalization schemas, and focused tests)
 
 ## Current truth
 
@@ -22,6 +22,7 @@ Recent completed packet: CRUSHR-P2-EXEC-03B (richer execution records/reporting,
 - Execution packet CRUSHR-P2-EXEC-02 is complete: generated deterministic fixture datasets under `PHASE2_RESEARCH/datasets/{smallfiles,mixed,largefiles}/payload`, built baseline archives under `PHASE2_RESEARCH/baselines/{crushr,zip,tar_zstd,tar_gz,tar_xz}`, and emitted `PHASE2_RESEARCH/foundation/foundation_report.json` with archive metadata (`archive_file`, `archive_size`, `archive_blake3`, `file_count`, `dataset_name`, `format`) plus deterministic generation confirmation.
 - Execution packet CRUSHR-P2-EXEC-03A is complete: `run-phase2-execution` now resolves baseline `foundation_report` archive paths against `workspace_root` (absolute paths unchanged), keeps `artifact_dir` scoped to generated execution outputs, and uses canonical defaults (`PHASE2_RESEARCH/manifest/phase2_manifest.json`, `PHASE2_RESEARCH/foundation/foundation_report.json`, `PHASE2_RESEARCH/trials`).
 - Execution packet CRUSHR-P2-EXEC-03B is complete: `run-phase2-execution` now emits richer `RawRunRecord` fields (scenario axes + source/corrupt paths + invocation metadata + `has_json_result` + invocation status + result completeness/artifacts), removes ambient timestamps from per-run metadata, captures truthful tool-version observations (`detected`/`unsupported`/`unavailable`), and upgrades `execution_report.json` into a useful summary (dataset/format counts, exit histogram, JSON-result counts, tool-version summary, completeness status).
+- Execution packet CRUSHR-P2-EXEC-04 is complete: added `run-phase2-normalization` to deterministically normalize all 2700 Phase 2 runs into `PHASE2_RESEARCH/results/normalized_results.json` and `PHASE2_RESEARCH/results/normalization_summary.json`, with explicit rule-based classification (`result_class`, `failure_stage`, `diagnostic_specificity`, `detected_pre_extract`), evidence-strength tagging, mapping notes for unavailable file-level outcomes, and schema-backed focused tests.
 - Active machine-readable schemas are now tightened contracts for: `crushr-info` snapshot, `crushr-fsck` snapshot, `crushr-impact` report, extraction result, and propagation graph.
 - Integration tests now perform real JSON Schema instance-vs-schema validation for active outputs.
 
@@ -35,4 +36,4 @@ Recent completed packet: CRUSHR-P2-EXEC-03B (richer execution records/reporting,
 
 ## Next action
 
-Rerun the locked 2700-scenario execution matrix with the upgraded evidence model, then proceed to Phase 2.2 comparative mapping/reporting from the enriched `PHASE2_RESEARCH/trials` corpus.
+Use normalized outputs in `PHASE2_RESEARCH/results/` for Phase 2.2 comparative analysis and white-paper table generation; no matrix expansion decisions until normalized evidence review is complete.

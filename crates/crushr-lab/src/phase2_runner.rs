@@ -3,7 +3,7 @@ use crate::phase2_domain::{ArchiveFormat, CorruptionType, Dataset, Magnitude, Ta
 use crate::phase2_foundation::{ArchiveBuildRecord, ExecutionStatus, Phase2FoundationReport};
 use crate::phase2_manifest::{Phase2ExperimentManifest, Phase2Scenario};
 use anyhow::{bail, Context, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -13,20 +13,20 @@ const DEFAULT_MANIFEST_PATH: &str = "PHASE2_RESEARCH/manifest/phase2_manifest.js
 const DEFAULT_FOUNDATION_REPORT_PATH: &str = "PHASE2_RESEARCH/foundation/foundation_report.json";
 const DEFAULT_ARTIFACT_DIR: &str = "PHASE2_RESEARCH/trials";
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResultArtifacts {
     pub stdout_path: String,
     pub stderr_path: String,
     pub json_result_path: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum InvocationStatus {
     Completed,
 }
 
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EvidenceQuality {
     StdoutOnly,
@@ -34,7 +34,7 @@ pub enum EvidenceQuality {
     StructuredJsonResult,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolVersionStatus {
     Detected,
@@ -42,7 +42,7 @@ pub enum ToolVersionStatus {
     Unavailable,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolVersionObservation {
     pub status: ToolVersionStatus,
     pub version: Option<String>,
@@ -69,14 +69,14 @@ pub struct ExecutionReportToolVersions {
     pub by_tool: Vec<ToolVersionSummary>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RunContextPaths {
     pub source_archive_path: String,
     pub corrupted_archive_path: String,
     pub corruption_log_path: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RawRunRecord {
     pub scenario_id: String,
     pub dataset: Dataset,

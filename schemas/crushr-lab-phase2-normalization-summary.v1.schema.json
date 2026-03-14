@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crushr.dev/schemas/crushr-lab-phase2-normalization-summary.v1.schema.json",
+  "title": "crushr-lab phase2 normalization summary v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "total_normalized_runs",
+    "result_class_counts",
+    "failure_stage_counts",
+    "diagnostic_specificity_counts",
+    "per_format_result_class_counts",
+    "runs_with_file_level_detail",
+    "per_format_notes",
+    "mapping_report"
+  ],
+  "properties": {
+    "total_normalized_runs": { "type": "integer", "minimum": 0 },
+    "result_class_counts": {
+      "type": "object",
+      "propertyNames": { "enum": ["SUCCESS", "PARTIAL", "REFUSED", "STRUCTURAL_FAIL", "TOOL_ERROR"] },
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "failure_stage_counts": {
+      "type": "object",
+      "propertyNames": { "enum": ["NONE", "PRE_EXTRACT", "EXTRACTION", "UNKNOWN"] },
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "diagnostic_specificity_counts": {
+      "type": "object",
+      "propertyNames": { "enum": ["NONE", "GENERIC", "STRUCTURAL", "PRECISE"] },
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "per_format_result_class_counts": {
+      "type": "object",
+      "propertyNames": { "enum": ["crushr", "zip", "tar+zstd", "tar+gz", "tar+xz"] },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": { "enum": ["SUCCESS", "PARTIAL", "REFUSED", "STRUCTURAL_FAIL", "TOOL_ERROR"] },
+        "additionalProperties": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "runs_with_file_level_detail": { "type": "integer", "minimum": 0 },
+    "per_format_notes": {
+      "type": "object",
+      "propertyNames": { "enum": ["crushr", "zip", "tar+zstd", "tar+gz", "tar+xz"] },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "mapping_report": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "total_normalized_runs": 2700,
+  "result_class_counts": {
+    "PARTIAL": 990,
+    "REFUSED": 290,
+    "STRUCTURAL_FAIL": 586,
+    "SUCCESS": 331,
+    "TOOL_ERROR": 503
+  },
+  "failure_stage_counts": {
+    "EXTRACTION": 525,
+    "NONE": 331,
+    "PRE_EXTRACT": 895,
+    "UNKNOWN": 949
+  },
+  "diagnostic_specificity_counts": {
+    "GENERIC": 1,
+    "NONE": 26,
+    "PRECISE": 1858,
+    "STRUCTURAL": 815
+  },
+  "per_format_result_class_counts": {
+    "crushr": {
+      "STRUCTURAL_FAIL": 241,
+      "SUCCESS": 297,
+      "TOOL_ERROR": 2
+    },
+    "tar+gz": {
+      "PARTIAL": 343,
+      "REFUSED": 145,
+      "STRUCTURAL_FAIL": 48,
+      "SUCCESS": 4
+    },
+    "tar+xz": {
+      "PARTIAL": 331,
+      "REFUSED": 62,
+      "STRUCTURAL_FAIL": 60,
+      "SUCCESS": 1,
+      "TOOL_ERROR": 86
+    },
+    "tar+zstd": {
+      "PARTIAL": 163,
+      "REFUSED": 5,
+      "STRUCTURAL_FAIL": 126,
+      "SUCCESS": 2,
+      "TOOL_ERROR": 244
+    },
+    "zip": {
+      "PARTIAL": 153,
+      "REFUSED": 78,
+      "STRUCTURAL_FAIL": 111,
+      "SUCCESS": 27,
+      "TOOL_ERROR": 171
+    }
+  },
+  "runs_with_file_level_detail": 0,
+  "per_format_notes": {
+    "crushr": "structured JSON exists, but current phase uses crushr-info structural probes (no extraction outcome file counts)",
+    "tar+gz": "no structured per-file result artifact in execution corpus",
+    "tar+xz": "no structured per-file result artifact in execution corpus",
+    "tar+zstd": "no structured per-file result artifact in execution corpus",
+    "zip": "no structured per-file result artifact in execution corpus"
+  },
+  "mapping_report": {
+    "exit_code_zero": "exit_code=0 => SUCCESS, failure_stage=NONE",
+    "extraction_markers": "non-zero exit + extraction markers => failure_stage=EXTRACTION; result_class=REFUSED or PARTIAL based on refusal markers",
+    "pre_extract_markers": "non-zero exit + structural markers => failure_stage=PRE_EXTRACT; result_class=STRUCTURAL_FAIL unless refusal markers also present"
+  }
+}
