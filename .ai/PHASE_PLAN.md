@@ -47,3 +47,8 @@
   - deterministic `.crushr` archive enumeration and stable run IDs
   - experiment output layout with `experiment_manifest.json`, per-run `salvage_plan.json`, `run_metadata.json`
   - optional fragment export integration via delegated `crushr-salvage --export-fragments`
+
+- [x] 3.5 CRUSHR-SALVAGE-05 (deterministic compact experiment summaries, research-only)
+  - `crushr-lab-salvage` emits `summary.json` + `summary.md` with stable per-run outcome categories
+  - compact aggregate counters (verified blocks, salvageability, export counts) from existing run metadata
+  - `--resummarize <experiment_dir>` regenerates summaries without rerunning salvage

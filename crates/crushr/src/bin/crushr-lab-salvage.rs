@@ -1,20 +1,33 @@
 use anyhow::{bail, Context, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const USAGE: &str = "usage: crushr-lab-salvage <input_dir> --output <experiment_dir> [--export-fragments] [--limit <N>] [--verbose]";
+const USAGE: &str = "usage: crushr-lab-salvage <input_dir> --output <experiment_dir> [--export-fragments] [--limit <N>] [--verbose]\n       crushr-lab-salvage --resummarize <experiment_dir>";
 const VERIFICATION_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
+const EXPERIMENT_SCHEMA_VERSION: &str = "crushr-lab-salvage-experiment.v1";
+const SUMMARY_SCHEMA_VERSION: &str = "crushr-lab-salvage-summary.v1";
 
 #[derive(Debug)]
 struct CliOptions {
-    input_dir: PathBuf,
-    experiment_dir: PathBuf,
+    mode: Mode,
     export_fragments: bool,
     limit: Option<usize>,
     verbose: bool,
+}
+
+#[derive(Debug)]
+enum Mode {
+    RunExperiment {
+        input_dir: PathBuf,
+        experiment_dir: PathBuf,
+    },
+    Resummarize {
+        experiment_dir: PathBuf,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -33,19 +46,86 @@ struct ExperimentManifest {
     run_count: usize,
     run_timestamp: String,
     verification_label: &'static str,
+    export_fragments_enabled: bool,
     archive_list: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ExperimentManifestInput {
+    experiment_id: String,
+    verification_label: String,
+    archive_list: Vec<String>,
+    #[serde(default)]
+    export_fragments_enabled: bool,
 }
 
 #[derive(Debug, Serialize)]
 struct RunMetadata {
+    archive_id: String,
     archive_path: String,
     archive_fingerprint: String,
     salvage_plan_summary: PlanSummary,
     verified_block_count: u64,
     exported_artifact_count: usize,
+    exported_block_artifact_count: usize,
+    exported_extent_artifact_count: usize,
+    exported_full_file_artifact_count: usize,
     salvageable_file_count: u64,
     unsalvageable_file_count: u64,
     unmappable_file_count: u64,
+}
+
+#[derive(Debug, Deserialize)]
+struct RunMetadataInput {
+    archive_path: String,
+    archive_fingerprint: String,
+    verified_block_count: u64,
+    salvageable_file_count: u64,
+    unsalvageable_file_count: u64,
+    unmappable_file_count: u64,
+    #[serde(default)]
+    exported_block_artifact_count: Option<usize>,
+    #[serde(default)]
+    exported_extent_artifact_count: Option<usize>,
+    #[serde(default)]
+    exported_full_file_artifact_count: Option<usize>,
+}
+
+#[derive(Debug, Serialize)]
+struct ExperimentSummary {
+    schema_version: &'static str,
+    tool: &'static str,
+    tool_version: &'static str,
+    experiment_id: String,
+    verification_label: &'static str,
+    run_count: usize,
+    archives_with_verified_blocks: usize,
+    archives_with_salvageable_files: usize,
+    archives_with_only_orphan_evidence: usize,
+    archives_with_no_verified_evidence: usize,
+    total_verified_blocks: u64,
+    total_exported_block_artifacts: usize,
+    total_exported_extent_artifacts: usize,
+    total_exported_full_file_artifacts: usize,
+    total_salvageable_files: u64,
+    total_unsalvageable_files: u64,
+    total_unmappable_files: u64,
+    runs: Vec<RunSummaryRow>,
+}
+
+#[derive(Debug, Serialize)]
+struct RunSummaryRow {
+    archive_id: String,
+    archive_path: String,
+    archive_fingerprint: String,
+    verified_block_count: u64,
+    salvageable_file_count: u64,
+    unsalvageable_file_count: u64,
+    unmappable_file_count: u64,
+    exported_block_artifact_count: usize,
+    exported_extent_artifact_count: usize,
+    exported_full_file_artifact_count: usize,
+    outcome: &'static str,
 }
 
 #[derive(Debug, Serialize)]
@@ -57,7 +137,8 @@ struct PlanSummary {
 
 fn parse_cli_options() -> Result<CliOptions> {
     let mut input_dir = None;
-    let mut experiment_dir = None;
+    let mut output_dir = None;
+    let mut resummarize_dir = None;
     let mut export_fragments = false;
     let mut limit = None;
     let mut verbose = false;
@@ -66,7 +147,7 @@ fn parse_cli_options() -> Result<CliOptions> {
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--output" => {
-                experiment_dir = Some(PathBuf::from(args.next().context(USAGE)?));
+                output_dir = Some(PathBuf::from(args.next().context(USAGE)?));
             }
             "--export-fragments" => {
                 export_fragments = true;
@@ -82,15 +163,29 @@ fn parse_cli_options() -> Result<CliOptions> {
             "--verbose" => {
                 verbose = true;
             }
+            "--resummarize" => {
+                resummarize_dir = Some(PathBuf::from(args.next().context(USAGE)?));
+            }
             _ if arg.starts_with('-') => bail!("unsupported flag: {arg}"),
             _ if input_dir.is_none() => input_dir = Some(PathBuf::from(arg)),
             _ => bail!("unexpected argument: {arg}"),
         }
     }
 
+    let mode = if let Some(experiment_dir) = resummarize_dir {
+        if input_dir.is_some() || limit.is_some() || export_fragments || output_dir.is_some() {
+            bail!("--resummarize cannot be combined with run flags");
+        }
+        Mode::Resummarize { experiment_dir }
+    } else {
+        Mode::RunExperiment {
+            input_dir: input_dir.context(USAGE)?,
+            experiment_dir: output_dir.context(USAGE)?,
+        }
+    };
+
     Ok(CliOptions {
-        input_dir: input_dir.context(USAGE)?,
-        experiment_dir: experiment_dir.context(USAGE)?,
+        mode,
         export_fragments,
         limit,
         verbose,
@@ -127,10 +222,12 @@ fn sanitize_component(value: &str) -> String {
 }
 
 fn collect_archives(opts: &CliOptions) -> Result<Vec<ArchiveRun>> {
+    let input_dir = match &opts.mode {
+        Mode::RunExperiment { input_dir, .. } => input_dir,
+        Mode::Resummarize { .. } => bail!("internal error: collect_archives in resummarize mode"),
+    };
     let mut archives = Vec::new();
-    for entry in fs::read_dir(&opts.input_dir)
-        .with_context(|| format!("read {}", opts.input_dir.display()))?
-    {
+    for entry in fs::read_dir(input_dir).with_context(|| format!("read {}", input_dir.display()))? {
         let entry = entry?;
         let path = entry.path();
         if !path.is_file() {
@@ -141,7 +238,7 @@ fn collect_archives(opts: &CliOptions) -> Result<Vec<ArchiveRun>> {
         }
 
         let rel = path
-            .strip_prefix(&opts.input_dir)
+            .strip_prefix(input_dir)
             .unwrap_or(&path)
             .to_string_lossy()
             .replace('\\', "/");
@@ -162,24 +259,23 @@ fn collect_archives(opts: &CliOptions) -> Result<Vec<ArchiveRun>> {
     Ok(archives)
 }
 
-fn count_exported_artifacts(plan: &Value) -> usize {
+fn exported_artifact_counts(plan: &Value) -> (usize, usize, usize) {
     let Some(exported) = plan.get("exported_artifacts") else {
-        return 0;
+        return (0, 0, 0);
     };
 
-    [
-        "exported_block_artifacts",
-        "exported_fragment_artifacts",
-        "exported_complete_file_artifacts",
-    ]
-    .into_iter()
-    .map(|field| {
+    let count = |field: &str| {
         exported
             .get(field)
             .and_then(Value::as_array)
             .map_or(0, |entries| entries.len())
-    })
-    .sum()
+    };
+
+    (
+        count("exported_block_artifacts"),
+        count("exported_fragment_artifacts"),
+        count("exported_complete_file_artifacts"),
+    )
 }
 
 fn run_salvage(archive: &ArchiveRun, run_dir: &Path, opts: &CliOptions) -> Result<RunMetadata> {
@@ -240,7 +336,14 @@ fn run_salvage(archive: &ArchiveRun, run_dir: &Path, opts: &CliOptions) -> Resul
                 .count() as u64
         });
 
+    let (
+        exported_block_artifact_count,
+        exported_extent_artifact_count,
+        exported_full_file_artifact_count,
+    ) = exported_artifact_counts(&plan);
+
     Ok(RunMetadata {
+        archive_id: archive.archive_id.clone(),
         archive_path: archive.archive_path.clone(),
         archive_fingerprint: archive.archive_fingerprint.clone(),
         salvage_plan_summary: PlanSummary {
@@ -249,11 +352,242 @@ fn run_salvage(archive: &ArchiveRun, run_dir: &Path, opts: &CliOptions) -> Resul
             unmappable_files: unmappable,
         },
         verified_block_count,
-        exported_artifact_count: count_exported_artifacts(&plan),
+        exported_artifact_count: exported_block_artifact_count
+            + exported_extent_artifact_count
+            + exported_full_file_artifact_count,
+        exported_block_artifact_count,
+        exported_extent_artifact_count,
+        exported_full_file_artifact_count,
         salvageable_file_count: salvageable,
         unsalvageable_file_count: unsalvageable,
         unmappable_file_count: unmappable,
     })
+}
+
+fn classify_outcome(run: &RunMetadata) -> &'static str {
+    if run.exported_full_file_artifact_count > 0 {
+        "FULL_FILE_SALVAGE_AVAILABLE"
+    } else if run.salvageable_file_count > 0 {
+        "PARTIAL_FILE_SALVAGE"
+    } else if run.verified_block_count > 0 {
+        "ORPHAN_EVIDENCE_ONLY"
+    } else {
+        "NO_VERIFIED_EVIDENCE"
+    }
+}
+
+fn generate_summary_files(
+    experiment_dir: &Path,
+    experiment_id: &str,
+    export_fragments_enabled: bool,
+    mut runs: Vec<RunMetadata>,
+) -> Result<()> {
+    runs.sort_by(|a, b| a.archive_id.cmp(&b.archive_id));
+    let rows: Vec<RunSummaryRow> = runs
+        .iter()
+        .map(|run| RunSummaryRow {
+            archive_id: run.archive_id.clone(),
+            archive_path: run.archive_path.clone(),
+            archive_fingerprint: run.archive_fingerprint.clone(),
+            verified_block_count: run.verified_block_count,
+            salvageable_file_count: run.salvageable_file_count,
+            unsalvageable_file_count: run.unsalvageable_file_count,
+            unmappable_file_count: run.unmappable_file_count,
+            exported_block_artifact_count: run.exported_block_artifact_count,
+            exported_extent_artifact_count: run.exported_extent_artifact_count,
+            exported_full_file_artifact_count: run.exported_full_file_artifact_count,
+            outcome: classify_outcome(run),
+        })
+        .collect();
+
+    let summary = ExperimentSummary {
+        schema_version: SUMMARY_SCHEMA_VERSION,
+        tool: "crushr-lab-salvage",
+        tool_version: env!("CARGO_PKG_VERSION"),
+        experiment_id: experiment_id.to_string(),
+        verification_label: VERIFICATION_LABEL,
+        run_count: rows.len(),
+        archives_with_verified_blocks: rows.iter().filter(|r| r.verified_block_count > 0).count(),
+        archives_with_salvageable_files: rows
+            .iter()
+            .filter(|r| r.salvageable_file_count > 0)
+            .count(),
+        archives_with_only_orphan_evidence: rows
+            .iter()
+            .filter(|r| r.outcome == "ORPHAN_EVIDENCE_ONLY")
+            .count(),
+        archives_with_no_verified_evidence: rows
+            .iter()
+            .filter(|r| r.outcome == "NO_VERIFIED_EVIDENCE")
+            .count(),
+        total_verified_blocks: rows.iter().map(|r| r.verified_block_count).sum(),
+        total_exported_block_artifacts: rows.iter().map(|r| r.exported_block_artifact_count).sum(),
+        total_exported_extent_artifacts: rows
+            .iter()
+            .map(|r| r.exported_extent_artifact_count)
+            .sum(),
+        total_exported_full_file_artifacts: rows
+            .iter()
+            .map(|r| r.exported_full_file_artifact_count)
+            .sum(),
+        total_salvageable_files: rows.iter().map(|r| r.salvageable_file_count).sum(),
+        total_unsalvageable_files: rows.iter().map(|r| r.unsalvageable_file_count).sum(),
+        total_unmappable_files: rows.iter().map(|r| r.unmappable_file_count).sum(),
+        runs: rows,
+    };
+
+    fs::write(
+        experiment_dir.join("summary.json"),
+        serde_json::to_string_pretty(&summary)?,
+    )
+    .with_context(|| format!("write {}", experiment_dir.join("summary.json").display()))?;
+
+    let mut outcome_counts = BTreeMap::new();
+    for row in &summary.runs {
+        *outcome_counts.entry(row.outcome).or_insert(0usize) += 1;
+    }
+
+    let mut markdown = String::new();
+    markdown.push_str("# Salvage Experiment Summary\n\n");
+    markdown.push_str(&format!("- Experiment ID: `{}`\n", summary.experiment_id));
+    markdown.push_str(&format!(
+        "- Verification label: `{}`\n",
+        summary.verification_label
+    ));
+    markdown.push_str(&format!("- Run count: `{}`\n", summary.run_count));
+    markdown.push_str(&format!(
+        "- Fragment export enabled: `{}`\n\n",
+        if export_fragments_enabled {
+            "yes"
+        } else {
+            "no"
+        }
+    ));
+    markdown.push_str(
+        "All outputs are research-only and non-canonical (`UNVERIFIED_RESEARCH_OUTPUT`).\n\n",
+    );
+    markdown.push_str("## Aggregate totals\n\n");
+    markdown.push_str(&format!(
+        "- verified blocks: {}\n",
+        summary.total_verified_blocks
+    ));
+    markdown.push_str(&format!(
+        "- salvageable / unsalvageable / unmappable files: {} / {} / {}\n",
+        summary.total_salvageable_files,
+        summary.total_unsalvageable_files,
+        summary.total_unmappable_files
+    ));
+    markdown.push_str(&format!(
+        "- exported artifacts (block / extent / full-file): {} / {} / {}\n\n",
+        summary.total_exported_block_artifacts,
+        summary.total_exported_extent_artifacts,
+        summary.total_exported_full_file_artifacts
+    ));
+    markdown.push_str("## Outcome counts\n\n");
+    for outcome in [
+        "NO_VERIFIED_EVIDENCE",
+        "ORPHAN_EVIDENCE_ONLY",
+        "PARTIAL_FILE_SALVAGE",
+        "FULL_FILE_SALVAGE_AVAILABLE",
+    ] {
+        markdown.push_str(&format!(
+            "- {}: {}\n",
+            outcome,
+            outcome_counts.get(outcome).copied().unwrap_or(0)
+        ));
+    }
+    markdown.push_str("\n## Runs\n\n");
+    markdown.push_str("| archive_id | archive_path | outcome | verified_blocks | salvageable | unsalvageable | unmappable | exported (b/e/f) |\n");
+    markdown.push_str("|---|---|---|---:|---:|---:|---:|---:|\n");
+    for row in &summary.runs {
+        markdown.push_str(&format!(
+            "| `{}` | `{}` | `{}` | {} | {} | {} | {} | {}/{}/{} |\n",
+            row.archive_id,
+            row.archive_path,
+            row.outcome,
+            row.verified_block_count,
+            row.salvageable_file_count,
+            row.unsalvageable_file_count,
+            row.unmappable_file_count,
+            row.exported_block_artifact_count,
+            row.exported_extent_artifact_count,
+            row.exported_full_file_artifact_count
+        ));
+    }
+
+    fs::write(experiment_dir.join("summary.md"), markdown)
+        .with_context(|| format!("write {}", experiment_dir.join("summary.md").display()))?;
+
+    Ok(())
+}
+
+fn load_runs_from_experiment(
+    manifest: &ExperimentManifestInput,
+    runs_root: &Path,
+) -> Result<Vec<RunMetadata>> {
+    let mut runs = Vec::new();
+
+    for archive_id in &manifest.archive_list {
+        let run_dir = runs_root.join(archive_id);
+        let run_metadata_path = run_dir.join("run_metadata.json");
+        let plan_path = run_dir.join("salvage_plan.json");
+        let mut metadata: RunMetadataInput = serde_json::from_slice(
+            &fs::read(&run_metadata_path)
+                .with_context(|| format!("read {}", run_metadata_path.display()))?,
+        )
+        .with_context(|| format!("parse {}", run_metadata_path.display()))?;
+
+        let (plan_block_count, plan_extent_count, plan_full_count) = if metadata
+            .exported_block_artifact_count
+            .is_none()
+            || metadata.exported_extent_artifact_count.is_none()
+            || metadata.exported_full_file_artifact_count.is_none()
+        {
+            let plan: Value = serde_json::from_slice(
+                &fs::read(&plan_path).with_context(|| format!("read {}", plan_path.display()))?,
+            )
+            .with_context(|| format!("parse {}", plan_path.display()))?;
+            exported_artifact_counts(&plan)
+        } else {
+            (0, 0, 0)
+        };
+
+        let exported_block_artifact_count = metadata
+            .exported_block_artifact_count
+            .take()
+            .unwrap_or(plan_block_count);
+        let exported_extent_artifact_count = metadata
+            .exported_extent_artifact_count
+            .take()
+            .unwrap_or(plan_extent_count);
+        let exported_full_file_artifact_count = metadata
+            .exported_full_file_artifact_count
+            .take()
+            .unwrap_or(plan_full_count);
+
+        runs.push(RunMetadata {
+            archive_id: archive_id.clone(),
+            archive_path: metadata.archive_path,
+            archive_fingerprint: metadata.archive_fingerprint,
+            salvage_plan_summary: PlanSummary {
+                salvageable_files: metadata.salvageable_file_count,
+                unsalvageable_files: metadata.unsalvageable_file_count,
+                unmappable_files: metadata.unmappable_file_count,
+            },
+            verified_block_count: metadata.verified_block_count,
+            exported_artifact_count: exported_block_artifact_count
+                + exported_extent_artifact_count
+                + exported_full_file_artifact_count,
+            exported_block_artifact_count,
+            exported_extent_artifact_count,
+            exported_full_file_artifact_count,
+            salvageable_file_count: metadata.salvageable_file_count,
+            unsalvageable_file_count: metadata.unsalvageable_file_count,
+            unmappable_file_count: metadata.unmappable_file_count,
+        });
+    }
+
+    Ok(runs)
 }
 
 fn run_timestamp() -> String {
@@ -266,69 +600,116 @@ fn run_timestamp() -> String {
 }
 fn run() -> Result<()> {
     let opts = parse_cli_options()?;
-    fs::create_dir_all(&opts.experiment_dir)
-        .with_context(|| format!("create {}", opts.experiment_dir.display()))?;
+    let (experiment_dir, experiment_id, export_fragments_enabled, runs) = match &opts.mode {
+        Mode::RunExperiment {
+            input_dir: _,
+            experiment_dir,
+        } => {
+            fs::create_dir_all(experiment_dir)
+                .with_context(|| format!("create {}", experiment_dir.display()))?;
 
-    let archives = collect_archives(&opts)?;
-    let runs_root = opts.experiment_dir.join("runs");
-    fs::create_dir_all(&runs_root).with_context(|| format!("create {}", runs_root.display()))?;
+            let archives = collect_archives(&opts)?;
+            let runs_root = experiment_dir.join("runs");
+            fs::create_dir_all(&runs_root)
+                .with_context(|| format!("create {}", runs_root.display()))?;
 
-    let mut archive_ids = Vec::new();
+            let mut archive_ids = Vec::new();
+            let mut runs = Vec::new();
 
-    for archive in &archives {
-        if opts.verbose {
-            eprintln!("salvage: {}", archive.archive_path);
+            for archive in &archives {
+                if opts.verbose {
+                    eprintln!("salvage: {}", archive.archive_path);
+                }
+
+                let run_dir = runs_root.join(&archive.archive_id);
+                fs::create_dir_all(&run_dir)
+                    .with_context(|| format!("create {}", run_dir.display()))?;
+
+                let metadata = run_salvage(archive, &run_dir, &opts)?;
+                fs::write(
+                    run_dir.join("run_metadata.json"),
+                    serde_json::to_string_pretty(&metadata)?,
+                )
+                .with_context(|| {
+                    format!("write {}", run_dir.join("run_metadata.json").display())
+                })?;
+                archive_ids.push(archive.archive_id.clone());
+                runs.push(metadata);
+            }
+
+            let experiment_id = {
+                let mut hasher = blake3::Hasher::new();
+                hasher.update(env!("CARGO_PKG_VERSION").as_bytes());
+                hasher.update(if opts.export_fragments {
+                    b"export"
+                } else {
+                    b"plan"
+                });
+                for archive_id in &archive_ids {
+                    hasher.update(archive_id.as_bytes());
+                    hasher.update(b"\n");
+                }
+                to_hex(&hasher.finalize().as_bytes()[..10])
+            };
+
+            let manifest = ExperimentManifest {
+                experiment_id: experiment_id.clone(),
+                tool_version: env!("CARGO_PKG_VERSION"),
+                schema_version: EXPERIMENT_SCHEMA_VERSION,
+                run_count: archive_ids.len(),
+                run_timestamp: run_timestamp(),
+                verification_label: VERIFICATION_LABEL,
+                export_fragments_enabled: opts.export_fragments,
+                archive_list: archive_ids,
+            };
+
+            fs::write(
+                experiment_dir.join("experiment_manifest.json"),
+                serde_json::to_string_pretty(&manifest)?,
+            )
+            .with_context(|| {
+                format!(
+                    "write {}",
+                    experiment_dir.join("experiment_manifest.json").display()
+                )
+            })?;
+
+            (
+                experiment_dir.clone(),
+                experiment_id,
+                opts.export_fragments,
+                runs,
+            )
         }
-
-        let run_dir = runs_root.join(&archive.archive_id);
-        fs::create_dir_all(&run_dir).with_context(|| format!("create {}", run_dir.display()))?;
-
-        let metadata = run_salvage(archive, &run_dir, &opts)?;
-        fs::write(
-            run_dir.join("run_metadata.json"),
-            serde_json::to_string_pretty(&metadata)?,
-        )
-        .with_context(|| format!("write {}", run_dir.join("run_metadata.json").display()))?;
-        archive_ids.push(archive.archive_id.clone());
-    }
-
-    let experiment_id = {
-        let mut hasher = blake3::Hasher::new();
-        hasher.update(env!("CARGO_PKG_VERSION").as_bytes());
-        hasher.update(if opts.export_fragments {
-            b"export"
-        } else {
-            b"plan"
-        });
-        for archive_id in &archive_ids {
-            hasher.update(archive_id.as_bytes());
-            hasher.update(b"\n");
+        Mode::Resummarize { experiment_dir } => {
+            let manifest_path = experiment_dir.join("experiment_manifest.json");
+            let manifest: ExperimentManifestInput = serde_json::from_slice(
+                &fs::read(&manifest_path)
+                    .with_context(|| format!("read {}", manifest_path.display()))?,
+            )
+            .with_context(|| format!("parse {}", manifest_path.display()))?;
+            if manifest.verification_label != VERIFICATION_LABEL {
+                bail!(
+                    "unsupported verification label in {}: {}",
+                    manifest_path.display(),
+                    manifest.verification_label
+                );
+            }
+            let runs = load_runs_from_experiment(&manifest, &experiment_dir.join("runs"))?;
+            (
+                experiment_dir.clone(),
+                manifest.experiment_id,
+                manifest.export_fragments_enabled,
+                runs,
+            )
         }
-        to_hex(&hasher.finalize().as_bytes()[..10])
     };
-
-    let manifest = ExperimentManifest {
-        experiment_id,
-        tool_version: env!("CARGO_PKG_VERSION"),
-        schema_version: "crushr-lab-salvage-experiment.v1",
-        run_count: archive_ids.len(),
-        run_timestamp: run_timestamp(),
-        verification_label: VERIFICATION_LABEL,
-        archive_list: archive_ids,
-    };
-
-    fs::write(
-        opts.experiment_dir.join("experiment_manifest.json"),
-        serde_json::to_string_pretty(&manifest)?,
-    )
-    .with_context(|| {
-        format!(
-            "write {}",
-            opts.experiment_dir
-                .join("experiment_manifest.json")
-                .display()
-        )
-    })?;
+    generate_summary_files(
+        &experiment_dir,
+        &experiment_id,
+        export_fragments_enabled,
+        runs,
+    )?;
 
     Ok(())
 }

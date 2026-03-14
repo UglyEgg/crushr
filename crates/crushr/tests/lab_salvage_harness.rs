@@ -8,11 +8,7 @@ fn run(cmd: &mut Command) {
     let out = cmd.output().expect("run command");
     if !out.status.success() {
         panic!(
-            "command failed: {:?}
-stdout:
-{}
-stderr:
-{}",
+            "command failed: {:?}\nstdout:\n{}\nstderr:\n{}",
             cmd,
             String::from_utf8_lossy(&out.stdout),
             String::from_utf8_lossy(&out.stderr)
@@ -58,7 +54,7 @@ fn read_json(path: &Path) -> Value {
 }
 
 #[test]
-fn harness_generates_run_layout_and_summary() {
+fn harness_generates_manifest_and_summary_outputs() {
     let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
     let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
     let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
@@ -73,13 +69,20 @@ fn harness_generates_run_layout_and_summary() {
     run_harness(lab_bin, salvage_bin, &input_dir, &output_dir, false);
 
     assert!(output_dir.join("experiment_manifest.json").exists());
+    assert!(output_dir.join("summary.json").exists());
+    assert!(output_dir.join("summary.md").exists());
 
     let manifest = read_json(&output_dir.join("experiment_manifest.json"));
+    let summary = read_json(&output_dir.join("summary.json"));
     assert_eq!(manifest["run_count"], 2);
+    assert_eq!(summary["run_count"], 2);
+    assert_eq!(summary["verification_label"], "UNVERIFIED_RESEARCH_OUTPUT");
+
     let archive_list = manifest["archive_list"].as_array().unwrap();
     assert_eq!(archive_list.len(), 2);
 
     let runs_dir = output_dir.join("runs");
+    let mut totals = (0u64, 0u64, 0u64, 0u64);
     for archive_id in archive_list {
         let run_dir = runs_dir.join(archive_id.as_str().unwrap());
         assert!(run_dir.join("salvage_plan.json").exists());
@@ -87,15 +90,33 @@ fn harness_generates_run_layout_and_summary() {
         assert!(!run_dir.join("exported_artifacts").exists());
 
         let metadata = read_json(&run_dir.join("run_metadata.json"));
-        assert!(metadata["archive_path"].is_string());
-        assert!(metadata["archive_fingerprint"].is_string());
-        assert!(metadata["verified_block_count"].is_u64());
+        totals.0 += metadata["verified_block_count"].as_u64().unwrap();
+        totals.1 += metadata["salvageable_file_count"].as_u64().unwrap();
+        totals.2 += metadata["unsalvageable_file_count"].as_u64().unwrap();
+        totals.3 += metadata["unmappable_file_count"].as_u64().unwrap();
         assert_eq!(metadata["exported_artifact_count"], 0);
+        assert_eq!(metadata["exported_block_artifact_count"], 0);
+        assert_eq!(metadata["exported_extent_artifact_count"], 0);
+        assert_eq!(metadata["exported_full_file_artifact_count"], 0);
     }
+
+    assert_eq!(summary["total_verified_blocks"].as_u64().unwrap(), totals.0);
+    assert_eq!(
+        summary["total_salvageable_files"].as_u64().unwrap(),
+        totals.1
+    );
+    assert_eq!(
+        summary["total_unsalvageable_files"].as_u64().unwrap(),
+        totals.2
+    );
+    assert_eq!(
+        summary["total_unmappable_files"].as_u64().unwrap(),
+        totals.3
+    );
 }
 
 #[test]
-fn harness_manifest_order_is_deterministic() {
+fn harness_summary_order_is_deterministic() {
     let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
     let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
     let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
@@ -111,13 +132,13 @@ fn harness_manifest_order_is_deterministic() {
     run_harness(lab_bin, salvage_bin, &input_dir, &out_one, false);
     run_harness(lab_bin, salvage_bin, &input_dir, &out_two, false);
 
-    let first = read_json(&out_one.join("experiment_manifest.json"));
-    let second = read_json(&out_two.join("experiment_manifest.json"));
-    assert_eq!(first["archive_list"], second["archive_list"]);
+    let first = read_json(&out_one.join("summary.json"));
+    let second = read_json(&out_two.join("summary.json"));
+    assert_eq!(first["runs"], second["runs"]);
 }
 
 #[test]
-fn harness_export_toggle_controls_artifact_directory() {
+fn harness_export_toggle_controls_export_totals() {
     let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
     let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
     let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
@@ -129,25 +150,166 @@ fn harness_export_toggle_controls_artifact_directory() {
 
     let out_disabled = td.path().join("disabled");
     run_harness(lab_bin, salvage_bin, &input_dir, &out_disabled, false);
-    let disabled_manifest = read_json(&out_disabled.join("experiment_manifest.json"));
-    let disabled_id = disabled_manifest["archive_list"][0].as_str().unwrap();
-    let disabled_run = out_disabled.join("runs").join(disabled_id);
-    assert!(!disabled_run.join("exported_artifacts").exists());
-    assert_eq!(
-        read_json(&disabled_run.join("run_metadata.json"))["exported_artifact_count"],
-        0
-    );
+    let disabled_summary = read_json(&out_disabled.join("summary.json"));
+    assert_eq!(disabled_summary["total_exported_block_artifacts"], 0);
+    assert_eq!(disabled_summary["total_exported_extent_artifacts"], 0);
+    assert_eq!(disabled_summary["total_exported_full_file_artifacts"], 0);
 
     let out_enabled = td.path().join("enabled");
     run_harness(lab_bin, salvage_bin, &input_dir, &out_enabled, true);
     let enabled_manifest = read_json(&out_enabled.join("experiment_manifest.json"));
-    let enabled_id = enabled_manifest["archive_list"][0].as_str().unwrap();
-    let enabled_run = out_enabled.join("runs").join(enabled_id);
-    assert!(enabled_run.join("exported_artifacts").exists());
+    assert_eq!(enabled_manifest["export_fragments_enabled"], true);
+    let enabled_summary = read_json(&out_enabled.join("summary.json"));
     assert!(
-        read_json(&enabled_run.join("run_metadata.json"))["exported_artifact_count"]
+        enabled_summary["total_exported_block_artifacts"]
             .as_u64()
             .unwrap()
             > 0
+    );
+    assert!(
+        enabled_summary["total_exported_extent_artifacts"]
+            .as_u64()
+            .unwrap()
+            > 0
+    );
+    assert!(
+        enabled_summary["total_exported_full_file_artifacts"]
+            .as_u64()
+            .unwrap()
+            > 0
+    );
+}
+
+#[test]
+fn resummarize_regenerates_summary_without_rerunning_salvage() {
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let td = TempDir::new().unwrap();
+    let input_dir = td.path().join("archives");
+    fs::create_dir_all(&input_dir).unwrap();
+
+    build_archive(pack_bin, "x", "payload", &input_dir.join("only.crushr"));
+    let output_dir = td.path().join("experiment");
+    run_harness(lab_bin, salvage_bin, &input_dir, &output_dir, true);
+
+    let manifest = read_json(&output_dir.join("experiment_manifest.json"));
+    let run_id = manifest["archive_list"][0].as_str().unwrap();
+    let run_dir = output_dir.join("runs").join(run_id);
+
+    fs::remove_file(output_dir.join("summary.json")).unwrap();
+    fs::remove_file(output_dir.join("summary.md")).unwrap();
+    fs::write(run_dir.join("salvage_plan.json"), b"{ not valid json }").unwrap();
+
+    run(Command::new(lab_bin).arg("--resummarize").arg(&output_dir));
+
+    assert!(output_dir.join("summary.json").exists());
+    assert!(output_dir.join("summary.md").exists());
+}
+
+#[test]
+fn resummarize_classifies_required_outcomes() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let experiment_dir = td.path().join("experiment");
+    let runs_dir = experiment_dir.join("runs");
+    fs::create_dir_all(&runs_dir).unwrap();
+
+    let archive_ids = ["a", "b", "c", "d"];
+    let metadata = [
+        serde_json::json!({
+            "archive_path": "a.crushr",
+            "archive_fingerprint": "f1",
+            "verified_block_count": 0,
+            "salvageable_file_count": 0,
+            "unsalvageable_file_count": 1,
+            "unmappable_file_count": 0,
+            "exported_block_artifact_count": 0,
+            "exported_extent_artifact_count": 0,
+            "exported_full_file_artifact_count": 0
+        }),
+        serde_json::json!({
+            "archive_path": "b.crushr",
+            "archive_fingerprint": "f2",
+            "verified_block_count": 1,
+            "salvageable_file_count": 0,
+            "unsalvageable_file_count": 0,
+            "unmappable_file_count": 2,
+            "exported_block_artifact_count": 1,
+            "exported_extent_artifact_count": 0,
+            "exported_full_file_artifact_count": 0
+        }),
+        serde_json::json!({
+            "archive_path": "c.crushr",
+            "archive_fingerprint": "f3",
+            "verified_block_count": 2,
+            "salvageable_file_count": 1,
+            "unsalvageable_file_count": 0,
+            "unmappable_file_count": 0,
+            "exported_block_artifact_count": 1,
+            "exported_extent_artifact_count": 1,
+            "exported_full_file_artifact_count": 0
+        }),
+        serde_json::json!({
+            "archive_path": "d.crushr",
+            "archive_fingerprint": "f4",
+            "verified_block_count": 2,
+            "salvageable_file_count": 1,
+            "unsalvageable_file_count": 0,
+            "unmappable_file_count": 0,
+            "exported_block_artifact_count": 1,
+            "exported_extent_artifact_count": 1,
+            "exported_full_file_artifact_count": 1
+        }),
+    ];
+
+    for (archive_id, run_metadata) in archive_ids.into_iter().zip(metadata.into_iter()) {
+        let run_dir = runs_dir.join(archive_id);
+        fs::create_dir_all(&run_dir).unwrap();
+        fs::write(
+            run_dir.join("run_metadata.json"),
+            serde_json::to_vec_pretty(&run_metadata).unwrap(),
+        )
+        .unwrap();
+        fs::write(run_dir.join("salvage_plan.json"), b"{}").unwrap();
+    }
+
+    let manifest = serde_json::json!({
+        "experiment_id": "manual",
+        "tool_version": "test",
+        "schema_version": "crushr-lab-salvage-experiment.v1",
+        "run_count": 4,
+        "run_timestamp": "unix:0",
+        "verification_label": "UNVERIFIED_RESEARCH_OUTPUT",
+        "export_fragments_enabled": true,
+        "archive_list": archive_ids,
+    });
+    fs::create_dir_all(&experiment_dir).unwrap();
+    fs::write(
+        experiment_dir.join("experiment_manifest.json"),
+        serde_json::to_vec_pretty(&manifest).unwrap(),
+    )
+    .unwrap();
+
+    run(Command::new(lab_bin)
+        .arg("--resummarize")
+        .arg(&experiment_dir));
+
+    let summary = read_json(&experiment_dir.join("summary.json"));
+    let outcomes: Vec<String> = summary["runs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| row["outcome"].as_str().unwrap().to_string())
+        .collect();
+
+    assert_eq!(
+        outcomes,
+        vec![
+            "NO_VERIFIED_EVIDENCE",
+            "ORPHAN_EVIDENCE_ONLY",
+            "PARTIAL_FILE_SALVAGE",
+            "FULL_FILE_SALVAGE_AVAILABLE",
+        ]
     );
 }
