@@ -422,3 +422,9 @@
 - Added deterministic BLK3 candidate scanning, authoritative IDX3-aware file classification, dictionary dependency gating, and unverified research labeling.
 - Added salvage plan JSON schema and focused integration tests covering damaged footer/invalid index/no invented mappings/missing dictionary dependency/deterministic ordering/schema validation.
 - Reconciled active control docs so salvage is clearly separate from strict extraction and CRUSHR-SALVAGE-01 is explicitly plan-only.
+
+## 2026-03-14 — CRUSHR-SALVAGE-02 verified block analysis (plan-only)
+
+- Extended `crushr-salvage` candidate model with deterministic verification states (header validity, payload bounds, dictionary dependency status, decompression result, raw-hash result, content-verification status).
+- Added verification-backed file salvageability classification that requires authoritative IDX3 mappings plus content-verified dependencies and verified extent bounds.
+- Introduced `schemas/crushr-salvage-plan.v2.schema.json` and updated salvage tests to validate v2 shape plus deterministic success/failure scenarios (decode failure, raw-hash mismatch, missing dictionary dependency, ordering stability).

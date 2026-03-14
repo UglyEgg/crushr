@@ -369,3 +369,16 @@ Blast radius:
 - documentation
 - workspace CLI registry
 - future Phase 3 implementation work
+
+## 2026-03-14 — CRUSHR-SALVAGE-02: salvage plan schema bumped to v2 for explicit verification states
+
+- Decision:
+  - Introduce `crushr-salvage-plan.v2` instead of extending v1 in place, because candidate and file-plan sections now carry materially richer verification and reason-code surfaces.
+- Alternatives:
+  1. Keep v1 filename and add optional fields only.
+  2. Keep v1 shape and compress multiple verification states into free-form reason strings.
+- Rationale:
+  - SALVAGE-02 requires stable, schema-backed enums/reason codes for deterministic verification stages; v2 avoids ambiguous partial compatibility claims.
+- Blast radius:
+  - Affects only `crushr-salvage` research output, schema consumers/tests, and salvage documentation.
+  - No changes to `crushr-extract` contracts or strict extraction semantics.

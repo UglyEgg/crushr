@@ -80,10 +80,19 @@ fn run_salvage_json(archive: &Path) -> Value {
     serde_json::from_slice(&out.stdout).unwrap()
 }
 
+fn find_candidate(plan: &Value, offset: u64) -> &Value {
+    plan["block_candidates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["scan_offset"].as_u64() == Some(offset))
+        .expect("candidate at expected offset")
+}
+
 #[test]
 fn salvage_plan_json_validates_and_is_deterministic_for_clean_archive() {
     ensure_bins_built();
-    let schema = load_schema("schemas/crushr-salvage-plan.v1.schema.json");
+    let schema = load_schema("schemas/crushr-salvage-plan.v2.schema.json");
 
     let root = unique_dir("crushr-salvage-clean");
     fs::create_dir_all(&root).unwrap();
@@ -99,9 +108,68 @@ fn salvage_plan_json_validates_and_is_deterministic_for_clean_archive() {
         panic!("schema validation failed:\n{rendered}\ninstance={first}");
     }
 
+    let candidate = find_candidate(&first, 0);
+    assert_eq!(candidate["content_verification_status"], "content_verified");
+    assert_eq!(candidate["decompression_status"], "success");
+    assert_eq!(candidate["raw_hash_status"], "verified");
+
     let files = first["file_plans"].as_array().unwrap();
     assert!(!files.is_empty(), "expected at least one file plan");
     assert_eq!(files[0]["status"], Value::String("SALVAGEABLE".to_string()));
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn decompression_failure_is_recorded_deterministically() {
+    ensure_bins_built();
+    let root = unique_dir("crushr-salvage-decode-fail");
+    fs::create_dir_all(&root).unwrap();
+
+    let archive = make_single_file_archive(&root, "decode.txt", b"decode\n");
+    let mut bytes = fs::read(&archive).unwrap();
+    let header_len = u16::from_le_bytes([bytes[4], bytes[5]]) as usize;
+    bytes[header_len] ^= 0xff;
+
+    let broken = root.join("decode-broken.crs");
+    fs::write(&broken, bytes).unwrap();
+
+    let plan = run_salvage_json(&broken);
+    let candidate = find_candidate(&plan, 0);
+    assert_eq!(candidate["decompression_status"], "failed");
+    assert_eq!(
+        candidate["content_verification_status"],
+        "not_content_verified"
+    );
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn raw_hash_mismatch_blocks_content_verification() {
+    ensure_bins_built();
+    let root = unique_dir("crushr-salvage-raw-hash");
+    fs::create_dir_all(&root).unwrap();
+
+    let archive = make_single_file_archive(&root, "raw.txt", b"raw\n");
+    let mut bytes = fs::read(&archive).unwrap();
+    bytes[68] ^= 0x01;
+
+    let broken = root.join("raw-mismatch.crs");
+    fs::write(&broken, bytes).unwrap();
+
+    let plan = run_salvage_json(&broken);
+    let candidate = find_candidate(&plan, 0);
+    assert_eq!(candidate["decompression_status"], "success");
+    assert_eq!(candidate["raw_hash_status"], "mismatch");
+    assert_eq!(
+        candidate["content_verification_status"],
+        "not_content_verified"
+    );
+
+    let files = plan["file_plans"].as_array().unwrap();
+    assert!(!files.is_empty());
+    assert_eq!(files[0]["status"], "UNSALVAGEABLE");
 
     let _ = fs::remove_dir_all(&root);
 }
@@ -175,7 +243,6 @@ fn missing_dictionary_dependency_blocks_salvageability() {
     let archive = make_single_file_archive(&root, "dict.txt", b"dict\n");
     let mut bytes = fs::read(&archive).unwrap();
 
-    // First BLK3 should be at offset 0 for this fixture.
     let flags = u16::from_le_bytes([bytes[6], bytes[7]]);
     let uses_dict = flags | (1 << 2);
     bytes[6..8].copy_from_slice(&uses_dict.to_le_bytes());
@@ -186,13 +253,17 @@ fn missing_dictionary_dependency_blocks_salvageability() {
 
     let plan = run_salvage_json(&mutated);
 
+    let candidate = find_candidate(&plan, 0);
+    assert_eq!(candidate["dictionary_dependency_status"], "missing");
+    assert_eq!(
+        candidate["content_verification_status"],
+        "not_content_verified"
+    );
+
     let files = plan["file_plans"].as_array().unwrap();
     assert!(!files.is_empty());
     assert_eq!(files[0]["status"], "UNSALVAGEABLE");
-    assert_eq!(
-        files[0]["reason"],
-        "required_dictionary_missing_or_unverified"
-    );
+    assert_eq!(files[0]["reason"], "required_block_not_content_verified");
 
     let _ = fs::remove_dir_all(&root);
 }

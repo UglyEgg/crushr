@@ -33,16 +33,16 @@ Non-negotiable baseline:
 - Phase 2 execution matrix: complete and frozen.
 - Phase 2 normalization: complete and frozen.
 - Phase 2 comparison/ranking analysis: complete and frozen.
-- Current next workstream: `CRUSHR-SALVAGE-01` plan-only deterministic salvage planning.
+- Current salvage baseline: `CRUSHR-SALVAGE-02` deterministic verified block analysis over plan-only salvage output.
 
 Canonical Phase 2 workspace root remains `PHASE2_RESEARCH/`.
 
-## `CRUSHR-SALVAGE-01` boundary
+## `CRUSHR-SALVAGE-02` boundary
 
 This packet is plan-only and must:
 
-- introduce standalone `crushr-salvage`
-- emit deterministic machine-readable salvage plan JSON
+- keep standalone `crushr-salvage` separation
+- emit deterministic machine-readable salvage plan JSON with verification-backed block/file status
 - avoid fragment extraction/carving output
 - avoid speculative reconstruction or guessed mappings
 - never modify archives
