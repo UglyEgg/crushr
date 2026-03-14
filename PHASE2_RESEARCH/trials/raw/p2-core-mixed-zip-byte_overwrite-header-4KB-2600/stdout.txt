@@ -1,5 +1,0 @@
-file #1:  bad zipfile offset (local header sig):  0
-file #2:  bad zipfile offset (local header sig):  329
-test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-byte_overwrite-header-4KB-2600/mixed.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

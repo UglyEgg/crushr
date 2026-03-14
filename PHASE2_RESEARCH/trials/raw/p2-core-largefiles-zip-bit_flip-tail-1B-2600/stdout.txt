@@ -1,4 +1,0 @@
-payload/large_text.txt  bad CRC 3710aadc  (should be a7841382)
-test of PHASE2_RESEARCH/trials/raw/p2-core-largefiles-zip-bit_flip-tail-1B-2600/largefiles.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

@@ -1,4 +1,0 @@
-
-gzip: stdin: invalid compressed data--format violated
-tar: Unexpected EOF in archive
-tar: Error is not recoverable: exiting now

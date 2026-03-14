@@ -1,3 +1,0 @@
-	zip warning: expected 20 entries but found 7
-
-zip error: Zip file structure invalid (PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-zero_fill-payload-4KB-65535/mixed.zip.corrupt)

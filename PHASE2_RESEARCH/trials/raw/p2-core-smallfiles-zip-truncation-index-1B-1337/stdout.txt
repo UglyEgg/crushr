@@ -1,2 +1,0 @@
-
-zip error: Unexpected end of zip file (PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-truncation-index-1B-1337/smallfiles.zip.corrupt)

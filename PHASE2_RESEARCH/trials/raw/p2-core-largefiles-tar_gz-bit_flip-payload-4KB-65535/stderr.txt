@@ -1,6 +1,0 @@
-
-gzip: stdin: invalid compressed data--crc error
-
-gzip: stdin: invalid compressed data--length error
-tar: Unexpected EOF in archive
-tar: Error is not recoverable: exiting now

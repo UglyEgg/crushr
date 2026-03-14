@@ -1,4 +1,0 @@
-file #18:  bad zipfile offset (lseek):  10616832
-test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-byte_overwrite-tail-1B-65535/smallfiles.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

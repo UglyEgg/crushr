@@ -1,2 +1,0 @@
-
-zip error: Unexpected end of zip file (PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-tail_damage-payload-256B-65535/mixed.zip.corrupt)

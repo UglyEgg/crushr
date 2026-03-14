@@ -1,2 +1,0 @@
-cfg/file_03.txt
-cfg/file_09.txt

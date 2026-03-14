@@ -1,1 +1,0 @@
-parse FTR4: ledger_hash must be zero when ledger absent

@@ -1,5 +1,0 @@
-  error:  invalid compressed data to inflate payload/large_blob_b.bin
-file #3:  bad zipfile offset (local header sig):  2526
-test of PHASE2_RESEARCH/trials/raw/p2-core-largefiles-zip-zero_fill-header-4KB-1337/largefiles.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

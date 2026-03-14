@@ -1,1 +1,0 @@
-test of PHASE2_RESEARCH/trials/raw/p2-core-largefiles-zip-byte_overwrite-index-1B-65535/largefiles.zip.corrupt OK

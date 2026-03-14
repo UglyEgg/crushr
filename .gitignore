@@ -2,3 +2,4 @@ dist/
 target/
 PHASE2_RESEARCH/baselines/*
 PHASE2_RESEARCH/datasets/*
+PHASE2_RESEARCH/trials/raw

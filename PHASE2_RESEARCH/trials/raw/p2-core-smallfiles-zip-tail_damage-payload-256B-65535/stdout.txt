@@ -1,6 +1,0 @@
-	zip warning: unexpected signature on disk 0 at 4132
-
-	zip warning: archive not in correct format: PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-tail_damage-payload-256B-65535/smallfiles.zip.corrupt
-	zip warning: (try -F to attempt recovery)
-
-zip error: Zip file structure invalid (PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-tail_damage-payload-256B-65535/smallfiles.zip.corrupt)

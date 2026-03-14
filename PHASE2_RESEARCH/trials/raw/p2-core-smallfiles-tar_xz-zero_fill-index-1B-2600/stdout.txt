@@ -1,5 +1,0 @@
-cfg/file_03.txt
-cfg/file_09.txt
-cfg/file_15.txt
-cfg/file_21.txt
-docs/file_00.txt

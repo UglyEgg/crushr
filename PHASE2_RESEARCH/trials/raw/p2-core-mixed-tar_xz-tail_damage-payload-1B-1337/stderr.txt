@@ -1,5 +1,0 @@
-xz: (stdin): Compressed data is corrupt
-tar: Skipping to next header
-tar: A lone zero block at 49
-tar: Child returned status 1
-tar: Error is not recoverable: exiting now

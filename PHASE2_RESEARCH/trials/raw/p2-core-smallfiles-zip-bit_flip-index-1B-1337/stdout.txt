@@ -1,4 +1,0 @@
-notes/file_11.txt       bad CRC be314868  (should be 61bbe9e9)
-test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-bit_flip-index-1B-1337/smallfiles.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

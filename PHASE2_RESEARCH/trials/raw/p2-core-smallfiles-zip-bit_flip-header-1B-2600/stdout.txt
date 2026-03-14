@@ -1,4 +1,0 @@
-cfg/file_03.txt         bad CRC 220a2756  (should be 39ea8117)
-test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-bit_flip-header-1B-2600/smallfiles.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

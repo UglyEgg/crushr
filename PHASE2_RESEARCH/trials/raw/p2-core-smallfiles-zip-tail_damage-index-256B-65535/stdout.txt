@@ -1,6 +1,0 @@
-  error:  invalid compressed data to inflate notes/file_23.txt
-file #17:  bad zipfile offset (local header sig):  2349
-file #18:  bad zipfile offset (local header sig):  2466
-test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-tail_damage-index-256B-65535/smallfiles.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

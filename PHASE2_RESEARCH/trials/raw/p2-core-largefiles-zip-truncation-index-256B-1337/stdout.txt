@@ -1,5 +1,0 @@
-	zip warning: missing end signature--probably not a zip file (did you
-	zip warning: remember to use binary mode when you transferred it?)
-	zip warning: (if you are trying to read a damaged archive try -F)
-
-zip error: Zip file structure invalid (PHASE2_RESEARCH/trials/raw/p2-core-largefiles-zip-truncation-index-256B-1337/largefiles.zip.corrupt)

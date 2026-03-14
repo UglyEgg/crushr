@@ -16,14 +16,19 @@
     "smallfiles": 900
   },
   "exit_code_histogram": {
-    "0": 331,
-    "2": 1909,
-    "3": 156,
-    "8": 304
+    "0": 217,
+    "1": 31,
+    "12": 7,
+    "2": 2241,
+    "3": 42,
+    "50": 1,
+    "51": 10,
+    "81": 4,
+    "9": 147
   },
   "has_json_result_counts": {
-    "true_count": 297,
-    "false_count": 2403
+    "true_count": 540,
+    "false_count": 2160
   },
   "tool_versions": {
     "by_tool": [
@@ -57,7 +62,7 @@
       },
       {
         "tool_kind": "zip",
-        "executable": "zip",
+        "executable": "unzip",
         "status": "detected",
         "version": "Copyright (c) 1990-2008 Info-ZIP - Type 'zip \"-L\"' for software license.",
         "detail": null

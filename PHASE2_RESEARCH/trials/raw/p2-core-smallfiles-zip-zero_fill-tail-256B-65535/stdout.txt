@@ -1,3 +1,0 @@
-	zip warning: zero-length name for entry #19
-
-zip error: Zip file structure invalid (PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-zero_fill-tail-256B-65535/smallfiles.zip.corrupt)

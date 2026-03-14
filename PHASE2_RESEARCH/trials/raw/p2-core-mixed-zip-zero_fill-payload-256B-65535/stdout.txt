@@ -1,9 +1,0 @@
-text/doc_04.txt:  mismatching "local" filename (text/doc_03.txt),
-         continuing with "central" filename version
-  error:  invalid compressed data to inflate text/doc_04.txt
-file #14:  bad zipfile offset (local header sig):  2065
-file #15:  bad zipfile offset (local header sig):  2151
-file #16:  bad zipfile offset (local header sig):  2237
-test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-zero_fill-payload-256B-65535/mixed.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

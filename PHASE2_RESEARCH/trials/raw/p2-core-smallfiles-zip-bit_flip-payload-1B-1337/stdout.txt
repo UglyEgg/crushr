@@ -1,1 +1,0 @@
-test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-bit_flip-payload-1B-1337/smallfiles.zip.corrupt OK

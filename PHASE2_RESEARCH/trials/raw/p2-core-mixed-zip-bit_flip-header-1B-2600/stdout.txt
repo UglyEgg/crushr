@@ -1,4 +1,0 @@
-bin/blob_00.bin         bad CRC c5110f1e  (should be dd34ad61)
-test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-bit_flip-header-1B-2600/mixed.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

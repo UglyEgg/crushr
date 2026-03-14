@@ -1,2 +1,0 @@
-
-zip error: Unexpected end of zip file (PHASE2_RESEARCH/trials/raw/p2-core-largefiles-zip-truncation-tail-1B-2600/largefiles.zip.corrupt)

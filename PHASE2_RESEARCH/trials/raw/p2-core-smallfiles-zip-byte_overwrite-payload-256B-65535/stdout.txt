@@ -1,6 +1,0 @@
-tmp/file_04.txt         bad CRC e828bd26  (should be cacdbc5f)
-file #22:  bad zipfile offset (local header sig):  3041
-file #23:  bad zipfile offset (local header sig):  3184
-test of PHASE2_RESEARCH/trials/raw/p2-core-smallfiles-zip-byte_overwrite-payload-256B-65535/smallfiles.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

@@ -1,1 +1,0 @@
-test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-zero_fill-payload-1B-1337/mixed.zip.corrupt OK

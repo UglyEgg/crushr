@@ -1,3 +1,0 @@
-xz: (stdin): Compressed data is corrupt
-tar: Child returned status 1
-tar: Error is not recoverable: exiting now

@@ -1,4 +1,0 @@
-payload/large_blob_b.bin  bad CRC 11f29367  (should be db349b24)
-test of PHASE2_RESEARCH/trials/raw/p2-core-largefiles-zip-byte_overwrite-header-256B-1337/largefiles.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

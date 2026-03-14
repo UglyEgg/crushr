@@ -1,3 +1,0 @@
-xz: (stdin): File format not recognized
-tar: Child returned status 1
-tar: Error is not recoverable: exiting now

@@ -1,5 +1,0 @@
-  error:  invalid compressed data to inflate bin/blob_00.bin
-file #2:  bad zipfile offset (local header sig):  329
-test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-byte_overwrite-header-256B-1337/mixed.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

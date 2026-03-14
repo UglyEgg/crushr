@@ -1,4 +1,0 @@
-meta/table_b.csv        bad CRC 840cfadd  (should be 53ee7a85)
-test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-bit_flip-index-1B-2600/mixed.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)

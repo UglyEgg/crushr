@@ -1,3 +1,0 @@
-/*stdin*\ : Decoding error (36) : Restored data doesn't match checksum 
-tar: Unexpected EOF in archive
-tar: Error is not recoverable: exiting now

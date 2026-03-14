@@ -1,29 +1,29 @@
 {
   "total_normalized_runs": 2700,
   "result_class_counts": {
-    "PARTIAL": 990,
-    "REFUSED": 290,
-    "STRUCTURAL_FAIL": 586,
-    "SUCCESS": 331,
-    "TOOL_ERROR": 503
+    "PARTIAL": 906,
+    "REFUSED": 296,
+    "STRUCTURAL_FAIL": 475,
+    "SUCCESS": 217,
+    "TOOL_ERROR": 806
   },
   "failure_stage_counts": {
-    "EXTRACTION": 525,
-    "NONE": 331,
-    "PRE_EXTRACT": 895,
-    "UNKNOWN": 949
+    "EXTRACTION": 531,
+    "NONE": 217,
+    "PRE_EXTRACT": 784,
+    "UNKNOWN": 1168
   },
   "diagnostic_specificity_counts": {
-    "GENERIC": 1,
-    "NONE": 26,
-    "PRECISE": 1858,
-    "STRUCTURAL": 815
+    "GENERIC": 41,
+    "NONE": 10,
+    "PRECISE": 886,
+    "STRUCTURAL": 1763
   },
   "per_format_result_class_counts": {
     "crushr": {
       "STRUCTURAL_FAIL": 241,
-      "SUCCESS": 297,
-      "TOOL_ERROR": 2
+      "SUCCESS": 183,
+      "TOOL_ERROR": 116
     },
     "tar+gz": {
       "PARTIAL": 343,
@@ -46,24 +46,84 @@
       "TOOL_ERROR": 244
     },
     "zip": {
-      "PARTIAL": 153,
-      "REFUSED": 78,
-      "STRUCTURAL_FAIL": 111,
+      "PARTIAL": 69,
+      "REFUSED": 84,
       "SUCCESS": 27,
-      "TOOL_ERROR": 171
+      "TOOL_ERROR": 360
     }
   },
-  "runs_with_file_level_detail": 0,
+  "runs_with_recovery_accounting": 2700,
+  "recovery_evidence_strength_counts": {
+    "FILE_AND_BYTE_COUNTS": 2700
+  },
+  "per_format_average_recovery_ratio_files": {
+    "crushr": 0.0,
+    "tar+gz": 0.5822222222222223,
+    "tar+xz": 0.591064814814816,
+    "tar+zstd": 0.33888888888888874,
+    "zip": 0.6087037037037035
+  },
+  "per_format_average_recovery_ratio_bytes": {
+    "crushr": 0.0,
+    "tar+gz": 0.6055152942991747,
+    "tar+xz": 0.5811059591930258,
+    "tar+zstd": 0.28552712410697056,
+    "zip": 0.5665798282137599
+  },
+  "per_format_blast_radius_class_counts": {
+    "crushr": {
+      "TOTAL": 540
+    },
+    "tar+gz": {
+      "LOCALIZED": 34,
+      "NONE": 220,
+      "PARTIAL_SET": 75,
+      "TOTAL": 161,
+      "WIDESPREAD": 50
+    },
+    "tar+xz": {
+      "LOCALIZED": 47,
+      "NONE": 210,
+      "PARTIAL_SET": 56,
+      "TOTAL": 82,
+      "WIDESPREAD": 145
+    },
+    "tar+zstd": {
+      "NONE": 161,
+      "PARTIAL_SET": 33,
+      "TOTAL": 346
+    },
+    "zip": {
+      "LOCALIZED": 71,
+      "NONE": 210,
+      "PARTIAL_SET": 62,
+      "TOTAL": 174,
+      "WIDESPREAD": 23
+    }
+  },
+  "per_corruption_type_average_recovery_ratio_files": {
+    "bit_flip": 0.42037037037037017,
+    "byte_overwrite": 0.41944444444444406,
+    "tail_damage": 0.42262345679012314,
+    "truncation": 0.4328858024691359,
+    "zero_fill": 0.4255555555555553
+  },
+  "per_target_average_recovery_ratio_files": {
+    "header": 0.33006172839506154,
+    "index": 0.3892839506172845,
+    "payload": 0.4310246913580243,
+    "tail": 0.5463333333333343
+  },
   "per_format_notes": {
-    "crushr": "structured JSON exists, but current phase uses crushr-info structural probes (no extraction outcome file counts)",
-    "tar+gz": "no structured per-file result artifact in execution corpus",
-    "tar+xz": "no structured per-file result artifact in execution corpus",
-    "tar+zstd": "no structured per-file result artifact in execution corpus",
-    "zip": "no structured per-file result artifact in execution corpus"
+    "crushr": "recovery accounting is computed from extracted file presence and byte counts; content checksums are not yet validated",
+    "tar+gz": "recovery accounting is computed from extracted file presence and byte counts; content checksums are not yet validated",
+    "tar+xz": "recovery accounting is computed from extracted file presence and byte counts; content checksums are not yet validated",
+    "tar+zstd": "recovery accounting is computed from extracted file presence and byte counts; content checksums are not yet validated",
+    "zip": "recovery accounting is computed from extracted file presence and byte counts; content checksums are not yet validated"
   },
   "mapping_report": {
-    "exit_code_zero": "exit_code=0 => SUCCESS, failure_stage=NONE",
-    "extraction_markers": "non-zero exit + extraction markers => failure_stage=EXTRACTION; result_class=REFUSED or PARTIAL based on refusal markers",
-    "pre_extract_markers": "non-zero exit + structural markers => failure_stage=PRE_EXTRACT; result_class=STRUCTURAL_FAIL unless refusal markers also present"
+    "blast_radius_thresholds": "NONE=1.0, LOCALIZED=[0.9,1.0), PARTIAL_SET=[0.5,0.9), WIDESPREAD=(0,0.5), TOTAL=0.0 using recovery_ratio_files",
+    "recovered_byte_rule": "bytes_recovered sums min(actual_size, expected_size) for each recovered file; missing files contribute zero bytes",
+    "recovered_file_rule": "a file counts as recovered only when a same-relative-path regular file exists in extraction output; zero-byte files count as recovered when expected size is zero"
   }
 }

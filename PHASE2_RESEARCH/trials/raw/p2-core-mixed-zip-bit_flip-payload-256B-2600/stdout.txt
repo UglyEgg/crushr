@@ -1,7 +1,0 @@
-  error:  invalid compressed data to inflate text/doc_05.txt
-file #15:  bad zipfile offset (local header sig):  2151
-file #16:  bad zipfile offset (local header sig):  2237
-file #17:  bad zipfile offset (local header sig):  2323
-test of PHASE2_RESEARCH/trials/raw/p2-core-mixed-zip-bit_flip-payload-256B-2600/mixed.zip.corrupt FAILED
-
-zip error: Zip file invalid, could not spawn unzip, or wrong unzip (original files unmodified)
