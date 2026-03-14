@@ -39,6 +39,7 @@ This document describes the current implemented boundary without speculative mat
 - `crushr-fsck`: verify/analyze corruption and emit bounded diagnostics
 - `crushr-extract`: strict safe extraction + refusal reporting
 - `crushr-lab`: experiment orchestration support
+- `crushr-lab-salvage`: salvage experiment orchestration (`experiment_manifest.json` + per-run metadata), delegating salvage execution to `crushr-salvage`
 
 ## Current implementation constraints
 
@@ -59,4 +60,5 @@ This document describes the current implemented boundary without speculative mat
 - active implementation workstream: standalone deterministic salvage planning (`crushr-salvage`)
 - strict extraction semantics remain unchanged
 - salvage verification/export in `crushr-salvage` is deterministic research evidence only and does not authorize canonical extraction
+- salvage experiment orchestration remains research-only and must not mutate archives or frozen Phase 2 corpus artifacts
 - optional `crushr-salvage --export-fragments <dir>` emits verified block/extents artifacts labeled `UNVERIFIED_RESEARCH_OUTPUT`

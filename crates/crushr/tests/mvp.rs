@@ -31,18 +31,9 @@ fn pack_list_extract_roundtrip() {
     }
 
     let archive = td.path().join("test.crs");
-    let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(std::path::Path::parent)
-        .expect("workspace root");
+    let bin = std::path::Path::new(env!("CARGO_BIN_EXE_crushr"));
 
-    run(std::process::Command::new("cargo")
-        .args(["build", "-p", "crushr", "--bin", "crushr"])
-        .current_dir(workspace_root));
-
-    let bin = workspace_root.join("target/debug/crushr");
-
-    run(std::process::Command::new(&bin).args([
+    run(std::process::Command::new(bin).args([
         "pack",
         in_dir.to_str().unwrap(),
         "-o",
@@ -53,10 +44,10 @@ fn pack_list_extract_roundtrip() {
         "3",
     ]));
 
-    run(std::process::Command::new(&bin).args(["list", archive.to_str().unwrap()]));
+    run(std::process::Command::new(bin).args(["list", archive.to_str().unwrap()]));
 
     fs::create_dir_all(&out_dir).unwrap();
-    run(std::process::Command::new(&bin).args([
+    run(std::process::Command::new(bin).args([
         "extract",
         archive.to_str().unwrap(),
         "--all",

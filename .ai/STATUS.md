@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning Research Boundary
 
-Current Step: CRUSHR-SALVAGE-03 complete (verified fragment export added to standalone salvage executable)
+Current Step: CRUSHR-SALVAGE-04 complete (deterministic salvage experiment harness added via `crushr-lab-salvage`)
 
-Recent completed packet: CRUSHR-SALVAGE-03 (deterministic verified block/extent research artifact export)
+Recent completed packet: CRUSHR-SALVAGE-04 (deterministic salvage experiment harness and experiment manifest/metadata outputs)
 
 ## Current truth
 
@@ -13,7 +13,8 @@ Recent completed packet: CRUSHR-SALVAGE-03 (deterministic verified block/extent 
 - Phase 2 normalization is complete and frozen.
 - Phase 2 comparison analysis is complete and frozen.
 - `crushr-extract` remains strict-only and unchanged as canonical extraction behavior.
-- `crushr-salvage` now includes deterministic block-level verification states and optional verified fragment export (`--export-fragments`).
+- `crushr-salvage` includes deterministic block-level verification states and optional verified fragment export (`--export-fragments`).
+- `crushr-lab-salvage` orchestrates deterministic salvage experiments over `.crushr` sets and writes experiment manifests/run metadata.
 
 ## Active constraints
 
@@ -27,3 +28,4 @@ Recent completed packet: CRUSHR-SALVAGE-03 (deterministic verified block/extent 
 1. Keep strict extraction interfaces/semantics untouched.
 2. Preserve deterministic salvage schema v2 output stability, including optional exported_artifacts references.
 3. Keep Phase 2 corpus and frozen artifacts unchanged.
+4. Keep salvage experiment outputs labeled as unverified research output and deterministic in archive ordering/IDs.

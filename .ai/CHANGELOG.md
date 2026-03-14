@@ -436,3 +436,8 @@
 - Added deterministic block/extents/full-file artifact export rules with `SALVAGE_RESEARCH_OUTPUT.txt` marker and per-sidecar `verification_label = UNVERIFIED_RESEARCH_OUTPUT`.
 - Extended salvage plan v2 output/schema with optional `exported_artifacts` references when export mode is enabled.
 - Added focused salvage integration tests for export success/failure gating, partial-vs-full export behavior, deterministic ordering, export-disabled behavior, and schema compatibility.
+
+- 2026-03-14 — CRUSHR-SALVAGE-04
+  - Added `crushr-lab-salvage` deterministic research harness for batch salvage experiments over `.crushr` archives.
+  - Added experiment manifest + per-run metadata output layout with deterministic archive ordering and run IDs.
+  - Added integration tests covering structure generation, deterministic ordering, export-enabled/disabled behavior, and summary population.

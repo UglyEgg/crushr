@@ -33,23 +33,23 @@ Non-negotiable baseline:
 - Phase 2 execution matrix: complete and frozen.
 - Phase 2 normalization: complete and frozen.
 - Phase 2 comparison/ranking analysis: complete and frozen.
-- Current salvage baseline: `CRUSHR-SALVAGE-03` deterministic verified block/extent research-artifact export from standalone salvage output.
+- Current salvage baseline: `CRUSHR-SALVAGE-04` deterministic research harness (`crushr-lab-salvage`) that orchestrates standalone salvage runs and emits experiment manifests/metadata.
 
 Canonical Phase 2 workspace root remains `PHASE2_RESEARCH/`.
 
-## `CRUSHR-SALVAGE-03` boundary
+## `CRUSHR-SALVAGE-04` boundary
 
-This packet adds optional research artifact export and must:
+This packet adds deterministic salvage experiment orchestration and must:
 
 - keep standalone `crushr-salvage` separation
-- emit deterministic machine-readable salvage plan JSON with verification-backed block/file status
+- emit deterministic experiment output layout and machine-readable salvage plan/metadata JSON
 - avoid speculative reconstruction or guessed mappings
 - never modify archives
 - label outputs as unverified research output
 
-Out of scope for this packet:
+Out of scope for this packet (unchanged):
 
 - speculative stitching/reconstruction
 - guessed byte emission
 - mutation of archives
-- integration into `crushr-lab`
+- integration into `crushr-extract`

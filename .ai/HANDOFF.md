@@ -2,12 +2,12 @@
 
 ## Immediate next packet
 
-Next salvage packet (TBD): build on CRUSHR-SALVAGE-03 export model without adding reconstruction.
+Next salvage packet (TBD): build on CRUSHR-SALVAGE-04 harness outputs without adding reconstruction.
 
 ## First actions for a fresh instance
 
 1. Read startup order from `AI_BOOTSTRAP.md`.
-2. Confirm `STATUS.md` and `PHASE_PLAN.md` show CRUSHR-SALVAGE-03 complete and salvage remains separate from strict extraction.
+2. Confirm `STATUS.md` and `PHASE_PLAN.md` show CRUSHR-SALVAGE-04 complete and salvage remains separate from strict extraction.
 3. Keep strict extraction (`crushr-extract`) semantics unchanged.
 4. Treat salvage as a separate experimental executable only.
 5. Run workspace gates (`fmt`, `test`, `clippy`).
@@ -34,3 +34,11 @@ Next salvage packet (TBD): build on CRUSHR-SALVAGE-03 export model without addin
 - optional `--export-fragments` artifact emission with deterministic ordering
 - block/extent/full-file export gating only from content-verified data
 - salvage-plan v2 `exported_artifacts` references when export mode is enabled
+
+
+## Completed CRUSHR-SALVAGE-04 outputs
+
+- deterministic `crushr-lab-salvage` orchestration over `.crushr` archive directories
+- stable per-run directories with salvage plan capture + run metadata
+- top-level `experiment_manifest.json` with run ordering and unverified research label
+- optional delegated fragment export integration via `crushr-salvage --export-fragments`

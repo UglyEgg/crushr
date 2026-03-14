@@ -41,3 +41,9 @@
   - deterministic block/extent/full-file export gating on content verification
   - SALVAGE_RESEARCH_OUTPUT marker + `UNVERIFIED_RESEARCH_OUTPUT` sidecar labels
   - optional `exported_artifacts` section in salvage-plan v2 output
+
+- [x] 3.4 CRUSHR-SALVAGE-04 (deterministic salvage experiment harness, research-only)
+  - standalone executable: `crushr-lab-salvage`
+  - deterministic `.crushr` archive enumeration and stable run IDs
+  - experiment output layout with `experiment_manifest.json`, per-run `salvage_plan.json`, `run_metadata.json`
+  - optional fragment export integration via delegated `crushr-salvage --export-fragments`
