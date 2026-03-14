@@ -15,7 +15,7 @@ Phase 2.2 comparative mapping/reporting on top of frozen manifest + deterministi
 ## First actions for a fresh instance
 
 1. Read startup order from `../AI_BOOTSTRAP.md`.
-2. Confirm `STATUS.md` and `PHASE_PLAN.md` show CRUSHR-P2-EXEC-03A complete and Phase 2.2 comparative mapping/reporting as the next active step.
+2. Confirm `STATUS.md` and `PHASE_PLAN.md` show CRUSHR-P2-EXEC-03B complete and matrix rerun + Phase 2.2 comparative mapping/reporting as the next active step.
 3. Keep strict extraction + integrity-first thesis unchanged.
 4. Treat `PHASE2_RESEARCH/` as the canonical Phase 2 workspace and `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md` as the active lock document.
 5. Consume `crushr-lab` Phase 2 manifest/scenario enumeration plus the deterministic foundation builder (`build-phase2-foundation`) and execution runner (`run-phase2-execution`) as canonical Phase 2 inputs; do not mutate locked matrix semantics.
@@ -32,6 +32,7 @@ Phase 2.2 comparative mapping/reporting on top of frozen manifest + deterministi
 - CRUSHR-P2-EXEC-01 finished: froze canonical trial contract artifacts at `PHASE2_RESEARCH/manifest/phase2_manifest.json` (2700 deterministic scenarios) and `PHASE2_RESEARCH/manifest/manifest_summary.json` (count + locked axis lists).
 - CRUSHR-P2-EXEC-02 finished: generated canonical Phase 2 fixture datasets under `PHASE2_RESEARCH/datasets/`, baseline archive corpus under `PHASE2_RESEARCH/baselines/`, and `PHASE2_RESEARCH/foundation/foundation_report.json` including archive hashes/sizes/file counts and deterministic generation confirmation.
 - CRUSHR-P2-EXEC-03A finished: `run-phase2-execution` now resolves source archive paths from `foundation_report.json` against workspace root (absolute paths preserved), limits `artifact_dir` to generated run outputs, and defaults to canonical execution paths under `PHASE2_RESEARCH/trials`.
+- CRUSHR-P2-EXEC-03B finished: enriched Phase 2 execution evidence model (`raw_run_records.json`) with first-class scenario/invocation/path/result fields, replaced broken generic version strings with truthful tool-version observations, upgraded `execution_report.json` with matrix/exit/json/tool/completeness summaries, and added execution-report/raw-record schema contracts plus focused tests.
 - CRUSHR-P2-PRETRIAL-DET-01 finished: `crushr-pack` baseline archive generation is deterministic (stable file ordering, normalized mode/mtime metadata, deterministic zstd flags), with focused tests for byte-identical repeated runs and stable index ordering.
 - CRUSHR-P2-CLEAN-07: reduced `crushr-lab/src/main.rs` to thin top-level dispatch; moved command-specific parsing/execution into `cli.rs`, `phase2_corruption.rs`, `phase2_manifest.rs`, `phase2_foundation.rs`, and `phase2_runner.rs` with behavior-preserving defaults/help.
 - CRUSHR-CLEANUP-2.0-C finished: active schemas are now strict contracts and validated with JSON Schema in integration tests.

@@ -1,38 +1,79 @@
 use crate::phase2_corruption::{apply_locked_corruption, CorruptionRequest};
-use crate::phase2_domain::{ArchiveFormat, CorruptionType, Dataset, TargetClass};
+use crate::phase2_domain::{ArchiveFormat, CorruptionType, Dataset, Magnitude, TargetClass};
 use crate::phase2_foundation::{ArchiveBuildRecord, ExecutionStatus, Phase2FoundationReport};
 use crate::phase2_manifest::{Phase2ExperimentManifest, Phase2Scenario};
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{bail, Context, Result};
 use serde::Serialize;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 const DEFAULT_MANIFEST_PATH: &str = "PHASE2_RESEARCH/manifest/phase2_manifest.json";
 const DEFAULT_FOUNDATION_REPORT_PATH: &str = "PHASE2_RESEARCH/foundation/foundation_report.json";
 const DEFAULT_ARTIFACT_DIR: &str = "PHASE2_RESEARCH/trials";
 
 #[derive(Debug, Clone, Serialize)]
-pub struct ExecutionMetadata {
-    pub invocation: InvocationMetadata,
-    pub source_archive_path: String,
-    pub corrupted_archive_path: String,
-    pub corruption_log_path: String,
-    pub started_unix_ms: u128,
-    pub finished_unix_ms: u128,
+pub struct ResultArtifacts {
+    pub stdout_path: String,
+    pub stderr_path: String,
+    pub json_result_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InvocationStatus {
+    Completed,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EvidenceQuality {
+    StdoutOnly,
+    StdoutAndStderr,
+    StructuredJsonResult,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolVersionStatus {
+    Detected,
+    Unsupported,
+    Unavailable,
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct InvocationMetadata {
+pub struct ToolVersionObservation {
+    pub status: ToolVersionStatus,
+    pub version: Option<String>,
+    pub detail: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ToolVersionSummary {
     pub tool_kind: ArchiveFormat,
     pub executable: String,
-    pub argv: Vec<String>,
-    pub cwd: Option<String>,
-    pub exit_status_code: i32,
-    pub stdout_artifact_path: String,
-    pub stderr_artifact_path: String,
+    pub status: ToolVersionStatus,
+    pub version: Option<String>,
+    pub detail: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct JsonResultCounts {
+    pub true_count: usize,
+    pub false_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ExecutionReportToolVersions {
+    pub by_tool: Vec<ToolVersionSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RunContextPaths {
+    pub source_archive_path: String,
+    pub corrupted_archive_path: String,
+    pub corruption_log_path: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -42,14 +83,26 @@ pub struct RawRunRecord {
     pub format: ArchiveFormat,
     pub corruption_type: CorruptionType,
     pub target_class: TargetClass,
+    pub magnitude: Magnitude,
     pub magnitude_bytes: u64,
     pub seed: u64,
+    pub source_archive_path: String,
+    pub corrupted_archive_path: String,
+    pub tool_kind: ArchiveFormat,
+    pub executable: String,
+    pub argv: Vec<String>,
+    pub cwd: Option<String>,
     pub exit_code: i32,
     pub stdout_path: String,
     pub stderr_path: String,
     pub json_result_path: Option<String>,
-    pub tool_version: String,
-    pub execution_metadata: ExecutionMetadata,
+    pub has_json_result: bool,
+    pub invocation_status: InvocationStatus,
+    pub stage_classification: Option<String>,
+    pub tool_version: ToolVersionObservation,
+    pub result_artifacts: ResultArtifacts,
+    pub result_completeness: EvidenceQuality,
+    pub run_context_paths: RunContextPaths,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -67,6 +120,12 @@ pub struct Phase2ExecutionReport {
     pub actual_runs: usize,
     pub records_path: String,
     pub completeness_path: String,
+    pub scenario_count_by_format: BTreeMap<String, usize>,
+    pub scenario_count_by_dataset: BTreeMap<String, usize>,
+    pub exit_code_histogram: BTreeMap<String, usize>,
+    pub has_json_result_counts: JsonResultCounts,
+    pub tool_versions: ExecutionReportToolVersions,
+    pub completeness_audit_passed: bool,
 }
 
 pub fn run_phase2_execution_cmd(raw_args: Vec<String>) -> Result<()> {
@@ -150,7 +209,16 @@ pub fn run_phase2_execution(
     let completeness_path = artifact_root.join("completeness_audit.json");
     fs::write(&completeness_path, serde_json::to_vec_pretty(&audit)?)?;
 
-    if !audit.missing_runs.is_empty()
+    let report = build_execution_report(
+        manifest,
+        &records,
+        &audit,
+        artifact_root,
+        &records_path,
+        &completeness_path,
+    );
+
+    if !report.completeness_audit_passed
         || !audit.duplicate_runs.is_empty()
         || !audit.mismatched_scenario_ids.is_empty()
     {
@@ -160,12 +228,67 @@ pub fn run_phase2_execution(
         );
     }
 
-    Ok(Phase2ExecutionReport {
+    Ok(report)
+}
+
+fn build_execution_report(
+    manifest: &Phase2ExperimentManifest,
+    records: &[RawRunRecord],
+    audit: &CompletenessAudit,
+    artifact_root: &Path,
+    records_path: &Path,
+    completeness_path: &Path,
+) -> Phase2ExecutionReport {
+    let mut scenario_count_by_format = BTreeMap::new();
+    let mut scenario_count_by_dataset = BTreeMap::new();
+    let mut exit_code_histogram = BTreeMap::new();
+    let mut has_json_true = 0usize;
+    let mut tool_versions: BTreeMap<String, ToolVersionSummary> = BTreeMap::new();
+
+    for record in records {
+        *scenario_count_by_format
+            .entry(record.format.slug().to_string())
+            .or_insert(0) += 1;
+        *scenario_count_by_dataset
+            .entry(record.dataset.slug().to_string())
+            .or_insert(0) += 1;
+        *exit_code_histogram
+            .entry(record.exit_code.to_string())
+            .or_insert(0) += 1;
+        if record.has_json_result {
+            has_json_true += 1;
+        }
+
+        tool_versions
+            .entry(record.tool_kind.slug().to_string())
+            .or_insert_with(|| ToolVersionSummary {
+                tool_kind: record.tool_kind,
+                executable: record.executable.clone(),
+                status: record.tool_version.status,
+                version: record.tool_version.version.clone(),
+                detail: record.tool_version.detail.clone(),
+            });
+    }
+
+    Phase2ExecutionReport {
         expected_runs: manifest.scenarios.len(),
         actual_runs: records.len(),
-        records_path: rel_path(artifact_root, &records_path),
-        completeness_path: rel_path(artifact_root, &completeness_path),
-    })
+        records_path: rel_path(artifact_root, records_path),
+        completeness_path: rel_path(artifact_root, completeness_path),
+        scenario_count_by_format,
+        scenario_count_by_dataset,
+        exit_code_histogram,
+        has_json_result_counts: JsonResultCounts {
+            true_count: has_json_true,
+            false_count: records.len().saturating_sub(has_json_true),
+        },
+        tool_versions: ExecutionReportToolVersions {
+            by_tool: tool_versions.into_values().collect(),
+        },
+        completeness_audit_passed: audit.missing_runs.is_empty()
+            && audit.duplicate_runs.is_empty()
+            && audit.mismatched_scenario_ids.is_empty(),
+    }
 }
 
 pub fn audit_completeness(
@@ -220,7 +343,7 @@ fn execute_scenario(
     raw_root: &Path,
     scenario: &Phase2Scenario,
     archive_index: &HashMap<(Dataset, ArchiveFormat), &ArchiveBuildRecord>,
-    version_cache: &mut HashMap<ArchiveFormat, String>,
+    version_cache: &mut HashMap<ArchiveFormat, ToolVersionObservation>,
 ) -> Result<RawRunRecord> {
     let build = archive_index
         .get(&(scenario.dataset, scenario.format))
@@ -280,11 +403,9 @@ fn execute_scenario(
     let cwd = cmd
         .get_current_dir()
         .map(|path| path.to_string_lossy().to_string());
-    let started_unix_ms = now_ms()?;
     let output = cmd
         .output()
         .with_context(|| format!("observing scenario {}", scenario.scenario_id))?;
-    let finished_unix_ms = now_ms()?;
 
     let stdout_path = scenario_dir.join("stdout.txt");
     let stderr_path = scenario_dir.join("stderr.txt");
@@ -301,34 +422,54 @@ fn execute_scenario(
         fetched
     };
 
+    let stdout_rel = rel_path(artifact_root, &stdout_path);
+    let stderr_rel = rel_path(artifact_root, &stderr_path);
+    let json_rel = json_result_path.map(|p| rel_path(artifact_root, &p));
+    let source_archive_rel = rel_path(artifact_root, &source_archive);
+    let corrupted_archive_rel = rel_path(artifact_root, &corrupted_archive);
+    let corruption_log_rel = rel_path(artifact_root, &corruption_log_path);
+    let has_json_result = json_rel.is_some();
+    let result_completeness = if has_json_result {
+        EvidenceQuality::StructuredJsonResult
+    } else if output.stderr.is_empty() {
+        EvidenceQuality::StdoutOnly
+    } else {
+        EvidenceQuality::StdoutAndStderr
+    };
+
     Ok(RawRunRecord {
         scenario_id: scenario.scenario_id.clone(),
         dataset: scenario.dataset,
         format,
         corruption_type: scenario.corruption_type,
         target_class: scenario.target_class,
+        magnitude: scenario.magnitude,
         magnitude_bytes: scenario.magnitude_bytes,
         seed: scenario.seed,
+        source_archive_path: source_archive_rel.clone(),
+        corrupted_archive_path: corrupted_archive_rel.clone(),
+        tool_kind: format,
+        executable: executable.clone(),
+        argv: argv.clone(),
+        cwd: cwd.clone(),
         exit_code: exit_status_code,
-        stdout_path: rel_path(artifact_root, &stdout_path),
-        stderr_path: rel_path(artifact_root, &stderr_path),
-        json_result_path: json_result_path.map(|p| rel_path(artifact_root, &p)),
+        stdout_path: stdout_rel.clone(),
+        stderr_path: stderr_rel.clone(),
+        json_result_path: json_rel.clone(),
+        has_json_result,
+        invocation_status: InvocationStatus::Completed,
+        stage_classification: None,
         tool_version,
-        execution_metadata: ExecutionMetadata {
-            invocation: InvocationMetadata {
-                tool_kind: format,
-                executable,
-                argv,
-                cwd,
-                exit_status_code,
-                stdout_artifact_path: rel_path(artifact_root, &stdout_path),
-                stderr_artifact_path: rel_path(artifact_root, &stderr_path),
-            },
-            source_archive_path: rel_path(artifact_root, &source_archive),
-            corrupted_archive_path: rel_path(artifact_root, &corrupted_archive),
-            corruption_log_path: rel_path(artifact_root, &corruption_log_path),
-            started_unix_ms,
-            finished_unix_ms,
+        result_artifacts: ResultArtifacts {
+            stdout_path: stdout_rel,
+            stderr_path: stderr_rel,
+            json_result_path: json_rel,
+        },
+        result_completeness,
+        run_context_paths: RunContextPaths {
+            source_archive_path: source_archive_rel,
+            corrupted_archive_path: corrupted_archive_rel,
+            corruption_log_path: corruption_log_rel,
         },
     })
 }
@@ -400,7 +541,10 @@ fn observe_command(
     }
 }
 
-fn detect_tool_version(workspace_root: &Path, format: ArchiveFormat) -> Result<String> {
+fn detect_tool_version(
+    workspace_root: &Path,
+    format: ArchiveFormat,
+) -> Result<ToolVersionObservation> {
     let mut cmd = match format {
         ArchiveFormat::Crushr => {
             let mut c = Command::new("cargo");
@@ -417,7 +561,7 @@ fn detect_tool_version(workspace_root: &Path, format: ArchiveFormat) -> Result<S
         }
         ArchiveFormat::Zip => {
             let mut c = Command::new("zip");
-            c.arg("--version");
+            c.arg("-v");
             c
         }
         ArchiveFormat::TarZstd => {
@@ -425,37 +569,66 @@ fn detect_tool_version(workspace_root: &Path, format: ArchiveFormat) -> Result<S
             c.arg("--version");
             c
         }
-        ArchiveFormat::TarGz | ArchiveFormat::TarXz => {
-            let mut c = Command::new("tar");
-            c.arg("--version");
-            c
-        }
+        ArchiveFormat::TarGz | ArchiveFormat::TarXz => return Ok(ToolVersionObservation {
+            status: ToolVersionStatus::Unsupported,
+            version: None,
+            detail: Some("version is shared with tar executable; captured under tar+gz/tar+xz command observations".to_string()),
+        }),
     };
 
     let out = cmd.output();
     match out {
         Ok(o) => {
-            let combined = if o.stdout.is_empty() {
-                String::from_utf8_lossy(&o.stderr).into_owned()
-            } else {
-                String::from_utf8_lossy(&o.stdout).into_owned()
-            };
-            Ok(combined
-                .lines()
-                .next()
-                .unwrap_or("unknown")
-                .trim()
-                .to_string())
+            parse_tool_version_output(o.status.success(), &o.stdout, &o.stderr, o.status.code())
         }
-        Err(e) => Ok(format!("unavailable: {e}")),
+        Err(e) => Ok(ToolVersionObservation {
+            status: ToolVersionStatus::Unavailable,
+            version: None,
+            detail: Some(e.to_string()),
+        }),
     }
 }
 
-fn now_ms() -> Result<u128> {
-    Ok(SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| anyhow!(e))?
-        .as_millis())
+fn parse_tool_version_output(
+    success: bool,
+    stdout: &[u8],
+    stderr: &[u8],
+    status_code: Option<i32>,
+) -> Result<ToolVersionObservation> {
+    if !success {
+        return Ok(ToolVersionObservation {
+            status: ToolVersionStatus::Unsupported,
+            version: None,
+            detail: Some(format!(
+                "version command exited with status {status_code:?}"
+            )),
+        });
+    }
+
+    let combined = if stdout.is_empty() {
+        String::from_utf8_lossy(stderr).into_owned()
+    } else {
+        String::from_utf8_lossy(stdout).into_owned()
+    };
+    let version = combined
+        .lines()
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+    if version.is_empty() {
+        Ok(ToolVersionObservation {
+            status: ToolVersionStatus::Unsupported,
+            version: None,
+            detail: Some("version command returned empty output".to_string()),
+        })
+    } else {
+        Ok(ToolVersionObservation {
+            status: ToolVersionStatus::Detected,
+            version: Some(version),
+            detail: None,
+        })
+    }
 }
 
 fn rel_path(root: &Path, path: &Path) -> String {
@@ -469,6 +642,50 @@ fn rel_path(root: &Path, path: &Path) -> String {
 mod tests {
     use super::*;
     use crate::phase2_manifest::Phase2ExperimentManifest;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn base_record(manifest: &Phase2ExperimentManifest) -> RawRunRecord {
+        let first = &manifest.scenarios[0];
+        RawRunRecord {
+            scenario_id: first.scenario_id.clone(),
+            dataset: Dataset::Smallfiles,
+            format: ArchiveFormat::Crushr,
+            corruption_type: first.corruption_type,
+            target_class: first.target_class,
+            magnitude: first.magnitude,
+            magnitude_bytes: first.magnitude_bytes,
+            seed: first.seed,
+            source_archive_path: "archives/a".to_string(),
+            corrupted_archive_path: "raw/x/corrupt".to_string(),
+            tool_kind: ArchiveFormat::Crushr,
+            executable: "cargo".to_string(),
+            argv: vec!["run".to_string()],
+            cwd: Some("/workspace/crushr".to_string()),
+            exit_code: 0,
+            stdout_path: "raw/x/stdout.txt".to_string(),
+            stderr_path: "raw/x/stderr.txt".to_string(),
+            json_result_path: None,
+            has_json_result: false,
+            invocation_status: InvocationStatus::Completed,
+            stage_classification: None,
+            tool_version: ToolVersionObservation {
+                status: ToolVersionStatus::Detected,
+                version: Some("tool 1.0".to_string()),
+                detail: None,
+            },
+            result_artifacts: ResultArtifacts {
+                stdout_path: "raw/x/stdout.txt".to_string(),
+                stderr_path: "raw/x/stderr.txt".to_string(),
+                json_result_path: None,
+            },
+            result_completeness: EvidenceQuality::StdoutAndStderr,
+            run_context_paths: RunContextPaths {
+                source_archive_path: "archives/a".to_string(),
+                corrupted_archive_path: "raw/x/corrupt".to_string(),
+                corruption_log_path: "raw/x/log".to_string(),
+            },
+        }
+    }
 
     #[test]
     fn completeness_audit_detects_missing_duplicate_and_mismatch() {
@@ -477,36 +694,7 @@ mod tests {
         let second = &manifest.scenarios[1];
         let unknown = "p2-core-unknown-crushr-bit_flip-header-1B-999";
 
-        let base = RawRunRecord {
-            scenario_id: first.scenario_id.clone(),
-            dataset: Dataset::Smallfiles,
-            format: ArchiveFormat::Crushr,
-            corruption_type: first.corruption_type,
-            target_class: first.target_class,
-            magnitude_bytes: first.magnitude_bytes,
-            seed: first.seed,
-            exit_code: 0,
-            stdout_path: "raw/x/stdout.txt".to_string(),
-            stderr_path: "raw/x/stderr.txt".to_string(),
-            json_result_path: None,
-            tool_version: "tool 1.0".to_string(),
-            execution_metadata: ExecutionMetadata {
-                invocation: InvocationMetadata {
-                    tool_kind: ArchiveFormat::Crushr,
-                    executable: "cargo".to_string(),
-                    argv: vec!["run".to_string()],
-                    cwd: Some("/workspace/crushr".to_string()),
-                    exit_status_code: 0,
-                    stdout_artifact_path: "raw/x/stdout.txt".to_string(),
-                    stderr_artifact_path: "raw/x/stderr.txt".to_string(),
-                },
-                source_archive_path: "archives/a".to_string(),
-                corrupted_archive_path: "raw/x/corrupt".to_string(),
-                corruption_log_path: "raw/x/log".to_string(),
-                started_unix_ms: 1,
-                finished_unix_ms: 2,
-            },
-        };
+        let base = base_record(&manifest);
 
         let mut dup = base.clone();
         dup.scenario_id = first.scenario_id.clone();
@@ -523,6 +711,72 @@ mod tests {
         assert!(audit.mismatched_scenario_ids.contains(&unknown.to_string()));
         assert_eq!(audit.actual_runs, 4);
         assert!(!audit.missing_runs.is_empty());
+    }
+
+    #[test]
+    fn execution_report_includes_histograms_and_tool_summary() {
+        let manifest = Phase2ExperimentManifest::locked_core();
+        let mut records = vec![base_record(&manifest), base_record(&manifest)];
+        records[1].scenario_id = manifest.scenarios[1].scenario_id.clone();
+        records[1].dataset = Dataset::Mixed;
+        records[1].format = ArchiveFormat::Zip;
+        records[1].tool_kind = ArchiveFormat::Zip;
+        records[1].executable = "zip".to_string();
+        records[1].exit_code = 2;
+        records[1].has_json_result = true;
+        records[1].json_result_path = Some("raw/y/result.json".to_string());
+        records[1].tool_version = ToolVersionObservation {
+            status: ToolVersionStatus::Unsupported,
+            version: None,
+            detail: Some("unsupported".to_string()),
+        };
+
+        let audit = CompletenessAudit {
+            expected_runs: 2,
+            actual_runs: 2,
+            missing_runs: Vec::new(),
+            duplicate_runs: Vec::new(),
+            mismatched_scenario_ids: Vec::new(),
+        };
+        let report = build_execution_report(
+            &manifest,
+            &records,
+            &audit,
+            Path::new("/tmp/trials"),
+            Path::new("/tmp/trials/raw_run_records.json"),
+            Path::new("/tmp/trials/completeness_audit.json"),
+        );
+
+        assert_eq!(report.has_json_result_counts.true_count, 1);
+        assert_eq!(report.exit_code_histogram.get("0"), Some(&1));
+        assert_eq!(report.exit_code_histogram.get("2"), Some(&1));
+        assert_eq!(report.scenario_count_by_dataset.get("smallfiles"), Some(&1));
+        assert_eq!(report.scenario_count_by_dataset.get("mixed"), Some(&1));
+        assert_eq!(report.tool_versions.by_tool.len(), 2);
+    }
+
+    #[test]
+    fn tool_version_probe_for_tar_variants_is_explicitly_unsupported() {
+        let observed =
+            detect_tool_version(Path::new("/workspace/crushr"), ArchiveFormat::TarGz).unwrap();
+        assert_eq!(observed.status, ToolVersionStatus::Unsupported);
+        assert!(observed.version.is_none());
+    }
+
+    #[test]
+    fn parse_tool_version_output_detects_supported_tool_output() {
+        let observed =
+            parse_tool_version_output(true, b"zip 3.0\nCopyright", b"", Some(0)).unwrap();
+        assert_eq!(observed.status, ToolVersionStatus::Detected);
+        assert_eq!(observed.version.as_deref(), Some("zip 3.0"));
+    }
+
+    #[test]
+    fn parse_tool_version_output_marks_unsupported_probe() {
+        let observed =
+            parse_tool_version_output(false, b"", b"unsupported flag: --version", Some(2)).unwrap();
+        assert_eq!(observed.status, ToolVersionStatus::Unsupported);
+        assert!(observed.version.is_none());
     }
 
     #[test]

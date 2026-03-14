@@ -1,3 +1,10 @@
+## 2026-03-14 — CRUSHR-P2-EXEC-03B: white-paper-grade Phase 2 execution evidence enrichment
+
+- Enriched `crushr-lab` Phase 2 `RawRunRecord` output with first-class scenario axes + invocation + path + result fields, added deterministic `result_artifacts`/`result_completeness`, and removed ambient wall-clock timestamps from run metadata.
+- Replaced broken generic tool `--version` capture with explicit truthful probing semantics (`detected`, `unsupported`, `unavailable`) and removed acceptance of strings like `unsupported flag: --version` as versions.
+- Upgraded `execution_report.json` to include run/cardinality histograms, JSON-result counts, tool-version summary, and explicit completeness status while preserving raw per-run corpus output.
+- Added schema contracts for execution report and raw run records plus focused tests for record/report shape, version handling, and schema constraints.
+
 ## 2026-03-13 — Phase 2 execution foundation dataset/baseline build (CRUSHR-P2-EXEC-02)
 
 - Updated `crushr-lab build-phase2-foundation` defaults/outputs to emit fixture datasets under `PHASE2_RESEARCH/datasets/`, baseline archives under `PHASE2_RESEARCH/baselines/{crushr,zip,tar_zstd,tar_gz,tar_xz}`, and report artifacts under `PHASE2_RESEARCH/foundation/`.

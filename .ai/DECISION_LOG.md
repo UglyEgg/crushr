@@ -266,3 +266,18 @@
   - This gives recoverability, random access, and deduplication a coherent architectural foundation instead of layering them onto positional assumptions.
 - Scope constraint:
   - This is roadmap/architecture guidance only and must not create ambiguity in the baseline white-paper implementation.
+
+## 2026-03-14 — CRUSHR-P2-EXEC-03B: truthful tool-version observation model for execution evidence
+
+- Decision:
+  - Represent execution tool-version capture as a typed observation (`status`, optional `version`, optional `detail`) instead of a single opaque version string.
+  - Record tar comparator version probing as `unsupported` in per-format records to avoid pretending per-variant versions where a stable direct probe is not available.
+- Alternatives:
+  1. Keep string-only `tool_version` and continue storing command stderr/stdout first-line values.
+  2. Drop version collection entirely from execution evidence.
+- Rationale:
+  - White-paper-grade evidence requires truthful and machine-readable separation between detected versions and unsupported/unavailable probes.
+  - Prevents invalid strings (e.g., unsupported-flag diagnostics) from being interpreted as tool versions in downstream analysis.
+- Blast radius:
+  - `crushr-lab` raw execution records/report schema and consuming analysis tooling now read typed version observations instead of a plain version string.
+

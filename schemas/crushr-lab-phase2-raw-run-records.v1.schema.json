@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crushr.dev/schemas/crushr-lab-phase2-raw-run-records.v1.schema.json",
+  "title": "crushr-lab phase2 raw run records v1",
+  "type": "array",
+  "items": { "$ref": "#/$defs/raw_run_record" },
+  "$defs": {
+    "dataset": { "enum": ["smallfiles", "mixed", "largefiles"] },
+    "archive_format": { "enum": ["crushr", "zip", "tar+zstd", "tar+gz", "tar+xz"] },
+    "corruption_type": { "enum": ["bit_flip", "byte_overwrite", "zero_fill", "truncation", "tail_damage"] },
+    "target_class": { "enum": ["header", "index", "payload", "tail"] },
+    "magnitude": { "enum": ["1B", "256B", "4KB"] },
+    "invocation_status": { "enum": ["completed"] },
+    "evidence_quality": { "enum": ["stdout_only", "stdout_and_stderr", "structured_json_result"] },
+    "tool_version_status": { "enum": ["detected", "unsupported", "unavailable"] },
+    "tool_version_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "version", "detail"],
+      "properties": {
+        "status": { "$ref": "#/$defs/tool_version_status" },
+        "version": { "type": ["string", "null"] },
+        "detail": { "type": ["string", "null"] }
+      }
+    },
+    "result_artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stdout_path", "stderr_path", "json_result_path"],
+      "properties": {
+        "stdout_path": { "type": "string", "minLength": 1 },
+        "stderr_path": { "type": "string", "minLength": 1 },
+        "json_result_path": { "type": ["string", "null"] }
+      }
+    },
+    "run_context_paths": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_archive_path", "corrupted_archive_path", "corruption_log_path"],
+      "properties": {
+        "source_archive_path": { "type": "string", "minLength": 1 },
+        "corrupted_archive_path": { "type": "string", "minLength": 1 },
+        "corruption_log_path": { "type": "string", "minLength": 1 }
+      }
+    },
+    "raw_run_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "dataset",
+        "format",
+        "corruption_type",
+        "target_class",
+        "magnitude",
+        "magnitude_bytes",
+        "seed",
+        "source_archive_path",
+        "corrupted_archive_path",
+        "tool_kind",
+        "executable",
+        "argv",
+        "cwd",
+        "exit_code",
+        "stdout_path",
+        "stderr_path",
+        "json_result_path",
+        "has_json_result",
+        "invocation_status",
+        "stage_classification",
+        "tool_version",
+        "result_artifacts",
+        "result_completeness",
+        "run_context_paths"
+      ],
+      "properties": {
+        "scenario_id": { "type": "string", "minLength": 1 },
+        "dataset": { "$ref": "#/$defs/dataset" },
+        "format": { "$ref": "#/$defs/archive_format" },
+        "corruption_type": { "$ref": "#/$defs/corruption_type" },
+        "target_class": { "$ref": "#/$defs/target_class" },
+        "magnitude": { "$ref": "#/$defs/magnitude" },
+        "magnitude_bytes": { "type": "integer", "minimum": 1 },
+        "seed": { "type": "integer", "minimum": 0 },
+        "source_archive_path": { "type": "string", "minLength": 1 },
+        "corrupted_archive_path": { "type": "string", "minLength": 1 },
+        "tool_kind": { "$ref": "#/$defs/archive_format" },
+        "executable": { "type": "string", "minLength": 1 },
+        "argv": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "cwd": { "type": ["string", "null"] },
+        "exit_code": { "type": "integer" },
+        "stdout_path": { "type": "string", "minLength": 1 },
+        "stderr_path": { "type": "string", "minLength": 1 },
+        "json_result_path": { "type": ["string", "null"] },
+        "has_json_result": { "type": "boolean" },
+        "invocation_status": { "$ref": "#/$defs/invocation_status" },
+        "stage_classification": { "type": ["string", "null"] },
+        "tool_version": { "$ref": "#/$defs/tool_version_observation" },
+        "result_artifacts": { "$ref": "#/$defs/result_artifacts" },
+        "result_completeness": { "$ref": "#/$defs/evidence_quality" },
+        "run_context_paths": { "$ref": "#/$defs/run_context_paths" }
+      }
+    }
+  }
+}
