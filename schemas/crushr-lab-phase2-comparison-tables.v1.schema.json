@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crushr.dev/schemas/crushr-lab-phase2-comparison-tables.v1.schema.json",
+  "title": "crushr-lab phase2 comparison tables v1",
+  "type": "object",
+  "required": ["rows"],
+  "additionalProperties": false,
+  "properties": {
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "format",
+          "total_runs",
+          "recovery_success_rate",
+          "mean_recovery_ratio_files",
+          "mean_recovery_ratio_bytes",
+          "detection_rate",
+          "blast_radius_distribution",
+          "diagnostic_specificity_distribution"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": ["crushr", "zip", "tar+zstd", "tar+gz", "tar+xz"]
+          },
+          "total_runs": { "type": "integer", "minimum": 0 },
+          "recovery_success_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+          "mean_recovery_ratio_files": { "type": "number", "minimum": 0, "maximum": 1 },
+          "mean_recovery_ratio_bytes": { "type": "number", "minimum": 0, "maximum": 1 },
+          "detection_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+          "blast_radius_distribution": {
+            "type": "object",
+            "propertyNames": {
+              "enum": ["NONE", "LOCALIZED", "PARTIAL_SET", "WIDESPREAD", "TOTAL"]
+            },
+            "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "diagnostic_specificity_distribution": {
+            "type": "object",
+            "propertyNames": {
+              "enum": ["NONE", "GENERIC", "STRUCTURAL", "PRECISE"]
+            },
+            "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        }
+      }
+    }
+  }
+}

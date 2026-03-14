@@ -409,3 +409,9 @@
 - Added strict normalization schemas: `schemas/crushr-lab-phase2-normalized-results.v1.schema.json` and `schemas/crushr-lab-phase2-normalization-summary.v1.schema.json`.
 - Added focused normalization tests for representative cases, deterministic ordering, classification mapping, and schema-ID/shape validation.
 - Updated Phase 2 research docs with normalization command/output references and rule documentation (`PHASE2_RESEARCH/normalized/NORMALIZATION_RULES.md`).
+
+## 2026-03-14 — Phase 2, Step CRUSHR-P2-ANALYSIS-01 (fix iteration 0: deterministic cross-format comparison summaries)
+
+- Added `crushr-lab run-phase2-comparison` to compute deterministic per-format comparison metrics from `PHASE2_RESEARCH/results/normalized_results.json` without trial recomputation.
+- Added schema contracts for comparison tables and format rankings, plus focused `crushr-lab` tests for output-shape validation and schema ID integrity.
+- Generated canonical summary outputs under `PHASE2_RESEARCH/summaries/comparison_tables.json` and `PHASE2_RESEARCH/summaries/format_rankings.json`.
