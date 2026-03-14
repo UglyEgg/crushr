@@ -71,6 +71,8 @@ fn harness_generates_manifest_and_summary_outputs() {
     assert!(output_dir.join("experiment_manifest.json").exists());
     assert!(output_dir.join("summary.json").exists());
     assert!(output_dir.join("summary.md").exists());
+    assert!(output_dir.join("analysis.json").exists());
+    assert!(output_dir.join("analysis.md").exists());
 
     let manifest = read_json(&output_dir.join("experiment_manifest.json"));
     let summary = read_json(&output_dir.join("summary.json"));
@@ -135,6 +137,17 @@ fn harness_summary_order_is_deterministic() {
     let first = read_json(&out_one.join("summary.json"));
     let second = read_json(&out_two.join("summary.json"));
     assert_eq!(first["runs"], second["runs"]);
+
+    let first_analysis = read_json(&out_one.join("analysis.json"));
+    let second_analysis = read_json(&out_two.join("analysis.json"));
+    assert_eq!(
+        first_analysis["outcome_groups"],
+        second_analysis["outcome_groups"]
+    );
+    assert_eq!(
+        first_analysis["profile_groups"],
+        second_analysis["profile_groups"]
+    );
 }
 
 #[test]
@@ -199,12 +212,16 @@ fn resummarize_regenerates_summary_without_rerunning_salvage() {
 
     fs::remove_file(output_dir.join("summary.json")).unwrap();
     fs::remove_file(output_dir.join("summary.md")).unwrap();
+    fs::remove_file(output_dir.join("analysis.json")).unwrap();
+    fs::remove_file(output_dir.join("analysis.md")).unwrap();
     fs::write(run_dir.join("salvage_plan.json"), b"{ not valid json }").unwrap();
 
     run(Command::new(lab_bin).arg("--resummarize").arg(&output_dir));
 
     assert!(output_dir.join("summary.json").exists());
     assert!(output_dir.join("summary.md").exists());
+    assert!(output_dir.join("analysis.json").exists());
+    assert!(output_dir.join("analysis.md").exists());
 }
 
 #[test]
@@ -312,4 +329,117 @@ fn resummarize_classifies_required_outcomes() {
             "FULL_FILE_SALVAGE_AVAILABLE",
         ]
     );
+
+    let analysis = read_json(&experiment_dir.join("analysis.json"));
+    assert_eq!(
+        analysis["outcome_groups"][0]["outcome"],
+        "FULL_FILE_SALVAGE_AVAILABLE"
+    );
+    assert_eq!(analysis["outcome_groups"][0]["run_count"], 1);
+    assert_eq!(
+        analysis["outcome_groups"][1]["outcome"],
+        "PARTIAL_FILE_SALVAGE"
+    );
+    assert_eq!(
+        analysis["outcome_groups"][2]["outcome"],
+        "ORPHAN_EVIDENCE_ONLY"
+    );
+    assert_eq!(
+        analysis["outcome_groups"][3]["outcome"],
+        "NO_VERIFIED_EVIDENCE"
+    );
+
+    assert_eq!(
+        analysis["evidence_rankings"]["top_runs_by_verified_blocks"][0]["archive_id"],
+        "c"
+    );
+    assert_eq!(
+        analysis["evidence_rankings"]["top_runs_by_verified_blocks"][1]["archive_id"],
+        "d"
+    );
+
+    assert_eq!(
+        analysis["profile_groups"][0]["profile_key"],
+        "UNKNOWN_PROFILE"
+    );
+
+    let analysis_raw = fs::read_to_string(experiment_dir.join("analysis.json")).unwrap();
+    assert!(!analysis_raw.contains("block_candidates"));
+    assert!(!analysis_raw.contains("exported_block_artifacts"));
+}
+
+#[test]
+fn resummarize_profile_grouping_from_filename_markers() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let experiment_dir = td.path().join("experiment");
+    let runs_dir = experiment_dir.join("runs");
+    fs::create_dir_all(&runs_dir).unwrap();
+
+    let archive_ids = ["a", "b"];
+    let metadata = [
+        serde_json::json!({
+            "archive_path": "set_alpha_profile_light.crushr",
+            "archive_fingerprint": "f1",
+            "verified_block_count": 2,
+            "salvageable_file_count": 1,
+            "unsalvageable_file_count": 0,
+            "unmappable_file_count": 0,
+            "exported_block_artifact_count": 0,
+            "exported_extent_artifact_count": 0,
+            "exported_full_file_artifact_count": 0
+        }),
+        serde_json::json!({
+            "archive_path": "set_beta_profile_heavy.crushr",
+            "archive_fingerprint": "f2",
+            "verified_block_count": 1,
+            "salvageable_file_count": 0,
+            "unsalvageable_file_count": 1,
+            "unmappable_file_count": 0,
+            "exported_block_artifact_count": 0,
+            "exported_extent_artifact_count": 0,
+            "exported_full_file_artifact_count": 0
+        }),
+    ];
+
+    for (archive_id, run_metadata) in archive_ids.into_iter().zip(metadata.into_iter()) {
+        let run_dir = runs_dir.join(archive_id);
+        fs::create_dir_all(&run_dir).unwrap();
+        fs::write(
+            run_dir.join("run_metadata.json"),
+            serde_json::to_vec_pretty(&run_metadata).unwrap(),
+        )
+        .unwrap();
+        fs::write(run_dir.join("salvage_plan.json"), b"{}").unwrap();
+    }
+
+    let manifest = serde_json::json!({
+        "experiment_id": "manual-profile",
+        "tool_version": "test",
+        "schema_version": "crushr-lab-salvage-experiment.v1",
+        "run_count": 2,
+        "run_timestamp": "unix:0",
+        "verification_label": "UNVERIFIED_RESEARCH_OUTPUT",
+        "export_fragments_enabled": false,
+        "archive_list": archive_ids,
+    });
+    fs::create_dir_all(&experiment_dir).unwrap();
+    fs::write(
+        experiment_dir.join("experiment_manifest.json"),
+        serde_json::to_vec_pretty(&manifest).unwrap(),
+    )
+    .unwrap();
+
+    run(Command::new(lab_bin)
+        .arg("--resummarize")
+        .arg(&experiment_dir));
+
+    let analysis = read_json(&experiment_dir.join("analysis.json"));
+    let profile_keys: Vec<String> = analysis["profile_groups"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|group| group["profile_key"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(profile_keys, vec!["HEAVY", "LIGHT"]);
 }

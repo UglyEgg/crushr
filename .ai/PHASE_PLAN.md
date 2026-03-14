@@ -52,3 +52,9 @@
   - `crushr-lab-salvage` emits `summary.json` + `summary.md` with stable per-run outcome categories
   - compact aggregate counters (verified blocks, salvageability, export counts) from existing run metadata
   - `--resummarize <experiment_dir>` regenerates summaries without rerunning salvage
+
+
+- [x] 3.6 CRUSHR-SALVAGE-06 (deterministic grouped analysis views, research-only)
+  - `crushr-lab-salvage` emits compact `analysis.json` + `analysis.md` grouped views over experiment metadata
+  - deterministic outcome/export/profile grouping + evidence rankings with explicit tie-breaking
+  - `--resummarize <experiment_dir>` regenerates both summary and analysis outputs without rerunning salvage

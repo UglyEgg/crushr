@@ -53,6 +53,8 @@ Expected payload families:
 - salvage planning output uses dedicated schemas (`crushr-salvage-plan.v1` legacy, `crushr-salvage-plan.v2` active) and remains unverified research output
 
 
-## Salvage experiment summary artifacts (research-only)
+## Salvage experiment summary/analysis artifacts (research-only)
 
-`crushr-lab-salvage` also emits compact deterministic experiment-level summary files (`summary.json`, `summary.md`) from run metadata. These are research-only aggregates and are not canonical extraction snapshots or reconstruction semantics.
+`crushr-lab-salvage` also emits compact deterministic experiment-level derived files from run metadata: `summary.json`, `summary.md`, `analysis.json`, and `analysis.md`. These remain research-only aggregates and are not canonical extraction snapshots or reconstruction semantics.
+
+`analysis.json`/`analysis.md` provide deterministic grouped outcome/export/profile views and compact evidence rankings without inlining full run metadata or salvage-plan blobs.

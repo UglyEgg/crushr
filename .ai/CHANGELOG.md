@@ -1,3 +1,10 @@
+## 2026-03-14 — CRUSHR-SALVAGE-06 grouped analysis views for salvage experiments
+
+- Extended `crushr-lab-salvage` to emit compact deterministic `analysis.json` and `analysis.md` alongside existing summaries for each experiment.
+- Added deterministic grouped outcome/export/profile analysis plus ranked evidence lists with explicit archive-id tie-breaking.
+- Extended `--resummarize <experiment_dir>` to regenerate summary and analysis artifacts from existing experiment outputs without rerunning salvage.
+- Added harness tests for analysis generation, grouping/ranking behavior, deterministic ordering, profile fallback/inference, resummarize regeneration, and compactness guardrails.
+
 ## 2026-03-14 — CRUSHR-P2-EXEC-06A recovery-accounting harness upgrade
 
 - Upgraded `crushr-lab` Phase 2 execution to run real extraction commands per format (`crushr-extract`, `unzip`, `tar`) and produce per-run recovery evidence artifacts (`extracted/`, `recovery_report.json`) plus structured file/byte accounting in `RawRunRecord`.
