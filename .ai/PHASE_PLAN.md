@@ -25,7 +25,8 @@
 
 ## Phase 3 — Standalone Salvage Planning (active)
 
-- [ ] 3.1 CRUSHR-SALVAGE-01 (plan-only)
+- [x] 3.1 CRUSHR-SALVAGE-01 (plan-only)
+- [x] 3.2 CRUSHR-SALVAGE-02 (verified block analysis, still plan-only)
   - standalone executable: `crushr-salvage`
   - deterministic salvage planning over damaged archives
   - machine-readable salvage plan JSON output

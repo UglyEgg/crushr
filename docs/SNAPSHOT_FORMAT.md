@@ -50,4 +50,4 @@ Expected payload families:
 - Phase 1 contracts are complete and active
 - Phase 2 used these snapshots as experiment harness inputs
 - Phase 2 execution/normalization/comparison are complete and frozen
-- salvage planning output uses a separate dedicated schema and remains unverified research output
+- salvage planning output uses dedicated schemas (`crushr-salvage-plan.v1` legacy, `crushr-salvage-plan.v2` active) and remains unverified research output

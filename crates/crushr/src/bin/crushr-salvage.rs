@@ -43,7 +43,7 @@ struct CliOptions {
 }
 
 #[derive(Debug, Serialize)]
-struct SalvagePlanV1 {
+struct SalvagePlanV2 {
     schema_version: &'static str,
     tool: &'static str,
     tool_version: &'static str,
@@ -89,17 +89,24 @@ struct DictionaryAnalysis {
     verified_dict_ids: Vec<u32>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct BlockCandidate {
     scan_offset: u64,
-    parse_status: &'static str,
-    parse_reason: &'static str,
-    payload_bounds_ok: bool,
+    mapped_block_id: Option<u32>,
+    structural_status: &'static str,
+    header_status: &'static str,
+    header_reason: &'static str,
+    payload_bounds_status: &'static str,
     payload_hash_status: &'static str,
-    payload_hash_reason: &'static str,
     dictionary_required: bool,
     dictionary_id: Option<u32>,
+    dictionary_dependency_status: &'static str,
+    decompression_status: &'static str,
+    raw_hash_status: &'static str,
+    content_verification_status: &'static str,
+    content_verification_reasons: Vec<&'static str>,
     usable_for_indexed_planning: bool,
+    verified_raw_len: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -107,6 +114,7 @@ struct FilePlan {
     file_path: String,
     status: &'static str,
     reason: &'static str,
+    failure_reasons: Vec<&'static str>,
     required_block_ids: Vec<u32>,
 }
 
@@ -123,13 +131,6 @@ struct PlanSummary {
     salvageable_files: u64,
     unsalvageable_files: u64,
     unmappable_files: u64,
-}
-
-#[derive(Debug, Clone)]
-struct BlockVerification {
-    payload_verified: bool,
-    raw_verified: bool,
-    dictionary_ok: bool,
 }
 
 fn parse_cli_options() -> Result<CliOptions> {
@@ -156,85 +157,169 @@ fn parse_cli_options() -> Result<CliOptions> {
     })
 }
 
-fn scan_blk3_candidates(bytes: &[u8]) -> Vec<BlockCandidate> {
+fn scan_blk3_candidates(
+    bytes: &[u8],
+    verified_dict_ids: &[u32],
+    dictionary_available: bool,
+) -> Vec<BlockCandidate> {
     let mut candidates = Vec::new();
     let mut offset = 0usize;
+    let verified_dict_set: BTreeSet<u32> = verified_dict_ids.iter().copied().collect();
 
     while offset + BLK3_MAGIC.len() <= bytes.len() {
         if bytes[offset..offset + 4] == BLK3_MAGIC {
-            let mut parse_status = "invalid";
-            let mut parse_reason = "header_parse_failed";
-            let mut payload_bounds_ok = false;
-            let mut payload_hash_status = "unavailable";
-            let mut payload_hash_reason = "header_unavailable";
-            let mut dictionary_required = false;
-            let mut dictionary_id = None;
-            let mut usable_for_indexed_planning = false;
+            let mut candidate = BlockCandidate {
+                scan_offset: offset as u64,
+                mapped_block_id: None,
+                structural_status: "detected",
+                header_status: "invalid",
+                header_reason: "header_parse_failed",
+                payload_bounds_status: "unknown",
+                payload_hash_status: "unavailable",
+                dictionary_required: false,
+                dictionary_id: None,
+                dictionary_dependency_status: "not_required",
+                decompression_status: "not_attempted",
+                raw_hash_status: "not_attempted",
+                content_verification_status: "not_content_verified",
+                content_verification_reasons: vec!["header_invalid"],
+                usable_for_indexed_planning: false,
+                verified_raw_len: None,
+            };
 
             if offset + 6 <= bytes.len() {
                 let header_len =
                     u16::from_le_bytes([bytes[offset + 4], bytes[offset + 5]]) as usize;
                 if offset + header_len <= bytes.len() {
-                    let parsed = read_blk3_header(Cursor::new(&bytes[offset..offset + header_len]));
-                    if let Ok(header) = parsed {
-                        parse_status = "valid";
-                        parse_reason = "ok";
-                        dictionary_required = header.flags.uses_dict();
-                        dictionary_id = if dictionary_required {
-                            Some(header.dict_id)
-                        } else {
-                            None
-                        };
+                    if let Ok(header) =
+                        read_blk3_header(Cursor::new(&bytes[offset..offset + header_len]))
+                    {
+                        candidate.header_status = "valid";
+                        candidate.header_reason = "ok";
+                        candidate.dictionary_required = header.flags.uses_dict();
+                        if candidate.dictionary_required {
+                            candidate.dictionary_id = Some(header.dict_id);
+                            candidate.dictionary_dependency_status =
+                                if verified_dict_set.contains(&header.dict_id) {
+                                    "satisfied"
+                                } else if dictionary_available {
+                                    "missing"
+                                } else {
+                                    "unresolved"
+                                };
+                        }
 
                         let payload_offset = offset + header.header_len as usize;
                         if let Some(payload_end) =
                             payload_offset.checked_add(header.comp_len as usize)
                         {
                             if payload_end <= bytes.len() {
-                                payload_bounds_ok = true;
-                                payload_hash_reason = "hash_not_present";
-                                payload_hash_status = "unavailable";
+                                candidate.payload_bounds_status = "in_bounds";
+                                candidate.payload_hash_status = "unavailable";
                                 if let Some(expected) = header.payload_hash {
                                     let actual = blake3::hash(&bytes[payload_offset..payload_end]);
-                                    if actual.as_bytes() == &expected {
-                                        payload_hash_status = "verified";
-                                        payload_hash_reason = "ok";
+                                    candidate.payload_hash_status =
+                                        if actual.as_bytes() == &expected {
+                                            "verified"
+                                        } else {
+                                            "mismatch"
+                                        };
+                                }
+
+                                if candidate.dictionary_dependency_status == "satisfied"
+                                    || candidate.dictionary_dependency_status == "not_required"
+                                {
+                                    if header.codec != 1 {
+                                        candidate.decompression_status = "unsupported_codec";
                                     } else {
-                                        payload_hash_status = "failed";
-                                        payload_hash_reason = "hash_mismatch";
+                                        match zstd::decode_all(Cursor::new(
+                                            &bytes[payload_offset..payload_end],
+                                        )) {
+                                            Ok(raw) => {
+                                                candidate.decompression_status = "success";
+                                                if raw.len() as u64 == header.raw_len {
+                                                    candidate.verified_raw_len =
+                                                        Some(raw.len() as u64);
+                                                }
+                                                candidate.raw_hash_status = if let Some(raw_hash) =
+                                                    header.raw_hash
+                                                {
+                                                    if blake3::hash(&raw).as_bytes() == &raw_hash {
+                                                        "verified"
+                                                    } else {
+                                                        "mismatch"
+                                                    }
+                                                } else {
+                                                    "unavailable"
+                                                };
+                                            }
+                                            Err(_) => {
+                                                candidate.decompression_status = "failed";
+                                                candidate.raw_hash_status =
+                                                    if header.raw_hash.is_some() {
+                                                        "not_attempted"
+                                                    } else {
+                                                        "unavailable"
+                                                    };
+                                            }
+                                        }
                                     }
+                                } else {
+                                    candidate.decompression_status = "not_attempted";
+                                    candidate.raw_hash_status = if header.raw_hash.is_some() {
+                                        "not_attempted"
+                                    } else {
+                                        "unavailable"
+                                    };
                                 }
                             } else {
-                                payload_hash_reason = "payload_out_of_bounds";
-                                payload_hash_status = "failed";
+                                candidate.payload_bounds_status = "out_of_bounds";
                             }
                         } else {
-                            payload_hash_reason = "payload_end_overflow";
-                            payload_hash_status = "failed";
+                            candidate.payload_bounds_status = "out_of_bounds";
                         }
 
-                        usable_for_indexed_planning = parse_status == "valid"
-                            && payload_bounds_ok
-                            && payload_hash_status == "verified";
+                        let mut reasons = BTreeSet::new();
+                        if candidate.payload_bounds_status != "in_bounds" {
+                            reasons.insert("payload_out_of_bounds");
+                        }
+                        if candidate.payload_hash_status == "mismatch" {
+                            reasons.insert("payload_hash_mismatch");
+                        }
+                        if matches!(
+                            candidate.dictionary_dependency_status,
+                            "missing" | "invalid" | "unresolved"
+                        ) {
+                            reasons.insert("dictionary_dependency_unsatisfied");
+                        }
+                        if candidate.decompression_status != "success" {
+                            reasons.insert("decompression_not_successful");
+                        }
+                        if candidate.raw_hash_status == "mismatch" {
+                            reasons.insert("raw_hash_mismatch");
+                        }
+
+                        if reasons.is_empty() {
+                            candidate.content_verification_status = "content_verified";
+                            candidate.content_verification_reasons =
+                                vec!["all_required_checks_passed"];
+                        } else {
+                            candidate.content_verification_reasons = reasons.into_iter().collect();
+                        }
+
+                        candidate.usable_for_indexed_planning =
+                            candidate.content_verification_status == "content_verified";
                     }
                 } else {
-                    parse_reason = "header_out_of_bounds";
+                    candidate.header_reason = "header_out_of_bounds";
+                    candidate.content_verification_reasons = vec!["header_out_of_bounds"];
                 }
             } else {
-                parse_reason = "header_prefix_out_of_bounds";
+                candidate.header_reason = "header_prefix_out_of_bounds";
+                candidate.content_verification_reasons = vec!["header_prefix_out_of_bounds"];
             }
 
-            candidates.push(BlockCandidate {
-                scan_offset: offset as u64,
-                parse_status,
-                parse_reason,
-                payload_bounds_ok,
-                payload_hash_status,
-                payload_hash_reason,
-                dictionary_required,
-                dictionary_id,
-                usable_for_indexed_planning,
-            });
+            candidates.push(candidate);
         }
 
         offset += 1;
@@ -247,7 +332,7 @@ fn to_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-fn build_plan(opts: &CliOptions) -> Result<SalvagePlanV1> {
+fn build_plan(opts: &CliOptions) -> Result<SalvagePlanV2> {
     let reader = FileReader {
         file: File::open(&opts.archive)
             .with_context(|| format!("open {}", opts.archive.display()))?,
@@ -255,8 +340,6 @@ fn build_plan(opts: &CliOptions) -> Result<SalvagePlanV1> {
     let archive_bytes =
         fs::read(&opts.archive).with_context(|| format!("read {}", opts.archive.display()))?;
     let archive_size = archive_bytes.len() as u64;
-
-    let candidates = scan_blk3_candidates(&archive_bytes);
 
     let mut footer_analysis = FooterAnalysis {
         status: "missing",
@@ -322,10 +405,9 @@ fn build_plan(opts: &CliOptions) -> Result<SalvagePlanV1> {
 
                             let block_verification = build_block_verification(
                                 &reader,
-                                &archive_bytes,
                                 &tail.footer,
+                                &archive_bytes,
                                 &dictionary_analysis.verified_dict_ids,
-                                &mut mapped_candidate_offsets,
                             );
 
                             for entry in index.entries {
@@ -335,12 +417,16 @@ fn build_plan(opts: &CliOptions) -> Result<SalvagePlanV1> {
 
                                 let required_block_ids =
                                     entry.extents.iter().map(|e| e.block_id).collect::<Vec<_>>();
-                                let (status, reason) =
-                                    classify_file(&required_block_ids, &block_verification);
+                                let (status, reason, failure_reasons) = classify_file(
+                                    &entry.extents,
+                                    &required_block_ids,
+                                    &block_verification,
+                                );
                                 file_plans.push(FilePlan {
                                     file_path: entry.path,
                                     status,
                                     reason,
+                                    failure_reasons,
                                     required_block_ids,
                                 });
                             }
@@ -376,6 +462,30 @@ fn build_plan(opts: &CliOptions) -> Result<SalvagePlanV1> {
         }
     }
 
+    let mut candidates = scan_blk3_candidates(
+        &archive_bytes,
+        &dictionary_analysis.verified_dict_ids,
+        dictionary_analysis.status == "available",
+    );
+
+    if footer_analysis.status == "valid" {
+        if let Some(blocks_end_offset) = footer_analysis.blocks_end_offset {
+            if let Ok(spans) = scan_blocks_v1(&reader, blocks_end_offset) {
+                let index_by_offset = candidates
+                    .iter()
+                    .enumerate()
+                    .map(|(i, c)| (c.scan_offset, i))
+                    .collect::<BTreeMap<_, _>>();
+                for span in spans {
+                    mapped_candidate_offsets.insert(span.header_offset);
+                    if let Some(ix) = index_by_offset.get(&span.header_offset) {
+                        candidates[*ix].mapped_block_id = Some(span.block_id);
+                    }
+                }
+            }
+        }
+    }
+
     file_plans.sort_by(|a, b| a.file_path.cmp(&b.file_path));
 
     let usable_candidates = candidates
@@ -405,8 +515,8 @@ fn build_plan(opts: &CliOptions) -> Result<SalvagePlanV1> {
             .count() as u64
     };
 
-    Ok(SalvagePlanV1 {
-        schema_version: "crushr-salvage-plan.v1",
+    Ok(SalvagePlanV2 {
+        schema_version: "crushr-salvage-plan.v2",
         tool: "crushr-salvage",
         tool_version: env!("CARGO_PKG_VERSION"),
         verification_contract_label: "UNVERIFIED_RESEARCH_OUTPUT_NOT_CANONICAL_EXTRACTION",
@@ -437,12 +547,17 @@ fn build_plan(opts: &CliOptions) -> Result<SalvagePlanV1> {
     })
 }
 
+#[derive(Debug, Clone)]
+struct BlockVerification {
+    content_verified: bool,
+    verified_raw_len: Option<u64>,
+}
+
 fn build_block_verification<R: ReadAt + Len>(
     reader: &R,
-    archive_bytes: &[u8],
     footer: &Ftr4,
+    archive_bytes: &[u8],
     verified_dict_ids: &[u32],
-    mapped_candidate_offsets: &mut BTreeSet<u64>,
 ) -> BTreeMap<u32, BlockVerification> {
     let mut out = BTreeMap::new();
     let spans = match scan_blocks_v1(reader, footer.blocks_end_offset) {
@@ -450,91 +565,76 @@ fn build_block_verification<R: ReadAt + Len>(
         Err(_) => return out,
     };
 
-    let verified_dict_set: BTreeSet<u32> = verified_dict_ids.iter().copied().collect();
+    let candidates = scan_blk3_candidates(archive_bytes, verified_dict_ids, true)
+        .into_iter()
+        .map(|c| (c.scan_offset, c))
+        .collect::<BTreeMap<_, _>>();
 
     for span in spans {
-        mapped_candidate_offsets.insert(span.header_offset);
-        let header_len = (span.payload_offset - span.header_offset) as usize;
-        let header_start = span.header_offset as usize;
-        let header_end = header_start.saturating_add(header_len);
-        if header_end > archive_bytes.len() {
-            continue;
+        if let Some(candidate) = candidates.get(&span.header_offset) {
+            out.insert(
+                span.block_id,
+                BlockVerification {
+                    content_verified: candidate.content_verification_status == "content_verified",
+                    verified_raw_len: candidate.verified_raw_len,
+                },
+            );
         }
-
-        let header = match read_blk3_header(Cursor::new(&archive_bytes[header_start..header_end])) {
-            Ok(v) => v,
-            Err(_) => continue,
-        };
-
-        let payload_start = span.payload_offset as usize;
-        let payload_end = payload_start.saturating_add(span.comp_len as usize);
-        if payload_end > archive_bytes.len() {
-            continue;
-        }
-
-        let payload_verified = if let Some(expected) = span.payload_hash {
-            blake3::hash(&archive_bytes[payload_start..payload_end]).as_bytes() == &expected
-        } else {
-            false
-        };
-
-        let dictionary_ok = if header.flags.uses_dict() {
-            verified_dict_set.contains(&header.dict_id)
-        } else {
-            true
-        };
-
-        let raw_verified = if let Some(raw_hash) = header.raw_hash {
-            if header.codec != 1 {
-                false
-            } else {
-                zstd::decode_all(Cursor::new(&archive_bytes[payload_start..payload_end]))
-                    .map(|raw| blake3::hash(&raw).as_bytes() == &raw_hash)
-                    .unwrap_or(false)
-            }
-        } else {
-            true
-        };
-
-        out.insert(
-            span.block_id,
-            BlockVerification {
-                payload_verified,
-                raw_verified,
-                dictionary_ok,
-            },
-        );
     }
 
     out
 }
 
 fn classify_file(
+    extents: &[crushr::format::Extent],
     required_block_ids: &[u32],
     block_verification: &BTreeMap<u32, BlockVerification>,
-) -> (&'static str, &'static str) {
+) -> (&'static str, &'static str, Vec<&'static str>) {
     if required_block_ids.is_empty() {
-        return ("UNSALVAGEABLE", "no_required_blocks");
+        return (
+            "UNSALVAGEABLE",
+            "no_required_blocks",
+            vec!["no_required_blocks"],
+        );
     }
+
+    let mut failure_reasons = BTreeSet::new();
 
     for block_id in required_block_ids {
         let state = match block_verification.get(block_id) {
             Some(v) => v,
-            None => return ("UNSALVAGEABLE", "required_block_unmapped"),
+            None => {
+                failure_reasons.insert("required_block_unmapped");
+                continue;
+            }
         };
 
-        if !state.payload_verified {
-            return ("UNSALVAGEABLE", "required_block_payload_unverified");
-        }
-        if !state.dictionary_ok {
-            return ("UNSALVAGEABLE", "required_dictionary_missing_or_unverified");
-        }
-        if !state.raw_verified {
-            return ("UNSALVAGEABLE", "required_block_raw_unverified");
+        if !state.content_verified {
+            failure_reasons.insert("required_block_not_content_verified");
         }
     }
 
-    ("SALVAGEABLE", "all_required_dependencies_verified")
+    for extent in extents {
+        if let Some(state) = block_verification.get(&extent.block_id) {
+            if let Some(raw_len) = state.verified_raw_len {
+                let end = extent.offset.saturating_add(extent.len);
+                if end > raw_len {
+                    failure_reasons.insert("required_extent_out_of_bounds");
+                }
+            }
+        }
+    }
+
+    if failure_reasons.is_empty() {
+        (
+            "SALVAGEABLE",
+            "all_required_dependencies_verified",
+            Vec::new(),
+        )
+    } else {
+        let reasons = failure_reasons.into_iter().collect::<Vec<_>>();
+        ("UNSALVAGEABLE", reasons[0], reasons)
+    }
 }
 
 fn run() -> Result<()> {
