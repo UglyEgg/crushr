@@ -9,8 +9,7 @@ use crate::phase2_domain::{ArchiveFormat, Dataset};
 
 pub fn run_phase2_foundation(raw_args: Vec<String>) -> Result<()> {
     let mut args = raw_args.into_iter();
-    let mut artifact_dir =
-        crate::cli::workspace_root()?.join("PHASE2_RESEARCH/generated/foundation");
+    let mut artifact_dir = crate::cli::workspace_root()?.join("PHASE2_RESEARCH/foundation");
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--artifact-dir" => {
@@ -81,6 +80,12 @@ pub struct ArchiveBuildRecord {
     pub dataset: Dataset,
     pub archive_format: ArchiveFormat,
     pub output_path: String,
+    pub archive_file: String,
+    pub archive_size: u64,
+    pub archive_blake3: String,
+    pub file_count: usize,
+    pub dataset_name: String,
+    pub format: String,
     pub build: CommandExecutionRecord,
 }
 
@@ -88,6 +93,7 @@ pub struct ArchiveBuildRecord {
 pub struct Phase2FoundationReport {
     pub datasets: Vec<DatasetProvenance>,
     pub archive_builds: Vec<ArchiveBuildRecord>,
+    pub deterministic_generation_confirmed: bool,
 }
 
 pub fn create_dataset_fixture(root: &Path, dataset: Dataset) -> Result<DatasetInventory> {
@@ -106,11 +112,14 @@ pub fn create_dataset_fixture(root: &Path, dataset: Dataset) -> Result<DatasetIn
 }
 
 pub fn write_inventory_and_provenance(
-    artifact_root: &Path,
+    workspace_root: &Path,
     dataset: Dataset,
     inventory: &DatasetInventory,
 ) -> Result<DatasetProvenance> {
-    let dataset_dir = artifact_root.join("datasets").join(dataset.slug());
+    let dataset_dir = workspace_root
+        .join("PHASE2_RESEARCH")
+        .join("datasets")
+        .join(dataset.slug());
     fs::create_dir_all(&dataset_dir)?;
     let inventory_path = dataset_dir.join("inventory.json");
     fs::write(&inventory_path, serde_json::to_vec_pretty(inventory)?)?;
@@ -120,7 +129,7 @@ pub fn write_inventory_and_provenance(
         deterministic: true,
         dataset,
         composition_rule: dataset.composition_rule().to_string(),
-        inventory_path: rel_path(artifact_root, &inventory_path),
+        inventory_path: rel_path(workspace_root, &inventory_path),
         inventory_blake3: inventory.inventory_blake3.clone(),
     })
 }
@@ -131,16 +140,19 @@ pub fn build_archives_for_dataset(
     dataset: Dataset,
     dataset_dir: &Path,
 ) -> Result<Vec<ArchiveBuildRecord>> {
-    let archives_dir = artifact_root.join("archives");
+    let baselines_root = workspace_root.join("PHASE2_RESEARCH/baselines");
     let observations_dir = artifact_root.join("observations");
-    fs::create_dir_all(&archives_dir)?;
+    fs::create_dir_all(&baselines_root)?;
     fs::create_dir_all(&observations_dir)?;
 
     let files = collect_relative_files(dataset_dir)?;
+    normalize_fixture_timestamps(dataset_dir, &files)?;
     let mut records = Vec::new();
 
     for archive_format in ArchiveFormat::ordered_locked_core() {
-        let output_path = archives_dir.join(archive_format.output_file_name(dataset));
+        let format_dir = baselines_root.join(archive_format.slug());
+        fs::create_dir_all(&format_dir)?;
+        let output_path = format_dir.join(archive_format.output_file_name(dataset));
         let build = match archive_format {
             ArchiveFormat::Crushr => run_crushr_pack(
                 workspace_root,
@@ -188,12 +200,53 @@ pub fn build_archives_for_dataset(
         records.push(ArchiveBuildRecord {
             dataset,
             archive_format: *archive_format,
-            output_path: rel_path(artifact_root, &output_path),
+            output_path: rel_path(workspace_root, &output_path),
+            archive_file: output_path
+                .file_name()
+                .map(|value| value.to_string_lossy().to_string())
+                .unwrap_or_else(|| archive_format.output_file_name(dataset)),
+            archive_size: if matches!(build.status, ExecutionStatus::Success)
+                && output_path.exists()
+            {
+                fs::metadata(&output_path)?.len()
+            } else {
+                0
+            },
+            archive_blake3: if matches!(build.status, ExecutionStatus::Success)
+                && output_path.exists()
+            {
+                blake3::hash(&fs::read(&output_path)?).to_hex().to_string()
+            } else {
+                String::new()
+            },
+            file_count: files.len(),
+            dataset_name: dataset.slug().to_string(),
+            format: archive_format.slug().to_string(),
             build,
         });
     }
 
     Ok(records)
+}
+
+fn normalize_fixture_timestamps(dataset_dir: &Path, files: &[String]) -> Result<()> {
+    if detect_tool(["touch"]).is_none() {
+        return Ok(());
+    }
+
+    for file in files {
+        let status = Command::new("touch")
+            .arg("-t")
+            .arg("198001010000.00")
+            .arg(dataset_dir.join(file))
+            .status()
+            .with_context(|| format!("normalizing timestamp for {file}"))?;
+        if !status.success() {
+            bail!("failed to normalize timestamp for {file}");
+        }
+    }
+
+    Ok(())
 }
 
 fn build_smallfiles(root: &Path) -> Result<()> {
@@ -362,7 +415,10 @@ fn run_zip_build(
     }
 
     let mut cmd = Command::new("zip");
-    cmd.current_dir(dataset_dir).arg("-q").arg(output_path);
+    cmd.current_dir(dataset_dir)
+        .arg("-X")
+        .arg("-q")
+        .arg(output_path);
     for file in files {
         cmd.arg(file);
     }
@@ -392,7 +448,15 @@ fn run_tar_zstd_build(
 
     let tar_path = output_path.with_extension("tar");
     let mut tar_cmd = Command::new("tar");
-    tar_cmd.current_dir(dataset_dir).arg("-cf").arg(&tar_path);
+    tar_cmd
+        .current_dir(dataset_dir)
+        .arg("--sort=name")
+        .arg("--mtime=@0")
+        .arg("--owner=0")
+        .arg("--group=0")
+        .arg("--numeric-owner")
+        .arg("-cf")
+        .arg(&tar_path);
     for file in files {
         tar_cmd.arg(file);
     }
@@ -442,7 +506,15 @@ fn run_tar_gz_build(
     }
 
     let mut cmd = Command::new("tar");
-    cmd.current_dir(dataset_dir).arg("-czf").arg(output_path);
+    cmd.current_dir(dataset_dir)
+        .env("GZIP", "-n")
+        .arg("--sort=name")
+        .arg("--mtime=@0")
+        .arg("--owner=0")
+        .arg("--group=0")
+        .arg("--numeric-owner")
+        .arg("-czf")
+        .arg(output_path);
     for file in files {
         cmd.arg(file);
     }
@@ -468,7 +540,14 @@ fn run_tar_xz_build(
     }
 
     let mut cmd = Command::new("tar");
-    cmd.current_dir(dataset_dir).arg("-cJf").arg(output_path);
+    cmd.current_dir(dataset_dir)
+        .arg("--sort=name")
+        .arg("--mtime=@0")
+        .arg("--owner=0")
+        .arg("--group=0")
+        .arg("--numeric-owner")
+        .arg("-cJf")
+        .arg(output_path);
     for file in files {
         cmd.arg(file);
     }
@@ -601,15 +680,17 @@ pub fn build_phase2_foundation(
     artifact_root: &Path,
 ) -> Result<Phase2FoundationReport> {
     fs::create_dir_all(artifact_root)?;
-    let datasets_root = artifact_root.join("datasets");
+    fs::create_dir_all(workspace_root.join("PHASE2_RESEARCH"))?;
+    let datasets_root = workspace_root.join("PHASE2_RESEARCH/datasets");
     let mut dataset_records = Vec::new();
     let mut archive_records = Vec::new();
 
     for dataset in Dataset::ordered_locked_core() {
         let dataset_dir = datasets_root.join(dataset.slug()).join("payload");
         let inventory = create_dataset_fixture(&dataset_dir, *dataset)?;
-        let provenance = write_inventory_and_provenance(artifact_root, *dataset, &inventory)?;
-        let inventory_hash_path = artifact_root
+        let provenance = write_inventory_and_provenance(workspace_root, *dataset, &inventory)?;
+        let inventory_hash_path = workspace_root
+            .join("PHASE2_RESEARCH")
             .join("datasets")
             .join(dataset.slug())
             .join("inventory.blake3.txt");
@@ -627,9 +708,16 @@ pub fn build_phase2_foundation(
         )?);
     }
 
+    let deterministic_generation_confirmed = archive_records.iter().all(|record| {
+        matches!(record.build.status, ExecutionStatus::Success)
+            && !record.archive_blake3.is_empty()
+            && record.archive_size > 0
+    });
+
     Ok(Phase2FoundationReport {
         datasets: dataset_records,
         archive_builds: archive_records,
+        deterministic_generation_confirmed,
     })
 }
 
@@ -697,11 +785,23 @@ mod tests {
                         .map(|kind| ArchiveBuildRecord {
                             dataset: *dataset,
                             archive_format: *kind,
-                            output_path: format!("archives/{}_{}.out", dataset.slug(), kind.slug()),
+                            output_path: format!(
+                                "PHASE2_RESEARCH/baselines/{}/{}_{}.out",
+                                kind.slug(),
+                                dataset.slug(),
+                                kind.slug()
+                            ),
+                            archive_file: format!("{}_{}.out", dataset.slug(), kind.slug()),
+                            archive_size: 1,
+                            archive_blake3: "abc".to_string(),
+                            file_count: 1,
+                            dataset_name: dataset.slug().to_string(),
+                            format: kind.slug().to_string(),
                             build: skipped_record("test", "not executed"),
                         })
                 })
                 .collect(),
+            deterministic_generation_confirmed: true,
         };
 
         validate_archive_coverage(&report).expect("coverage ok");

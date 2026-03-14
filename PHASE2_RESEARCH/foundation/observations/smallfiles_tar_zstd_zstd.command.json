@@ -1,0 +1,11 @@
+{
+  "args": [
+    "-q",
+    "-f",
+    "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_zstd/smallfiles.tar.tar",
+    "-o",
+    "/home/uglyegg/Repos/! WORKING-in_progress/crushr/PHASE2_RESEARCH/baselines/tar_zstd/smallfiles.tar.zst"
+  ],
+  "exit_code": 0,
+  "program": "zstd"
+}

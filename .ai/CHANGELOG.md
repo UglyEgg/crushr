@@ -1,3 +1,9 @@
+## 2026-03-13 — Phase 2 execution foundation dataset/baseline build (CRUSHR-P2-EXEC-02)
+
+- Updated `crushr-lab build-phase2-foundation` defaults/outputs to emit fixture datasets under `PHASE2_RESEARCH/datasets/`, baseline archives under `PHASE2_RESEARCH/baselines/{crushr,zip,tar_zstd,tar_gz,tar_xz}`, and report artifacts under `PHASE2_RESEARCH/foundation/`.
+- Expanded foundation archive records with required metadata fields (`archive_file`, `archive_size`, `archive_blake3`, `file_count`, `dataset_name`, `format`) and deterministic-generation confirmation in the report.
+- Added deterministic timestamp/flag normalization for zip/tar baselines and generated Phase 2 foundation artifacts (`datasets`, `baselines`, `foundation_report.json`) for locked datasets and formats.
+
 ## 2026-03-13 — Phase 2, Step 2.1 cleanup (CRUSHR-P2-CLEAN-07: slim crushr-lab main dispatch edge)
 
 - Reduced `crates/crushr-lab/src/main.rs` to command parsing + dispatch + top-level usage/exit behavior only.

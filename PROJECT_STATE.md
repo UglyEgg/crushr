@@ -47,8 +47,9 @@ Verification progression:
 - Phase 1: complete.
 - Cleanup packet series: complete.
 - Phase 2: active engineering focus.
-- Next required milestone: Phase 2.2 cross-format comparison and normalized result mapping.
-- Next packet after audit: Phase 2.2 cross-format comparison and normalized result mapping.
+- `CRUSHR-P2-EXEC-01` complete: canonical Phase 2 manifest frozen at `PHASE2_RESEARCH/manifest/phase2_manifest.json` with 2700 deterministic scenarios.
+- `CRUSHR-P2-EXEC-02` complete: baseline datasets and baseline archives generated under `PHASE2_RESEARCH/datasets/` and `PHASE2_RESEARCH/baselines/` with foundation metadata written to `PHASE2_RESEARCH/foundation/foundation_report.json`.
+- Current next step: `CRUSHR-P2-EXEC-03` staged corruption-trial execution.
 - Canonical Phase 2 research workspace root: `PHASE2_RESEARCH/`.
 
 ## Phase-2 Evaluation Scope
@@ -112,6 +113,18 @@ Purpose:
 - the experiment can be rerun later with identical inputs
 
 This capability governs research methodology only. It does not modify the crushr archive format.
+
+## Phase 2 Execution Notes
+
+The baseline execution corpus now has a frozen scenario manifest and a generated foundation layer.
+
+Operational notes:
+
+- the canonical manifest path is `PHASE2_RESEARCH/manifest/phase2_manifest.json`
+- the canonical manifest summary path is `PHASE2_RESEARCH/manifest/manifest_summary.json`
+- the canonical foundation report path is `PHASE2_RESEARCH/foundation/foundation_report.json`
+- comparator availability remains an execution-environment concern and must be verified before large trial execution
+- `tar+zstd` baseline generation requires `zstd` available on `PATH`
 
 ## Planned Post-Paper Feature Set
 
