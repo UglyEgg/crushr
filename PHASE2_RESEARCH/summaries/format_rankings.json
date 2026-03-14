@@ -1,83 +1,220 @@
 {
-  "survivability": [
-    {
-      "rank": 1,
-      "format": "tar+xz",
-      "score": 0.8481481481481481
-    },
-    {
-      "rank": 2,
-      "format": "tar+gz",
-      "score": 0.7018518518518518
-    },
-    {
-      "rank": 3,
-      "format": "zip",
-      "score": 0.6777777777777778
-    },
-    {
-      "rank": 4,
-      "format": "tar+zstd",
-      "score": 0.3592592592592593
-    },
-    {
-      "rank": 5,
-      "format": "crushr",
-      "score": 0.0
-    }
-  ],
-  "diagnostic_quality": [
-    {
-      "rank": 1,
-      "format": "crushr",
-      "score": 0.624074074074074
-    },
-    {
-      "rank": 2,
-      "format": "tar+gz",
-      "score": 0.5799382716049383
-    },
-    {
-      "rank": 3,
-      "format": "tar+xz",
-      "score": 0.5074074074074074
-    },
-    {
-      "rank": 4,
-      "format": "tar+zstd",
-      "score": 0.4839506172839506
-    },
-    {
-      "rank": 5,
-      "format": "zip",
-      "score": 0.4518518518518518
-    }
-  ],
-  "corruption_containment": [
-    {
-      "rank": 1,
-      "format": "tar+xz",
-      "score": 0.5731481481481482
-    },
-    {
-      "rank": 2,
-      "format": "zip",
-      "score": 0.5555555555555556
-    },
-    {
-      "rank": 3,
-      "format": "tar+gz",
-      "score": 0.5472222222222222
-    },
-    {
-      "rank": 4,
-      "format": "tar+zstd",
-      "score": 0.3287037037037037
-    },
-    {
-      "rank": 5,
-      "format": "crushr",
-      "score": 0.0
-    }
-  ]
+  "rankings": {
+    "survivability_by_file_ratio": [
+      {
+        "rank": 1,
+        "format": "zip",
+        "value": 0.608704
+      },
+      {
+        "rank": 2,
+        "format": "tar+xz",
+        "value": 0.591065
+      },
+      {
+        "rank": 3,
+        "format": "tar+gz",
+        "value": 0.582222
+      },
+      {
+        "rank": 4,
+        "format": "tar+zstd",
+        "value": 0.338889
+      },
+      {
+        "rank": 5,
+        "format": "crushr",
+        "value": 0.0
+      }
+    ],
+    "survivability_by_byte_ratio": [
+      {
+        "rank": 1,
+        "format": "tar+gz",
+        "value": 0.605515
+      },
+      {
+        "rank": 2,
+        "format": "tar+xz",
+        "value": 0.581106
+      },
+      {
+        "rank": 3,
+        "format": "zip",
+        "value": 0.56658
+      },
+      {
+        "rank": 4,
+        "format": "tar+zstd",
+        "value": 0.285527
+      },
+      {
+        "rank": 5,
+        "format": "crushr",
+        "value": 0.0
+      }
+    ],
+    "success_rate": [
+      {
+        "rank": 1,
+        "format": "crushr",
+        "value": 0.338889
+      },
+      {
+        "rank": 2,
+        "format": "zip",
+        "value": 0.05
+      },
+      {
+        "rank": 3,
+        "format": "tar+gz",
+        "value": 0.007407
+      },
+      {
+        "rank": 4,
+        "format": "tar+zstd",
+        "value": 0.003704
+      },
+      {
+        "rank": 5,
+        "format": "tar+xz",
+        "value": 0.001852
+      }
+    ],
+    "partial_or_better_rate": [
+      {
+        "rank": 1,
+        "format": "tar+gz",
+        "value": 0.642593
+      },
+      {
+        "rank": 2,
+        "format": "tar+xz",
+        "value": 0.614815
+      },
+      {
+        "rank": 3,
+        "format": "crushr",
+        "value": 0.338889
+      },
+      {
+        "rank": 4,
+        "format": "tar+zstd",
+        "value": 0.305556
+      },
+      {
+        "rank": 5,
+        "format": "zip",
+        "value": 0.177778
+      }
+    ],
+    "diagnostic_quality_structural_or_precise": [
+      {
+        "rank": 1,
+        "format": "tar+xz",
+        "value": 0.998148
+      },
+      {
+        "rank": 2,
+        "format": "tar+zstd",
+        "value": 0.994444
+      },
+      {
+        "rank": 3,
+        "format": "zip",
+        "value": 0.994444
+      },
+      {
+        "rank": 4,
+        "format": "tar+gz",
+        "value": 0.975926
+      },
+      {
+        "rank": 5,
+        "format": "crushr",
+        "value": 0.942593
+      }
+    ],
+    "pre_extract_detection_rate": [
+      {
+        "rank": 1,
+        "format": "crushr",
+        "value": 0.446296
+      },
+      {
+        "rank": 2,
+        "format": "tar+gz",
+        "value": 0.394444
+      },
+      {
+        "rank": 3,
+        "format": "tar+xz",
+        "value": 0.311111
+      },
+      {
+        "rank": 4,
+        "format": "tar+zstd",
+        "value": 0.3
+      },
+      {
+        "rank": 5,
+        "format": "zip",
+        "value": 0.0
+      }
+    ],
+    "blast_radius_localized_or_none": [
+      {
+        "rank": 1,
+        "format": "zip",
+        "value": 0.52037
+      },
+      {
+        "rank": 2,
+        "format": "tar+xz",
+        "value": 0.475926
+      },
+      {
+        "rank": 3,
+        "format": "tar+gz",
+        "value": 0.47037
+      },
+      {
+        "rank": 4,
+        "format": "tar+zstd",
+        "value": 0.298148
+      },
+      {
+        "rank": 5,
+        "format": "crushr",
+        "value": 0.0
+      }
+    ],
+    "tool_error_rate_lowest_is_best": [
+      {
+        "rank": 1,
+        "format": "tar+gz",
+        "value": 0.0
+      },
+      {
+        "rank": 2,
+        "format": "tar+xz",
+        "value": 0.159259
+      },
+      {
+        "rank": 3,
+        "format": "crushr",
+        "value": 0.214815
+      },
+      {
+        "rank": 4,
+        "format": "tar+zstd",
+        "value": 0.451852
+      },
+      {
+        "rank": 5,
+        "format": "zip",
+        "value": 0.666667
+      }
+    ]
+  }
 }
