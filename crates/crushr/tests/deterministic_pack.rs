@@ -1,17 +1,9 @@
 use crushr::index_codec::decode_index;
 use crushr_format::ftr4::{Ftr4, FTR4_LEN};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use tempfile::TempDir;
-
-fn workspace_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .expect("workspace root")
-        .to_path_buf()
-}
 
 fn run(cmd: &mut Command) {
     let out = cmd.output().expect("run command");
@@ -23,14 +15,6 @@ fn run(cmd: &mut Command) {
             String::from_utf8_lossy(&out.stderr)
         );
     }
-}
-
-fn build_crushr_pack_bin() -> PathBuf {
-    let root = workspace_root();
-    run(Command::new("cargo")
-        .args(["build", "-p", "crushr", "--bin", "crushr-pack"])
-        .current_dir(&root));
-    root.join("target/debug/crushr-pack")
 }
 
 fn read_index_entries(archive: &Path) -> Vec<crushr::format::Entry> {
@@ -54,18 +38,18 @@ fn crushr_pack_repeated_runs_are_byte_identical() {
     fs::write(input.join("a-dir/aaa.txt"), b"a").unwrap();
     fs::write(input.join("root.txt"), b"root").unwrap();
 
-    let bin = build_crushr_pack_bin();
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
     let one = td.path().join("one.crs");
     let two = td.path().join("two.crs");
 
-    run(Command::new(&bin).args([
+    run(Command::new(bin).args([
         input.to_str().unwrap(),
         "-o",
         one.to_str().unwrap(),
         "--level",
         "3",
     ]));
-    run(Command::new(&bin).args([
+    run(Command::new(bin).args([
         input.to_str().unwrap(),
         "-o",
         two.to_str().unwrap(),
@@ -87,8 +71,8 @@ fn crushr_pack_index_order_and_metadata_are_normalized() {
     fs::write(input.join("a/two.txt"), b"2").unwrap();
 
     let archive = td.path().join("out.crs");
-    let bin = build_crushr_pack_bin();
-    run(Command::new(&bin).args([
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    run(Command::new(bin).args([
         input.to_str().unwrap(),
         "-o",
         archive.to_str().unwrap(),
