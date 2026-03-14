@@ -380,3 +380,10 @@
 - Generated and froze canonical Phase 2 manifest at `PHASE2_RESEARCH/manifest/phase2_manifest.json` using `crushr-lab write-phase2-manifest` with the locked core matrix.
 - Emitted `PHASE2_RESEARCH/manifest/manifest_summary.json` capturing scenario count and locked dataset/format/corruption/seed lists for operator quick-checks.
 - Verified manifest contract properties for the frozen artifact: deterministic ordering, stable scenario IDs, no duplicate IDs, and exact 2700 scenario count.
+
+## 2026-03-14 — Phase 2 execution runner path/default correction (CRUSHR-P2-EXEC-03A)
+
+- Fixed `crates/crushr-lab/src/phase2_runner.rs` source-archive resolution so `foundation_report.json` archive paths are resolved against workspace root when relative and passed through unchanged when absolute.
+- Restricted `artifact_dir` usage to generated execution outputs and kept source archive loading independent from artifact output location.
+- Updated `run-phase2-execution` defaults to canonical Phase 2 layout: manifest `PHASE2_RESEARCH/manifest/phase2_manifest.json`, foundation report `PHASE2_RESEARCH/foundation/foundation_report.json`, and execution artifact dir `PHASE2_RESEARCH/trials`.
+- Added focused unit tests for relative/absolute source path handling, artifact output placement under `artifact_dir`, and canonical default-path constants; updated `PHASE2_RESEARCH/README.md` execution example paths.

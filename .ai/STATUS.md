@@ -2,9 +2,9 @@
 
 Current Phase: Phase 2 — Comparative Corruption Research
 
-Current Step: CRUSHR-P2-EXEC-02 complete (foundation datasets + baseline archives generated)
+Current Step: CRUSHR-P2-EXEC-03A complete (runner source-archive path resolution + canonical execution defaults)
 
-Recent completed packet: CRUSHR-P2-EXEC-02 (generated Phase 2 foundation datasets, baseline archives, and foundation report metadata)
+Recent completed packet: CRUSHR-P2-EXEC-03A (fixed runner archive-path resolution against workspace root and updated execution defaults to canonical Phase 2 layout)
 
 ## Current truth
 
@@ -20,6 +20,7 @@ Recent completed packet: CRUSHR-P2-EXEC-02 (generated Phase 2 foundation dataset
 - Pre-trial packet CRUSHR-P2-TRIAL-READY-01 is complete: added `crushr-lab run-phase2-pretrial-audit` to validate manifest/schema shape, locked core matrix axes, deterministic scenario count (2700), duplicate scenario IDs, truthful tool availability (`crushr`, `zip`, `tar+zstd`, `tar+gz`, `tar+xz`), required support files, and writable Phase 2 output roots; command emits `PHASE2_RESEARCH/generated/audit/phase2_pretrial_audit.json` and fails on any readiness check failure.
 - Execution packet CRUSHR-P2-EXEC-01 is complete: generated and froze `PHASE2_RESEARCH/manifest/phase2_manifest.json` from the existing `write-phase2-manifest` generator, emitted `PHASE2_RESEARCH/manifest/manifest_summary.json`, and verified deterministic ordering, stable scenario IDs, uniqueness, and exact 2700-scenario cardinality.
 - Execution packet CRUSHR-P2-EXEC-02 is complete: generated deterministic fixture datasets under `PHASE2_RESEARCH/datasets/{smallfiles,mixed,largefiles}/payload`, built baseline archives under `PHASE2_RESEARCH/baselines/{crushr,zip,tar_zstd,tar_gz,tar_xz}`, and emitted `PHASE2_RESEARCH/foundation/foundation_report.json` with archive metadata (`archive_file`, `archive_size`, `archive_blake3`, `file_count`, `dataset_name`, `format`) plus deterministic generation confirmation.
+- Execution packet CRUSHR-P2-EXEC-03A is complete: `run-phase2-execution` now resolves baseline `foundation_report` archive paths against `workspace_root` (absolute paths unchanged), keeps `artifact_dir` scoped to generated execution outputs, and uses canonical defaults (`PHASE2_RESEARCH/manifest/phase2_manifest.json`, `PHASE2_RESEARCH/foundation/foundation_report.json`, `PHASE2_RESEARCH/trials`).
 - Active machine-readable schemas are now tightened contracts for: `crushr-info` snapshot, `crushr-fsck` snapshot, `crushr-impact` report, extraction result, and propagation graph.
 - Integration tests now perform real JSON Schema instance-vs-schema validation for active outputs.
 
@@ -33,4 +34,4 @@ Recent completed packet: CRUSHR-P2-EXEC-02 (generated Phase 2 foundation dataset
 
 ## Next action
 
-Start Phase 2.2 comparative mapping/reporting on top of the frozen canonical execution manifest and the pre-trial audit gate.
+Start Phase 2.2 comparative mapping/reporting on top of the frozen canonical execution manifest and execution outputs under `PHASE2_RESEARCH/trials`.

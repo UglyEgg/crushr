@@ -10,6 +10,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+const DEFAULT_MANIFEST_PATH: &str = "PHASE2_RESEARCH/manifest/phase2_manifest.json";
+const DEFAULT_FOUNDATION_REPORT_PATH: &str = "PHASE2_RESEARCH/foundation/foundation_report.json";
+const DEFAULT_ARTIFACT_DIR: &str = "PHASE2_RESEARCH/trials";
+
 #[derive(Debug, Clone, Serialize)]
 pub struct ExecutionMetadata {
     pub invocation: InvocationMetadata,
@@ -68,10 +72,9 @@ pub struct Phase2ExecutionReport {
 pub fn run_phase2_execution_cmd(raw_args: Vec<String>) -> Result<()> {
     let mut args = raw_args.into_iter();
     let root = crate::cli::workspace_root()?;
-    let mut manifest_path = root.join("PHASE2_RESEARCH/manifest/phase2_core_manifest.json");
-    let mut foundation_report_path =
-        root.join("PHASE2_RESEARCH/generated/foundation/foundation_report.json");
-    let mut artifact_dir = root.join("PHASE2_RESEARCH/generated/execution");
+    let mut manifest_path = root.join(DEFAULT_MANIFEST_PATH);
+    let mut foundation_report_path = root.join(DEFAULT_FOUNDATION_REPORT_PATH);
+    let mut artifact_dir = root.join(DEFAULT_ARTIFACT_DIR);
 
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -237,8 +240,8 @@ fn execute_scenario(
     }
 
     let format = scenario.format;
-    let source_archive = artifact_root.join(&build.output_path);
-    let scenario_dir = raw_root.join(&scenario.scenario_id);
+    let source_archive = resolve_source_archive_path(workspace_root, &build.output_path);
+    let scenario_dir = scenario_artifact_dir(raw_root, &scenario.scenario_id);
     fs::create_dir_all(&scenario_dir)?;
 
     let corrupted_archive = scenario_dir.join(format!(
@@ -337,6 +340,19 @@ fn maybe_write_json_result(scenario_dir: &Path, stdout: &[u8]) -> Result<Option<
     let path = scenario_dir.join("result.json");
     fs::write(&path, serde_json::to_vec_pretty(&json)?)?;
     Ok(Some(path))
+}
+
+fn resolve_source_archive_path(workspace_root: &Path, archive_path: &str) -> PathBuf {
+    let archive_path = PathBuf::from(archive_path);
+    if archive_path.is_absolute() {
+        archive_path
+    } else {
+        workspace_root.join(archive_path)
+    }
+}
+
+fn scenario_artifact_dir(raw_root: &Path, scenario_id: &str) -> PathBuf {
+    raw_root.join(scenario_id)
 }
 
 fn observe_command(
@@ -527,5 +543,53 @@ mod tests {
         assert!(invalid.is_none());
 
         let _ = fs::remove_dir_all(tmp);
+    }
+
+    #[test]
+    fn relative_source_archive_paths_resolve_against_workspace_root() {
+        let root = Path::new("/workspace/crushr");
+        let resolved =
+            resolve_source_archive_path(root, "PHASE2_RESEARCH/baselines/crushr/smallfiles.crs");
+
+        assert_eq!(
+            resolved,
+            PathBuf::from("/workspace/crushr/PHASE2_RESEARCH/baselines/crushr/smallfiles.crs")
+        );
+    }
+
+    #[test]
+    fn absolute_source_archive_paths_are_used_as_is() {
+        let root = Path::new("/workspace/crushr");
+        let absolute = "/tmp/archive/smallfiles.crs";
+        let resolved = resolve_source_archive_path(root, absolute);
+
+        assert_eq!(resolved, PathBuf::from(absolute));
+    }
+
+    #[test]
+    fn scenario_outputs_stay_under_artifact_dir() {
+        let artifact_root = Path::new("/tmp/trials");
+        let raw_root = artifact_root.join("raw");
+        let scenario_dir = scenario_artifact_dir(&raw_root, "p2-core-smallfiles-crushr");
+        let stdout_path = scenario_dir.join("stdout.txt");
+
+        assert!(scenario_dir.starts_with(artifact_root));
+        assert_eq!(
+            rel_path(artifact_root, &stdout_path),
+            "raw/p2-core-smallfiles-crushr/stdout.txt"
+        );
+    }
+
+    #[test]
+    fn execution_defaults_match_canonical_phase2_layout() {
+        assert_eq!(
+            DEFAULT_MANIFEST_PATH,
+            "PHASE2_RESEARCH/manifest/phase2_manifest.json"
+        );
+        assert_eq!(
+            DEFAULT_FOUNDATION_REPORT_PATH,
+            "PHASE2_RESEARCH/foundation/foundation_report.json"
+        );
+        assert_eq!(DEFAULT_ARTIFACT_DIR, "PHASE2_RESEARCH/trials");
     }
 }

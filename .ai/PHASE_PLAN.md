@@ -28,6 +28,7 @@
 - [x] 2.1 pre-trial audit milestone (CRUSHR-P2-TRIAL-READY-01)
 - [x] 2.1 execution freeze — canonical Phase 2 trial manifest + summary artifacts (CRUSHR-P2-EXEC-01)
 - [x] 2.1 execution foundation — Phase 2 datasets + baseline archive corpus + foundation report metadata (CRUSHR-P2-EXEC-02)
+- [x] 2.1 execution runner path/default fix — resolve foundation archive paths from workspace root and align execution defaults to canonical Phase 2 layout (CRUSHR-P2-EXEC-03A)
 - [ ] 2.2 Cross-Format Comparison
 - [ ] 2.3 Experimental Reporting
 
