@@ -382,3 +382,17 @@ Blast radius:
 - Blast radius:
   - Affects only `crushr-salvage` research output, schema consumers/tests, and salvage documentation.
   - No changes to `crushr-extract` contracts or strict extraction semantics.
+
+
+## 2026-03-14 — CRUSHR-SALVAGE-03: research-only verified fragment export in standalone salvage tool
+
+- Decision:
+  - Add optional `crushr-salvage --export-fragments <dir>` that emits deterministic research artifacts only from content-verified blocks/extents, with explicit `UNVERIFIED_RESEARCH_OUTPUT` labeling and no guessed/reconstructed bytes.
+  - Keep `crushr-extract` unchanged and strict-only.
+- Alternatives:
+  1. Keep salvage plan-only with no artifact export.
+  2. Add salvage/export mode to `crushr-extract`.
+- Rationale:
+  - Packet requires evidence artifact generation while preserving integrity-first canonical extraction boundary.
+- Blast radius:
+  - `crushr-salvage` CLI and salvage-plan v2 schema/tests/docs only; no strict extraction contract changes.

@@ -58,4 +58,5 @@ This document describes the current implemented boundary without speculative mat
 - Phase 2 execution/normalization/comparison are complete and frozen
 - active implementation workstream: standalone deterministic salvage planning (`crushr-salvage`)
 - strict extraction semantics remain unchanged
-- salvage verification in `crushr-salvage` is deterministic research evidence only and does not authorize canonical extraction
+- salvage verification/export in `crushr-salvage` is deterministic research evidence only and does not authorize canonical extraction
+- optional `crushr-salvage --export-fragments <dir>` emits verified block/extents artifacts labeled `UNVERIFIED_RESEARCH_OUTPUT`
