@@ -64,3 +64,9 @@
   - `crushr-lab-salvage` resolves `crushr-salvage` deterministically without requiring global PATH
   - archive discovery is format-identity based (accepts valid `.crushr`, `.crs`, and extensionless archives)
   - non-archives (including sidecars) are ignored by identity with stable lexicographic ordering of accepted archives
+
+
+- [x] 3.8 CRUSHR-FORMAT-01 (redundant verified file-map metadata fallback)
+  - `crushr-pack` emits compact LDG1 `crushr-redundant-file-map.v1` per-file extent metadata
+  - `crushr-salvage` falls back to redundant mapping only when IDX3 is unusable and redundant map verifies fully
+  - salvage plan schema bumped to v3 with `redundant_map_analysis` and deterministic `mapping_provenance`

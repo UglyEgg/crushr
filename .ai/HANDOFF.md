@@ -2,7 +2,7 @@
 
 ## Immediate next packet
 
-Next salvage packet (TBD): build on CRUSHR-SALVAGE-07 harness hardening without adding reconstruction.
+Next salvage packet (TBD): measure CRUSHR-FORMAT-01 redundancy impact across broader corruption sets without adding reconstruction.
 
 ## First actions for a fresh instance
 
@@ -63,3 +63,11 @@ Next salvage packet (TBD): build on CRUSHR-SALVAGE-07 harness hardening without 
 - deterministic `crushr-salvage` binary resolution in `crushr-lab-salvage` without relying on global PATH (sibling binary lookup + test env + explicit override)
 - archive input discovery switched from extension-only filtering to bounded format-identity checks (`BLK3` leading magic or valid `FTR4` + `IDX3` tail markers)
 - deterministic harness coverage for `.crushr`, `.crs`, extensionless archives, non-archive sidecar rejection, ordering stability, and binary resolution failures
+
+
+## Completed CRUSHR-FORMAT-01 outputs
+
+- `crushr-pack` writes redundant file-map metadata (`crushr-redundant-file-map.v1`) into LDG1
+- `crushr-salvage` validates redundant mapping metadata and uses it only when IDX3 mapping is unavailable/invalid
+- salvage-plan schema bumped to v3 with `redundant_map_analysis` and per-file `mapping_provenance`
+- focused regression tests cover fallback success, fallback rejection, backward compatibility, and determinism

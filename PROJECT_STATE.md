@@ -33,21 +33,22 @@ Non-negotiable baseline:
 - Phase 2 execution matrix: complete and frozen.
 - Phase 2 normalization: complete and frozen.
 - Phase 2 comparison/ranking analysis: complete and frozen.
-- Current salvage baseline: `CRUSHR-SALVAGE-07` deterministic research harness (`crushr-lab-salvage`) that orchestrates standalone salvage runs and emits experiment manifests, per-run metadata, compact summaries (`summary.json`, `summary.md`), and compact grouped analysis views (`analysis.json`, `analysis.md`) with format-identity archive discovery and deterministic salvage binary resolution.
+- Current salvage baseline: `CRUSHR-FORMAT-01` redundant verified file-map metadata in tail-frame ledger (`LDG1`) for deterministic salvage fallback when the primary IDX3 mapping path is unusable, plus retained deterministic research harness behavior from CRUSHR-SALVAGE-07.
 
 Canonical Phase 2 workspace root remains `PHASE2_RESEARCH/`.
 
-## `CRUSHR-SALVAGE-07` boundary
+## `CRUSHR-FORMAT-01` boundary
 
-This packet maintains deterministic salvage experiment orchestration and must:
+This packet adds bounded mapping survivability redundancy and must:
 
 - keep standalone `crushr-salvage` separation
-- resolve `crushr-salvage` deterministically without depending on global PATH
-- keep archive discovery format-identity based (accept `.crushr`, `.crs`, and extensionless valid archives)
-- emit deterministic experiment output layout with machine-readable salvage plan/metadata JSON plus compact deterministic experiment summaries and grouped analysis views
+- keep `crushr-extract` strict-only and unchanged
+- emit compact redundant file-map metadata in new archives via tail-frame ledger JSON
+- allow salvage to use redundant mapping only when primary mapping is unusable and redundant metadata verifies fully
+- reject partial/inconsistent redundant map metadata
+- preserve deterministic salvage output and explicit research labeling
 - avoid speculative reconstruction or guessed mappings
-- never modify archives
-- label outputs as unverified research output
+- never modify archives in place
 
 Out of scope for this packet (unchanged):
 

@@ -11,6 +11,7 @@ use crushr_format::{
     tailframe::parse_tail_frame,
 };
 use serde::Serialize;
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::fs::File;
@@ -20,6 +21,8 @@ use std::path::{Path, PathBuf};
 const USAGE: &str =
     "usage: crushr-salvage <archive> [--json-out <path>] [--export-fragments <dir>]";
 const RESEARCH_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
+const PRIMARY_INDEX_PATH: &str = "PRIMARY_INDEX_PATH";
+const REDUNDANT_VERIFIED_MAP_PATH: &str = "REDUNDANT_VERIFIED_MAP_PATH";
 
 struct FileReader {
     file: File,
@@ -46,7 +49,7 @@ struct CliOptions {
 }
 
 #[derive(Debug, Serialize)]
-struct SalvagePlanV2 {
+struct SalvagePlan {
     schema_version: &'static str,
     tool: &'static str,
     tool_version: &'static str,
@@ -55,6 +58,7 @@ struct SalvagePlanV2 {
     footer_analysis: FooterAnalysis,
     index_analysis: IndexAnalysis,
     dictionary_analysis: DictionaryAnalysis,
+    redundant_map_analysis: RedundantMapAnalysis,
     block_candidates: Vec<BlockCandidate>,
     file_plans: Vec<FilePlan>,
     orphan_candidate_summary: OrphanCandidateSummary,
@@ -101,6 +105,20 @@ struct DictionaryAnalysis {
     verified_dict_ids: Vec<u32>,
 }
 
+#[derive(Debug, Serialize)]
+struct RedundantMapAnalysis {
+    status: &'static str,
+    reason: &'static str,
+    file_count: Option<u64>,
+}
+
+#[derive(Debug)]
+struct RedundantMapFile {
+    path: String,
+    size: u64,
+    extents: Vec<Extent>,
+}
+
 #[derive(Debug, Serialize, Clone)]
 struct BlockCandidate {
     scan_offset: u64,
@@ -123,6 +141,7 @@ struct BlockCandidate {
 
 #[derive(Debug, Serialize)]
 struct FilePlan {
+    mapping_provenance: &'static str,
     file_path: String,
     status: &'static str,
     reason: &'static str,
@@ -453,6 +472,172 @@ fn classify_file(
     }
 }
 
+fn parse_redundant_map_files(ledger_json: &[u8]) -> Result<Vec<RedundantMapFile>> {
+    let value: Value = serde_json::from_slice(ledger_json).context("parse LDG1 JSON")?;
+    let obj = value
+        .as_object()
+        .context("redundant map ledger must be a JSON object")?;
+    let schema = obj
+        .get("schema")
+        .and_then(Value::as_str)
+        .context("redundant map ledger missing schema")?;
+    if schema != "crushr-redundant-file-map.v1" {
+        bail!("unsupported redundant map schema: {schema}");
+    }
+
+    let files = obj
+        .get("files")
+        .and_then(Value::as_array)
+        .context("redundant map ledger missing files array")?;
+
+    let mut out = Vec::with_capacity(files.len());
+    for file in files {
+        let f = file
+            .as_object()
+            .context("redundant map file entry must be an object")?;
+        let path = f
+            .get("path")
+            .and_then(Value::as_str)
+            .context("redundant map file missing path")?
+            .to_string();
+        if path.is_empty() {
+            bail!("redundant map file path must be non-empty");
+        }
+        let size = f
+            .get("size")
+            .and_then(Value::as_u64)
+            .context("redundant map file missing size")?;
+        let extents_value = f
+            .get("extents")
+            .and_then(Value::as_array)
+            .context("redundant map file missing extents array")?;
+        let mut extents = Vec::with_capacity(extents_value.len());
+        for ex in extents_value {
+            let e = ex
+                .as_object()
+                .context("redundant map extent entry must be an object")?;
+            let block_id = e
+                .get("block_id")
+                .and_then(Value::as_u64)
+                .context("redundant map extent missing block_id")?;
+            let offset = e
+                .get("file_offset")
+                .and_then(Value::as_u64)
+                .context("redundant map extent missing file_offset")?;
+            let len = e
+                .get("len")
+                .and_then(Value::as_u64)
+                .context("redundant map extent missing len")?;
+            let block_id =
+                u32::try_from(block_id).context("redundant map block_id out of range")?;
+            extents.push(Extent {
+                block_id,
+                offset,
+                len,
+            });
+        }
+        out.push(RedundantMapFile {
+            path,
+            size,
+            extents,
+        });
+    }
+
+    Ok(out)
+}
+
+fn verify_and_plan_redundant_map(
+    files: Vec<RedundantMapFile>,
+    block_verification: &BTreeMap<u32, BlockVerification>,
+) -> Result<Vec<FilePlan>> {
+    let mut seen_paths = BTreeSet::new();
+    let mut plans = Vec::with_capacity(files.len());
+
+    for file in files {
+        if !seen_paths.insert(file.path.clone()) {
+            bail!("redundant map contains duplicate file path: {}", file.path);
+        }
+
+        if file.size == 0 && !file.extents.is_empty() {
+            bail!("redundant map zero-sized file has extents: {}", file.path);
+        }
+
+        let mut covered = 0u64;
+        let mut prev_end = 0u64;
+        for (idx, extent) in file.extents.iter().enumerate() {
+            if extent.len == 0 {
+                bail!(
+                    "redundant map extent has zero length: {} extent {}",
+                    file.path,
+                    idx
+                );
+            }
+            if extent.offset != prev_end {
+                bail!(
+                    "redundant map extents are non-contiguous or out of order: {} extent {}",
+                    file.path,
+                    idx
+                );
+            }
+            let end = extent
+                .offset
+                .checked_add(extent.len)
+                .context("redundant map extent offset overflow")?;
+            if end > file.size {
+                bail!("redundant map extent exceeds file size: {}", file.path);
+            }
+            prev_end = end;
+            covered = covered
+                .checked_add(extent.len)
+                .context("redundant map file length overflow")?;
+
+            let state = block_verification.get(&extent.block_id).with_context(|| {
+                format!(
+                    "redundant map references unmapped block {}",
+                    extent.block_id
+                )
+            })?;
+            let raw_len = state.verified_raw_len.with_context(|| {
+                format!(
+                    "redundant map block {} missing verified raw length",
+                    extent.block_id
+                )
+            })?;
+            if end > raw_len {
+                bail!(
+                    "redundant map extent exceeds verified block raw length for block {}",
+                    extent.block_id
+                );
+            }
+        }
+
+        if covered != file.size {
+            bail!(
+                "redundant map extents do not fully cover file: {}",
+                file.path
+            );
+        }
+
+        let required_block_ids = file.extents.iter().map(|e| e.block_id).collect::<Vec<_>>();
+        let (status, reason, failure_reasons) =
+            classify_file(&file.extents, &required_block_ids, block_verification);
+
+        plans.push(FilePlan {
+            mapping_provenance: REDUNDANT_VERIFIED_MAP_PATH,
+            file_path: file.path,
+            status,
+            reason,
+            failure_reasons,
+            required_block_ids,
+            extents: file.extents,
+            file_size: file.size,
+        });
+    }
+
+    plans.sort_by(|a, b| a.file_path.cmp(&b.file_path));
+    Ok(plans)
+}
+
 fn decode_verified_blocks(
     archive_bytes: &[u8],
     candidates: &[BlockCandidate],
@@ -692,7 +877,7 @@ fn export_artifacts(
     Ok(exported)
 }
 
-fn build_plan(opts: &CliOptions) -> Result<(SalvagePlanV2, Vec<u8>)> {
+fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
     let reader = FileReader {
         file: File::open(&opts.archive)
             .with_context(|| format!("open {}", opts.archive.display()))?,
@@ -718,6 +903,11 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlanV2, Vec<u8>)> {
         status: "unavailable",
         reason: "tail_frame_unavailable",
         verified_dict_ids: Vec::new(),
+    };
+    let mut redundant_map_analysis = RedundantMapAnalysis {
+        status: "unavailable",
+        reason: "tail_frame_unavailable",
+        file_count: None,
     };
 
     let mut file_plans = Vec::new();
@@ -753,6 +943,13 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlanV2, Vec<u8>)> {
                         verified_dict_ids,
                     };
 
+                    let block_verification = build_block_verification(
+                        &reader,
+                        &tail.footer,
+                        &archive_bytes,
+                        &dictionary_analysis.verified_dict_ids,
+                    );
+
                     if tail.idx3_bytes.starts_with(IDX_MAGIC_V3) {
                         if let Ok(index) = decode_index(&tail.idx3_bytes) {
                             index_analysis = IndexAnalysis {
@@ -762,13 +959,6 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlanV2, Vec<u8>)> {
                                 index_len: Some(tail.footer.index_len),
                                 entry_count: Some(index.entries.len() as u64),
                             };
-
-                            let block_verification = build_block_verification(
-                                &reader,
-                                &tail.footer,
-                                &archive_bytes,
-                                &dictionary_analysis.verified_dict_ids,
-                            );
 
                             for entry in index.entries {
                                 if entry.kind != EntryKind::Regular {
@@ -783,6 +973,7 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlanV2, Vec<u8>)> {
                                     &block_verification,
                                 );
                                 file_plans.push(FilePlan {
+                                    mapping_provenance: PRIMARY_INDEX_PATH,
                                     file_path: entry.path,
                                     status,
                                     reason,
@@ -808,6 +999,44 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlanV2, Vec<u8>)> {
                             index_offset: Some(tail.footer.index_offset),
                             index_len: Some(tail.footer.index_len),
                             entry_count: None,
+                        };
+                    }
+
+                    if index_analysis.status != "valid" {
+                        if let Some(ledger) = tail.ldg1 {
+                            match parse_redundant_map_files(&ledger.json).and_then(|files| {
+                                let count = files.len() as u64;
+                                verify_and_plan_redundant_map(files, &block_verification)
+                                    .map(|plans| (count, plans))
+                            }) {
+                                Ok((count, plans)) => {
+                                    redundant_map_analysis = RedundantMapAnalysis {
+                                        status: "valid",
+                                        reason: "ok",
+                                        file_count: Some(count),
+                                    };
+                                    file_plans = plans;
+                                }
+                                Err(_) => {
+                                    redundant_map_analysis = RedundantMapAnalysis {
+                                        status: "invalid",
+                                        reason: "redundant_map_verification_failed",
+                                        file_count: None,
+                                    };
+                                }
+                            }
+                        } else {
+                            redundant_map_analysis = RedundantMapAnalysis {
+                                status: "missing",
+                                reason: "ledger_absent",
+                                file_count: None,
+                            };
+                        }
+                    } else {
+                        redundant_map_analysis = RedundantMapAnalysis {
+                            status: "not_used",
+                            reason: "primary_index_available",
+                            file_count: None,
                         };
                     }
                 } else {
@@ -878,8 +1107,8 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlanV2, Vec<u8>)> {
     };
 
     Ok((
-        SalvagePlanV2 {
-            schema_version: "crushr-salvage-plan.v2",
+        SalvagePlan {
+            schema_version: "crushr-salvage-plan.v3",
             tool: "crushr-salvage",
             tool_version: env!("CARGO_PKG_VERSION"),
             verification_contract_label: "UNVERIFIED_RESEARCH_OUTPUT_NOT_CANONICAL_EXTRACTION",
@@ -891,6 +1120,7 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlanV2, Vec<u8>)> {
             footer_analysis,
             index_analysis,
             dictionary_analysis,
+            redundant_map_analysis,
             block_candidates: candidates,
             file_plans,
             orphan_candidate_summary: OrphanCandidateSummary {
