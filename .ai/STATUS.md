@@ -6,6 +6,8 @@ Current Step: **CRUSHR-FORMAT-05-f3 complete** (replaced brittle source-string r
 
 Immediate Next Step: **CRUSHR-FORMAT-06** (verified file manifest checkpoints as the next recovery-graph layer)
 
+Security step note: **CRUSHR-SCRUB-01 complete** (extraction path confinement unified across canonical/legacy/API; unsafe paths now hard-fail; symlink extraction disabled in hardened mode).
+
 ## Current truth
 
 - Phase 1 is complete.
@@ -47,3 +49,10 @@ Recovery should degrade in reverse order:
 4. Preserve deterministic comparison ordering/classification and compact grouped metrics outputs.
 5. Keep Phase 2 corpus and frozen artifacts unchanged.
 6. Treat payload identity + manifest truth as the active priority before checkpoint-placement strategy experiments.
+
+
+## CRUSHR-SCRUB-01 closeout
+- Added shared archive-path confinement helper used by all file-writing extraction surfaces.
+- Canonical `crushr-extract`, legacy extraction, and API extraction now reject path escape inputs with explicit deterministic errors.
+- Hardened mode rejects symlink extraction to prevent escape reintroduction.
+- Added hostile tests for safe relative path, traversal rejection, absolute rejection, normalization escape rejection, public API alignment, legacy alignment, symlink rejection, and root confinement regression.

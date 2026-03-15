@@ -30,3 +30,8 @@
 - Keep salvage-plan schema and emitted provenance aligned with the currently implemented experimental recovery paths.
 - Preserve deterministic ordering in anonymous naming, comparison row ordering, and grouped metrics.
 - Do not let builder drift back toward centralized-metadata-only solutions; current evidence supports payload identity -> manifest truth as the active path.
+
+## Update: CRUSHR-SCRUB-01 complete
+- Shared extraction path confinement is now enforced in canonical (`crushr-extract`), legacy extraction, and API-routed extraction.
+- Unsafe archive entry paths now hard-fail deterministically; no silent fixups are allowed.
+- Symlink extraction is currently rejected in hardened mode by policy.

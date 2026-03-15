@@ -538,3 +538,8 @@
 - Hardened `crushr-lab-salvage` FORMAT-05 archive building path to use a single canonical flag constant (`--experimental-self-identifying-blocks`) and verify flag availability through `crushr-pack --help` before invoking writer mode.
 - Added local `cargo build -p crushr --bin crushr-pack` fallback in `resolve_pack_bin` for `cargo run --bin crushr-lab-salvage` flows where a sibling `crushr-pack` binary has not yet been built.
 - Added focused regression tests for pack help flag discoverability, writer acceptance/emission with FORMAT-05 flag, and static runner/packer flag-contract alignment.
+
+## 2026-03-15 — CRUSHR-SCRUB-01
+- Added shared extraction confinement utility and wired it into canonical, legacy, and API extraction paths.
+- Hardened extraction to reject unsafe archive paths (absolute, parent traversal, degenerate/prefix forms) with explicit deterministic errors.
+- Set hardened symlink behavior to fail closed and added hostile regression tests for traversal/absolute/normalization/symlink cases.

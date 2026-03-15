@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
 
+use crate::extraction_path::{resolve_confined_path, validate_symlink_target};
 use crate::format::EntryKind;
 use crate::read::ArchiveReader;
 
@@ -33,31 +34,19 @@ pub fn extract_all_progress(
     });
 
     for e in idx.entries {
-        let dest = out_dir.join(&e.path);
+        let dest = resolve_confined_path(out_dir, &e.path)?;
         if let Some(parent) = dest.parent() {
             fs::create_dir_all(parent)?;
         }
         match e.kind {
             EntryKind::Symlink => {
-                // best effort: create symlink where supported
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::symlink;
-                    if dest.exists() {
-                        if overwrite {
-                            fs::remove_file(&dest).ok();
-                        } else {
-                            continue;
-                        }
-                    }
-                    let target = e.link_target.clone().unwrap_or_default();
-                    symlink(target, &dest)
-                        .with_context(|| format!("symlink {}", dest.display()))?;
-                }
-                #[cfg(not(unix))]
-                {
-                    // Windows handling not yet implemented; skip
-                }
+                let target = e.link_target.clone().unwrap_or_default();
+                validate_symlink_target(&target)?;
+                anyhow::bail!(
+                    "symlink extraction is disabled in hardened mode: {} -> {}",
+                    e.path,
+                    target
+                );
             }
             EntryKind::Regular => {
                 if dest.exists() && !overwrite {
@@ -118,7 +107,7 @@ pub fn extract_paths_progress(
     });
 
     for rel in wanted.iter() {
-        let dest = out_dir.join(rel);
+        let dest = resolve_confined_path(out_dir, rel)?;
         if let Some(parent) = dest.parent() {
             fs::create_dir_all(parent)?;
         }

@@ -55,3 +55,7 @@
   - deterministic distributed-hash checkpoint placement
   - deterministic low-discrepancy / golden-ratio placement
   - only after recovery-graph layers stabilize enough for a meaningful bakeoff
+
+
+## Security scrub track
+- [x] CRUSHR-SCRUB-01 extraction confinement hardening (shared validator + canonical/legacy/API alignment + hostile tests)

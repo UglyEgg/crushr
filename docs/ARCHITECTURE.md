@@ -118,3 +118,18 @@ This document describes the current implemented boundary without speculative mat
 - Repeated path checkpoints (`crushr-path-checkpoint.v1`) carry `file_id`, canonical path bytes, path digest, full file size, and total block count; checkpoints are emitted in separated regions (early/mid/late + final checkpoint).
 - Salvage fallback precedence: `PRIMARY_INDEX_PATH` → `REDUNDANT_VERIFIED_MAP_PATH` → `CHECKPOINT_MAP_PATH` → `FILE_IDENTITY_EXTENT_PATH` → `PAYLOAD_BLOCK_IDENTITY_PATH` → `SELF_DESCRIBING_EXTENT_PATH`.
 - Recovery remains strict: named recovery only with verified checkpoint linkage, deterministic anonymous verified recovery otherwise, and no guessed names/offsets/ordering.
+
+## Extraction confinement boundary (CRUSHR-SCRUB-01)
+
+All file-materializing extraction surfaces now route through a shared confinement utility (`extraction_path::resolve_confined_path`).
+
+Enforced rules:
+- archive entry path must be non-empty and relative
+- absolute paths are rejected
+- parent traversal (`..`) is rejected
+- path-prefix/drive-style forms are rejected
+- resulting destination must remain under the extraction root
+
+Policy: unsafe paths hard-fail (no rewrite/strip/rename).
+
+Symlink policy in hardened mode: extraction rejects symlink entries (fail closed).
