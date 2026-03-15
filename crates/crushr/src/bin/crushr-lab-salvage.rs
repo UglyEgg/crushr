@@ -32,6 +32,7 @@ struct CliOptions {
 
 #[derive(Debug)]
 enum Mode {
+    Help,
     RunExperiment {
         input_dir: PathBuf,
         experiment_dir: PathBuf,
@@ -366,6 +367,15 @@ fn parse_cli_options() -> Result<CliOptions> {
     let mut args = std::env::args().skip(1);
 
     if let Some(first) = args.next() {
+        if first == "--help" || first == "-h" || first == "help" {
+            return Ok(CliOptions {
+                mode: Mode::Help,
+                export_fragments: false,
+                limit: None,
+                verbose: false,
+            });
+        }
+
         if first == "run-redundant-map-comparison" {
             let mut output_dir = None;
             let mut verbose = false;
@@ -478,6 +488,19 @@ fn parse_cli_options() -> Result<CliOptions> {
                 "--resummarize" => {
                     resummarize_dir = Some(PathBuf::from(args.next().context(USAGE)?));
                 }
+                "--help" | "-h" => {
+                    return Ok(CliOptions {
+                        mode: Mode::Help,
+                        export_fragments: false,
+                        limit: None,
+                        verbose: false,
+                    });
+                }
+                "run-redundant-map-comparison"
+                | "run-experimental-resilience-comparison"
+                | "run-file-identity-comparison" => {
+                    bail!("subcommand `{arg}` must be used as the first argument\n{USAGE}")
+                }
                 _ if arg.starts_with('-') => bail!("unsupported flag: {arg}"),
                 _ if input_dir.is_none() => input_dir = Some(PathBuf::from(arg)),
                 _ => bail!("unexpected argument: {arg}"),
@@ -539,7 +562,8 @@ fn sanitize_component(value: &str) -> String {
 fn collect_archives(opts: &CliOptions) -> Result<Vec<ArchiveRun>> {
     let input_dir = match &opts.mode {
         Mode::RunExperiment { input_dir, .. } => input_dir,
-        Mode::Resummarize { .. }
+        Mode::Help
+        | Mode::Resummarize { .. }
         | Mode::RunRedundantMapComparison { .. }
         | Mode::RunExperimentalResilienceComparison { .. }
         | Mode::RunFileIdentityComparison { .. } => {
@@ -2222,6 +2246,10 @@ fn run_timestamp() -> String {
 }
 fn run() -> Result<()> {
     let opts = parse_cli_options()?;
+    if let Mode::Help = &opts.mode {
+        println!("{USAGE}");
+        return Ok(());
+    }
     if let Mode::RunRedundantMapComparison { comparison_dir } = &opts.mode {
         return run_redundant_map_comparison(comparison_dir, opts.verbose);
     }
@@ -2335,6 +2363,7 @@ fn run() -> Result<()> {
                 runs,
             )
         }
+        Mode::Help => bail!("internal error: help mode in summary pipeline"),
         Mode::RunRedundantMapComparison { .. } => {
             bail!("internal error: comparison mode in summary pipeline")
         }

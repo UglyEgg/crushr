@@ -491,3 +491,10 @@
 - Added opt-in experimental writer flag `--experimental-file-identity-extents` with deterministic file-identity extent records and path-map records.
 - Added salvage strict fallback path `FILE_IDENTITY_EXTENT_PATH` with path digest verification and deterministic refusal on inconsistent identity metadata.
 - Extended bounded resilience comparison outputs with four-arm reporting and dedicated `file_identity_comparison_summary.json`/`.md` artifacts.
+
+## 2026-03-15 — CRUSHR-FORMAT-03-f1
+
+- Repaired `crushr-lab-salvage` CLI dispatch so `--help` succeeds and documented comparison command names are discoverable at top level.
+- Added parser guard preventing known comparison subcommand names from being consumed as positional input paths in experiment mode.
+- Added focused tests for help output coverage, subcommand misparse regression, and direct file-identity comparison command invocation.
+
