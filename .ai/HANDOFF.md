@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current focus
-- CRUSHR-FORMAT-05 is complete and validated as the current best-performing experimental recovery arm.
+- CRUSHR-FORMAT-05 and CRUSHR-FORMAT-05-f1 are complete; FORMAT-05 comparison now runs end-to-end with explicit runner/packer flag-contract checks.
 - The next active packet is **CRUSHR-FORMAT-06**: verified file manifest checkpoints as the next recovery-graph layer.
 
 ## Important behavior locks
@@ -22,7 +22,7 @@
 - Pseudo-random / low-discrepancy checkpoint placement is deferred backlog research, not the current active experiment.
 
 ## Current experimental surfaces
-- `crushr-pack --experimental-self-identifying-blocks`
+- `crushr-pack --experimental-self-identifying-blocks` (canonical FORMAT-05 writer flag; contract is enforced in lab runner)
 - `crushr-lab-salvage run-format05-comparison --output <dir>`
 - FORMAT-06 will extend the current experimental path with verified file manifest checkpoints rather than replacing it.
 

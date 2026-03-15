@@ -40,6 +40,7 @@
 - [x] 3.13 CRUSHR-FORMAT-03-f2 (packer experimental writer/help contract repair)
 - [x] 3.14 CRUSHR-FORMAT-04 (experimental bootstrap-anchor + file-identity survivability hardening)
 - [x] 3.15 CRUSHR-FORMAT-05 (self-identifying payload blocks + repeated path checkpoints + bounded format05 comparison)
+- [x] 3.15-f1 CRUSHR-FORMAT-05-f1 (format05 comparison runner/packer flag-contract + packer-bin resolution hardening + regression coverage)
 - [ ] 3.16 CRUSHR-FORMAT-06 (verified file manifest checkpoints as the next recovery-graph layer)
   - build the file-truth layer on top of payload block identity
   - validate full named / full anonymous / partial ordered recovery rules

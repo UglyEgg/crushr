@@ -2,7 +2,7 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-FORMAT-05 complete** (self-identifying payload blocks + repeated verified path checkpoints + bounded format05 comparison)
+Current Step: **CRUSHR-FORMAT-05-f1 complete** (format05 comparison runner/packer flag contract repair + packer-help/contract regression tests)
 
 Immediate Next Step: **CRUSHR-FORMAT-06** (verified file manifest checkpoints as the next recovery-graph layer)
 

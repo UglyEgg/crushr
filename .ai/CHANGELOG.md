@@ -521,3 +521,9 @@
 
 
 - 2026-03-15: CRUSHR-FORMAT-05 completed — added payload-level self-identifying block metadata and repeated verified path checkpoints, integrated deterministic payload-identity salvage fallback/provenance, and added bounded `run-format05-comparison` outputs.
+
+## 2026-03-15 — CRUSHR-FORMAT-05-f1 format05 comparison runner/packer contract repair
+
+- Hardened `crushr-lab-salvage` FORMAT-05 archive building path to use a single canonical flag constant (`--experimental-self-identifying-blocks`) and verify flag availability through `crushr-pack --help` before invoking writer mode.
+- Added local `cargo build -p crushr --bin crushr-pack` fallback in `resolve_pack_bin` for `cargo run --bin crushr-lab-salvage` flows where a sibling `crushr-pack` binary has not yet been built.
+- Added focused regression tests for pack help flag discoverability, writer acceptance/emission with FORMAT-05 flag, and static runner/packer flag-contract alignment.

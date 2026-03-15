@@ -17,6 +17,7 @@ const VERIFICATION_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
 const EXPERIMENT_SCHEMA_VERSION: &str = "crushr-lab-salvage-experiment.v1";
 const SUMMARY_SCHEMA_VERSION: &str = "crushr-lab-salvage-summary.v1";
 const ANALYSIS_SCHEMA_VERSION: &str = "crushr-lab-salvage-analysis.v1";
+const FORMAT05_PACK_FLAG: &str = "--experimental-self-identifying-blocks";
 const OUTCOME_ORDER: [&str; 4] = [
     "FULL_FILE_SALVAGE_AVAILABLE",
     "PARTIAL_FILE_SALVAGE",
@@ -1393,6 +1394,9 @@ fn resolve_pack_bin() -> Result<PathBuf> {
             if candidate.is_file() {
                 return Ok(candidate);
             }
+            if build_pack_bin_with_cargo(&candidate).is_ok() && candidate.is_file() {
+                return Ok(candidate);
+            }
         }
     }
 
@@ -1404,6 +1408,44 @@ fn resolve_pack_bin() -> Result<PathBuf> {
     }
 
     bail!("unable to resolve crushr-pack binary")
+}
+
+fn build_pack_bin_with_cargo(pack_candidate: &Path) -> Result<()> {
+    let cargo_bin = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    let mut cmd = Command::new(&cargo_bin);
+    cmd.args(["build", "-p", "crushr", "--bin", "crushr-pack"]);
+    if let Some(target_dir) = pack_candidate.parent().and_then(Path::parent) {
+        cmd.arg("--target-dir").arg(target_dir);
+    }
+    let out = cmd.output().with_context(|| format!("run {cargo_bin}"))?;
+    if out.status.success() {
+        Ok(())
+    } else {
+        bail!(
+            "failed to build crushr-pack with cargo\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        )
+    }
+}
+
+fn ensure_pack_flag_supported(pack_bin: &Path, flag: &str) -> Result<()> {
+    let out = Command::new(pack_bin)
+        .arg("--help")
+        .output()
+        .with_context(|| format!("run {:?}", pack_bin))?;
+    if !out.status.success() {
+        bail!(
+            "crushr-pack --help failed\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    if !stdout.contains(flag) {
+        bail!("crushr-pack does not advertise required FORMAT-05 flag `{flag}` in --help output");
+    }
+    Ok(())
 }
 
 fn comparison_scenarios() -> Vec<ComparisonScenario> {
@@ -1542,13 +1584,14 @@ stderr:
 }
 
 fn build_archive_with_pack_format05(pack_bin: &Path, input: &Path, output: &Path) -> Result<()> {
+    ensure_pack_flag_supported(pack_bin, FORMAT05_PACK_FLAG)?;
     let out = Command::new(pack_bin)
         .arg(input)
         .arg("-o")
         .arg(output)
         .arg("--level")
         .arg("3")
-        .arg("--experimental-self-identifying-blocks")
+        .arg(FORMAT05_PACK_FLAG)
         .output()
         .with_context(|| format!("run {:?}", pack_bin))?;
     if !out.status.success() {
