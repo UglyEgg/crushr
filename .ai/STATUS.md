@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning Research Boundary
 
-Current Step: CRUSHR-FORMAT-03-f2 complete (crushr-pack experimental writer CLI/help contract repair for lab comparison workflows)
+Current Step: CRUSHR-FORMAT-04 complete (bootstrap/index-loss/tail-loss resilience strengthening for experimental file-identity extents)
 
-Recent completed packet: CRUSHR-FORMAT-03-f2 (crushr-pack help + experimental writer surface contract repair; lab comparison workflows now run end-to-end)
+Recent completed packet: CRUSHR-FORMAT-04 (distributed bootstrap anchors + index/tail/header fallback scan path + format04 bounded comparison outputs)
 
 ## Current truth
 
@@ -38,3 +38,12 @@ Recent completed packet: CRUSHR-FORMAT-03-f2 (crushr-pack help + experimental wr
 - Preserved and validated the experimental writer contract used by `crushr-lab-salvage` comparison workflows (`--experimental-self-describing-extents`, `--experimental-file-identity-extents`).
 - Added focused packer regression tests for help discoverability and experimental flag acceptance/archive emission.
 
+
+
+## Latest packet: CRUSHR-FORMAT-04
+
+- Added experimental distributed bootstrap anchors (`crushr-bootstrap-anchor.v1`) for file-identity archives, placed across non-tail regions and verified via strict metadata block verification.
+- Added deterministic fallback salvage path that scans verified metadata when footer/index are unavailable, enabling bounded header/index/tail-loss recovery without speculative reconstruction.
+- Added strict anonymous verified naming fallback when path maps are missing: `anonymous_verified/file_<file_id>.bin` with `FILE_IDENTITY_EXTENT_PATH_ANONYMOUS` provenance.
+- Added `bootstrap_anchor_analysis` to salvage plan v3 output and updated schema to keep deterministic contract validation.
+- Added `run-format04-comparison` command and `format04_comparison_summary.json/.md` outputs while keeping legacy file-identity summary aliases for compatibility.

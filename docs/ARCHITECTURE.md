@@ -101,3 +101,11 @@ This document describes the current implemented boundary without speculative mat
 - Path names are recovered only when `crushr-file-path-map.v1` verifies (`file_id` + `path` + `path_digest_blake3` matches computed digest).
 - Salvage precedence: `PRIMARY_INDEX_PATH` → `REDUNDANT_VERIFIED_MAP_PATH` → `CHECKPOINT_MAP_PATH` → `FILE_IDENTITY_EXTENT_PATH` → `SELF_DESCRIBING_EXTENT_PATH`.
 - Strict boundary unchanged: no guessed names, offsets, extents, or speculative reconstruction.
+
+
+## Experimental resilience path (CRUSHR-FORMAT-04)
+
+- `crushr-pack --experimental-file-identity-extents` now emits distributed bootstrap anchors (`crushr-bootstrap-anchor.v1`) and per-entry path map records (`crushr-file-path-map-entry.v1`) alongside file-identity extent records.
+- `crushr-salvage` can deterministically recover via verified metadata scanning when footer/index are unavailable, with explicit `bootstrap_anchor_analysis` diagnostics.
+- Path recovery rule: named recovery when verified path-map linkage exists; otherwise deterministic anonymous verified naming (`anonymous_verified/file_<file_id>.bin`) with `FILE_IDENTITY_EXTENT_PATH_ANONYMOUS` provenance.
+- Strict boundary remains unchanged: verification-only, no speculative reconstruction, no guessed names/offsets/extents.

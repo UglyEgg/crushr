@@ -26,6 +26,7 @@ const REDUNDANT_VERIFIED_MAP_PATH: &str = "REDUNDANT_VERIFIED_MAP_PATH";
 const CHECKPOINT_MAP_PATH: &str = "CHECKPOINT_MAP_PATH";
 const SELF_DESCRIBING_EXTENT_PATH: &str = "SELF_DESCRIBING_EXTENT_PATH";
 const FILE_IDENTITY_EXTENT_PATH: &str = "FILE_IDENTITY_EXTENT_PATH";
+const FILE_IDENTITY_EXTENT_PATH_ANONYMOUS: &str = "FILE_IDENTITY_EXTENT_PATH_ANONYMOUS";
 
 struct FileReader {
     file: File,
@@ -62,6 +63,7 @@ struct SalvagePlan {
     index_analysis: IndexAnalysis,
     dictionary_analysis: DictionaryAnalysis,
     redundant_map_analysis: RedundantMapAnalysis,
+    bootstrap_anchor_analysis: BootstrapAnchorAnalysis,
     block_candidates: Vec<BlockCandidate>,
     file_plans: Vec<FilePlan>,
     orphan_candidate_summary: OrphanCandidateSummary,
@@ -115,6 +117,13 @@ struct RedundantMapAnalysis {
     file_count: Option<u64>,
 }
 
+#[derive(Debug, Serialize)]
+struct BootstrapAnchorAnalysis {
+    status: &'static str,
+    reason: &'static str,
+    verified_anchor_count: u64,
+}
+
 #[derive(Debug)]
 struct RedundantMapFile {
     path: String,
@@ -135,6 +144,7 @@ struct FileIdentityExtentRecord {
     size: u64,
     extent_ordinal: u64,
     extent: Extent,
+    block_scan_offset: Option<u64>,
     path_digest_blake3: String,
     payload_hash_blake3: String,
     raw_hash_blake3: String,
@@ -723,31 +733,53 @@ fn parse_checkpoint_extent_records(values: &[Value]) -> Vec<ExperimentalExtentRe
 fn parse_file_identity_path_map(values: &[Value]) -> BTreeMap<u32, String> {
     let mut out = BTreeMap::new();
     for value in values {
-        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-file-path-map.v1") {
+        let schema = value.get("schema").and_then(|v| v.as_str());
+        if schema == Some("crushr-file-path-map.v1") {
+            let Some(records) = value.get("records").and_then(|v| v.as_array()) else {
+                continue;
+            };
+            for rec in records {
+                let Some(file_id_u64) = rec.get("file_id").and_then(|v| v.as_u64()) else {
+                    continue;
+                };
+                let Ok(file_id) = u32::try_from(file_id_u64) else {
+                    continue;
+                };
+                let Some(path) = rec.get("path").and_then(|v| v.as_str()) else {
+                    continue;
+                };
+                let Some(path_digest) = rec.get("path_digest_blake3").and_then(|v| v.as_str())
+                else {
+                    continue;
+                };
+                let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
+                if computed != path_digest {
+                    continue;
+                }
+                out.insert(file_id, path.to_string());
+            }
             continue;
         }
-        let Some(records) = value.get("records").and_then(|v| v.as_array()) else {
+        if schema != Some("crushr-file-path-map-entry.v1") {
+            continue;
+        }
+        let Some(file_id_u64) = value.get("file_id").and_then(|v| v.as_u64()) else {
             continue;
         };
-        for rec in records {
-            let Some(file_id_u64) = rec.get("file_id").and_then(|v| v.as_u64()) else {
-                continue;
-            };
-            let Ok(file_id) = u32::try_from(file_id_u64) else {
-                continue;
-            };
-            let Some(path) = rec.get("path").and_then(|v| v.as_str()) else {
-                continue;
-            };
-            let Some(path_digest) = rec.get("path_digest_blake3").and_then(|v| v.as_str()) else {
-                continue;
-            };
-            let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
-            if computed != path_digest {
-                continue;
-            }
-            out.insert(file_id, path.to_string());
+        let Ok(file_id) = u32::try_from(file_id_u64) else {
+            continue;
+        };
+        let Some(path) = value.get("path").and_then(|v| v.as_str()) else {
+            continue;
+        };
+        let Some(path_digest) = value.get("path_digest_blake3").and_then(|v| v.as_str()) else {
+            continue;
+        };
+        let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
+        if computed != path_digest {
+            continue;
         }
+        out.insert(file_id, path.to_string());
     }
     out
 }
@@ -782,6 +814,7 @@ fn parse_file_identity_extent_records(values: &[Value]) -> Vec<FileIdentityExten
         let Some(len) = value.get("logical_length").and_then(|v| v.as_u64()) else {
             continue;
         };
+        let block_scan_offset = value.get("block_scan_offset").and_then(|v| v.as_u64());
         let Some(path_digest) = value
             .get("path_linkage")
             .and_then(|v| v.get("path_digest_blake3"))
@@ -812,6 +845,7 @@ fn parse_file_identity_extent_records(values: &[Value]) -> Vec<FileIdentityExten
                 offset,
                 len,
             },
+            block_scan_offset,
             path_digest_blake3: path_digest.to_string(),
             payload_hash_blake3: payload_hash.to_string(),
             raw_hash_blake3: raw_hash.to_string(),
@@ -824,6 +858,7 @@ fn verify_and_plan_file_identity_extent_records(
     records: Vec<FileIdentityExtentRecord>,
     values: &[Value],
     block_verification: &BTreeMap<u32, BlockVerification>,
+    verified_candidate_offsets: &BTreeSet<u64>,
 ) -> Result<Vec<FilePlan>> {
     let path_map = parse_file_identity_path_map(values);
     let mut grouped: BTreeMap<String, (u64, Vec<(u64, Extent)>)> = BTreeMap::new();
@@ -831,16 +866,23 @@ fn verify_and_plan_file_identity_extent_records(
     for record in records {
         if !matches!(block_verification.get(&record.extent.block_id), Some(v) if v.content_verified)
         {
-            bail!("file identity extent points to unverified content block");
+            if let Some(scan_offset) = record.block_scan_offset {
+                if !verified_candidate_offsets.contains(&scan_offset) {
+                    bail!("file identity extent points to unverified content block");
+                }
+            } else {
+                bail!("file identity extent points to unverified content block");
+            }
         }
-        let Some(path) = path_map.get(&record.file_id) else {
-            bail!("missing verified path map record for file identity extent");
+        let resolved_path = if let Some(path) = path_map.get(&record.file_id) {
+            let computed_path_digest = to_hex(blake3::hash(path.as_bytes()).as_bytes());
+            if computed_path_digest != record.path_digest_blake3 {
+                bail!("file identity extent path linkage digest mismatch");
+            }
+            path.clone()
+        } else {
+            format!("anonymous_verified/file_{:08}.bin", record.file_id)
         };
-        let computed_path_digest = to_hex(blake3::hash(path.as_bytes()).as_bytes());
-        if computed_path_digest != record.path_digest_blake3 {
-            bail!("file identity extent path linkage digest mismatch");
-        }
-
         if let Some(value) = values.iter().find(|value| {
             value.get("schema").and_then(|v| v.as_str()) == Some("crushr-file-identity-extent.v1")
                 && value.get("block_id").and_then(|v| v.as_u64())
@@ -862,7 +904,7 @@ fn verify_and_plan_file_identity_extent_records(
         }
 
         let entry = grouped
-            .entry(path.to_string())
+            .entry(resolved_path)
             .or_insert_with(|| (record.size, Vec::new()));
         if entry.0 != record.size {
             bail!("inconsistent file-identity full_file_size");
@@ -889,8 +931,15 @@ fn verify_and_plan_file_identity_extent_records(
         .collect::<Result<Vec<_>>>()?;
 
     let mut plans = verify_and_plan_redundant_map(files, block_verification)?;
+    let has_named_paths = plans
+        .iter()
+        .all(|p| !p.file_path.starts_with("anonymous_verified/"));
     for plan in &mut plans {
-        plan.mapping_provenance = FILE_IDENTITY_EXTENT_PATH;
+        plan.mapping_provenance = if has_named_paths {
+            FILE_IDENTITY_EXTENT_PATH
+        } else {
+            FILE_IDENTITY_EXTENT_PATH_ANONYMOUS
+        };
     }
     Ok(plans)
 }
@@ -1291,6 +1340,11 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
         reason: "tail_frame_unavailable",
         file_count: None,
     };
+    let mut bootstrap_anchor_analysis = BootstrapAnchorAnalysis {
+        status: "unavailable",
+        reason: "tail_frame_unavailable",
+        verified_anchor_count: 0,
+    };
 
     let mut file_plans = Vec::new();
     let mut mapped_candidate_offsets = BTreeSet::new();
@@ -1437,6 +1491,7 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
                                         parse_file_identity_extent_records(&experimental_values),
                                         &experimental_values,
                                         &block_verification,
+                                        &BTreeSet::new(),
                                     )
                                 {
                                     if !file_identity_plans.is_empty() {
@@ -1502,6 +1557,57 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
         }
     }
 
+    if file_plans.is_empty() && index_analysis.status != "valid" {
+        let mut synthesized_block_verification = BTreeMap::new();
+        let mut verified_candidate_offsets = BTreeSet::new();
+        let mut ordinal = 0u32;
+        for candidate in &candidates {
+            if candidate.content_verification_status == "content_verified" {
+                synthesized_block_verification.insert(
+                    ordinal,
+                    BlockVerification {
+                        content_verified: true,
+                        verified_raw_len: candidate.verified_raw_len,
+                    },
+                );
+                verified_candidate_offsets.insert(candidate.scan_offset);
+                ordinal = ordinal.saturating_add(1);
+            }
+        }
+        let experimental_values =
+            parse_experimental_metadata_records(&archive_bytes, &synthesized_block_verification);
+        let verified_anchor_count = experimental_values
+            .iter()
+            .filter(|v| {
+                v.get("schema").and_then(|x| x.as_str()) == Some("crushr-bootstrap-anchor.v1")
+            })
+            .count() as u64;
+        bootstrap_anchor_analysis = if verified_anchor_count > 0 {
+            BootstrapAnchorAnalysis {
+                status: "available",
+                reason: "verified_anchor_records_found",
+                verified_anchor_count,
+            }
+        } else {
+            BootstrapAnchorAnalysis {
+                status: "missing",
+                reason: "no_verified_anchor_records",
+                verified_anchor_count: 0,
+            }
+        };
+
+        if let Ok(file_identity_plans) = verify_and_plan_file_identity_extent_records(
+            parse_file_identity_extent_records(&experimental_values),
+            &experimental_values,
+            &synthesized_block_verification,
+            &verified_candidate_offsets,
+        ) {
+            if !file_identity_plans.is_empty() {
+                file_plans = file_identity_plans;
+            }
+        }
+    }
+
     file_plans.sort_by(|a, b| a.file_path.cmp(&b.file_path));
 
     let usable_candidates = candidates
@@ -1546,6 +1652,7 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
             index_analysis,
             dictionary_analysis,
             redundant_map_analysis,
+            bootstrap_anchor_analysis,
             block_candidates: candidates,
             file_plans,
             orphan_candidate_summary: OrphanCandidateSummary {

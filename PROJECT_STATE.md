@@ -85,3 +85,11 @@ Out of scope for this packet (unchanged):
 - `crushr-salvage` fallback precedence now includes `FILE_IDENTITY_EXTENT_PATH` after primary/redundant/checkpoint paths, with strict path-linkage verification and deterministic refusal on inconsistencies.
 - `crushr-lab-salvage run-file-identity-comparison --output <dir>` emits compact deterministic `file_identity_comparison_summary.json` and `.md` for bounded four-arm targeted runs.
 - Distributed-hash and low-discrepancy placement strategies remain future research directions and are not active in this packet.
+
+
+## `CRUSHR-FORMAT-04` boundary
+
+- Extends the file-identity experimental path with distributed verified bootstrap anchor records (`crushr-bootstrap-anchor.v1`) plus per-record path entries (`crushr-file-path-map-entry.v1`) and extent scan offsets.
+- `crushr-salvage` now supports deterministic bootstrap/header-loss recovery by scanning verified metadata blocks even when footer/index are unusable.
+- Strict path rule: **B** is active. Named recovery is used when verified path-map linkage survives; otherwise deterministic anonymous verified names are emitted (`anonymous_verified/file_<file_id>.bin`) with `FILE_IDENTITY_EXTENT_PATH_ANONYMOUS` provenance.
+- Added `crushr-lab-salvage run-format04-comparison` and required `format04_comparison_summary.json/.md` outputs for bounded targeted comparison reporting (header/index/payload/tail focus).

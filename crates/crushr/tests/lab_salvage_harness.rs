@@ -71,6 +71,7 @@ fn help_lists_supported_comparison_commands() {
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("run-experimental-resilience-comparison"));
     assert!(stdout.contains("run-file-identity-comparison"));
+    assert!(stdout.contains("run-format04-comparison"));
     assert!(stdout.contains("run-redundant-map-comparison"));
 }
 

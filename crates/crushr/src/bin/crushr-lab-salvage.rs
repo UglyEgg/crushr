@@ -10,7 +10,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const USAGE: &str = "usage: crushr-lab-salvage <input_dir> --output <experiment_dir> [--export-fragments] [--limit <N>] [--verbose]\n       crushr-lab-salvage --resummarize <experiment_dir>\n       crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir> [--verbose]\n       crushr-lab-salvage run-experimental-resilience-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-file-identity-comparison --output <comparison_dir> [--verbose]";
+       crushr-lab-salvage run-file-identity-comparison --output <comparison_dir> [--verbose]
+       crushr-lab-salvage run-format04-comparison --output <comparison_dir> [--verbose]";
 const VERIFICATION_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
 const EXPERIMENT_SCHEMA_VERSION: &str = "crushr-lab-salvage-experiment.v1";
 const SUMMARY_SCHEMA_VERSION: &str = "crushr-lab-salvage-summary.v1";
@@ -47,6 +48,9 @@ enum Mode {
         comparison_dir: PathBuf,
     },
     RunFileIdentityComparison {
+        comparison_dir: PathBuf,
+    },
+    RunFormat04Comparison {
         comparison_dir: PathBuf,
     },
 }
@@ -92,6 +96,8 @@ struct ExperimentalComparisonSummary {
     orphan_to_partial_improvements_vs_old: u64,
     orphan_to_full_improvements_vs_old: u64,
     orphan_to_salvage_improvements_vs_redundant: u64,
+    no_evidence_to_partial_improvements_vs_old: u64,
+    no_evidence_to_full_improvements_vs_old: u64,
     total_verified_block_delta_vs_old: i64,
     total_salvageable_file_delta_vs_old: i64,
     total_exported_full_file_delta_vs_old: i64,
@@ -425,7 +431,7 @@ fn parse_cli_options() -> Result<CliOptions> {
             });
         }
 
-        if first == "run-file-identity-comparison" {
+        if first == "run-file-identity-comparison" || first == "run-format04-comparison" {
             let mut output_dir = None;
             let mut verbose = false;
             while let Some(arg) = args.next() {
@@ -441,8 +447,14 @@ fn parse_cli_options() -> Result<CliOptions> {
             }
 
             return Ok(CliOptions {
-                mode: Mode::RunFileIdentityComparison {
-                    comparison_dir: output_dir.context(USAGE)?,
+                mode: if first == "run-format04-comparison" {
+                    Mode::RunFormat04Comparison {
+                        comparison_dir: output_dir.context(USAGE)?,
+                    }
+                } else {
+                    Mode::RunFileIdentityComparison {
+                        comparison_dir: output_dir.context(USAGE)?,
+                    }
                 },
                 export_fragments: false,
                 limit: None,
@@ -498,7 +510,8 @@ fn parse_cli_options() -> Result<CliOptions> {
                 }
                 "run-redundant-map-comparison"
                 | "run-experimental-resilience-comparison"
-                | "run-file-identity-comparison" => {
+                | "run-file-identity-comparison"
+                | "run-format04-comparison" => {
                     bail!("subcommand `{arg}` must be used as the first argument\n{USAGE}")
                 }
                 _ if arg.starts_with('-') => bail!("unsupported flag: {arg}"),
@@ -566,7 +579,8 @@ fn collect_archives(opts: &CliOptions) -> Result<Vec<ArchiveRun>> {
         | Mode::Resummarize { .. }
         | Mode::RunRedundantMapComparison { .. }
         | Mode::RunExperimentalResilienceComparison { .. }
-        | Mode::RunFileIdentityComparison { .. } => {
+        | Mode::RunFileIdentityComparison { .. }
+        | Mode::RunFormat04Comparison { .. } => {
             bail!("internal error: collect_archives outside run mode")
         }
     };
@@ -2184,6 +2198,20 @@ fn run_experimental_resilience_comparison(comparison_dir: &Path, verbose: bool) 
                     && outcome_rank(&r.file_identity_outcome) >= 2
             })
             .count() as u64,
+        no_evidence_to_partial_improvements_vs_old: rows
+            .iter()
+            .filter(|r| {
+                r.old_outcome == "NO_VERIFIED_EVIDENCE"
+                    && r.file_identity_outcome == "PARTIAL_FILE_SALVAGE"
+            })
+            .count() as u64,
+        no_evidence_to_full_improvements_vs_old: rows
+            .iter()
+            .filter(|r| {
+                r.old_outcome == "NO_VERIFIED_EVIDENCE"
+                    && r.file_identity_outcome == "FULL_FILE_SALVAGE_AVAILABLE"
+            })
+            .count() as u64,
         total_verified_block_delta_vs_old: rows
             .iter()
             .map(|r| {
@@ -2209,27 +2237,29 @@ fn run_experimental_resilience_comparison(comparison_dir: &Path, verbose: bool) 
     };
 
     fs::write(
-        comparison_dir.join("file_identity_comparison_summary.json"),
+        comparison_dir.join("format04_comparison_summary.json"),
         serde_json::to_string_pretty(&summary)?,
     )?;
     fs::write(
-        comparison_dir.join("experimental_comparison_summary.json"),
+        comparison_dir.join("file_identity_comparison_summary.json"),
         serde_json::to_string_pretty(&summary)?,
     )?;
     let md = format!(
-        "# File identity extent comparison\n\nScenarios: {}\n\n- orphan->salvage vs old: {}\n- orphan->salvage vs redundant: {}\n- orphan->partial vs old: {}\n- orphan->full vs old: {}\n",
+        "# Format-04 comparison\n\nScenarios: {}\n\n- orphan->salvage vs old: {}\n- orphan->salvage vs redundant: {}\n- orphan->partial vs old: {}\n- orphan->full vs old: {}\n- no-evidence->partial vs old: {}\n- no-evidence->full vs old: {}\n",
         summary.scenario_count,
         summary.orphan_to_salvage_improvements_vs_old,
         summary.orphan_to_salvage_improvements_vs_redundant,
         summary.orphan_to_partial_improvements_vs_old,
-        summary.orphan_to_full_improvements_vs_old
+        summary.orphan_to_full_improvements_vs_old,
+        summary.no_evidence_to_partial_improvements_vs_old,
+        summary.no_evidence_to_full_improvements_vs_old
     );
     fs::write(
-        comparison_dir.join("file_identity_comparison_summary.md"),
+        comparison_dir.join("format04_comparison_summary.md"),
         md.clone(),
     )?;
     fs::write(
-        comparison_dir.join("experimental_comparison_summary.md"),
+        comparison_dir.join("file_identity_comparison_summary.md"),
         md,
     )?;
     let _ = fs::remove_dir_all(&temp);
@@ -2257,6 +2287,9 @@ fn run() -> Result<()> {
         return run_experimental_resilience_comparison(comparison_dir, opts.verbose);
     }
     if let Mode::RunFileIdentityComparison { comparison_dir } = &opts.mode {
+        return run_experimental_resilience_comparison(comparison_dir, opts.verbose);
+    }
+    if let Mode::RunFormat04Comparison { comparison_dir } = &opts.mode {
         return run_experimental_resilience_comparison(comparison_dir, opts.verbose);
     }
 
@@ -2368,7 +2401,8 @@ fn run() -> Result<()> {
             bail!("internal error: comparison mode in summary pipeline")
         }
         Mode::RunExperimentalResilienceComparison { .. }
-        | Mode::RunFileIdentityComparison { .. } => {
+        | Mode::RunFileIdentityComparison { .. }
+        | Mode::RunFormat04Comparison { .. } => {
             bail!("internal error: comparison mode in summary pipeline")
         }
     };
