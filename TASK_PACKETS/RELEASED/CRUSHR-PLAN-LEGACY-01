@@ -1,0 +1,223 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-PLAN-LEGACY-01
+
+Title
+Resolve legacy crushr CLI/API boundary by forcing authoritative extraction semantics or explicit quarantine
+
+Role
+BUILDER
+
+Objective
+Align the public `crushr` crate/API/CLI surface with the documented architecture boundary.
+
+This packet addresses a planning/implementation contradiction identified in hostile review:
+
+- docs say the strict `crushr-core`-based extraction path is authoritative
+- the public API still routes through legacy extraction modules
+- the root `crushr` binary still exposes legacy surfaces with materially different semantics
+
+This packet resolves that contradiction for extraction behavior.
+
+Preferred result:
+- any supported public extraction surface delegates to the strict authoritative extraction implementation
+
+Acceptable fallback:
+- clearly quarantine unsupported legacy extraction surfaces so they are not silently presented as equivalent
+
+This packet is about boundary enforcement, not new archive semantics.
+
+---------------------------------------------------------------------
+
+Read first
+
+1. AGENTS.md
+2. AI_BOOTSTRAP.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. .ai/INDEX.md
+6. .ai/STATUS.md
+7. .ai/PHASE_PLAN.md
+8. .ai/DECISION_LOG.md
+9. .ai/HANDOFF.md
+10. docs/ARCHITECTURE.md
+11. crates/crushr/src/main.rs
+12. crates/crushr/src/api.rs
+13. crates/crushr/src/extract.rs
+14. crates/crushr/src/bin/crushr-extract.rs
+15. any shared extraction utilities
+16. hostile review findings provided by the human
+
+---------------------------------------------------------------------
+
+Context
+
+Hostile review found:
+- the public API still uses legacy extraction semantics
+- the root CLI still exposes legacy extraction surfaces
+- docs claim those are not authoritative
+
+That is contract drift and a major source of confusion.
+
+This packet resolves the extraction boundary for supported surfaces.
+
+---------------------------------------------------------------------
+
+Hard constraints
+
+- Do NOT weaken strict extraction semantics.
+- Do NOT leave supported public extraction surfaces silently routed through legacy semantics.
+- Do NOT create ambiguous “maybe strict, maybe legacy” behavior.
+- Keep the supported/unsupported boundary explicit.
+
+---------------------------------------------------------------------
+
+Required implementation scope
+
+1) Decide and enforce supported extraction authority
+
+Preferred implementation:
+- make supported public extraction surfaces delegate to the authoritative strict implementation used by `crushr-extract`
+
+At minimum this applies to:
+- public API extraction entry points
+- any root CLI extraction path that remains supported
+
+If direct delegation is impractical, quarantine unsupported extraction entry points clearly and fail with explicit messaging rather than silently using legacy semantics.
+
+---------------------------------------------------------------------
+
+2) Public API alignment
+
+`crates/crushr/src/api.rs` must no longer silently provide legacy extraction semantics under a supported public API.
+
+Required outcome:
+- API extraction either delegates to strict authoritative extraction
+OR
+- API extraction is explicitly marked unsupported/quarantined with a clear error surface
+
+No silent semantic drift.
+
+---------------------------------------------------------------------
+
+3) Root CLI extraction alignment
+
+Any root `crushr` CLI extraction command that remains user-visible must either:
+- delegate to the authoritative strict extraction path
+OR
+- be explicitly marked legacy/quarantined and fail clearly
+
+Do not keep a public extraction command that looks supported but uses different semantics.
+
+---------------------------------------------------------------------
+
+4) Quarantine behavior if needed
+
+If some legacy extraction surfaces cannot be removed or delegated in this packet, they must be explicitly quarantined.
+
+Acceptable quarantine examples:
+- command removed from primary help/usage
+- explicit runtime error stating the surface is unsupported legacy code
+- compile-time gating if already available in the repo structure
+
+The important thing is that unsupported legacy semantics are not silently presented as current supported behavior.
+
+---------------------------------------------------------------------
+
+5) Tests
+
+Add focused tests covering at minimum:
+
+5.1 public API extraction alignment
+- public API extraction path uses authoritative strict behavior OR explicitly errors as quarantined
+
+5.2 root CLI extraction alignment
+- supported extraction CLI path uses authoritative behavior OR explicitly errors as quarantined
+
+5.3 regression guard
+- no public supported extraction entry point still routes through old legacy extraction semantics silently
+
+5.4 documentation/behavior consistency
+- tests or assertions where feasible that the supported extraction surface matches the documented authority
+
+---------------------------------------------------------------------
+
+6) Documentation updates
+
+Update only directly relevant docs:
+
+- PROJECT_STATE.md
+- .ai/STATUS.md
+- .ai/PHASE_PLAN.md
+- .ai/HANDOFF.md
+- .ai/DECISION_LOG.md
+- docs/ARCHITECTURE.md
+- INDEX.md if startup/authority ordering needs mention
+- CHANGELOG.md if used for repo control
+
+Documentation must include:
+- one authoritative extraction contract
+- whether legacy extraction surfaces are delegated, quarantined, or removed
+- explicit note that public extraction semantics now align with the architecture boundary
+
+Keep this concise and unambiguous.
+
+---------------------------------------------------------------------
+
+Out of scope
+
+Do NOT implement in this packet:
+- broader legacy CLI cleanup outside extraction boundary
+- pack duplicate-path fixes
+- salvage refactors
+- format redesign
+
+---------------------------------------------------------------------
+
+Implementation guidance
+
+- Prefer delegation over parallel implementations.
+- If delegation is too heavy for this packet, quarantine clearly.
+- Avoid hidden semantic differences across supported surfaces.
+- Make the architecture boundary observable in code, not just docs.
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+This packet is complete only if:
+
+1) supported public extraction surfaces align with the authoritative strict extraction contract
+2) legacy extraction semantics are no longer silently exposed as supported behavior
+3) public API extraction is delegated or explicitly quarantined
+4) root CLI extraction is delegated or explicitly quarantined
+5) docs clearly match the implemented boundary
+6) tests cover the new supported/quarantined behavior
+7) workspace gates pass
+
+---------------------------------------------------------------------
+
+Verification commands
+
+cargo fmt --all --check
+
+cargo test --workspace
+
+cargo clippy --workspace --all-targets -- -D warnings
+
+If API/CLI-specific tests are added under dedicated targets, run and report them explicitly.
+
+---------------------------------------------------------------------
+
+Required response format
+
+Return:
+
+1) what changed
+2) files modified
+3) verification commands and outcomes
+4) remaining risks
+5) exact supported extraction surfaces after the change
+6) exact quarantined legacy extraction surfaces after the change
+7) completion status

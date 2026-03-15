@@ -1,0 +1,208 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-SCRUB-02
+
+Title
+Reject duplicate logical archive paths at pack time and fail closed before archive emission
+
+Role
+BUILDER
+
+Objective
+Eliminate silent logical-path collisions during packing.
+
+This packet addresses a real correctness defect identified in hostile review:
+
+- `crushr-pack` currently derives logical paths for standalone inputs using basenames
+- different source files can collapse onto the same archive path
+- the pack path does not reject duplicates before writing archive structures
+
+For an integrity-first archive format, silently allowing duplicate logical paths is unacceptable.
+
+This packet must make duplicate logical path collisions a deterministic hard failure.
+
+---------------------------------------------------------------------
+
+Read first
+
+1. AGENTS.md
+2. AI_BOOTSTRAP.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. .ai/INDEX.md
+6. .ai/STATUS.md
+7. .ai/PHASE_PLAN.md
+8. .ai/DECISION_LOG.md
+9. .ai/HANDOFF.md
+10. docs/ARCHITECTURE.md
+11. crates/crushr/src/bin/crushr-pack.rs
+12. any shared input-collection / path-normalization helpers
+13. existing pack tests
+14. hostile review findings provided by the human
+
+---------------------------------------------------------------------
+
+Context
+
+Hostile review identified that `crushr-pack` can admit duplicate logical archive paths.
+
+Examples:
+- packing `/a/foo.txt` and `/b/foo.txt` as standalone inputs
+- any input mode where logical path derivation collapses distinct sources onto the same relative path
+
+This packet ensures:
+- duplicate logical paths are detected before archive emission
+- pack fails closed with a deterministic error
+- no “last writer wins” ambiguity remains
+
+---------------------------------------------------------------------
+
+Hard constraints
+
+- Do NOT silently rename colliding logical paths.
+- Do NOT allow ambiguous duplicates to proceed.
+- Do NOT weaken deterministic behavior.
+- Detection must happen before writing archive/index/redundant metadata.
+- Keep behavior explicit and test-covered.
+
+---------------------------------------------------------------------
+
+Required implementation scope
+
+1) Add duplicate logical-path detection before archive emission
+
+The pack path must detect collisions in the final logical archive path set before any archive structures are written.
+
+Required:
+- evaluate the actual logical archive paths that would be emitted
+- detect duplicates deterministically
+- fail closed with an explicit error listing at least:
+  - the colliding logical archive path
+  - the conflicting source inputs if available
+
+This must cover all relevant input collection modes used by `crushr-pack`.
+
+---------------------------------------------------------------------
+
+2) Clarify logical-path derivation
+
+Document and, if necessary, refactor the path derivation rules so duplicate detection happens against the canonical logical path representation.
+
+Required:
+- one deterministic logical-path normalization step
+- duplicate detection runs after normalization
+- no duplicate check against pre-normalized paths only
+
+If path normalization logic is duplicated, reduce or centralize it where reasonable.
+
+---------------------------------------------------------------------
+
+3) Failure model
+
+Packing must hard-fail on duplicate logical path collisions.
+
+Examples that must fail:
+- `foo/a.txt` and `bar/a.txt` if both collapse to `a.txt`
+- any mode where two inputs resolve to the same final archive path
+- duplicate directory tree inputs that collide after normalization
+
+The error does not need to be fancy, but it must be explicit and deterministic.
+
+---------------------------------------------------------------------
+
+4) Tests
+
+Add focused tests covering at minimum:
+
+4.1 distinct logical paths succeed
+- two distinct files with distinct final archive paths pack successfully
+
+4.2 basename collision fails
+- two standalone files with the same basename fail if they would map to the same logical path
+
+4.3 normalized collision fails
+- two inputs that collide only after logical-path normalization fail
+
+4.4 deterministic error surface
+- the reported colliding archive path is stable and explicit
+
+4.5 no partial archive emission
+- duplicate detection occurs before archive writing side effects
+
+---------------------------------------------------------------------
+
+5) Documentation updates
+
+Update only directly relevant docs:
+
+- PROJECT_STATE.md
+- .ai/STATUS.md
+- .ai/PHASE_PLAN.md
+- .ai/HANDOFF.md
+- .ai/DECISION_LOG.md
+- docs/ARCHITECTURE.md
+- CHANGELOG.md if used for repo control
+
+Documentation must include:
+- duplicate logical archive paths are a hard pack-time failure
+- pack path now rejects ambiguous collisions before archive emission
+
+Keep this concise.
+
+---------------------------------------------------------------------
+
+Out of scope
+
+Do NOT implement in this packet:
+- extraction hardening
+- legacy API quarantine/removal
+- salvage refactors
+- CLI redesign beyond what is needed for clear error reporting
+
+---------------------------------------------------------------------
+
+Implementation guidance
+
+- Detect duplicates once, against the final logical path set.
+- Fail before writing archive/index structures.
+- Prefer explicit erroring over clever renaming.
+- Keep logic simple and deterministic.
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+This packet is complete only if:
+
+1) duplicate logical archive paths are detected before archive emission
+2) pack fails closed on collisions
+3) collisions are reported explicitly
+4) tests cover basename and normalized-path collision cases
+5) no partial archive output is produced on collision
+6) workspace gates pass
+
+---------------------------------------------------------------------
+
+Verification commands
+
+cargo fmt --all --check
+
+cargo test --workspace
+
+cargo clippy --workspace --all-targets -- -D warnings
+
+If pack-specific tests are added under a dedicated target, run and report them explicitly.
+
+---------------------------------------------------------------------
+
+Required response format
+
+Return:
+
+1) what changed
+2) files modified
+3) verification commands and outcomes
+4) remaining risks
+5) exact duplicate-path rule enforced
+6) completion status

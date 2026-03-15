@@ -1,0 +1,223 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-SCRUB-03
+
+Title
+Modularize crushr-salvage and crushr-lab-salvage internals to reduce layered-patch breakage
+
+Role
+BUILDER
+
+Objective
+Reduce accidental breakage risk in the experimental salvage toolchain by splitting the two large salvage binaries into internal modules with preserved behavior.
+
+This packet addresses a structural issue identified in hostile review:
+
+- `crushr-salvage.rs` is too large and stateful
+- `crushr-lab-salvage.rs` is too large and stateful
+- new experiment formats are being added as narrow branches inside giant files
+- builder touches one area and unrelated behavior breaks
+
+This packet is a refactor/scrub packet.
+It is not a semantics-change packet.
+
+Primary goal:
+- preserve current behavior
+- shrink the abstraction surface
+- make future experimental packets less fragile
+
+---------------------------------------------------------------------
+
+Read first
+
+1. AGENTS.md
+2. AI_BOOTSTRAP.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. .ai/INDEX.md
+6. .ai/STATUS.md
+7. .ai/PHASE_PLAN.md
+8. .ai/DECISION_LOG.md
+9. .ai/HANDOFF.md
+10. docs/ARCHITECTURE.md
+11. crates/crushr/src/bin/crushr-salvage.rs
+12. crates/crushr/src/bin/crushr-lab-salvage.rs
+13. recent experimental packet implementations and tests
+14. hostile review findings provided by the human
+
+---------------------------------------------------------------------
+
+Context
+
+Hostile review identified the current experimental salvage binaries as layered patch hot-zones.
+
+Examples:
+- large monolithic planning functions
+- parallel hand-rolled parsing branches for successive experiments
+- giant dispatch/runner functions in one file
+
+This makes the repo fragile and contributes to repeated builder regressions.
+
+This packet refactors internals while preserving externally observable behavior.
+
+---------------------------------------------------------------------
+
+Hard constraints
+
+- Do NOT intentionally change salvage semantics.
+- Do NOT change strict extraction semantics.
+- Do NOT redesign comparison workflows.
+- Do NOT change output schemas except where absolutely required to preserve behavior.
+- Refactor behavior-preservingly as much as possible.
+
+---------------------------------------------------------------------
+
+Required implementation scope
+
+1) Split `crushr-salvage` into internal modules
+
+Refactor the salvage binary into internal modules organized by responsibility.
+
+At minimum, aim to separate concerns such as:
+
+- candidate block scanning / discovery
+- metadata parsing / decoding
+- verification logic
+- planning / classification
+- export/artifact emission
+- report assembly / JSON emission
+
+Exact module names are up to you, but the resulting structure must materially reduce the monolith.
+
+---------------------------------------------------------------------
+
+2) Split `crushr-lab-salvage` into internal modules
+
+Refactor the lab runner into internal modules organized by responsibility.
+
+At minimum, aim to separate concerns such as:
+
+- CLI/dispatch
+- binary resolution / runner helpers
+- experiment generation
+- comparison workflows
+- summary/report assembly
+- filesystem/output helpers
+
+Again, exact module names are up to you, but the monolithic file must be materially reduced.
+
+---------------------------------------------------------------------
+
+3) Preserve behavior
+
+Required:
+- existing comparison commands continue to work
+- existing output files and schemas remain compatible
+- existing provenance semantics remain compatible
+- no experimental arm is dropped silently
+
+If behavior must change for cleanliness, document it explicitly and keep it minimal.
+
+---------------------------------------------------------------------
+
+4) Add regression coverage around the refactor
+
+Add focused tests covering at minimum:
+
+4.1 salvage output regression
+- representative salvage path still produces schema-valid output
+
+4.2 comparison workflow regression
+- representative comparison workflow still produces expected output files
+
+4.3 binary resolution regression
+- current intended resolution precedence remains intact and test-covered
+
+4.4 dispatch regression
+- supported lab commands still dispatch correctly
+
+4.5 deterministic ordering regression
+- repeated representative runs preserve stable ordering where previously expected
+
+---------------------------------------------------------------------
+
+5) Module boundary documentation
+
+Add a short internal documentation note in code comments and/or docs indicating the intended internal module responsibilities.
+
+This does not need to be extensive.
+The goal is to make future editing safer.
+
+---------------------------------------------------------------------
+
+6) Documentation updates
+
+Update only directly relevant docs:
+
+- .ai/HANDOFF.md
+- .ai/CHANGELOG.md
+- docs/ARCHITECTURE.md if the internal organization note is worth surfacing
+- PROJECT_STATE.md / .ai/STATUS.md only if needed for fix tracking
+
+Keep doc updates light.
+This is primarily a code-organization scrub.
+
+---------------------------------------------------------------------
+
+Out of scope
+
+Do NOT implement in this packet:
+- new salvage semantics
+- new archive format arms
+- legacy extraction boundary changes
+- pack duplicate-path rejection
+- broad CLI redesign beyond preserving current supported behavior
+
+---------------------------------------------------------------------
+
+Implementation guidance
+
+- Favor behavior-preserving extraction into modules over “clean slate” rewrites.
+- Keep public command surfaces stable.
+- Add small shared helpers where duplication clearly exists.
+- Avoid introducing yet another layer of accidental indirection.
+- Preserve testability.
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+This packet is complete only if:
+
+1) `crushr-salvage` is materially decomposed into internal modules
+2) `crushr-lab-salvage` is materially decomposed into internal modules
+3) supported workflows still run
+4) representative outputs remain compatible
+5) regression tests cover core preserved behaviors
+6) workspace gates pass
+
+---------------------------------------------------------------------
+
+Verification commands
+
+cargo fmt --all --check
+
+cargo test --workspace
+
+cargo clippy --workspace --all-targets -- -D warnings
+
+Additionally verify at least one representative salvage workflow and one representative comparison workflow still run.
+
+---------------------------------------------------------------------
+
+Required response format
+
+Return:
+
+1) what changed
+2) files/modules added or modified
+3) verification commands and outcomes
+4) remaining risks
+5) resulting internal module layout summary
+6) completion status
