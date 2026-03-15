@@ -2,7 +2,7 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-FORMAT-05-f1 complete** (format05 comparison runner/packer flag contract repair + packer-help/contract regression tests)
+Current Step: **CRUSHR-FORMAT-05-f3 complete** (replaced brittle source-string regressions with behavioral shim test proving no `crushr-pack --help` dependency and enforcing format05 writer-flag contract)
 
 Immediate Next Step: **CRUSHR-FORMAT-06** (verified file manifest checkpoints as the next recovery-graph layer)
 
@@ -16,6 +16,7 @@ Immediate Next Step: **CRUSHR-FORMAT-06** (verified file manifest checkpoints as
 - Current experimental evidence says payload-adjacent file identity is the first real recovery direction that improved outcomes.
 - The architectural direction is now locked toward a **content-addressed recovery graph**.
 - The inversion principle is active for resilience work: prefer verified payload-adjacent truth over centralized metadata authority.
+- FORMAT-05 comparison now runs end-to-end without relying on `crushr-pack --help`; the runner invokes the canonical writer flag directly.
 
 ## Active constraints
 

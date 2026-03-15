@@ -1429,25 +1429,6 @@ fn build_pack_bin_with_cargo(pack_candidate: &Path) -> Result<()> {
     }
 }
 
-fn ensure_pack_flag_supported(pack_bin: &Path, flag: &str) -> Result<()> {
-    let out = Command::new(pack_bin)
-        .arg("--help")
-        .output()
-        .with_context(|| format!("run {:?}", pack_bin))?;
-    if !out.status.success() {
-        bail!(
-            "crushr-pack --help failed\nstdout:\n{}\nstderr:\n{}",
-            String::from_utf8_lossy(&out.stdout),
-            String::from_utf8_lossy(&out.stderr)
-        );
-    }
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    if !stdout.contains(flag) {
-        bail!("crushr-pack does not advertise required FORMAT-05 flag `{flag}` in --help output");
-    }
-    Ok(())
-}
-
 fn comparison_scenarios() -> Vec<ComparisonScenario> {
     let datasets = ["smallfiles", "mixed", "largefiles"];
     let targets = [
@@ -1584,7 +1565,6 @@ stderr:
 }
 
 fn build_archive_with_pack_format05(pack_bin: &Path, input: &Path, output: &Path) -> Result<()> {
-    ensure_pack_flag_supported(pack_bin, FORMAT05_PACK_FLAG)?;
     let out = Command::new(pack_bin)
         .arg(input)
         .arg("-o")
