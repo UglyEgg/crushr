@@ -91,3 +91,12 @@ This document describes the current implemented boundary without speculative mat
 - `crushr-salvage` uses these only when primary IDX3 mapping is unusable and metadata verifies strictly.
 - Deterministic fallback precedence: `PRIMARY_INDEX_PATH` → `REDUNDANT_VERIFIED_MAP_PATH` (when present/valid) → `CHECKPOINT_MAP_PATH` → `SELF_DESCRIBING_EXTENT_PATH`.
 - No speculative reconstruction, guessed mappings, or changes to `crushr-extract` semantics.
+
+
+## Experimental file-identity path (CRUSHR-FORMAT-03)
+
+- `crushr-pack --experimental-file-identity-extents` is explicit opt-in and does not alter default writer behavior.
+- Experimental archives add per-extent `crushr-file-identity-extent.v1` records: `file_id`, logical offset/length, full file size, extent ordinal, block id, content identity hashes, and path digest linkage.
+- Path names are recovered only when `crushr-file-path-map.v1` verifies (`file_id` + `path` + `path_digest_blake3` matches computed digest).
+- Salvage precedence: `PRIMARY_INDEX_PATH` → `REDUNDANT_VERIFIED_MAP_PATH` → `CHECKPOINT_MAP_PATH` → `FILE_IDENTITY_EXTENT_PATH` → `SELF_DESCRIBING_EXTENT_PATH`.
+- Strict boundary unchanged: no guessed names, offsets, extents, or speculative reconstruction.

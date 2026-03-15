@@ -53,6 +53,7 @@ fn run() -> Result<()> {
     let mut output = None;
     let mut level: i32 = 3;
     let mut experimental_self_describing_extents = false;
+    let mut experimental_file_identity_extents = false;
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -70,6 +71,8 @@ fn run() -> Result<()> {
                 .with_context(|| format!("invalid --level value: {value}"))?;
         } else if arg == "--experimental-self-describing-extents" {
             experimental_self_describing_extents = true;
+        } else if arg == "--experimental-file-identity-extents" {
+            experimental_file_identity_extents = true;
         } else if arg.starts_with('-') {
             bail!("unsupported flag: {arg}");
         } else {
@@ -87,6 +90,7 @@ fn run() -> Result<()> {
         &output,
         level,
         experimental_self_describing_extents,
+        experimental_file_identity_extents,
     )
 }
 
@@ -95,6 +99,7 @@ fn pack_minimal_v1(
     output: &Path,
     level: i32,
     experimental_self_describing_extents: bool,
+    experimental_file_identity_extents: bool,
 ) -> Result<()> {
     let files = collect_files(inputs)?;
     if files.is_empty() {
@@ -106,6 +111,8 @@ fn pack_minimal_v1(
     let mut block_id: u32 = 0;
 
     let mut experimental_records = Vec::new();
+    let mut file_identity_extent_records = Vec::new();
+    let mut file_identity_path_records = Vec::new();
     let checkpoint_stride = 2usize;
     for (ordinal, file) in files.into_iter().enumerate() {
         let raw = std::fs::read(&file.abs_path)
@@ -168,6 +175,31 @@ fn pack_minimal_v1(
             }
         }
 
+        if experimental_file_identity_extents {
+            let path_digest = *blake3::hash(file.rel_path.as_bytes()).as_bytes();
+            file_identity_extent_records.push(json!({
+                "schema": "crushr-file-identity-extent.v1",
+                "file_id": block_id,
+                "logical_offset": 0,
+                "logical_length": raw.len() as u64,
+                "full_file_size": raw.len() as u64,
+                "extent_ordinal": 0,
+                "block_id": block_id,
+                "content_identity": {
+                    "payload_hash_blake3": to_hex(&payload_hash),
+                    "raw_hash_blake3": to_hex(&raw_hash),
+                },
+                "path_linkage": {
+                    "path_digest_blake3": to_hex(&path_digest),
+                }
+            }));
+            file_identity_path_records.push(json!({
+                "file_id": block_id,
+                "path": file.rel_path,
+                "path_digest_blake3": to_hex(&path_digest),
+            }));
+        }
+
         entries.push(Entry {
             path: file.rel_path,
             kind: EntryKind::Regular,
@@ -200,13 +232,28 @@ fn pack_minimal_v1(
         )?;
     }
 
+    if experimental_file_identity_extents {
+        for record in &file_identity_extent_records {
+            write_experimental_metadata_block(&mut out, record, level)?;
+        }
+        write_experimental_metadata_block(
+            &mut out,
+            &json!({
+                "schema": "crushr-file-path-map.v1",
+                "records": file_identity_path_records,
+            }),
+            level,
+        )?;
+    }
+
     let blocks_end_offset = out.stream_position()?;
     let idx3 = encode_index(&Index {
         entries: entries.clone(),
     });
     let redundant_file_map = json!({
-        "schema": if experimental_self_describing_extents { "crushr-redundant-file-map.experimental.v2" } else { "crushr-redundant-file-map.v1" },
+        "schema": if experimental_self_describing_extents || experimental_file_identity_extents { "crushr-redundant-file-map.experimental.v2" } else { "crushr-redundant-file-map.v1" },
         "experimental_self_describing_extents": experimental_self_describing_extents,
+        "experimental_file_identity_extents": experimental_file_identity_extents,
         "files": entries
             .iter()
             .map(|entry| {

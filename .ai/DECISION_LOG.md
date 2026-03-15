@@ -444,3 +444,19 @@ Blast radius:
 - Blast radius:
   - `crushr-pack`, `crushr-salvage`, `crushr-lab-salvage`, focused tests, and continuity/docs updates only.
   - No `crushr-extract` contract changes.
+
+
+## 2026-03-15 — CRUSHR-FORMAT-03: file-identity anchored extents as bounded experimental fallback
+
+- Decision:
+  - Add explicit opt-in writer mode (`crushr-pack --experimental-file-identity-extents`) emitting `crushr-file-identity-extent.v1` records plus `crushr-file-path-map.v1`.
+  - Require strict path linkage verification (`file_id` + path digest + verified path-map record) for named recovery; no guessing.
+  - Extend salvage precedence with `FILE_IDENTITY_EXTENT_PATH` after primary/redundant/checkpoint fallback paths.
+- Alternatives:
+  1. Fold file identity into default format path.
+  2. Keep only checkpoint/self-describing records with no dedicated file-identity records.
+- Rationale:
+  - Prior experiments showed surviving blocks without enough verified file membership; explicit per-extent file identity is the bounded next probe while preserving strict-only behavior.
+- Blast radius:
+  - `crushr-pack`, `crushr-salvage`, `crushr-lab-salvage`, salvage plan schema enum, targeted tests/docs/continuity files.
+  - No `crushr-extract` semantic changes.

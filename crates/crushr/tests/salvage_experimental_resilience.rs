@@ -20,7 +20,7 @@ fn run(cmd: &mut Command) {
     }
 }
 
-fn build_archive(pack_bin: &Path, path: &Path, experimental: bool) {
+fn build_archive(pack_bin: &Path, path: &Path, experimental: bool, file_identity: bool) {
     let td = TempDir::new().unwrap();
     let input = td.path().join("input");
     fs::create_dir_all(&input).unwrap();
@@ -36,6 +36,9 @@ fn build_archive(pack_bin: &Path, path: &Path, experimental: bool) {
     ]);
     if experimental {
         cmd.arg("--experimental-self-describing-extents");
+    }
+    if file_identity {
+        cmd.arg("--experimental-file-identity-extents");
     }
     run(&mut cmd);
 }
@@ -72,7 +75,7 @@ fn experimental_archive_uses_checkpoint_path_when_primary_and_ledger_are_unusabl
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive.crushr");
 
-    build_archive(pack_bin, &archive, true);
+    build_archive(pack_bin, &archive, true, false);
     rewrite_tail_without_ledger_and_with_corrupt_index(&archive);
 
     let plan = run_salvage(salvage_bin, &archive, &td.path().join("plan.json"));
@@ -85,7 +88,7 @@ fn experimental_archive_uses_checkpoint_path_when_primary_and_ledger_are_unusabl
 }
 
 #[test]
-fn experimental_comparison_outputs_three_arm_summary() {
+fn experimental_comparison_outputs_file_identity_summary() {
     let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
     let td = TempDir::new().unwrap();
     let out_dir = td.path().join("comparison");
@@ -95,13 +98,37 @@ fn experimental_comparison_outputs_three_arm_summary() {
         .arg("--output")
         .arg(&out_dir));
 
-    let summary_path = out_dir.join("experimental_comparison_summary.json");
+    let summary_path = out_dir.join("file_identity_comparison_summary.json");
     assert!(summary_path.exists());
-    assert!(out_dir.join("experimental_comparison_summary.md").exists());
+    assert!(out_dir.join("file_identity_comparison_summary.md").exists());
 
     let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
     assert_eq!(summary["scenario_count"], 24);
     assert!(summary["old_outcome_counts"].is_object());
     assert!(summary["redundant_outcome_counts"].is_object());
     assert!(summary["experimental_outcome_counts"].is_object());
+    assert!(summary["file_identity_outcome_counts"].is_object());
+}
+
+#[test]
+fn file_identity_archive_uses_file_identity_path_when_primary_and_ledger_are_unusable() {
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let td = TempDir::new().unwrap();
+    let archive = td.path().join("archive-file-identity.crushr");
+
+    build_archive(pack_bin, &archive, false, true);
+    rewrite_tail_without_ledger_and_with_corrupt_index(&archive);
+
+    let plan = run_salvage(
+        salvage_bin,
+        &archive,
+        &td.path().join("plan-file-identity.json"),
+    );
+    assert_eq!(plan["index_analysis"]["status"], "invalid");
+    assert_eq!(plan["summary"]["salvageable_files"], 1);
+    assert_eq!(
+        plan["file_plans"][0]["mapping_provenance"],
+        "FILE_IDENTITY_EXTENT_PATH"
+    );
 }
