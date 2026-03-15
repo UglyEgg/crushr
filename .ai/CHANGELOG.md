@@ -476,3 +476,11 @@
 - Added `crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir>` for bounded deterministic old-vs-new redundant-map salvage comparisons.
 - Added compact comparison outputs (`comparison_summary.json`, `comparison_summary.md`) with required aggregate deltas, grouped breakdowns, and stable per-scenario improvement classes.
 - Added focused comparison integration tests for execution/output presence, deterministic ordering, strict-boundary control behavior, and aggregate-delta correctness.
+
+
+## 2026-03-15 — CRUSHR-FORMAT-02
+
+- Added explicit experimental writer flag to emit self-describing extent metadata and distributed checkpoint snapshots.
+- Added strict salvage support for verified `CHECKPOINT_MAP_PATH` and `SELF_DESCRIBING_EXTENT_PATH` provenance fallbacks.
+- Added bounded three-arm experimental resilience comparison command with compact summary artifacts.
+- Added focused tests for checkpoint-provenance recovery and experimental comparison outputs.

@@ -66,3 +66,6 @@ Expected payload families:
 ## Salvage harness input identity (research harness behavior)
 
 `crushr-lab-salvage` discovers candidate archives by bounded on-disk identity checks rather than filename extension. A file is accepted when it either starts with `BLK3` magic or has a parseable `FTR4` footer whose referenced index region begins with `IDX3` magic. This allows valid `.crushr`, `.crs`, and extensionless archives while safely rejecting sidecars/unrelated files.
+
+
+`crushr-lab-salvage run-experimental-resilience-comparison` emits `experimental_comparison_summary.json` and `experimental_comparison_summary.md` for bounded three-arm comparisons (old / redundant-map / experimental). These are deterministic research artifacts only.

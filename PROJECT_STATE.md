@@ -66,3 +66,12 @@ Out of scope for this packet (unchanged):
 - `crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir>` now runs a bounded deterministic old-vs-new salvage comparison for redundant map archives.
 - Comparison emits compact `comparison_summary.json` and `comparison_summary.md` only (plus per-scenario rows embedded in JSON).
 - The workflow is research-only and keeps strict extraction semantics unchanged.
+
+
+## `CRUSHR-FORMAT-02` boundary
+
+- Adds an explicit experimental writer path: `crushr-pack --experimental-self-describing-extents`.
+- Experimental archives embed per-extent self-describing metadata blocks and distributed checkpoint snapshot blocks.
+- Salvage precedence for experimental recovery remains strict and deterministic: primary IDX3, then verified checkpoint metadata, then verified self-describing extent metadata.
+- Verification-only rule is unchanged: unverifiable metadata is rejected with no guessed mappings.
+- Strict extraction (`crushr-extract`) remains unchanged.

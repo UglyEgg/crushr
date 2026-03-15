@@ -80,3 +80,14 @@ This document describes the current implemented boundary without speculative mat
 - Corruption coverage is intentionally bounded across dataset classes (`smallfiles`, `mixed`, `largefiles`), targets (header/index/payload/tail), and magnitudes (small/medium).
 - Output remains compact (`comparison_summary.json`, `comparison_summary.md`) and research-only.
 - This workflow does not weaken strict extraction or introduce speculative recovery.
+
+
+## Experimental resilience path (CRUSHR-FORMAT-02)
+
+- `crushr-pack --experimental-self-describing-extents` is an explicit opt-in writer path.
+- Experimental archives add:
+  - `crushr-self-describing-extent.v1` metadata blocks colocated through the payload region.
+  - `crushr-checkpoint-map-snapshot.v1` metadata blocks written at multiple separated positions (periodic checkpoints plus end checkpoint).
+- `crushr-salvage` uses these only when primary IDX3 mapping is unusable and metadata verifies strictly.
+- Deterministic fallback precedence: `PRIMARY_INDEX_PATH` → `REDUNDANT_VERIFIED_MAP_PATH` (when present/valid) → `CHECKPOINT_MAP_PATH` → `SELF_DESCRIBING_EXTENT_PATH`.
+- No speculative reconstruction, guessed mappings, or changes to `crushr-extract` semantics.
