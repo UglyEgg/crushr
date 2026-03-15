@@ -60,6 +60,35 @@ fn run_harness_expect_fail(cmd: &mut Command) -> String {
 }
 
 #[test]
+fn help_lists_supported_comparison_commands() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let out = Command::new(lab_bin)
+        .arg("--help")
+        .output()
+        .expect("run help");
+    assert!(out.status.success());
+
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("run-experimental-resilience-comparison"));
+    assert!(stdout.contains("run-file-identity-comparison"));
+    assert!(stdout.contains("run-redundant-map-comparison"));
+}
+
+#[test]
+fn known_subcommand_name_is_not_treated_as_input_path() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let mut cmd = Command::new(lab_bin);
+    cmd.arg(td.path())
+        .arg("run-file-identity-comparison")
+        .arg("--output")
+        .arg(td.path().join("out"));
+    let stderr = run_harness_expect_fail(&mut cmd);
+
+    assert!(stderr.contains("must be used as the first argument"));
+}
+
+#[test]
 fn harness_generates_manifest_and_summary_outputs() {
     let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
     let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));

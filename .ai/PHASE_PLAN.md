@@ -86,3 +86,8 @@
   - explicit opt-in writer flag `--experimental-file-identity-extents`
   - strict salvage provenance path `FILE_IDENTITY_EXTENT_PATH`
   - bounded four-arm comparison summary outputs (`file_identity_comparison_summary.json/.md`)
+
+- [x] 3.12 CRUSHR-FORMAT-03-f1 (lab-salvage comparison dispatch/help repair)
+  - `crushr-lab-salvage --help` now succeeds and lists bounded supported surfaces
+  - parser treats known comparison subcommands as dispatch targets, not positional input paths
+  - added regression coverage for help, command dispatch, and misparse prevention

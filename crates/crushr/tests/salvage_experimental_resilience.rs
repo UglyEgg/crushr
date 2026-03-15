@@ -111,6 +111,26 @@ fn experimental_comparison_outputs_file_identity_summary() {
 }
 
 #[test]
+fn file_identity_comparison_command_is_invokable() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison");
+
+    run(Command::new(lab_bin)
+        .arg("run-file-identity-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("file_identity_comparison_summary.json");
+    assert!(summary_path.exists());
+    assert!(out_dir.join("file_identity_comparison_summary.md").exists());
+
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    assert_eq!(summary["scenario_count"], 24);
+    assert!(summary["file_identity_outcome_counts"].is_object());
+}
+
+#[test]
 fn file_identity_archive_uses_file_identity_path_when_primary_and_ledger_are_unusable() {
     let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
     let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));

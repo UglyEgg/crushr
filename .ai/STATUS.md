@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning Research Boundary
 
-Current Step: CRUSHR-FORMAT-03 complete (experimental file-identity anchored extents + strict salvage fallback + bounded four-arm comparison)
+Current Step: CRUSHR-FORMAT-03-f1 complete (lab-salvage command dispatch/help fix for comparison workflow invocations)
 
-Recent completed packet: CRUSHR-FORMAT-03 (file-identity anchored extents + strict path linkage verification + FILE_IDENTITY_EXTENT_PATH provenance + bounded four-arm comparison summaries)
+Recent completed packet: CRUSHR-FORMAT-03-f1 (dispatch/help/compatibility repair so documented comparison commands are invokable)
 
 ## Current truth
 
@@ -32,10 +32,9 @@ Recent completed packet: CRUSHR-FORMAT-03 (file-identity anchored extents + stri
 4. Keep Phase 2 corpus and frozen artifacts unchanged.
 5. Keep file-identity extent path experimental and opt-in only.
 
+## Latest packet: CRUSHR-FORMAT-03-f1
 
-## Latest packet: CRUSHR-FORMAT-03
+- Added explicit top-level help mode for `crushr-lab-salvage --help` / `-h` / `help` with bounded usage text listing supported modes.
+- Hardened parser dispatch so known comparison subcommand names are not treated as positional input paths when used in the wrong position.
+- Added focused harness tests for help discoverability, subcommand misparse regression guard, and direct `run-file-identity-comparison` invocation.
 
-- Added explicit experimental writer flag `--experimental-file-identity-extents` in `crushr-pack` for file-identity anchored extent records plus verified path-map records.
-- Added strict salvage fallback provenance path `FILE_IDENTITY_EXTENT_PATH` after primary/redundant/checkpoint paths.
-- Added strict path linkage verification: named recovery only when file-id + path digest + path-map record all verify.
-- Added bounded comparison outputs: `file_identity_comparison_summary.json` and `file_identity_comparison_summary.md` (and compatibility emission of `experimental_comparison_summary.*`).
