@@ -1,3 +1,14 @@
+## 2026-03-15 — CRUSHR-FORMAT-05-f3 (behavioral self-check for runner/packer contract mismatch)
+
+- Replaced brittle source-text assertions in FORMAT-05 resilience tests with a behavioral runner test using a `CRUSHR_PACK_BIN` shim that intentionally fails on `--help` but accepts real pack invocations.
+- Added contract self-check in the shim to fail if FORMAT-05 archive builds do not include `--experimental-self-identifying-blocks`, ensuring runner/packer flag contract alignment through execution behavior.
+
+## 2026-03-15 — CRUSHR-FORMAT-05-f2 (remove brittle packer help probing from FORMAT-05 runner contract)
+
+- Removed `crushr-pack --help` capability probing from `crushr-lab-salvage` FORMAT-05 archive build path and switched to direct invocation of the canonical `--experimental-self-identifying-blocks` writer flag.
+- Updated FORMAT-05 resilience tests to assert there is no hidden help-surface dependency in runner code while preserving end-to-end comparison command coverage.
+- Re-verified workspace gates (`fmt`, `test`, `clippy`) and explicit `run-format05-comparison --output <tmpdir>` execution success.
+
 ## 2026-03-15 — documentation alignment after FORMAT-05 and recovery-graph direction lock
 
 - Aligned active control docs on the current experimental direction: self-identifying payload blocks (FORMAT-05) are complete and FORMAT-06 file manifest checkpoints are the next active packet.

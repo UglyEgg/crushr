@@ -271,10 +271,61 @@ fn pack_accepts_format05_flag_and_emits_archive() {
 }
 
 #[test]
-fn format05_runner_and_pack_flag_contract_remains_aligned() {
-    let source = fs::read_to_string("src/bin/crushr-lab-salvage.rs").unwrap();
-    assert!(source
-        .contains(r#"const FORMAT05_PACK_FLAG: &str = "--experimental-self-identifying-blocks";"#));
-    assert!(source.contains("ensure_pack_flag_supported(pack_bin, FORMAT05_PACK_FLAG)?;"));
-    assert!(source.contains(".arg(FORMAT05_PACK_FLAG)"));
+fn format05_comparison_succeeds_when_pack_help_is_unsupported() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format05-no-help");
+    let shim_path = td.path().join("pack-no-help-shim.sh");
+
+    fs::write(
+        &shim_path,
+        format!(
+            "#!/usr/bin/env bash
+set -euo pipefail
+if [[ \"${{1:-}}\" == \"--help\" ]]; then
+  echo \"unsupported flag: --help\" >&2
+  exit 1
+fi
+out=\"\"
+has_format05=0
+prev=\"\"
+for arg in \"$@\"; do
+  if [[ \"$arg\" == \"--experimental-self-identifying-blocks\" ]]; then
+    has_format05=1
+  fi
+  if [[ \"$prev\" == \"-o\" || \"$prev\" == \"--output\" ]]; then
+    out=\"$arg\"
+  fi
+  prev=\"$arg\"
+done
+if [[ \"$out\" == *\"_format05.crushr\" ]] && [[ $has_format05 -ne 1 ]]; then
+  echo \"missing required format05 flag\" >&2
+  exit 97
+fi
+exec \"{}\" \"$@\"
+",
+            pack_bin.display()
+        ),
+    )
+    .unwrap();
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(&shim_path).unwrap().permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&shim_path, perms).unwrap();
+    }
+
+    run(Command::new(lab_bin)
+        .arg("run-format05-comparison")
+        .arg("--output")
+        .arg(&out_dir)
+        .env("CRUSHR_PACK_BIN", &shim_path));
+
+    let summary_path = out_dir.join("format05_comparison_summary.json");
+    assert!(summary_path.exists());
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    assert_eq!(summary["scenario_count"], 24);
 }

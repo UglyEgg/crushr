@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current focus
-- CRUSHR-FORMAT-05 and CRUSHR-FORMAT-05-f1 are complete; FORMAT-05 comparison now runs end-to-end with explicit runner/packer flag-contract checks.
+- CRUSHR-FORMAT-05, -f1, -f2, and -f3 are complete; FORMAT-05 comparison now has behavioral runner/packer contract checks and no `crushr-pack --help` dependency.
 - The next active packet is **CRUSHR-FORMAT-06**: verified file manifest checkpoints as the next recovery-graph layer.
 
 ## Important behavior locks
