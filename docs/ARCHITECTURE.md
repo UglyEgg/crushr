@@ -72,3 +72,11 @@ This document describes the current implemented boundary without speculative mat
 - `crushr-salvage` may use this metadata only when IDX3 mapping is unavailable/invalid and redundant metadata fully verifies.
 - Verification is strict and all-or-nothing: schema validity, unique paths, contiguous/non-overlapping extents, exact file-size coverage, mapped block references, and per-extent bounds against verified block raw lengths.
 - If redundant metadata is missing/corrupt/inconsistent, salvage does not guess mappings and remains in orphan-evidence outcomes where appropriate.
+
+## Redundant-map comparison workflow (CRUSHR-SALVAGE-08)
+
+- `crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir>` runs a bounded deterministic targeted comparison corpus.
+- For each scenario it compares: old-style archive path (redundant metadata removed) vs new-style archive path (redundant metadata present).
+- Corruption coverage is intentionally bounded across dataset classes (`smallfiles`, `mixed`, `largefiles`), targets (header/index/payload/tail), and magnitudes (small/medium).
+- Output remains compact (`comparison_summary.json`, `comparison_summary.md`) and research-only.
+- This workflow does not weaken strict extraction or introduce speculative recovery.

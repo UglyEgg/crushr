@@ -258,6 +258,19 @@
 
 ## 2026-03-13 — V2 architectural direction locks content-addressed block identity
 
+## 2026-03-15 — Redundant-map empirical validation remains bounded targeted comparison
+
+- Status: Accepted
+- Decision:
+  - Add a deterministic targeted comparison workflow (`crushr-lab-salvage run-redundant-map-comparison`) that compares old-style archives (redundant metadata stripped) vs new-style archives (redundant metadata preserved) across a bounded 24-scenario corpus.
+  - Persist only compact summary artifacts (`comparison_summary.json`, `comparison_summary.md`) with grouped metrics and deterministic scenario rows.
+- Rationale:
+  - Quantifies CRUSHR-FORMAT-01 impact without rerunning the full Phase 2 matrix or expanding salvage semantics.
+- Blast radius:
+  - Research harness and docs/tests only.
+  - No change to canonical extraction semantics or archive format contracts.
+
+
 - Status: Accepted
 - Decision:
   - The long-term v2 direction for crushr is content-addressed block identity with deterministic on-disk indexing over content identities.

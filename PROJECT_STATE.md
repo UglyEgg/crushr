@@ -59,3 +59,10 @@ Out of scope for this packet (unchanged):
 
 
 `--resummarize <experiment_dir>` regenerates summary and analysis outputs from existing experiment artifacts and does not rerun salvage.
+
+
+## `CRUSHR-SALVAGE-08` boundary
+
+- `crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir>` now runs a bounded deterministic old-vs-new salvage comparison for redundant map archives.
+- Comparison emits compact `comparison_summary.json` and `comparison_summary.md` only (plus per-scenario rows embedded in JSON).
+- The workflow is research-only and keeps strict extraction semantics unchanged.
