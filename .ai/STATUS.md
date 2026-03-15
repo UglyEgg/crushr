@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning Research Boundary
 
-Current Step: CRUSHR-FORMAT-02 complete (experimental self-describing extents + distributed checkpoints + bounded three-arm comparison)
+Current Step: CRUSHR-FORMAT-03 complete (experimental file-identity anchored extents + strict salvage fallback + bounded four-arm comparison)
 
-Recent completed packet: CRUSHR-FORMAT-02 (experimental metadata writer path + strict salvage fallback provenance + bounded three-arm comparison summaries)
+Recent completed packet: CRUSHR-FORMAT-03 (file-identity anchored extents + strict path linkage verification + FILE_IDENTITY_EXTENT_PATH provenance + bounded four-arm comparison summaries)
 
 ## Current truth
 
@@ -30,11 +30,12 @@ Recent completed packet: CRUSHR-FORMAT-02 (experimental metadata writer path + s
 2. Keep redundant map fallback strict all-or-nothing and deterministic.
 3. Preserve deterministic comparison ordering/classification and compact grouped metrics outputs.
 4. Keep Phase 2 corpus and frozen artifacts unchanged.
+5. Keep file-identity extent path experimental and opt-in only.
 
 
-## Latest packet: CRUSHR-FORMAT-02
+## Latest packet: CRUSHR-FORMAT-03
 
-- Added explicit experimental writer flag `--experimental-self-describing-extents` in `crushr-pack`.
-- Added strict salvage support for experimental metadata provenance paths: `CHECKPOINT_MAP_PATH` and `SELF_DESCRIBING_EXTENT_PATH`.
-- Added bounded comparison workflow `crushr-lab-salvage run-experimental-resilience-comparison --output <dir>`.
-- Comparison outputs: `experimental_comparison_summary.json` and `experimental_comparison_summary.md`.
+- Added explicit experimental writer flag `--experimental-file-identity-extents` in `crushr-pack` for file-identity anchored extent records plus verified path-map records.
+- Added strict salvage fallback provenance path `FILE_IDENTITY_EXTENT_PATH` after primary/redundant/checkpoint paths.
+- Added strict path linkage verification: named recovery only when file-id + path digest + path-map record all verify.
+- Added bounded comparison outputs: `file_identity_comparison_summary.json` and `file_identity_comparison_summary.md` (and compatibility emission of `experimental_comparison_summary.*`).

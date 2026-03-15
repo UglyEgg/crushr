@@ -69,3 +69,6 @@ Expected payload families:
 
 
 `crushr-lab-salvage run-experimental-resilience-comparison` emits `experimental_comparison_summary.json` and `experimental_comparison_summary.md` for bounded three-arm comparisons (old / redundant-map / experimental). These are deterministic research artifacts only.
+
+
+`crushr-lab-salvage run-file-identity-comparison` emits `file_identity_comparison_summary.json` and `file_identity_comparison_summary.md` for bounded four-arm targeted comparisons (old / redundant / format-02 experimental / format-03 file-identity extents). These are deterministic research artifacts only.

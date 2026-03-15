@@ -25,6 +25,7 @@ const PRIMARY_INDEX_PATH: &str = "PRIMARY_INDEX_PATH";
 const REDUNDANT_VERIFIED_MAP_PATH: &str = "REDUNDANT_VERIFIED_MAP_PATH";
 const CHECKPOINT_MAP_PATH: &str = "CHECKPOINT_MAP_PATH";
 const SELF_DESCRIBING_EXTENT_PATH: &str = "SELF_DESCRIBING_EXTENT_PATH";
+const FILE_IDENTITY_EXTENT_PATH: &str = "FILE_IDENTITY_EXTENT_PATH";
 
 struct FileReader {
     file: File,
@@ -126,6 +127,17 @@ struct ExperimentalExtentRecord {
     path: String,
     size: u64,
     extent: Extent,
+}
+
+#[derive(Debug)]
+struct FileIdentityExtentRecord {
+    file_id: u32,
+    size: u64,
+    extent_ordinal: u64,
+    extent: Extent,
+    path_digest_blake3: String,
+    payload_hash_blake3: String,
+    raw_hash_blake3: String,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -708,6 +720,181 @@ fn parse_checkpoint_extent_records(values: &[Value]) -> Vec<ExperimentalExtentRe
     out
 }
 
+fn parse_file_identity_path_map(values: &[Value]) -> BTreeMap<u32, String> {
+    let mut out = BTreeMap::new();
+    for value in values {
+        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-file-path-map.v1") {
+            continue;
+        }
+        let Some(records) = value.get("records").and_then(|v| v.as_array()) else {
+            continue;
+        };
+        for rec in records {
+            let Some(file_id_u64) = rec.get("file_id").and_then(|v| v.as_u64()) else {
+                continue;
+            };
+            let Ok(file_id) = u32::try_from(file_id_u64) else {
+                continue;
+            };
+            let Some(path) = rec.get("path").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let Some(path_digest) = rec.get("path_digest_blake3").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
+            if computed != path_digest {
+                continue;
+            }
+            out.insert(file_id, path.to_string());
+        }
+    }
+    out
+}
+
+fn parse_file_identity_extent_records(values: &[Value]) -> Vec<FileIdentityExtentRecord> {
+    let mut out = Vec::new();
+    for value in values {
+        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-file-identity-extent.v1") {
+            continue;
+        }
+        let Some(file_id_u64) = value.get("file_id").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Ok(file_id) = u32::try_from(file_id_u64) else {
+            continue;
+        };
+        let Some(size) = value.get("full_file_size").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Some(extent_ordinal) = value.get("extent_ordinal").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Some(block_id_u64) = value.get("block_id").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Ok(block_id) = u32::try_from(block_id_u64) else {
+            continue;
+        };
+        let Some(offset) = value.get("logical_offset").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Some(len) = value.get("logical_length").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Some(path_digest) = value
+            .get("path_linkage")
+            .and_then(|v| v.get("path_digest_blake3"))
+            .and_then(|v| v.as_str())
+        else {
+            continue;
+        };
+        let Some(payload_hash) = value
+            .get("content_identity")
+            .and_then(|v| v.get("payload_hash_blake3"))
+            .and_then(|v| v.as_str())
+        else {
+            continue;
+        };
+        let Some(raw_hash) = value
+            .get("content_identity")
+            .and_then(|v| v.get("raw_hash_blake3"))
+            .and_then(|v| v.as_str())
+        else {
+            continue;
+        };
+        out.push(FileIdentityExtentRecord {
+            file_id,
+            size,
+            extent_ordinal,
+            extent: Extent {
+                block_id,
+                offset,
+                len,
+            },
+            path_digest_blake3: path_digest.to_string(),
+            payload_hash_blake3: payload_hash.to_string(),
+            raw_hash_blake3: raw_hash.to_string(),
+        });
+    }
+    out
+}
+
+fn verify_and_plan_file_identity_extent_records(
+    records: Vec<FileIdentityExtentRecord>,
+    values: &[Value],
+    block_verification: &BTreeMap<u32, BlockVerification>,
+) -> Result<Vec<FilePlan>> {
+    let path_map = parse_file_identity_path_map(values);
+    let mut grouped: BTreeMap<String, (u64, Vec<(u64, Extent)>)> = BTreeMap::new();
+
+    for record in records {
+        if !matches!(block_verification.get(&record.extent.block_id), Some(v) if v.content_verified)
+        {
+            bail!("file identity extent points to unverified content block");
+        }
+        let Some(path) = path_map.get(&record.file_id) else {
+            bail!("missing verified path map record for file identity extent");
+        };
+        let computed_path_digest = to_hex(blake3::hash(path.as_bytes()).as_bytes());
+        if computed_path_digest != record.path_digest_blake3 {
+            bail!("file identity extent path linkage digest mismatch");
+        }
+
+        if let Some(value) = values.iter().find(|value| {
+            value.get("schema").and_then(|v| v.as_str()) == Some("crushr-file-identity-extent.v1")
+                && value.get("block_id").and_then(|v| v.as_u64())
+                    == Some(record.extent.block_id as u64)
+        }) {
+            let payload = value
+                .get("content_identity")
+                .and_then(|v| v.get("payload_hash_blake3"))
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+            let raw = value
+                .get("content_identity")
+                .and_then(|v| v.get("raw_hash_blake3"))
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+            if payload != record.payload_hash_blake3 || raw != record.raw_hash_blake3 {
+                bail!("file identity extent content identity mismatch");
+            }
+        }
+
+        let entry = grouped
+            .entry(path.to_string())
+            .or_insert_with(|| (record.size, Vec::new()));
+        if entry.0 != record.size {
+            bail!("inconsistent file-identity full_file_size");
+        }
+        entry.1.push((record.extent_ordinal, record.extent));
+    }
+
+    let files = grouped
+        .into_iter()
+        .map(|(path, (size, mut extents))| {
+            extents.sort_by_key(|(ordinal, _)| *ordinal);
+            for (expected, (ordinal, _)) in extents.iter().enumerate() {
+                if *ordinal != expected as u64 {
+                    bail!("file identity extent ordinal gap");
+                }
+            }
+            let only_extents = extents.into_iter().map(|(_, e)| e).collect::<Vec<_>>();
+            Ok(RedundantMapFile {
+                path,
+                size,
+                extents: only_extents,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    let mut plans = verify_and_plan_redundant_map(files, block_verification)?;
+    for plan in &mut plans {
+        plan.mapping_provenance = FILE_IDENTITY_EXTENT_PATH;
+    }
+    Ok(plans)
+}
+
 fn verify_and_plan_experimental_records(
     records: Vec<ExperimentalExtentRecord>,
     block_verification: &BTreeMap<u32, BlockVerification>,
@@ -1241,6 +1428,20 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
                             ) {
                                 if !checkpoint_plans.is_empty() {
                                     file_plans = checkpoint_plans;
+                                }
+                            }
+
+                            if file_plans.is_empty() {
+                                if let Ok(file_identity_plans) =
+                                    verify_and_plan_file_identity_extent_records(
+                                        parse_file_identity_extent_records(&experimental_values),
+                                        &experimental_values,
+                                        &block_verification,
+                                    )
+                                {
+                                    if !file_identity_plans.is_empty() {
+                                        file_plans = file_identity_plans;
+                                    }
                                 }
                             }
 

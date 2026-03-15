@@ -484,3 +484,10 @@
 - Added strict salvage support for verified `CHECKPOINT_MAP_PATH` and `SELF_DESCRIBING_EXTENT_PATH` provenance fallbacks.
 - Added bounded three-arm experimental resilience comparison command with compact summary artifacts.
 - Added focused tests for checkpoint-provenance recovery and experimental comparison outputs.
+
+
+## 2026-03-15 — CRUSHR-FORMAT-03
+
+- Added opt-in experimental writer flag `--experimental-file-identity-extents` with deterministic file-identity extent records and path-map records.
+- Added salvage strict fallback path `FILE_IDENTITY_EXTENT_PATH` with path digest verification and deterministic refusal on inconsistent identity metadata.
+- Extended bounded resilience comparison outputs with four-arm reporting and dedicated `file_identity_comparison_summary.json`/`.md` artifacts.

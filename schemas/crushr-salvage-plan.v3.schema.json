@@ -335,7 +335,10 @@
           "mapping_provenance": {
             "enum": [
               "PRIMARY_INDEX_PATH",
-              "REDUNDANT_VERIFIED_MAP_PATH"
+              "REDUNDANT_VERIFIED_MAP_PATH",
+              "CHECKPOINT_MAP_PATH",
+              "SELF_DESCRIBING_EXTENT_PATH",
+              "FILE_IDENTITY_EXTENT_PATH"
             ]
           }
         }

@@ -81,3 +81,8 @@
   - added explicit experimental writer flag on `crushr-pack`
   - added strict salvage fallback support for checkpoint and self-describing metadata provenance
   - added bounded three-arm comparison mode + compact experimental summary artifacts
+
+- [x] 3.11 CRUSHR-FORMAT-03 (experimental file-identity anchored extents)
+  - explicit opt-in writer flag `--experimental-file-identity-extents`
+  - strict salvage provenance path `FILE_IDENTITY_EXTENT_PATH`
+  - bounded four-arm comparison summary outputs (`file_identity_comparison_summary.json/.md`)

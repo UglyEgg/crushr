@@ -75,3 +75,12 @@ Out of scope for this packet (unchanged):
 - Salvage precedence for experimental recovery remains strict and deterministic: primary IDX3, then verified checkpoint metadata, then verified self-describing extent metadata.
 - Verification-only rule is unchanged: unverifiable metadata is rejected with no guessed mappings.
 - Strict extraction (`crushr-extract`) remains unchanged.
+
+
+## `CRUSHR-FORMAT-03` boundary
+
+- Adds explicit experimental writer flag: `crushr-pack --experimental-file-identity-extents`.
+- Emits per-extent file-identity metadata (`crushr-file-identity-extent.v1`) plus verified path-map records (`crushr-file-path-map.v1`).
+- `crushr-salvage` fallback precedence now includes `FILE_IDENTITY_EXTENT_PATH` after primary/redundant/checkpoint paths, with strict path-linkage verification and deterministic refusal on inconsistencies.
+- `crushr-lab-salvage run-file-identity-comparison --output <dir>` emits compact deterministic `file_identity_comparison_summary.json` and `.md` for bounded four-arm targeted runs.
+- Distributed-hash and low-discrepancy placement strategies remain future research directions and are not active in this packet.

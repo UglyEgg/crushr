@@ -2,7 +2,7 @@
 
 ## Immediate next packet
 
-Next packet (TBD): evaluate whether experimental CRUSHR-FORMAT-02 metadata should remain experimental or be iterated.
+Next packet (TBD): evaluate CRUSHR-FORMAT-03 targeted outcomes and decide whether to iterate file-identity extent design or park the branch as negative evidence.
 
 
 CRUSHR-SALVAGE-08 added `crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir>` with compact deterministic `comparison_summary.json`/`.md` outputs and per-scenario improvement classes.
@@ -82,3 +82,11 @@ CRUSHR-SALVAGE-08 added `crushr-lab-salvage run-redundant-map-comparison --outpu
 - self-describing extent + distributed checkpoint metadata emission in experimental archives
 - deterministic salvage fallback provenance for checkpoint/self-describing metadata
 - bounded three-arm comparison command with compact experimental summary outputs
+
+
+## Completed CRUSHR-FORMAT-03 outputs
+
+- explicit `crushr-pack --experimental-file-identity-extents` writer path
+- per-extent file-identity records (`crushr-file-identity-extent.v1`) + verified path-map (`crushr-file-path-map.v1`)
+- strict salvage fallback provenance `FILE_IDENTITY_EXTENT_PATH` after primary/redundant/checkpoint paths
+- bounded four-arm comparison artifacts `file_identity_comparison_summary.json`/`.md`

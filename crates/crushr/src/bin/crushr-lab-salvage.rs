@@ -9,7 +9,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const USAGE: &str = "usage: crushr-lab-salvage <input_dir> --output <experiment_dir> [--export-fragments] [--limit <N>] [--verbose]\n       crushr-lab-salvage --resummarize <experiment_dir>\n       crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir> [--verbose]\n       crushr-lab-salvage run-experimental-resilience-comparison --output <comparison_dir> [--verbose]";
+const USAGE: &str = "usage: crushr-lab-salvage <input_dir> --output <experiment_dir> [--export-fragments] [--limit <N>] [--verbose]\n       crushr-lab-salvage --resummarize <experiment_dir>\n       crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir> [--verbose]\n       crushr-lab-salvage run-experimental-resilience-comparison --output <comparison_dir> [--verbose]
+       crushr-lab-salvage run-file-identity-comparison --output <comparison_dir> [--verbose]";
 const VERIFICATION_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
 const EXPERIMENT_SCHEMA_VERSION: &str = "crushr-lab-salvage-experiment.v1";
 const SUMMARY_SCHEMA_VERSION: &str = "crushr-lab-salvage-summary.v1";
@@ -44,6 +45,9 @@ enum Mode {
     RunExperimentalResilienceComparison {
         comparison_dir: PathBuf,
     },
+    RunFileIdentityComparison {
+        comparison_dir: PathBuf,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -66,6 +70,10 @@ struct ExperimentalScenarioRow {
     old_exported_full_file_count: u64,
     redundant_exported_full_file_count: u64,
     experimental_exported_full_file_count: u64,
+    file_identity_outcome: String,
+    file_identity_verified_block_count: u64,
+    file_identity_salvageable_file_count: u64,
+    file_identity_exported_full_file_count: u64,
 }
 
 #[derive(Debug, Serialize)]
@@ -78,7 +86,10 @@ struct ExperimentalComparisonSummary {
     old_outcome_counts: BTreeMap<String, u64>,
     redundant_outcome_counts: BTreeMap<String, u64>,
     experimental_outcome_counts: BTreeMap<String, u64>,
+    file_identity_outcome_counts: BTreeMap<String, u64>,
     orphan_to_salvage_improvements_vs_old: u64,
+    orphan_to_partial_improvements_vs_old: u64,
+    orphan_to_full_improvements_vs_old: u64,
     orphan_to_salvage_improvements_vs_redundant: u64,
     total_verified_block_delta_vs_old: i64,
     total_salvageable_file_delta_vs_old: i64,
@@ -95,6 +106,7 @@ struct ExperimentalComparisonGroup {
     old_outcome_counts: BTreeMap<String, u64>,
     redundant_outcome_counts: BTreeMap<String, u64>,
     experimental_outcome_counts: BTreeMap<String, u64>,
+    file_identity_outcome_counts: BTreeMap<String, u64>,
     verified_block_delta_vs_old: i64,
     salvageable_file_delta_vs_old: i64,
     exported_full_file_delta_vs_old: i64,
@@ -403,6 +415,31 @@ fn parse_cli_options() -> Result<CliOptions> {
             });
         }
 
+        if first == "run-file-identity-comparison" {
+            let mut output_dir = None;
+            let mut verbose = false;
+            while let Some(arg) = args.next() {
+                match arg.as_str() {
+                    "--output" => {
+                        output_dir = Some(PathBuf::from(args.next().context(USAGE)?));
+                    }
+                    "--verbose" => {
+                        verbose = true;
+                    }
+                    _ => bail!("unsupported comparison argument: {arg}"),
+                }
+            }
+
+            return Ok(CliOptions {
+                mode: Mode::RunFileIdentityComparison {
+                    comparison_dir: output_dir.context(USAGE)?,
+                },
+                export_fragments: false,
+                limit: None,
+                verbose,
+            });
+        }
+
         let mut input_dir = None;
         let mut output_dir = None;
         let mut resummarize_dir = None;
@@ -504,7 +541,8 @@ fn collect_archives(opts: &CliOptions) -> Result<Vec<ArchiveRun>> {
         Mode::RunExperiment { input_dir, .. } => input_dir,
         Mode::Resummarize { .. }
         | Mode::RunRedundantMapComparison { .. }
-        | Mode::RunExperimentalResilienceComparison { .. } => {
+        | Mode::RunExperimentalResilienceComparison { .. }
+        | Mode::RunFileIdentityComparison { .. } => {
             bail!("internal error: collect_archives outside run mode")
         }
     };
@@ -1356,6 +1394,34 @@ stderr:
     Ok(())
 }
 
+fn build_archive_with_pack_file_identity(
+    pack_bin: &Path,
+    input: &Path,
+    output: &Path,
+) -> Result<()> {
+    let out = Command::new(pack_bin)
+        .arg(input)
+        .arg("-o")
+        .arg(output)
+        .arg("--level")
+        .arg("3")
+        .arg("--experimental-file-identity-extents")
+        .output()
+        .with_context(|| format!("run {:?}", pack_bin))?;
+    if !out.status.success() {
+        bail!(
+            "crushr-pack failed
+stdout:
+{}
+stderr:
+{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+    Ok(())
+}
+
 fn remove_ledger_for_old_style(archive_path: &Path) -> Result<()> {
     let bytes = fs::read(archive_path)?;
     let footer_offset = bytes.len() - FTR4_LEN;
@@ -1927,23 +1993,26 @@ fn build_experimental_groups(
             experimental_outcome_counts: count_outcomes(
                 values.iter().map(|r| r.experimental_outcome.as_str()),
             ),
+            file_identity_outcome_counts: count_outcomes(
+                values.iter().map(|r| r.file_identity_outcome.as_str()),
+            ),
             verified_block_delta_vs_old: values
                 .iter()
                 .map(|r| {
-                    r.experimental_verified_block_count as i64 - r.old_verified_block_count as i64
+                    r.file_identity_verified_block_count as i64 - r.old_verified_block_count as i64
                 })
                 .sum(),
             salvageable_file_delta_vs_old: values
                 .iter()
                 .map(|r| {
-                    r.experimental_salvageable_file_count as i64
+                    r.file_identity_salvageable_file_count as i64
                         - r.old_salvageable_file_count as i64
                 })
                 .sum(),
             exported_full_file_delta_vs_old: values
                 .iter()
                 .map(|r| {
-                    r.experimental_exported_full_file_count as i64
+                    r.file_identity_exported_full_file_count as i64
                         - r.old_exported_full_file_count as i64
                 })
                 .sum(),
@@ -1974,14 +2043,18 @@ fn run_experimental_resilience_comparison(comparison_dir: &Path, verbose: bool) 
             archives_root.join(format!("{}_redundant.crushr", scenario.scenario_id));
         let experimental_archive =
             archives_root.join(format!("{}_experimental.crushr", scenario.scenario_id));
+        let file_identity_archive =
+            archives_root.join(format!("{}_file_identity.crushr", scenario.scenario_id));
         build_archive_with_pack(&pack_bin, &dataset_input, &old_archive)?;
         build_archive_with_pack(&pack_bin, &dataset_input, &redundant_archive)?;
         build_archive_with_pack_experimental(&pack_bin, &dataset_input, &experimental_archive)?;
+        build_archive_with_pack_file_identity(&pack_bin, &dataset_input, &file_identity_archive)?;
         remove_ledger_for_old_style(&old_archive)?;
 
         corrupt_archive(&old_archive, &scenario)?;
         corrupt_archive(&redundant_archive, &scenario)?;
         corrupt_archive(&experimental_archive, &scenario)?;
+        corrupt_archive(&file_identity_archive, &scenario)?;
 
         let old_plan = run_salvage_plan(
             &salvage_bin,
@@ -1998,17 +2071,24 @@ fn run_experimental_resilience_comparison(comparison_dir: &Path, verbose: bool) 
             &experimental_archive,
             &archives_root.join(format!("{}_experimental_plan.json", scenario.scenario_id)),
         )?;
+        let file_identity_plan = run_salvage_plan(
+            &salvage_bin,
+            &file_identity_archive,
+            &archives_root.join(format!("{}_file_identity_plan.json", scenario.scenario_id)),
+        )?;
 
         let old_metrics = outcome_from_plan(&old_plan);
         let redundant_metrics = outcome_from_plan(&redundant_plan);
         let experimental_metrics = outcome_from_plan(&experimental_plan);
+        let file_identity_metrics = outcome_from_plan(&file_identity_plan);
         if verbose {
             eprintln!(
-                "scenario {} => {} / {} / {}",
+                "scenario {} => {} / {} / {} / {}",
                 scenario.scenario_id,
                 old_metrics.outcome,
                 redundant_metrics.outcome,
-                experimental_metrics.outcome
+                experimental_metrics.outcome,
+                file_identity_metrics.outcome
             );
         }
 
@@ -2031,6 +2111,10 @@ fn run_experimental_resilience_comparison(comparison_dir: &Path, verbose: bool) 
             old_exported_full_file_count: old_metrics.exported_full_file_count,
             redundant_exported_full_file_count: redundant_metrics.exported_full_file_count,
             experimental_exported_full_file_count: experimental_metrics.exported_full_file_count,
+            file_identity_outcome: file_identity_metrics.outcome,
+            file_identity_verified_block_count: file_identity_metrics.verified_block_count,
+            file_identity_salvageable_file_count: file_identity_metrics.salvageable_file_count,
+            file_identity_exported_full_file_count: file_identity_metrics.exported_full_file_count,
         });
     }
 
@@ -2046,33 +2130,52 @@ fn run_experimental_resilience_comparison(comparison_dir: &Path, verbose: bool) 
         experimental_outcome_counts: count_outcomes(
             rows.iter().map(|r| r.experimental_outcome.as_str()),
         ),
+        file_identity_outcome_counts: count_outcomes(
+            rows.iter().map(|r| r.file_identity_outcome.as_str()),
+        ),
         orphan_to_salvage_improvements_vs_old: rows
             .iter()
             .filter(|r| {
-                outcome_rank(&r.old_outcome) <= 1 && outcome_rank(&r.experimental_outcome) >= 2
+                outcome_rank(&r.old_outcome) <= 1 && outcome_rank(&r.file_identity_outcome) >= 2
+            })
+            .count() as u64,
+        orphan_to_partial_improvements_vs_old: rows
+            .iter()
+            .filter(|r| {
+                r.old_outcome == "ORPHAN_EVIDENCE_ONLY"
+                    && r.file_identity_outcome == "PARTIAL_FILE_SALVAGE"
+            })
+            .count() as u64,
+        orphan_to_full_improvements_vs_old: rows
+            .iter()
+            .filter(|r| {
+                r.old_outcome == "ORPHAN_EVIDENCE_ONLY"
+                    && r.file_identity_outcome == "FULL_FILE_SALVAGE_AVAILABLE"
             })
             .count() as u64,
         orphan_to_salvage_improvements_vs_redundant: rows
             .iter()
             .filter(|r| {
                 outcome_rank(&r.redundant_outcome) <= 1
-                    && outcome_rank(&r.experimental_outcome) >= 2
+                    && outcome_rank(&r.file_identity_outcome) >= 2
             })
             .count() as u64,
         total_verified_block_delta_vs_old: rows
             .iter()
-            .map(|r| r.experimental_verified_block_count as i64 - r.old_verified_block_count as i64)
+            .map(|r| {
+                r.file_identity_verified_block_count as i64 - r.old_verified_block_count as i64
+            })
             .sum(),
         total_salvageable_file_delta_vs_old: rows
             .iter()
             .map(|r| {
-                r.experimental_salvageable_file_count as i64 - r.old_salvageable_file_count as i64
+                r.file_identity_salvageable_file_count as i64 - r.old_salvageable_file_count as i64
             })
             .sum(),
         total_exported_full_file_delta_vs_old: rows
             .iter()
             .map(|r| {
-                r.experimental_exported_full_file_count as i64
+                r.file_identity_exported_full_file_count as i64
                     - r.old_exported_full_file_count as i64
             })
             .sum(),
@@ -2082,15 +2185,25 @@ fn run_experimental_resilience_comparison(comparison_dir: &Path, verbose: bool) 
     };
 
     fs::write(
+        comparison_dir.join("file_identity_comparison_summary.json"),
+        serde_json::to_string_pretty(&summary)?,
+    )?;
+    fs::write(
         comparison_dir.join("experimental_comparison_summary.json"),
         serde_json::to_string_pretty(&summary)?,
     )?;
     let md = format!(
-        "# Experimental resilience comparison\n\nScenarios: {}\n\n- orphan->salvage vs old: {}\n- orphan->salvage vs redundant: {}\n",
+        "# File identity extent comparison\n\nScenarios: {}\n\n- orphan->salvage vs old: {}\n- orphan->salvage vs redundant: {}\n- orphan->partial vs old: {}\n- orphan->full vs old: {}\n",
         summary.scenario_count,
         summary.orphan_to_salvage_improvements_vs_old,
-        summary.orphan_to_salvage_improvements_vs_redundant
+        summary.orphan_to_salvage_improvements_vs_redundant,
+        summary.orphan_to_partial_improvements_vs_old,
+        summary.orphan_to_full_improvements_vs_old
     );
+    fs::write(
+        comparison_dir.join("file_identity_comparison_summary.md"),
+        md.clone(),
+    )?;
     fs::write(
         comparison_dir.join("experimental_comparison_summary.md"),
         md,
@@ -2113,6 +2226,9 @@ fn run() -> Result<()> {
         return run_redundant_map_comparison(comparison_dir, opts.verbose);
     }
     if let Mode::RunExperimentalResilienceComparison { comparison_dir } = &opts.mode {
+        return run_experimental_resilience_comparison(comparison_dir, opts.verbose);
+    }
+    if let Mode::RunFileIdentityComparison { comparison_dir } = &opts.mode {
         return run_experimental_resilience_comparison(comparison_dir, opts.verbose);
     }
 
@@ -2222,7 +2338,8 @@ fn run() -> Result<()> {
         Mode::RunRedundantMapComparison { .. } => {
             bail!("internal error: comparison mode in summary pipeline")
         }
-        Mode::RunExperimentalResilienceComparison { .. } => {
+        Mode::RunExperimentalResilienceComparison { .. }
+        | Mode::RunFileIdentityComparison { .. } => {
             bail!("internal error: comparison mode in summary pipeline")
         }
     };
