@@ -93,3 +93,12 @@ Out of scope for this packet (unchanged):
 - `crushr-salvage` now supports deterministic bootstrap/header-loss recovery by scanning verified metadata blocks even when footer/index are unusable.
 - Strict path rule: **B** is active. Named recovery is used when verified path-map linkage survives; otherwise deterministic anonymous verified names are emitted (`anonymous_verified/file_<file_id>.bin`) with `FILE_IDENTITY_EXTENT_PATH_ANONYMOUS` provenance.
 - Added `crushr-lab-salvage run-format04-comparison` and required `format04_comparison_summary.json/.md` outputs for bounded targeted comparison reporting (header/index/payload/tail focus).
+
+
+## `CRUSHR-FORMAT-05` boundary
+
+- Adds explicit experimental writer flag: `crushr-pack --experimental-self-identifying-blocks` (opt-in only).
+- Experimental archives emit per-block payload identity records (`crushr-payload-block-identity.v1`) and repeated verified path checkpoints (`crushr-path-checkpoint.v1`) in separated regions.
+- `crushr-salvage` fallback precedence is extended with payload identity recovery after file-identity extent recovery: `PRIMARY_INDEX_PATH` → `REDUNDANT_VERIFIED_MAP_PATH` → `CHECKPOINT_MAP_PATH` → `FILE_IDENTITY_EXTENT_PATH` → `PAYLOAD_BLOCK_IDENTITY_PATH` → `SELF_DESCRIBING_EXTENT_PATH`.
+- Named recovery requires verified path checkpoint linkage; deterministic anonymous verified naming is used otherwise (`anonymous_verified/file_<file_id>.bin`) with `PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS` provenance.
+- Added `crushr-lab-salvage run-format05-comparison` and required `format05_comparison_summary.json/.md` outputs for bounded five-arm targeted comparisons.

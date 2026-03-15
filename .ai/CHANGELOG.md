@@ -512,3 +512,6 @@
 - Added deterministic footer/index-loss fallback metadata scan path plus bootstrap diagnostics in salvage-plan v3.
 - Added deterministic anonymous verified naming fallback and provenance for path-map-loss scenarios.
 - Added format04 comparison command/output aliases and updated tests/schema/docs accordingly.
+
+
+- 2026-03-15: CRUSHR-FORMAT-05 completed — added payload-level self-identifying block metadata and repeated verified path checkpoints, integrated deterministic payload-identity salvage fallback/provenance, and added bounded `run-format05-comparison` outputs.

@@ -102,3 +102,5 @@
   - deterministic metadata-scan fallback when footer/index are unavailable
   - strict anonymous verified naming fallback when path maps are missing
   - bounded format04 comparison outputs (`format04_comparison_summary.json` / `.md`)
+
+- [x] 3.10 CRUSHR-FORMAT-05 (self-identifying payload blocks + repeated path checkpoints + bounded format05 comparison)

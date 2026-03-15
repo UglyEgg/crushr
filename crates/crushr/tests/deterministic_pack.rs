@@ -100,6 +100,7 @@ fn crushr_pack_help_lists_experimental_flags() {
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("--experimental-self-describing-extents"));
     assert!(stdout.contains("--experimental-file-identity-extents"));
+    assert!(stdout.contains("--experimental-self-identifying-blocks"));
 }
 
 #[test]
@@ -131,4 +132,15 @@ fn crushr_pack_accepts_experimental_writer_flags_and_emits_archives() {
         "--experimental-file-identity-extents",
     ]));
     assert!(file_identity.exists());
+
+    let format05 = td.path().join("format05.crushr");
+    run(Command::new(bin).args([
+        input.to_str().unwrap(),
+        "-o",
+        format05.to_str().unwrap(),
+        "--level",
+        "3",
+        "--experimental-self-identifying-blocks",
+    ]));
+    assert!(format05.exists());
 }
