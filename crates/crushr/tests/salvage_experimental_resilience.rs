@@ -236,3 +236,45 @@ fn format05_comparison_command_is_invokable() {
     assert!(summary["no_evidence_to_partial_improvements_vs_old"].is_number());
     assert!(summary["no_evidence_to_full_improvements_vs_old"].is_number());
 }
+
+#[test]
+fn pack_help_lists_format05_flag() {
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let out = Command::new(pack_bin)
+        .arg("--help")
+        .output()
+        .expect("run --help");
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("--experimental-self-identifying-blocks"));
+}
+
+#[test]
+fn pack_accepts_format05_flag_and_emits_archive() {
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    fs::write(input.join("a.txt"), b"format05-writer").unwrap();
+    let archive = td.path().join("archive.crushr");
+
+    run(Command::new(pack_bin)
+        .arg(&input)
+        .arg("-o")
+        .arg(&archive)
+        .arg("--level")
+        .arg("3")
+        .arg("--experimental-self-identifying-blocks"));
+
+    assert!(archive.exists());
+    assert!(fs::metadata(archive).unwrap().len() > 0);
+}
+
+#[test]
+fn format05_runner_and_pack_flag_contract_remains_aligned() {
+    let source = fs::read_to_string("src/bin/crushr-lab-salvage.rs").unwrap();
+    assert!(source
+        .contains(r#"const FORMAT05_PACK_FLAG: &str = "--experimental-self-identifying-blocks";"#));
+    assert!(source.contains("ensure_pack_flag_supported(pack_bin, FORMAT05_PACK_FLAG)?;"));
+    assert!(source.contains(".arg(FORMAT05_PACK_FLAG)"));
+}
