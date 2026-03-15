@@ -70,6 +70,7 @@ pub fn extract_all_progress(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn extract_paths_progress(
     archive: &Path,
     out_dir: &Path,

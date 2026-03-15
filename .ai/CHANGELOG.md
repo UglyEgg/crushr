@@ -554,3 +554,19 @@
 - Added shared extraction confinement utility and wired it into canonical, legacy, and API extraction paths.
 - Hardened extraction to reject unsafe archive paths (absolute, parent traversal, degenerate/prefix forms) with explicit deterministic errors.
 - Set hardened symlink behavior to fail closed and added hostile regression tests for traversal/absolute/normalization/symlink cases.
+
+
+## 2026-03-15 — CRUSHR-PLAN-LEGACY-01
+- Enforced extraction authority boundary: `crushr-extract` is the supported strict extraction surface.
+- Quarantined legacy extraction surfaces (`crushr extract`, `api::extract_all`) with explicit unsupported errors.
+- Added regression coverage for quarantined root CLI extraction modes and updated MVP roundtrip extraction to canonical `crushr-extract`.
+
+
+## 2026-03-15 — CRUSHR-PLAN-LEGACY-01-f1
+- Renamed MVP quarantine test to reflect root `crushr extract` quarantine semantics (no roundtrip implication).
+- Added positive integration test proving canonical `crushr-pack` -> `crushr-extract` roundtrip still succeeds with expected file contents.
+
+
+## 2026-03-15 — CRUSHR-PLAN-LEGACY-01-f2
+- Implemented preferred delegation solution: root `crushr extract` and API `extract_all` now call shared strict extraction implementation used by `crushr-extract`.
+- Replaced quarantine-only integration expectations with strict roundtrip integration coverage for root and canonical extraction entry points.

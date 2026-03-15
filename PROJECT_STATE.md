@@ -104,3 +104,15 @@ These remain explicitly deferred until payload identity + file manifest truth ha
 - `crushr-pack` now rejects duplicate final logical archive paths before archive emission (hard fail, deterministic error, no auto-rename).
 - Duplicate detection runs after logical path normalization (`\` → `/`) and reports colliding logical path plus conflicting source inputs.
 - On duplicate collision, no archive output file is created.
+
+
+## 2026-03-15 extraction authority alignment update (CRUSHR-PLAN-LEGACY-01)
+- Supported extraction surface is now explicit and singular: `crushr-extract` strict extraction.
+- Legacy extraction entry points in root `crushr` CLI (`crushr extract`) and `crates/crushr/src/api.rs` (`extract_all`) are quarantined and return explicit unsupported errors instead of silently using legacy semantics.
+- Regression tests now guard both quarantine paths so supported extraction behavior cannot silently drift back to legacy extraction semantics.
+
+
+## 2026-03-15 extraction authority delegation follow-up (CRUSHR-PLAN-LEGACY-01-f2)
+- Preferred implementation is now applied: root `crushr extract` and API `extract_all` delegate to the same strict authoritative extraction implementation used by `crushr-extract`.
+- Legacy extraction surfaces are no longer quarantined; they are compatibility entry points with strict semantics parity.
+- Integration coverage now proves both root `crushr extract` and canonical `crushr-extract` roundtrip correctly from canonical `crushr-pack` archives.

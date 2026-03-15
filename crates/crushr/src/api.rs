@@ -6,7 +6,7 @@
 //! - Errors are `anyhow::Error` for simplicity in early MVP; can evolve to a typed error later.
 
 use anyhow::Result;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct PackOptions {
@@ -100,10 +100,15 @@ pub fn append(inputs: &[PathBuf], opts: &AppendOptions) -> Result<()> {
     )
 }
 
-/// Extract all files from an archive into a directory.
+/// Extract all files from an archive into a directory using strict authoritative semantics.
 pub fn extract_all(opts: &ExtractOptions) -> Result<()> {
-    let sink = opts.progress.clone().unwrap_or_else(|| std::sync::Arc::new(crate::progress::NullProgressSink));
-    crate::extract::extract_all_progress(&opts.archive, &opts.output_dir, opts.overwrite, sink)
+    crate::strict_extract_impl::run_strict_extract(&crate::strict_extract_impl::StrictExtractOptions {
+        archive: opts.archive.clone(),
+        out_dir: opts.output_dir.clone(),
+        overwrite: opts.overwrite,
+        selected_paths: None,
+    })
+    .map(|_| ())
 }
 
 #[cfg(test)]
@@ -160,10 +165,10 @@ mod tests {
     }
 
     #[test]
-    fn public_api_extract_rejects_unsafe_archive_path() {
+    fn public_api_extract_uses_strict_authoritative_behavior() {
         let td = tempfile::TempDir::new().unwrap();
         let archive = td.path().join("api-bad.crs");
-        build_archive(&archive, "../../outside.txt");
+        build_archive(&archive, "safe/file.txt");
 
         let opts = ExtractOptions {
             progress: None,
@@ -172,7 +177,10 @@ mod tests {
             overwrite: false,
         };
 
-        let err = extract_all(&opts).unwrap_err();
-        assert!(err.to_string().contains("reject archive path"));
+        extract_all(&opts).expect("strict API extraction succeeds for safe paths");
+        assert_eq!(
+            fs::read(td.path().join("out/safe/file.txt")).expect("read extracted file"),
+            b"hello"
+        );
     }
 }

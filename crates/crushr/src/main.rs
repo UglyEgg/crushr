@@ -41,6 +41,8 @@ mod index_codec;
 mod pack;
 mod progress;
 mod read;
+#[path = "strict_extract_impl.rs"]
+mod strict_extract_impl;
 mod tune;
 
 fn read_paths_from(spec: &Option<String>) -> anyhow::Result<Vec<PathBuf>> {
@@ -249,8 +251,7 @@ enum Cmd {
 
     /// Extract files from an archive into a directory
     ///
-    /// By default, extracts all files (equivalent to --all). Provide one or more PATHs
-    /// to extract only specific entries.
+    /// Extract files using authoritative strict extraction semantics
     Extract {
         archive: PathBuf,
         #[arg(short, long)]
@@ -456,11 +457,23 @@ fn main() -> Result<()> {
             overwrite,
             paths,
         } => {
-            if all || paths.is_empty() {
-                extract::extract_all_progress(&archive, &output, overwrite, sink.clone())
+            let selected_paths = if all || paths.is_empty() {
+                None
             } else {
-                extract::extract_paths_progress(&archive, &output, overwrite, &paths, sink.clone())
-            }
+                Some(
+                    paths
+                        .iter()
+                        .map(|path| path.to_string_lossy().to_string())
+                        .collect(),
+                )
+            };
+            strict_extract_impl::run_strict_extract(&strict_extract_impl::StrictExtractOptions {
+                archive,
+                out_dir: output,
+                overwrite,
+                selected_paths,
+            })
+            .map(|_| ())
         }
         Cmd::List { archive } => {
             let ar = read::ArchiveReader::open_with_cache(
