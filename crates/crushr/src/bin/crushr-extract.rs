@@ -15,6 +15,8 @@ use std::fs::{self, File};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
+use crushr::extraction_path::resolve_confined_path;
+
 struct FileReader {
     file: File,
 }
@@ -226,7 +228,7 @@ fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
         }
 
         let bytes = read_entry_bytes_strict(&reader, &entry, &blocks, &mut payload_cache)?;
-        let destination = opts.out_dir.join(&entry.path);
+        let destination = resolve_confined_path(&opts.out_dir, &entry.path)?;
         write_entry(destination.as_path(), &bytes, opts.overwrite)?;
     }
 

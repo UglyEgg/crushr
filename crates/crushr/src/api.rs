@@ -105,3 +105,74 @@ pub fn extract_all(opts: &ExtractOptions) -> Result<()> {
     let sink = opts.progress.clone().unwrap_or_else(|| std::sync::Arc::new(crate::progress::NullProgressSink));
     crate::extract::extract_all_progress(&opts.archive, &opts.output_dir, opts.overwrite, sink)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{extract_all, ExtractOptions};
+    use crate::format::{Entry, EntryKind, Extent, Index, BLK_MAGIC_V2, CODEC_ZSTD, FTR_MAGIC_V2};
+    use crate::index_codec::encode_index;
+    use std::fs;
+    use std::io::Write;
+
+    fn build_archive(archive: &std::path::Path, path: &str) {
+        let mut f = fs::File::create(archive).expect("create archive");
+        let payload = b"hello";
+        let comp = zstd::encode_all(&payload[..], 3).expect("compress payload");
+
+        f.write_all(BLK_MAGIC_V2).expect("write BLK magic");
+        f.write_all(&CODEC_ZSTD.to_le_bytes()).expect("write codec");
+        f.write_all(&(payload.len() as u64).to_le_bytes())
+            .expect("write raw len");
+        f.write_all(&(comp.len() as u64).to_le_bytes())
+            .expect("write comp len");
+        f.write_all(&comp).expect("write payload");
+
+        let blocks_end_offset = 4 + 4 + 8 + 8 + comp.len() as u64;
+        let index = Index {
+            entries: vec![Entry {
+                path: path.to_string(),
+                kind: EntryKind::Regular,
+                mode: 0,
+                mtime: 0,
+                size: payload.len() as u64,
+                extents: vec![Extent {
+                    block_id: 0,
+                    offset: 0,
+                    len: payload.len() as u64,
+                }],
+                link_target: None,
+                xattrs: vec![],
+            }],
+        };
+        let idx_bytes = encode_index(&index);
+        let index_offset = blocks_end_offset;
+        let index_len = idx_bytes.len() as u64;
+        f.write_all(&idx_bytes).expect("write index");
+
+        let index_hash = blake3::hash(&idx_bytes);
+        f.write_all(FTR_MAGIC_V2).expect("write footer magic");
+        f.write_all(&blocks_end_offset.to_le_bytes())
+            .expect("write blocks_end_offset");
+        f.write_all(&index_offset.to_le_bytes())
+            .expect("write index_offset");
+        f.write_all(&index_len.to_le_bytes()).expect("write index_len");
+        f.write_all(index_hash.as_bytes()).expect("write index hash");
+    }
+
+    #[test]
+    fn public_api_extract_rejects_unsafe_archive_path() {
+        let td = tempfile::TempDir::new().unwrap();
+        let archive = td.path().join("api-bad.crs");
+        build_archive(&archive, "../../outside.txt");
+
+        let opts = ExtractOptions {
+            progress: None,
+            archive,
+            output_dir: td.path().join("out"),
+            overwrite: false,
+        };
+
+        let err = extract_all(&opts).unwrap_err();
+        assert!(err.to_string().contains("reject archive path"));
+    }
+}

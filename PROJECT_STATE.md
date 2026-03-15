@@ -93,3 +93,8 @@ These remain explicitly deferred until payload identity + file manifest truth ha
 - no guessed byte emission
 - no archive mutation in place
 - no integration of experimental recovery semantics into `crushr-extract`
+
+## 2026-03-15 security hardening update (CRUSHR-SCRUB-01)
+- Extraction path confinement is now an explicit locked security boundary across canonical, legacy, and API extraction surfaces.
+- Shared archive-path validation rejects absolute paths, parent traversal, empty/degenerate paths, and Windows-style path prefixes; unsafe paths now hard-fail deterministically.
+- Hardened mode rejects symlink extraction to avoid reintroducing escape semantics.

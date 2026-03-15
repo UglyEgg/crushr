@@ -1,3 +1,4 @@
+use crate::extraction_path::{resolve_confined_path, validate_symlink_target};
 use crate::format::{
     Entry, EntryKind, Index, BLK_MAGIC_V2, CODEC_ZSTD, FTR_MAGIC_V1, FTR_MAGIC_V2,
 };
@@ -244,18 +245,23 @@ impl ArchiveReader {
     #[allow(dead_code)]
     pub fn extract_to(&mut self, path: &str, dst: &Path, xattr_policy: &str) -> Result<()> {
         let e = self.get_entry(path)?.clone();
+        let out_dir = dst
+            .parent()
+            .ok_or_else(|| anyhow::anyhow!("destination has no parent: {}", dst.display()))?;
+        let confined = resolve_confined_path(out_dir, path)?;
+        if confined != dst {
+            bail!(
+                "destination mismatch for {}: expected confined path {}",
+                path,
+                confined.display()
+            );
+        }
+
         match e.kind {
             EntryKind::Symlink => {
                 let tgt = e.link_target.clone().unwrap_or_default();
-                #[cfg(unix)]
-                {
-                    std::os::unix::fs::symlink(&tgt, dst)
-                        .with_context(|| format!("symlink {} -> {}", dst.display(), tgt))?;
-                }
-                #[cfg(not(unix))]
-                {
-                    bail!("symlink extraction not supported on this platform");
-                }
+                validate_symlink_target(&tgt)?;
+                bail!("symlink extraction is disabled in hardened mode: {}", path);
             }
             EntryKind::Regular => {
                 if let Some(parent) = dst.parent() {

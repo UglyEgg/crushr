@@ -537,3 +537,10 @@ Blast radius:
   - Planning/control docs and next-packet expectations only.
   - No change to current experimental or canonical extraction behavior.
 
+## 2026-03-15 — CRUSHR-SCRUB-01 extraction confinement unification
+
+- Decision: all extraction surfaces must use a shared confined-path resolver and hard-fail on unsafe archive paths.
+- Decision: symlink extraction is disabled in hardened mode (fail closed) until a separately approved confined symlink model exists.
+- Alternatives considered: keep legacy permissive behavior; strip/normalize malicious paths; allow symlinks with best-effort checks.
+- Rationale: integrity-first semantics require deterministic fail-closed behavior and consistent safety across canonical, legacy, and API paths.
+- Blast radius: malicious archives that previously extracted now error deterministically; safe relative-path extraction is unchanged.

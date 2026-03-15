@@ -35,6 +35,7 @@ fn resolve_inputs_abs(inputs: &[std::path::PathBuf]) -> anyhow::Result<Vec<std::
 mod cli_ui;
 mod dict;
 mod extract;
+mod extraction_path;
 mod format;
 mod index_codec;
 mod pack;
