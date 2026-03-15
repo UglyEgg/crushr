@@ -1,3 +1,14 @@
+## 2026-03-15 — CRUSHR-SCRUB-02-f1 (deterministic duplicate-source ordering + expanded collision coverage)
+
+- Stabilized duplicate collision error source ordering by sorting collected file inputs by `(rel_path, abs_path)` and sorting per-collision source lists before rendering the error.
+- Expanded pack regression coverage to include walked-tree vs walked-tree collisions, three-way collisions, and explicit ordered-source assertions in the duplicate error surface.
+
+## 2026-03-15 — CRUSHR-SCRUB-02 (reject duplicate logical archive paths before archive emission)
+
+- Added pack-time duplicate logical-path rejection in `crushr-pack` before output file creation and any archive/index/ledger writes.
+- Centralized logical path normalization (`\` to `/`) and run duplicate detection on normalized final archive paths only.
+- Added focused regression tests for distinct-path success, basename collision hard-failure, normalization-only collision hard-failure, deterministic collision path error, and no partial archive output on collision.
+
 ## 2026-03-15 — CRUSHR-FORMAT-05-f3 (behavioral self-check for runner/packer contract mismatch)
 
 - Replaced brittle source-text assertions in FORMAT-05 resilience tests with a behavioral runner test using a `CRUSHR_PACK_BIN` shim that intentionally fails on `--help` but accepts real pack invocations.

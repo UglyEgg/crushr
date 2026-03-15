@@ -5,6 +5,7 @@ use crushr_format::blk3::{write_blk3_header, Blk3Flags, Blk3Header};
 use crushr_format::ledger::LedgerBlob;
 use crushr_format::tailframe::assemble_tail_frame;
 use serde_json::json;
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
@@ -111,6 +112,7 @@ fn pack_minimal_v1(
     if files.is_empty() {
         bail!("no input files to pack");
     }
+    reject_duplicate_logical_paths(&files)?;
 
     let mut out = File::create(output).with_context(|| format!("create {}", output.display()))?;
     let mut entries = Vec::with_capacity(files.len());
@@ -470,7 +472,7 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 .to_string_lossy()
                 .to_string();
             files.push(InputFile {
-                rel_path: name,
+                rel_path: normalize_logical_path(&name),
                 abs_path: abs,
             });
             continue;
@@ -491,15 +493,46 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 .strip_prefix(&abs)
                 .context("strip input prefix")?
                 .to_string_lossy()
-                .replace('\\', "/");
+                .to_string();
 
             files.push(InputFile {
-                rel_path: rel,
+                rel_path: normalize_logical_path(&rel),
                 abs_path: entry.path().to_path_buf(),
             });
         }
     }
 
-    files.sort_by(|a, b| a.rel_path.cmp(&b.rel_path));
+    files.sort_by(|a, b| {
+        a.rel_path
+            .cmp(&b.rel_path)
+            .then_with(|| a.abs_path.cmp(&b.abs_path))
+    });
     Ok(files)
+}
+
+fn normalize_logical_path(path: &str) -> String {
+    path.replace('\\', "/")
+}
+
+fn reject_duplicate_logical_paths(files: &[InputFile]) -> Result<()> {
+    let mut path_sources: BTreeMap<&str, Vec<String>> = BTreeMap::new();
+
+    for file in files {
+        path_sources
+            .entry(file.rel_path.as_str())
+            .or_default()
+            .push(file.abs_path.display().to_string());
+    }
+
+    for (logical_path, mut sources) in path_sources {
+        if sources.len() > 1 {
+            sources.sort();
+            bail!(
+                "duplicate logical archive path '{logical_path}' from inputs: {}",
+                sources.join(", ")
+            );
+        }
+    }
+
+    Ok(())
 }

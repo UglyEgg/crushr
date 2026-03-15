@@ -2,7 +2,7 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-FORMAT-05-f3 complete** (replaced brittle source-string regressions with behavioral shim test proving no `crushr-pack --help` dependency and enforcing format05 writer-flag contract)
+Current Step: **CRUSHR-SCRUB-02-f1 complete** (duplicate-collision source ordering is now deterministic, with expanded collision-mode regression coverage)
 
 Immediate Next Step: **CRUSHR-FORMAT-06** (verified file manifest checkpoints as the next recovery-graph layer)
 
@@ -19,6 +19,7 @@ Security step note: **CRUSHR-SCRUB-01 complete** (extraction path confinement un
 - The architectural direction is now locked toward a **content-addressed recovery graph**.
 - The inversion principle is active for resilience work: prefer verified payload-adjacent truth over centralized metadata authority.
 - FORMAT-05 comparison now runs end-to-end without relying on `crushr-pack --help`; the runner invokes the canonical writer flag directly.
+- `crushr-pack` now rejects duplicate logical archive paths before any archive bytes are written; collisions are explicit hard failures listing the logical path and source inputs.
 
 ## Active constraints
 
@@ -56,3 +57,14 @@ Recovery should degrade in reverse order:
 - Canonical `crushr-extract`, legacy extraction, and API extraction now reject path escape inputs with explicit deterministic errors.
 - Hardened mode rejects symlink extraction to prevent escape reintroduction.
 - Added hostile tests for safe relative path, traversal rejection, absolute rejection, normalization escape rejection, public API alignment, legacy alignment, symlink rejection, and root confinement regression.
+
+
+## CRUSHR-SCRUB-02 closeout
+- Added deterministic duplicate logical-path detection in `crushr-pack` after canonical logical-path normalization and before output file creation.
+- Packing now hard-fails on collisions with explicit error text containing colliding logical archive path and conflicting source inputs.
+- Added focused packer tests for success on distinct paths, basename collision failure, normalization-only collision failure, walked-tree collision failure, three-way collision failure, stable ordered error surface, and no partial archive emission.
+
+
+## CRUSHR-SCRUB-02-f1 closeout
+- Stabilized duplicate-collision source listing order by sorting input files with `(rel_path, abs_path)` and sorting conflicting source vectors before formatting errors.
+- Added regression coverage for walked-tree vs walked-tree collisions and three-way collisions with explicit ordered-source error assertions.
