@@ -1,4 +1,6 @@
 use anyhow::{bail, Context, Result};
+use crushr_format::blk3::BLK3_MAGIC;
+use crushr_format::ftr4::{Ftr4, FTR4_LEN};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -311,7 +313,11 @@ fn collect_archives(opts: &CliOptions) -> Result<Vec<ArchiveRun>> {
         if !path.is_file() {
             continue;
         }
-        if path.extension().and_then(|v| v.to_str()) != Some("crushr") {
+        let bytes = fs::read(&path).with_context(|| format!("read {}", path.display()))?;
+        if !is_archive_bytes(&bytes) {
+            if opts.verbose {
+                eprintln!("skip non-archive: {}", path.display());
+            }
             continue;
         }
 
@@ -320,7 +326,6 @@ fn collect_archives(opts: &CliOptions) -> Result<Vec<ArchiveRun>> {
             .unwrap_or(&path)
             .to_string_lossy()
             .replace('\\', "/");
-        let bytes = fs::read(&path).with_context(|| format!("read {}", path.display()))?;
         let fingerprint = to_hex(blake3::hash(&bytes).as_bytes());
         archives.push(ArchiveRun {
             source_path: path,
@@ -335,6 +340,71 @@ fn collect_archives(opts: &CliOptions) -> Result<Vec<ArchiveRun>> {
         archives.truncate(limit);
     }
     Ok(archives)
+}
+
+fn is_archive_bytes(bytes: &[u8]) -> bool {
+    if bytes.starts_with(&BLK3_MAGIC) {
+        return true;
+    }
+
+    if bytes.len() < FTR4_LEN {
+        return false;
+    }
+
+    let footer_offset = bytes.len() - FTR4_LEN;
+    let Ok(footer) = Ftr4::read_from(std::io::Cursor::new(&bytes[footer_offset..])) else {
+        return false;
+    };
+    let Ok(index_offset) = usize::try_from(footer.index_offset) else {
+        return false;
+    };
+    let Ok(index_len) = usize::try_from(footer.index_len) else {
+        return false;
+    };
+    if index_len < 4 {
+        return false;
+    }
+    let Some(index_end) = index_offset.checked_add(index_len) else {
+        return false;
+    };
+    if index_end > footer_offset {
+        return false;
+    }
+
+    bytes[index_offset..index_offset + 4] == *b"IDX3"
+}
+
+fn resolve_salvage_bin() -> Result<PathBuf> {
+    if let Ok(path) = std::env::var("CRUSHR_SALVAGE_BIN") {
+        let candidate = PathBuf::from(path);
+        if candidate.is_file() {
+            return Ok(candidate);
+        }
+        bail!(
+            "CRUSHR_SALVAGE_BIN points to missing/non-file path: {}",
+            candidate.display()
+        );
+    }
+
+    if let Ok(current_exe) = std::env::current_exe() {
+        if let Some(exe_dir) = current_exe.parent() {
+            let candidate = exe_dir.join(format!("crushr-salvage{}", std::env::consts::EXE_SUFFIX));
+            if candidate.is_file() {
+                return Ok(candidate);
+            }
+        }
+    }
+
+    if let Ok(path) = std::env::var("CARGO_BIN_EXE_crushr-salvage") {
+        let candidate = PathBuf::from(path);
+        if candidate.is_file() {
+            return Ok(candidate);
+        }
+    }
+
+    bail!(
+        "unable to resolve crushr-salvage binary; expected sibling executable near current binary or set CRUSHR_SALVAGE_BIN to an explicit path"
+    );
 }
 
 fn exported_artifact_counts(plan: &Value) -> (usize, usize, usize) {
@@ -360,8 +430,7 @@ fn run_salvage(archive: &ArchiveRun, run_dir: &Path, opts: &CliOptions) -> Resul
     let plan_path = run_dir.join("salvage_plan.json");
     let export_dir = run_dir.join("exported_artifacts");
 
-    let salvage_bin =
-        std::env::var("CRUSHR_SALVAGE_BIN").unwrap_or_else(|_| "crushr-salvage".to_string());
+    let salvage_bin = resolve_salvage_bin()?;
     let mut cmd = Command::new(&salvage_bin);
     cmd.arg(&archive.source_path)
         .arg("--json-out")

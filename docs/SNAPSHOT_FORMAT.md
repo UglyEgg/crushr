@@ -58,3 +58,8 @@ Expected payload families:
 `crushr-lab-salvage` also emits compact deterministic experiment-level derived files from run metadata: `summary.json`, `summary.md`, `analysis.json`, and `analysis.md`. These remain research-only aggregates and are not canonical extraction snapshots or reconstruction semantics.
 
 `analysis.json`/`analysis.md` provide deterministic grouped outcome/export/profile views and compact evidence rankings without inlining full run metadata or salvage-plan blobs.
+
+
+## Salvage harness input identity (research harness behavior)
+
+`crushr-lab-salvage` discovers candidate archives by bounded on-disk identity checks rather than filename extension. A file is accepted when it either starts with `BLK3` magic or has a parseable `FTR4` footer whose referenced index region begins with `IDX3` magic. This allows valid `.crushr`, `.crs`, and extensionless archives while safely rejecting sidecars/unrelated files.
