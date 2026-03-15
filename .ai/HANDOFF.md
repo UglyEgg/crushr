@@ -1,26 +1,32 @@
 # HANDOFF
 
 ## Current focus
-- CRUSHR-FORMAT-04 is complete and validated.
-- Next work should refine metrics quality for header/index/tail focus rows and decide whether to graduate bootstrap anchors beyond experimental scope.
+- CRUSHR-FORMAT-05 is complete and validated as the current best-performing experimental recovery arm.
+- The next active packet is **CRUSHR-FORMAT-06**: verified file manifest checkpoints as the next recovery-graph layer.
 
 ## Important behavior locks
 - `crushr-extract` remains strict-only and unchanged.
-- File-identity fallback now allows deterministic anonymous verified output when path map linkage is absent (`FILE_IDENTITY_EXTENT_PATH_ANONYMOUS`).
-- Salvage remains verification-only: no guessed names, offsets, or extent stitching.
+- Experimental recovery direction now follows the locked inversion principle:
+  - verified payload-adjacent truth is preferred over centralized metadata authority
+  - recovery builds upward from surviving verified payload
+- The locked recovery-graph layering is:
+  - payload truth
+  - extent/block identity truth
+  - file manifest truth
+  - path truth
+- Recovery degrades in reverse order:
+  - full named recovery
+  - full anonymous recovery
+  - partial ordered recovery
+  - orphan evidence
+- Pseudo-random / low-discrepancy checkpoint placement is deferred backlog research, not the current active experiment.
 
-## Commands
-- `crushr-lab-salvage run-format04-comparison --output <dir>`
-- Required outputs: `format04_comparison_summary.json`, `format04_comparison_summary.md`
+## Current experimental surfaces
+- `crushr-pack --experimental-self-identifying-blocks`
+- `crushr-lab-salvage run-format05-comparison --output <dir>`
+- FORMAT-06 will extend the current experimental path with verified file manifest checkpoints rather than replacing it.
 
 ## Watch items
-- Keep salvage-plan schema and emitted fields in sync (`bootstrap_anchor_analysis`).
-- Preserve deterministic ordering in anonymous naming and row ordering.
-
-
-## Current handoff focus (CRUSHR-FORMAT-05 complete)
-
-- Experimental writer: `crushr-pack --experimental-self-identifying-blocks`.
-- Experimental metadata contracts: `crushr-payload-block-identity.v1` and `crushr-path-checkpoint.v1` (repeated/separated placement).
-- Salvage precedence now includes payload identity fallback after file-identity extents.
-- Comparison command: `crushr-lab-salvage run-format05-comparison --output <dir>`.
+- Keep salvage-plan schema and emitted provenance aligned with the currently implemented experimental recovery paths.
+- Preserve deterministic ordering in anonymous naming, comparison row ordering, and grouped metrics.
+- Do not let builder drift back toward centralized-metadata-only solutions; current evidence supports payload identity -> manifest truth as the active path.

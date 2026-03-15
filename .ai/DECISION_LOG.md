@@ -485,3 +485,55 @@ Blast radius:
   - Improve metadata-independent file membership recovery under index/footer/tail loss while preserving strict verification-only semantics.
 - Blast radius:
   - Experimental writer/salvage/comparison flows only; no default format migration and no `crushr-extract` semantic changes.
+
+## 2026-03-15 — CRUSHR-ARCH-GRAPH-01: content-addressed recovery graph direction locked
+
+- Status: Accepted
+- Decision:
+  - Adopt a long-term resilience direction where recovery truth is distributed across verified payload-adjacent structures rather than centralized archive metadata alone.
+  - Recovery graph layers are: payload truth -> extent/block identity truth -> file manifest truth -> path truth.
+  - Recovery degrades in reverse order: full named -> full anonymous -> partial ordered -> orphan evidence.
+- Alternatives:
+  1. Continue layering more centralized/redundant index structures around IDX3.
+  2. Treat placement strategy experiments as the primary path before metadata-independent reconstruction is mature.
+- Rationale:
+  - Experimental evidence shows centralized metadata remains the dominant failure point.
+  - File-identity metadata improved recovery where centralized/redundant metadata alone did not.
+  - The next coherent direction is to mature a content-addressed recovery graph incrementally rather than keep multiplying fragile index-style structures.
+- Blast radius:
+  - Guides future experimental salvage/format packets.
+  - Does not change canonical v1 extraction semantics or the active on-disk production contract.
+
+## 2026-03-15 — CRUSHR-ARCH-INV-01: inversion principle for resilience work locked
+
+- Status: Accepted
+- Decision:
+  - For resilience-oriented experimental work, prefer architectures where verified payload-adjacent structures carry reconstructive truth and centralized metadata acts as an accelerator rather than sole authority.
+  - Prefer block -> file / manifest reconstruction paths over file -> block dependence on a single authoritative index.
+  - Build recovery upward from verified surviving payload, not downward from fragile roots.
+- Alternatives:
+  1. Keep centralized metadata as the canonical truth for all recovery paths.
+  2. Treat inversion as an informal design intuition only.
+- Rationale:
+  - This principle is already supported by the experimental evidence and is useful immediately as a decision filter for packets.
+  - Locking it reduces future drift back toward fragile centralized-metadata designs.
+- Blast radius:
+  - Affects experimental format/recovery planning and review.
+  - No immediate wire-format or extraction-contract change by itself.
+
+## 2026-03-15 — CRUSHR-FORMAT-06 is the next active recovery-graph packet
+
+- Status: Accepted
+- Decision:
+  - The next active packet after FORMAT-05 is FORMAT-06: verified file manifest checkpoints as the next graph layer.
+  - Placement-strategy experiments (distributed-hash / low-discrepancy / golden-ratio) are deferred until payload identity + manifest truth are tested.
+- Alternatives:
+  1. Jump directly to checkpoint placement strategy bakeoffs.
+  2. Jump directly to a generic graph engine abstraction.
+- Rationale:
+  - Current evidence says the active bottleneck is still file truth/completeness under metadata loss, not checkpoint spacing optimization.
+  - FORMAT-06 is the smallest coherent next layer on top of FORMAT-05.
+- Blast radius:
+  - Planning/control docs and next-packet expectations only.
+  - No change to current experimental or canonical extraction behavior.
+

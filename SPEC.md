@@ -12,13 +12,15 @@ Defines:
 
 Does not define:
 
-- recovery/salvage/reconstruction behavior
+- experimental recovery-graph branches
+- salvage/reconstruction semantics
 - UI/UX workflows
 
 ## Compatibility
 
 - v1 uses `BLK3`, optional `DCT1`, `IDX3`, and `FTR4`
 - pre-v1/prototype archives are not compatibility targets
+- experimental recovery work (FORMAT-02+) does not silently redefine this canonical v1 contract
 
 ## Layout model
 

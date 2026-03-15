@@ -23,84 +23,32 @@
 - [x] 2.2 execution normalization + recovery accounting enrichment (CRUSHR-P2-EXEC-04/06A)
 - [x] 2.2 cross-format comparison (CRUSHR-P2-ANALYSIS-01)
 
-## Phase 3 — Standalone Salvage Planning (active)
+## Phase 3 — Standalone Salvage Planning and Recovery-Graph Research (active)
 
 - [x] 3.1 CRUSHR-SALVAGE-01 (plan-only)
 - [x] 3.2 CRUSHR-SALVAGE-02 (verified block analysis, still plan-only)
-  - standalone executable: `crushr-salvage`
-  - deterministic salvage planning over damaged archives
-  - machine-readable salvage plan JSON output
-  - deterministic BLK3 candidate scan + authoritative-mapping-aware file classification
-  - no speculative recovery
-  - no guessed reconstruction
-  - no fragment emission/output carving directories
-  - no archive mutation
-
 - [x] 3.3 CRUSHR-SALVAGE-03 (verified fragment export, research-only)
-  - `--export-fragments <dir>` optional artifact emission
-  - deterministic block/extent/full-file export gating on content verification
-  - SALVAGE_RESEARCH_OUTPUT marker + `UNVERIFIED_RESEARCH_OUTPUT` sidecar labels
-  - optional `exported_artifacts` section in salvage-plan v2 output
-
 - [x] 3.4 CRUSHR-SALVAGE-04 (deterministic salvage experiment harness, research-only)
-  - standalone executable: `crushr-lab-salvage`
-  - deterministic `.crushr` archive enumeration and stable run IDs
-  - experiment output layout with `experiment_manifest.json`, per-run `salvage_plan.json`, `run_metadata.json`
-  - optional fragment export integration via delegated `crushr-salvage --export-fragments`
-
 - [x] 3.5 CRUSHR-SALVAGE-05 (deterministic compact experiment summaries, research-only)
-  - `crushr-lab-salvage` emits `summary.json` + `summary.md` with stable per-run outcome categories
-  - compact aggregate counters (verified blocks, salvageability, export counts) from existing run metadata
-  - `--resummarize <experiment_dir>` regenerates summaries without rerunning salvage
-
-
 - [x] 3.6 CRUSHR-SALVAGE-06 (deterministic grouped analysis views, research-only)
-  - `crushr-lab-salvage` emits compact `analysis.json` + `analysis.md` grouped views over experiment metadata
-  - deterministic outcome/export/profile grouping + evidence rankings with explicit tie-breaking
-  - `--resummarize <experiment_dir>` regenerates both summary and analysis outputs without rerunning salvage
-
-
 - [x] 3.7 CRUSHR-SALVAGE-07 (harness hardening for deterministic local research execution)
-  - `crushr-lab-salvage` resolves `crushr-salvage` deterministically without requiring global PATH
-  - archive discovery is format-identity based (accepts valid `.crushr`, `.crs`, and extensionless archives)
-  - non-archives (including sidecars) are ignored by identity with stable lexicographic ordering of accepted archives
-
-
 - [x] 3.8 CRUSHR-FORMAT-01 (redundant verified file-map metadata fallback)
-  - `crushr-pack` emits compact LDG1 `crushr-redundant-file-map.v1` per-file extent metadata
-  - `crushr-salvage` falls back to redundant mapping only when IDX3 is unusable and redundant map verifies fully
-  - salvage plan schema bumped to v3 with `redundant_map_analysis` and deterministic `mapping_provenance`
-
-
 - [x] 3.9 CRUSHR-SALVAGE-08 (bounded redundant-map before/after comparison, research-only)
-  - `crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir>` creates deterministic old-style vs new-style comparison runs
-  - emits compact `comparison_summary.json` + `comparison_summary.md` with grouped deltas and improvement classes
-  - includes strict-boundary control scenarios where invalid redundant metadata does not count as an improvement
-
 - [x] 3.10 CRUSHR-FORMAT-02 (experimental self-describing extents + distributed checkpoints)
-  - added explicit experimental writer flag on `crushr-pack`
-  - added strict salvage fallback support for checkpoint and self-describing metadata provenance
-  - added bounded three-arm comparison mode + compact experimental summary artifacts
-
 - [x] 3.11 CRUSHR-FORMAT-03 (experimental file-identity anchored extents)
-  - explicit opt-in writer flag `--experimental-file-identity-extents`
-  - strict salvage provenance path `FILE_IDENTITY_EXTENT_PATH`
-  - bounded four-arm comparison summary outputs (`file_identity_comparison_summary.json/.md`)
-
 - [x] 3.12 CRUSHR-FORMAT-03-f1 (lab-salvage comparison dispatch/help repair)
-  - `crushr-lab-salvage --help` now succeeds and lists bounded supported surfaces
-  - parser treats known comparison subcommands as dispatch targets, not positional input paths
-  - added regression coverage for help, command dispatch, and misparse prevention
-
 - [x] 3.13 CRUSHR-FORMAT-03-f2 (packer experimental writer/help contract repair)
-  - `crushr-pack --help` now succeeds with bounded usage including experimental writer flags
-  - lab comparison workflow writer invocations are aligned with packer-supported experimental flag surface
-  - added regression coverage for packer help/experimental flag acceptance and archive emission
-
-- [x] 3.x CRUSHR-FORMAT-04 (experimental bootstrap-anchor + file-identity survivability hardening)
-  - distributed bootstrap anchors for file-identity experimental archives
-  - deterministic metadata-scan fallback when footer/index are unavailable
-  - strict anonymous verified naming fallback when path maps are missing
-  - bounded format04 comparison outputs (`format04_comparison_summary.json` / `.md`)
-
-- [x] 3.10 CRUSHR-FORMAT-05 (self-identifying payload blocks + repeated path checkpoints + bounded format05 comparison)
+- [x] 3.14 CRUSHR-FORMAT-04 (experimental bootstrap-anchor + file-identity survivability hardening)
+- [x] 3.15 CRUSHR-FORMAT-05 (self-identifying payload blocks + repeated path checkpoints + bounded format05 comparison)
+- [ ] 3.16 CRUSHR-FORMAT-06 (verified file manifest checkpoints as the next recovery-graph layer)
+  - build the file-truth layer on top of payload block identity
+  - validate full named / full anonymous / partial ordered recovery rules
+  - target header/index/tail cases that FORMAT-05 still leaves as orphan evidence
+  - keep the work experimental and opt-in only
+- [ ] 3.17 Future: graph-aware salvage reasoning
+  - choose the best surviving verified recovery path
+  - mature the content-addressed recovery graph beyond payload identity + manifests
+- [ ] 3.18 Future: placement-strategy experiments (deferred)
+  - deterministic distributed-hash checkpoint placement
+  - deterministic low-discrepancy / golden-ratio placement
+  - only after recovery-graph layers stabilize enough for a meaningful bakeoff

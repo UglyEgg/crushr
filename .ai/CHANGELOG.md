@@ -1,3 +1,9 @@
+## 2026-03-15 — documentation alignment after FORMAT-05 and recovery-graph direction lock
+
+- Aligned active control docs on the current experimental direction: self-identifying payload blocks (FORMAT-05) are complete and FORMAT-06 file manifest checkpoints are the next active packet.
+- Recorded the locked architectural direction toward a content-addressed recovery graph and the inversion principle: payload-adjacent verified truth is preferred over centralized metadata authority for resilience work.
+- Moved pseudo-random / low-discrepancy checkpoint placement to deferred research backlog so current work stays focused on metadata-independent reconstruction.
+
 ## 2026-03-15 — CRUSHR-SALVAGE-07 harness hardening for deterministic discovery/resolution
 
 - Hardened `crushr-lab-salvage` salvage binary resolution to avoid bare PATH dependency by using deterministic resolution (explicit `CRUSHR_SALVAGE_BIN`, sibling executable near current binary, and Cargo test binary environment path).

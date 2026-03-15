@@ -24,7 +24,7 @@ Non-negotiable baseline:
 ## Current implementation scope
 
 - regular files only
-- one block per file
+- one block per file in canonical v1 behavior
 - deterministic strict extraction reporting (`safe_files` / `refused_files`)
 
 ## Phase status (authoritative summary)
@@ -33,72 +33,63 @@ Non-negotiable baseline:
 - Phase 2 execution matrix: complete and frozen.
 - Phase 2 normalization: complete and frozen.
 - Phase 2 comparison/ranking analysis: complete and frozen.
-- Current salvage baseline: `CRUSHR-FORMAT-01` redundant verified file-map metadata in tail-frame ledger (`LDG1`) for deterministic salvage fallback when the primary IDX3 mapping path is unusable, plus retained deterministic research harness behavior from CRUSHR-SALVAGE-07.
+- Current experimental direction after FORMAT-05: self-identifying payload blocks with repeated verified path checkpoints are the best-performing bounded experimental recovery arm so far.
+- Next active packet: **CRUSHR-FORMAT-06** verified file manifest checkpoints.
 
 Canonical Phase 2 workspace root remains `PHASE2_RESEARCH/`.
 
-## `CRUSHR-FORMAT-01` boundary
+## Locked resilience direction
 
-This packet adds bounded mapping survivability redundancy and must:
+Two architectural locks are now active for resilience-oriented experimental work:
 
-- keep standalone `crushr-salvage` separation
-- keep `crushr-extract` strict-only and unchanged
-- emit compact redundant file-map metadata in new archives via tail-frame ledger JSON
-- allow salvage to use redundant mapping only when primary mapping is unusable and redundant metadata verifies fully
-- reject partial/inconsistent redundant map metadata
-- preserve deterministic salvage output and explicit research labeling
-- avoid speculative reconstruction or guessed mappings
-- never modify archives in place
+1. **Inversion principle**
+   - prefer verified payload-adjacent structures as reconstructive truth
+   - treat centralized metadata as an accelerator, not sole authority
+   - build recovery upward from surviving verified payload rather than downward from fragile roots
 
-Out of scope for this packet (unchanged):
+2. **Content-addressed recovery graph direction**
+   - payload truth
+   - extent/block identity truth
+   - file manifest truth
+   - path truth
 
-- speculative stitching/reconstruction
-- guessed byte emission
-- mutation of archives
-- integration into `crushr-extract`
+Recovery should degrade in reverse order:
+- full named recovery
+- full anonymous recovery
+- partial ordered recovery
+- orphan evidence
 
+## Active experimental boundary
 
-`--resummarize <experiment_dir>` regenerates summary and analysis outputs from existing experiment artifacts and does not rerun salvage.
-
-
-## `CRUSHR-SALVAGE-08` boundary
-
-- `crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir>` now runs a bounded deterministic old-vs-new salvage comparison for redundant map archives.
-- Comparison emits compact `comparison_summary.json` and `comparison_summary.md` only (plus per-scenario rows embedded in JSON).
-- The workflow is research-only and keeps strict extraction semantics unchanged.
-
-
-## `CRUSHR-FORMAT-02` boundary
-
-- Adds an explicit experimental writer path: `crushr-pack --experimental-self-describing-extents`.
-- Experimental archives embed per-extent self-describing metadata blocks and distributed checkpoint snapshot blocks.
-- Salvage precedence for experimental recovery remains strict and deterministic: primary IDX3, then verified checkpoint metadata, then verified self-describing extent metadata.
-- Verification-only rule is unchanged: unverifiable metadata is rejected with no guessed mappings.
-- Strict extraction (`crushr-extract`) remains unchanged.
-
-
-## `CRUSHR-FORMAT-03` boundary
-
-- `crushr-pack --help` now succeeds and documents the bounded writer CLI surface, including experimental writer modes.
-- Adds explicit experimental writer flag: `crushr-pack --experimental-file-identity-extents`.
-- Emits per-extent file-identity metadata (`crushr-file-identity-extent.v1`) plus verified path-map records (`crushr-file-path-map.v1`).
-- `crushr-salvage` fallback precedence now includes `FILE_IDENTITY_EXTENT_PATH` after primary/redundant/checkpoint paths, with strict path-linkage verification and deterministic refusal on inconsistencies.
-- `crushr-lab-salvage run-file-identity-comparison --output <dir>` emits compact deterministic `file_identity_comparison_summary.json` and `.md` for bounded four-arm targeted runs.
-- Distributed-hash and low-discrepancy placement strategies remain future research directions and are not active in this packet.
-
-
-## `CRUSHR-FORMAT-04` boundary
-
-- Extends the file-identity experimental path with distributed verified bootstrap anchor records (`crushr-bootstrap-anchor.v1`) plus per-record path entries (`crushr-file-path-map-entry.v1`) and extent scan offsets.
-- `crushr-salvage` now supports deterministic bootstrap/header-loss recovery by scanning verified metadata blocks even when footer/index are unusable.
-- Strict path rule: **B** is active. Named recovery is used when verified path-map linkage survives; otherwise deterministic anonymous verified names are emitted (`anonymous_verified/file_<file_id>.bin`) with `FILE_IDENTITY_EXTENT_PATH_ANONYMOUS` provenance.
-- Added `crushr-lab-salvage run-format04-comparison` and required `format04_comparison_summary.json/.md` outputs for bounded targeted comparison reporting (header/index/payload/tail focus).
-
-
-## `CRUSHR-FORMAT-05` boundary
+### `CRUSHR-FORMAT-05` boundary
 
 - Adds explicit experimental writer flag: `crushr-pack --experimental-self-identifying-blocks` (opt-in only).
 - Experimental archives emit per-block payload identity records (`crushr-payload-block-identity.v1`) and repeated verified path checkpoints (`crushr-path-checkpoint.v1`) in separated regions.
 - `crushr-salvage` fallback precedence is extended with payload identity recovery after file-identity extent recovery: `PRIMARY_INDEX_PATH` → `REDUNDANT_VERIFIED_MAP_PATH` → `CHECKPOINT_MAP_PATH` → `FILE_IDENTITY_EXTENT_PATH` → `PAYLOAD_BLOCK_IDENTITY_PATH` → `SELF_DESCRIBING_EXTENT_PATH`.
 - Named recovery requires verified path checkpoint linkage; deterministic anonymous verified naming is used otherwise (`anonymous_verified/file_<file_id>.bin`) with `PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS` provenance.
 - Added `crushr-lab-salvage run-format05-comparison` and required `format05_comparison_summary.json/.md` outputs for bounded five-arm targeted comparisons.
+
+### `CRUSHR-FORMAT-06` next-step boundary
+
+- FORMAT-06 will add verified file manifest checkpoints as the next graph layer on top of payload block identity.
+- Purpose: establish **file truth** (file size, expected members/ordinals, completeness) independent from centralized IDX3 survival.
+- It must improve confidence for:
+  - full named recovery
+  - full anonymous recovery
+  - partial ordered recovery
+- It remains experimental and opt-in only.
+
+## Deferred-not-active research directions
+
+These remain explicitly deferred until payload identity + file manifest truth have been tested:
+
+- deterministic distributed-hash checkpoint placement
+- deterministic low-discrepancy / golden-ratio checkpoint placement
+- generalized graph-engine abstraction beyond bounded packet needs
+
+## Out-of-scope invariants (unchanged)
+
+- no speculative stitching/reconstruction
+- no guessed byte emission
+- no archive mutation in place
+- no integration of experimental recovery semantics into `crushr-extract`

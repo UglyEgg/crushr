@@ -1,4 +1,8 @@
+*.tar.gz
+*.zip
+
 dist/
+results/
 target/
 PHASE2_RESEARCH/baselines/*
 PHASE2_RESEARCH/datasets/*

@@ -14,53 +14,75 @@ Future capabilities are intentionally deferred until after the baseline evaluati
 
 ---
 
-# Version 2 Feature Direction
+# Experimental Resilience Direction (active)
 
-The crushr format is intended to evolve toward a structured archive container with stronger integrity and storage capabilities.
+The active post-baseline research direction is now:
 
-Planned capabilities include:
+- metadata-independent reconstruction
+- payload-adjacent file identity
+- file manifest truth
+- repeated path checkpoints
+- a gradual move toward a **content-addressed recovery graph**
 
-## Recoverable archives
+This direction is governed by the locked inversion principle:
 
-Allow intact data to be extracted even when portions of the archive are corrupted.
+> prefer architectures where verified payload-adjacent structures carry reconstructive truth, and treat centralized metadata as an accelerator rather than the sole authority.
 
-Key design ideas:
+Active near-term layering:
 
-- corruption isolation
-- deterministic recovery reporting
-- partial extraction of verified blocks
+1. payload truth
+2. extent/block identity truth
+3. file manifest truth
+4. path truth
 
-## True random-access extraction
+Recovery should degrade in reverse order:
 
-Allow direct extraction of specific files or byte ranges without scanning the full archive.
-
-Expected capabilities:
-
-- file index
-- block independence
-- seekable decode units
-
-## Built-in deduplication
-
-Reduce storage overhead for repeated data.
-
-Planned rollout:
-
-1. whole-file deduplication
-2. fixed-size block deduplication
-3. content-defined chunking (only if justified)
-
-Deduplication will be designed to preserve archive integrity guarantees.
+1. full named recovery
+2. full anonymous recovery
+3. partial ordered recovery
+4. orphan evidence
 
 ---
 
-## Long-Term Vision
+# Next Active Research Steps
 
-The long-term direction for crushr combines:
+## FORMAT-06 — File manifest checkpoints
 
-- compression
-- corruption isolation
-- deterministic structure
-- content reuse
+Add verified file manifest checkpoints to complete the first practical file-truth layer above payload identity.
 
-This positions the format closer to a resilient structured container rather than a simple linear archive.
+Intended benefits:
+
+- better completeness validation
+- stronger anonymous verified recovery
+- better header/index/tail resilience than payload identity alone
+
+## Later — Graph-aware salvage reasoning
+
+After payload identity + manifest truth stabilize, teach salvage to choose the best surviving verified recovery path across graph layers.
+
+---
+
+# Deferred Research (not current priority)
+
+These remain interesting but deferred until the active recovery-graph direction matures:
+
+- deterministic distributed-hash checkpoint placement
+- deterministic low-discrepancy / golden-ratio checkpoint placement
+- larger placement-strategy bakeoffs
+- broader generalized graph-engine abstractions
+
+The current evidence says placement optimization is secondary to metadata-independent reconstruction.
+
+---
+
+# Longer-Term Vision
+
+The long-term direction for crushr is no longer just “a resilient archive container.”
+It is trending toward a **structured archive with a recoverable, content-addressed relationship graph**.
+
+Potential long-term capabilities once the current graph layers are proven:
+
+- stronger recoverable archives
+- true random-access extraction
+- content-aware deduplication
+- graceful degradation from named recovery -> anonymous recovery -> ordered partial recovery -> orphan evidence
