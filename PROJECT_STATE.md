@@ -79,6 +79,7 @@ Out of scope for this packet (unchanged):
 
 ## `CRUSHR-FORMAT-03` boundary
 
+- `crushr-pack --help` now succeeds and documents the bounded writer CLI surface, including experimental writer modes.
 - Adds explicit experimental writer flag: `crushr-pack --experimental-file-identity-extents`.
 - Emits per-extent file-identity metadata (`crushr-file-identity-extent.v1`) plus verified path-map records (`crushr-file-path-map.v1`).
 - `crushr-salvage` fallback precedence now includes `FILE_IDENTITY_EXTENT_PATH` after primary/redundant/checkpoint paths, with strict path-linkage verification and deterministic refusal on inconsistencies.

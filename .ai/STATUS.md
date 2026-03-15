@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning Research Boundary
 
-Current Step: CRUSHR-FORMAT-03-f1 complete (lab-salvage command dispatch/help fix for comparison workflow invocations)
+Current Step: CRUSHR-FORMAT-03-f2 complete (crushr-pack experimental writer CLI/help contract repair for lab comparison workflows)
 
-Recent completed packet: CRUSHR-FORMAT-03-f1 (dispatch/help/compatibility repair so documented comparison commands are invokable)
+Recent completed packet: CRUSHR-FORMAT-03-f2 (crushr-pack help + experimental writer surface contract repair; lab comparison workflows now run end-to-end)
 
 ## Current truth
 
@@ -32,9 +32,9 @@ Recent completed packet: CRUSHR-FORMAT-03-f1 (dispatch/help/compatibility repair
 4. Keep Phase 2 corpus and frozen artifacts unchanged.
 5. Keep file-identity extent path experimental and opt-in only.
 
-## Latest packet: CRUSHR-FORMAT-03-f1
+## Latest packet: CRUSHR-FORMAT-03-f2
 
-- Added explicit top-level help mode for `crushr-lab-salvage --help` / `-h` / `help` with bounded usage text listing supported modes.
-- Hardened parser dispatch so known comparison subcommand names are not treated as positional input paths when used in the wrong position.
-- Added focused harness tests for help discoverability, subcommand misparse regression guard, and direct `run-file-identity-comparison` invocation.
+- Added bounded `crushr-pack --help` support and usage text documenting both experimental writer flags.
+- Preserved and validated the experimental writer contract used by `crushr-lab-salvage` comparison workflows (`--experimental-self-describing-extents`, `--experimental-file-identity-extents`).
+- Added focused packer regression tests for help discoverability and experimental flag acceptance/archive emission.
 

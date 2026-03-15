@@ -2,12 +2,14 @@
 
 ## Immediate next packet
 
-Next packet (TBD): evaluate CRUSHR-FORMAT-03 targeted outcomes after CRUSHR-FORMAT-03-f1 dispatch/help repair and decide whether to iterate file-identity extent design or park the branch as negative evidence.
+Next packet (TBD): evaluate CRUSHR-FORMAT-03 targeted outcomes after CRUSHR-FORMAT-03-f2 packer CLI/help contract repair and decide whether to iterate file-identity extent design or park the branch as negative evidence.
 
 
 CRUSHR-SALVAGE-08 added `crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir>` with compact deterministic `comparison_summary.json`/`.md` outputs and per-scenario improvement classes.
 
 CRUSHR-FORMAT-03-f1 repaired top-level `crushr-lab-salvage` dispatch/help behavior so documented comparison workflows (`run-experimental-resilience-comparison`, `run-file-identity-comparison`) are directly invokable and discoverable via `--help`.
+
+CRUSHR-FORMAT-03-f2 repaired `crushr-pack` CLI surface parity with those workflows by adding bounded `--help` output and confirming both required experimental writer flags are invokable end-to-end.
 
 ## First actions for a fresh instance
 
