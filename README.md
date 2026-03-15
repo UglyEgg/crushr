@@ -6,7 +6,7 @@
 
 **crushr** is an experimental, integrity-first archival and compression format designed around a different premise than traditional archive tools:
 
-> When corruption occurs, the system should maximize what can still be *proven and recovered*.
+> When corruption occurs, the system should maximize what can still be _proven and recovered_.
 
 Most archive formats assume the archive structure will remain intact. When structural metadata becomes damaged, extraction usually fails completely.
 
@@ -99,6 +99,23 @@ flowchart LR
 
 crushr is built around block-level verification and redundant metadata surfaces that enable recovery tools to reconstruct file mappings even when canonical indexes are damaged.
 
+```mermaid
+flowchart TD
+    A[Archive Header] --> B[Block Table / Index]
+    B --> C1[Data Block 1]
+    B --> C2[Data Block 2]
+    B --> C3[Data Block 3]
+    C1 --> D1[File Mapping Record]
+    C2 --> D2[File Mapping Record]
+    C3 --> D3[File Mapping Record]
+    D1 --> E[Recovery Metadata]
+    D2 --> E
+    D3 --> E
+    E --> F[Checkpoint Maps]
+    E --> G[File Identity Records]
+    E --> H[Verification Hashes]
+```
+
 ---
 
 # Design Philosophy
@@ -188,7 +205,7 @@ Potential use cases include:
 • reproducible artifact storage  
 • integrity-focused backup pipelines
 
-In these environments the ability to recover *some verified data* from a damaged archive can be more valuable than an all-or-nothing design.
+In these environments the ability to recover _some verified data_ from a damaged archive can be more valuable than an all-or-nothing design.
 
 ---
 
@@ -281,4 +298,3 @@ crushr is an experimental archive format designed to answer a different question
 By treating recoverability as a primary design goal, crushr explores how archive formats can degrade gracefully and preserve verifiable data even under structural damage.
 
 The project also demonstrates how complex systems engineering projects can be developed through structured collaboration between human developers and AI systems.
-
