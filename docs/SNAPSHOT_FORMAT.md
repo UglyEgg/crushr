@@ -75,3 +75,6 @@ Expected payload families:
 
 
 `crushr-lab-salvage run-format04-comparison` emits `format04_comparison_summary.json` and `format04_comparison_summary.md` (and compatibility aliases under file-identity summary names). These are deterministic research comparison aggregates only and are not extraction snapshots.
+
+
+`crushr-lab-salvage run-format05-comparison` emits `format05_comparison_summary.json` and `format05_comparison_summary.md` for bounded five-arm targeted comparisons (old / redundant / format-02 experimental / format-03 file-identity / format-05 payload-block identity). These are deterministic research comparison aggregates only and are not extraction snapshots.

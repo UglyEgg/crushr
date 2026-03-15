@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning Research Boundary
 
-Current Step: CRUSHR-FORMAT-04 complete (bootstrap/index-loss/tail-loss resilience strengthening for experimental file-identity extents)
+Current Step: CRUSHR-FORMAT-05 complete (self-identifying payload blocks + repeated verified path checkpoints + bounded format05 comparison)
 
-Recent completed packet: CRUSHR-FORMAT-04 (distributed bootstrap anchors + index/tail/header fallback scan path + format04 bounded comparison outputs)
+Recent completed packet: CRUSHR-FORMAT-05 (payload-block identity fallback + repeated verified path checkpoints + format05 bounded comparison outputs)
 
 ## Current truth
 
@@ -47,3 +47,10 @@ Recent completed packet: CRUSHR-FORMAT-04 (distributed bootstrap anchors + index
 - Added strict anonymous verified naming fallback when path maps are missing: `anonymous_verified/file_<file_id>.bin` with `FILE_IDENTITY_EXTENT_PATH_ANONYMOUS` provenance.
 - Added `bootstrap_anchor_analysis` to salvage plan v3 output and updated schema to keep deterministic contract validation.
 - Added `run-format04-comparison` command and `format04_comparison_summary.json/.md` outputs while keeping legacy file-identity summary aliases for compatibility.
+
+
+## Latest packet: CRUSHR-FORMAT-05
+
+- Added explicit `crushr-pack --experimental-self-identifying-blocks` writer mode with per-payload identity records (`crushr-payload-block-identity.v1`) and repeated verified path checkpoints (`crushr-path-checkpoint.v1`).
+- Extended strict salvage fallback with deterministic payload-block identity planning and named/anonymous verified recovery provenance (`PAYLOAD_BLOCK_IDENTITY_PATH`, `PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS`).
+- Added bounded `crushr-lab-salvage run-format05-comparison` workflow and required compact outputs: `format05_comparison_summary.json` and `format05_comparison_summary.md`.

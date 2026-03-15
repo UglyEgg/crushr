@@ -72,6 +72,7 @@ fn help_lists_supported_comparison_commands() {
     assert!(stdout.contains("run-experimental-resilience-comparison"));
     assert!(stdout.contains("run-file-identity-comparison"));
     assert!(stdout.contains("run-format04-comparison"));
+    assert!(stdout.contains("run-format05-comparison"));
     assert!(stdout.contains("run-redundant-map-comparison"));
 }
 

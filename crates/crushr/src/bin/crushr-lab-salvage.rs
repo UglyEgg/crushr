@@ -11,7 +11,8 @@ use std::process::Command;
 
 const USAGE: &str = "usage: crushr-lab-salvage <input_dir> --output <experiment_dir> [--export-fragments] [--limit <N>] [--verbose]\n       crushr-lab-salvage --resummarize <experiment_dir>\n       crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir> [--verbose]\n       crushr-lab-salvage run-experimental-resilience-comparison --output <comparison_dir> [--verbose]
        crushr-lab-salvage run-file-identity-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format04-comparison --output <comparison_dir> [--verbose]";
+       crushr-lab-salvage run-format04-comparison --output <comparison_dir> [--verbose]
+       crushr-lab-salvage run-format05-comparison --output <comparison_dir> [--verbose]";
 const VERIFICATION_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
 const EXPERIMENT_SCHEMA_VERSION: &str = "crushr-lab-salvage-experiment.v1";
 const SUMMARY_SCHEMA_VERSION: &str = "crushr-lab-salvage-summary.v1";
@@ -53,6 +54,77 @@ enum Mode {
     RunFormat04Comparison {
         comparison_dir: PathBuf,
     },
+    RunFormat05Comparison {
+        comparison_dir: PathBuf,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+struct Format05ScenarioRow {
+    scenario_id: String,
+    dataset: String,
+    corruption_model: String,
+    corruption_target: String,
+    magnitude: String,
+    seed: u64,
+    old_outcome: String,
+    redundant_outcome: String,
+    experimental_outcome: String,
+    file_identity_outcome: String,
+    format05_outcome: String,
+    old_verified_block_count: u64,
+    redundant_verified_block_count: u64,
+    experimental_verified_block_count: u64,
+    file_identity_verified_block_count: u64,
+    format05_verified_block_count: u64,
+    old_salvageable_file_count: u64,
+    redundant_salvageable_file_count: u64,
+    experimental_salvageable_file_count: u64,
+    file_identity_salvageable_file_count: u64,
+    format05_salvageable_file_count: u64,
+    old_exported_full_file_count: u64,
+    redundant_exported_full_file_count: u64,
+    experimental_exported_full_file_count: u64,
+    file_identity_exported_full_file_count: u64,
+    format05_exported_full_file_count: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct Format05ComparisonSummary {
+    schema_version: &'static str,
+    tool: &'static str,
+    tool_version: &'static str,
+    verification_label: &'static str,
+    scenario_count: usize,
+    old_outcome_counts: BTreeMap<String, u64>,
+    redundant_outcome_counts: BTreeMap<String, u64>,
+    experimental_outcome_counts: BTreeMap<String, u64>,
+    file_identity_outcome_counts: BTreeMap<String, u64>,
+    format05_outcome_counts: BTreeMap<String, u64>,
+    orphan_to_partial_improvements_vs_old: u64,
+    orphan_to_full_improvements_vs_old: u64,
+    no_evidence_to_partial_improvements_vs_old: u64,
+    no_evidence_to_full_improvements_vs_old: u64,
+    total_verified_block_delta_vs_old: i64,
+    total_salvageable_file_delta_vs_old: i64,
+    total_exported_full_file_delta_vs_old: i64,
+    by_dataset: Vec<Format05ComparisonGroup>,
+    by_corruption_target: Vec<Format05ComparisonGroup>,
+    per_scenario_rows: Vec<Format05ScenarioRow>,
+}
+
+#[derive(Debug, Serialize)]
+struct Format05ComparisonGroup {
+    key: String,
+    scenario_count: usize,
+    old_outcome_counts: BTreeMap<String, u64>,
+    redundant_outcome_counts: BTreeMap<String, u64>,
+    experimental_outcome_counts: BTreeMap<String, u64>,
+    file_identity_outcome_counts: BTreeMap<String, u64>,
+    format05_outcome_counts: BTreeMap<String, u64>,
+    verified_block_delta_vs_old: i64,
+    salvageable_file_delta_vs_old: i64,
+    exported_full_file_delta_vs_old: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -431,7 +503,10 @@ fn parse_cli_options() -> Result<CliOptions> {
             });
         }
 
-        if first == "run-file-identity-comparison" || first == "run-format04-comparison" {
+        if first == "run-file-identity-comparison"
+            || first == "run-format04-comparison"
+            || first == "run-format05-comparison"
+        {
             let mut output_dir = None;
             let mut verbose = false;
             while let Some(arg) = args.next() {
@@ -449,6 +524,10 @@ fn parse_cli_options() -> Result<CliOptions> {
             return Ok(CliOptions {
                 mode: if first == "run-format04-comparison" {
                     Mode::RunFormat04Comparison {
+                        comparison_dir: output_dir.context(USAGE)?,
+                    }
+                } else if first == "run-format05-comparison" {
+                    Mode::RunFormat05Comparison {
                         comparison_dir: output_dir.context(USAGE)?,
                     }
                 } else {
@@ -511,7 +590,8 @@ fn parse_cli_options() -> Result<CliOptions> {
                 "run-redundant-map-comparison"
                 | "run-experimental-resilience-comparison"
                 | "run-file-identity-comparison"
-                | "run-format04-comparison" => {
+                | "run-format04-comparison"
+                | "run-format05-comparison" => {
                     bail!("subcommand `{arg}` must be used as the first argument\n{USAGE}")
                 }
                 _ if arg.starts_with('-') => bail!("unsupported flag: {arg}"),
@@ -580,7 +660,8 @@ fn collect_archives(opts: &CliOptions) -> Result<Vec<ArchiveRun>> {
         | Mode::RunRedundantMapComparison { .. }
         | Mode::RunExperimentalResilienceComparison { .. }
         | Mode::RunFileIdentityComparison { .. }
-        | Mode::RunFormat04Comparison { .. } => {
+        | Mode::RunFormat04Comparison { .. }
+        | Mode::RunFormat05Comparison { .. } => {
             bail!("internal error: collect_archives outside run mode")
         }
     };
@@ -1460,6 +1541,30 @@ stderr:
     Ok(())
 }
 
+fn build_archive_with_pack_format05(pack_bin: &Path, input: &Path, output: &Path) -> Result<()> {
+    let out = Command::new(pack_bin)
+        .arg(input)
+        .arg("-o")
+        .arg(output)
+        .arg("--level")
+        .arg("3")
+        .arg("--experimental-self-identifying-blocks")
+        .output()
+        .with_context(|| format!("run {:?}", pack_bin))?;
+    if !out.status.success() {
+        bail!(
+            "crushr-pack failed
+stdout:
+{}
+stderr:
+{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+    Ok(())
+}
+
 fn remove_ledger_for_old_style(archive_path: &Path) -> Result<()> {
     let bytes = fs::read(archive_path)?;
     let footer_offset = bytes.len() - FTR4_LEN;
@@ -2058,6 +2163,57 @@ fn build_experimental_groups(
         .collect()
 }
 
+fn build_format05_groups(
+    rows: &[Format05ScenarioRow],
+    key_fn: impl Fn(&Format05ScenarioRow) -> &str,
+) -> Vec<Format05ComparisonGroup> {
+    let mut grouped: BTreeMap<String, Vec<&Format05ScenarioRow>> = BTreeMap::new();
+    for row in rows {
+        grouped
+            .entry(key_fn(row).to_string())
+            .or_default()
+            .push(row);
+    }
+
+    grouped
+        .into_iter()
+        .map(|(key, values)| Format05ComparisonGroup {
+            key,
+            scenario_count: values.len(),
+            old_outcome_counts: count_outcomes(values.iter().map(|r| r.old_outcome.as_str())),
+            redundant_outcome_counts: count_outcomes(
+                values.iter().map(|r| r.redundant_outcome.as_str()),
+            ),
+            experimental_outcome_counts: count_outcomes(
+                values.iter().map(|r| r.experimental_outcome.as_str()),
+            ),
+            file_identity_outcome_counts: count_outcomes(
+                values.iter().map(|r| r.file_identity_outcome.as_str()),
+            ),
+            format05_outcome_counts: count_outcomes(
+                values.iter().map(|r| r.format05_outcome.as_str()),
+            ),
+            verified_block_delta_vs_old: values
+                .iter()
+                .map(|r| r.format05_verified_block_count as i64 - r.old_verified_block_count as i64)
+                .sum(),
+            salvageable_file_delta_vs_old: values
+                .iter()
+                .map(|r| {
+                    r.format05_salvageable_file_count as i64 - r.old_salvageable_file_count as i64
+                })
+                .sum(),
+            exported_full_file_delta_vs_old: values
+                .iter()
+                .map(|r| {
+                    r.format05_exported_full_file_count as i64
+                        - r.old_exported_full_file_count as i64
+                })
+                .sum(),
+        })
+        .collect()
+}
+
 fn run_experimental_resilience_comparison(comparison_dir: &Path, verbose: bool) -> Result<()> {
     fs::create_dir_all(comparison_dir)?;
     let scenarios = comparison_scenarios();
@@ -2266,6 +2422,202 @@ fn run_experimental_resilience_comparison(comparison_dir: &Path, verbose: bool) 
     Ok(())
 }
 
+fn run_format05_comparison(comparison_dir: &Path, verbose: bool) -> Result<()> {
+    fs::create_dir_all(comparison_dir)?;
+    let temp = comparison_dir.join(".tmp_format05");
+    let datasets_root = temp.join("datasets");
+    let archives_root = temp.join("archives");
+    fs::create_dir_all(&datasets_root)?;
+    fs::create_dir_all(&archives_root)?;
+
+    let pack_bin = resolve_pack_bin()?;
+    let salvage_bin = resolve_salvage_bin()?;
+
+    let mut rows = Vec::new();
+    for scenario in comparison_scenarios() {
+        let dataset_input = datasets_root.join(scenario.dataset);
+        if !dataset_input.exists() {
+            write_dataset_fixture(&datasets_root, scenario.dataset)?;
+        }
+
+        let old_archive = archives_root.join(format!("{}_old.crushr", scenario.scenario_id));
+        let redundant_archive =
+            archives_root.join(format!("{}_redundant.crushr", scenario.scenario_id));
+        let experimental_archive =
+            archives_root.join(format!("{}_experimental.crushr", scenario.scenario_id));
+        let file_identity_archive =
+            archives_root.join(format!("{}_file_identity.crushr", scenario.scenario_id));
+        let format05_archive =
+            archives_root.join(format!("{}_format05.crushr", scenario.scenario_id));
+
+        build_archive_with_pack(&pack_bin, &dataset_input, &old_archive)?;
+        build_archive_with_pack(&pack_bin, &dataset_input, &redundant_archive)?;
+        build_archive_with_pack_experimental(&pack_bin, &dataset_input, &experimental_archive)?;
+        build_archive_with_pack_file_identity(&pack_bin, &dataset_input, &file_identity_archive)?;
+        build_archive_with_pack_format05(&pack_bin, &dataset_input, &format05_archive)?;
+
+        remove_ledger_for_old_style(&old_archive)?;
+        if scenario.break_redundant_map {
+            damage_redundant_map_ledger(&redundant_archive)?;
+        }
+
+        corrupt_archive(&old_archive, &scenario)?;
+        corrupt_archive(&redundant_archive, &scenario)?;
+        corrupt_archive(&experimental_archive, &scenario)?;
+        corrupt_archive(&file_identity_archive, &scenario)?;
+        corrupt_archive(&format05_archive, &scenario)?;
+
+        let old_plan = run_salvage_plan(
+            &salvage_bin,
+            &old_archive,
+            &archives_root.join(format!("{}_old_plan.json", scenario.scenario_id)),
+        )?;
+        let redundant_plan = run_salvage_plan(
+            &salvage_bin,
+            &redundant_archive,
+            &archives_root.join(format!("{}_redundant_plan.json", scenario.scenario_id)),
+        )?;
+        let experimental_plan = run_salvage_plan(
+            &salvage_bin,
+            &experimental_archive,
+            &archives_root.join(format!("{}_experimental_plan.json", scenario.scenario_id)),
+        )?;
+        let file_identity_plan = run_salvage_plan(
+            &salvage_bin,
+            &file_identity_archive,
+            &archives_root.join(format!("{}_file_identity_plan.json", scenario.scenario_id)),
+        )?;
+        let format05_plan = run_salvage_plan(
+            &salvage_bin,
+            &format05_archive,
+            &archives_root.join(format!("{}_format05_plan.json", scenario.scenario_id)),
+        )?;
+
+        let old_metrics = outcome_from_plan(&old_plan);
+        let redundant_metrics = outcome_from_plan(&redundant_plan);
+        let experimental_metrics = outcome_from_plan(&experimental_plan);
+        let file_identity_metrics = outcome_from_plan(&file_identity_plan);
+        let format05_metrics = outcome_from_plan(&format05_plan);
+        if verbose {
+            eprintln!(
+                "scenario {} => format05 {}",
+                scenario.scenario_id, format05_metrics.outcome
+            );
+        }
+
+        rows.push(Format05ScenarioRow {
+            scenario_id: scenario.scenario_id,
+            dataset: scenario.dataset.to_string(),
+            corruption_model: scenario.corruption_model.to_string(),
+            corruption_target: scenario.corruption_target.to_string(),
+            magnitude: scenario.magnitude.to_string(),
+            seed: scenario.seed,
+            old_outcome: old_metrics.outcome,
+            redundant_outcome: redundant_metrics.outcome,
+            experimental_outcome: experimental_metrics.outcome,
+            file_identity_outcome: file_identity_metrics.outcome,
+            format05_outcome: format05_metrics.outcome,
+            old_verified_block_count: old_metrics.verified_block_count,
+            redundant_verified_block_count: redundant_metrics.verified_block_count,
+            experimental_verified_block_count: experimental_metrics.verified_block_count,
+            file_identity_verified_block_count: file_identity_metrics.verified_block_count,
+            format05_verified_block_count: format05_metrics.verified_block_count,
+            old_salvageable_file_count: old_metrics.salvageable_file_count,
+            redundant_salvageable_file_count: redundant_metrics.salvageable_file_count,
+            experimental_salvageable_file_count: experimental_metrics.salvageable_file_count,
+            file_identity_salvageable_file_count: file_identity_metrics.salvageable_file_count,
+            format05_salvageable_file_count: format05_metrics.salvageable_file_count,
+            old_exported_full_file_count: old_metrics.exported_full_file_count,
+            redundant_exported_full_file_count: redundant_metrics.exported_full_file_count,
+            experimental_exported_full_file_count: experimental_metrics.exported_full_file_count,
+            file_identity_exported_full_file_count: file_identity_metrics.exported_full_file_count,
+            format05_exported_full_file_count: format05_metrics.exported_full_file_count,
+        });
+    }
+
+    rows.sort_by(|a, b| a.scenario_id.cmp(&b.scenario_id));
+    let summary = Format05ComparisonSummary {
+        schema_version: "crushr-lab-salvage-format05-comparison.v1",
+        tool: "crushr-lab-salvage",
+        tool_version: env!("CARGO_PKG_VERSION"),
+        verification_label: VERIFICATION_LABEL,
+        scenario_count: rows.len(),
+        old_outcome_counts: count_outcomes(rows.iter().map(|r| r.old_outcome.as_str())),
+        redundant_outcome_counts: count_outcomes(rows.iter().map(|r| r.redundant_outcome.as_str())),
+        experimental_outcome_counts: count_outcomes(
+            rows.iter().map(|r| r.experimental_outcome.as_str()),
+        ),
+        file_identity_outcome_counts: count_outcomes(
+            rows.iter().map(|r| r.file_identity_outcome.as_str()),
+        ),
+        format05_outcome_counts: count_outcomes(rows.iter().map(|r| r.format05_outcome.as_str())),
+        orphan_to_partial_improvements_vs_old: rows
+            .iter()
+            .filter(|r| {
+                r.old_outcome == "ORPHAN_EVIDENCE_ONLY"
+                    && r.format05_outcome == "PARTIAL_FILE_SALVAGE"
+            })
+            .count() as u64,
+        orphan_to_full_improvements_vs_old: rows
+            .iter()
+            .filter(|r| {
+                r.old_outcome == "ORPHAN_EVIDENCE_ONLY"
+                    && r.format05_outcome == "FULL_FILE_SALVAGE_AVAILABLE"
+            })
+            .count() as u64,
+        no_evidence_to_partial_improvements_vs_old: rows
+            .iter()
+            .filter(|r| {
+                r.old_outcome == "NO_VERIFIED_EVIDENCE"
+                    && r.format05_outcome == "PARTIAL_FILE_SALVAGE"
+            })
+            .count() as u64,
+        no_evidence_to_full_improvements_vs_old: rows
+            .iter()
+            .filter(|r| {
+                r.old_outcome == "NO_VERIFIED_EVIDENCE"
+                    && r.format05_outcome == "FULL_FILE_SALVAGE_AVAILABLE"
+            })
+            .count() as u64,
+        total_verified_block_delta_vs_old: rows
+            .iter()
+            .map(|r| r.format05_verified_block_count as i64 - r.old_verified_block_count as i64)
+            .sum(),
+        total_salvageable_file_delta_vs_old: rows
+            .iter()
+            .map(|r| r.format05_salvageable_file_count as i64 - r.old_salvageable_file_count as i64)
+            .sum(),
+        total_exported_full_file_delta_vs_old: rows
+            .iter()
+            .map(|r| {
+                r.format05_exported_full_file_count as i64 - r.old_exported_full_file_count as i64
+            })
+            .sum(),
+        by_dataset: build_format05_groups(&rows, |r| &r.dataset),
+        by_corruption_target: build_format05_groups(&rows, |r| &r.corruption_target),
+        per_scenario_rows: rows,
+    };
+
+    fs::write(
+        comparison_dir.join("format05_comparison_summary.json"),
+        serde_json::to_string_pretty(&summary)?,
+    )?;
+    let md = format!(
+        "# Format-05 comparison\n\nScenarios: {}\n\n- orphan->partial vs old: {}\n- orphan->full vs old: {}\n- no-evidence->partial vs old: {}\n- no-evidence->full vs old: {}\n- total verified block delta vs old: {}\n- total salvageable file delta vs old: {}\n- total exported full-file delta vs old: {}\n",
+        summary.scenario_count,
+        summary.orphan_to_partial_improvements_vs_old,
+        summary.orphan_to_full_improvements_vs_old,
+        summary.no_evidence_to_partial_improvements_vs_old,
+        summary.no_evidence_to_full_improvements_vs_old,
+        summary.total_verified_block_delta_vs_old,
+        summary.total_salvageable_file_delta_vs_old,
+        summary.total_exported_full_file_delta_vs_old,
+    );
+    fs::write(comparison_dir.join("format05_comparison_summary.md"), md)?;
+    let _ = fs::remove_dir_all(&temp);
+    Ok(())
+}
+
 fn run_timestamp() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
     let now = SystemTime::now()
@@ -2291,6 +2643,9 @@ fn run() -> Result<()> {
     }
     if let Mode::RunFormat04Comparison { comparison_dir } = &opts.mode {
         return run_experimental_resilience_comparison(comparison_dir, opts.verbose);
+    }
+    if let Mode::RunFormat05Comparison { comparison_dir } = &opts.mode {
+        return run_format05_comparison(comparison_dir, opts.verbose);
     }
 
     let (experiment_dir, experiment_id, export_fragments_enabled, runs) = match &opts.mode {
@@ -2402,7 +2757,8 @@ fn run() -> Result<()> {
         }
         Mode::RunExperimentalResilienceComparison { .. }
         | Mode::RunFileIdentityComparison { .. }
-        | Mode::RunFormat04Comparison { .. } => {
+        | Mode::RunFormat04Comparison { .. }
+        | Mode::RunFormat05Comparison { .. } => {
             bail!("internal error: comparison mode in summary pipeline")
         }
     };

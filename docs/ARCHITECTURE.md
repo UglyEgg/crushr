@@ -109,3 +109,12 @@ This document describes the current implemented boundary without speculative mat
 - `crushr-salvage` can deterministically recover via verified metadata scanning when footer/index are unavailable, with explicit `bootstrap_anchor_analysis` diagnostics.
 - Path recovery rule: named recovery when verified path-map linkage exists; otherwise deterministic anonymous verified naming (`anonymous_verified/file_<file_id>.bin`) with `FILE_IDENTITY_EXTENT_PATH_ANONYMOUS` provenance.
 - Strict boundary remains unchanged: verification-only, no speculative reconstruction, no guessed names/offsets/extents.
+
+
+## Experimental payload-block identity path (CRUSHR-FORMAT-05)
+
+- Writer surface: `crushr-pack --experimental-self-identifying-blocks` (opt-in only).
+- Payload block metadata (`crushr-payload-block-identity.v1`) includes archive identity token, file identity, block index/total, full file size, logical offset/length, codec, payload length, scan offset, and payload/raw hash bindings.
+- Repeated path checkpoints (`crushr-path-checkpoint.v1`) carry `file_id`, canonical path bytes, path digest, full file size, and total block count; checkpoints are emitted in separated regions (early/mid/late + final checkpoint).
+- Salvage fallback precedence: `PRIMARY_INDEX_PATH` → `REDUNDANT_VERIFIED_MAP_PATH` → `CHECKPOINT_MAP_PATH` → `FILE_IDENTITY_EXTENT_PATH` → `PAYLOAD_BLOCK_IDENTITY_PATH` → `SELF_DESCRIBING_EXTENT_PATH`.
+- Recovery remains strict: named recovery only with verified checkpoint linkage, deterministic anonymous verified recovery otherwise, and no guessed names/offsets/ordering.

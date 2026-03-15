@@ -472,3 +472,16 @@ Blast radius:
   - Improves strict salvageability in index/tail/header damage cases while preserving integrity-first behavior (verified content + verified extent identity only).
 - Blast radius:
   - Affects research-only salvage output naming and provenance (`FILE_IDENTITY_EXTENT_PATH_ANONYMOUS`); does not affect `crushr-extract` canonical behavior.
+
+
+## 2026-03-15 — CRUSHR-FORMAT-05 experimental wire contracts
+
+- Status: Accepted
+- Decision:
+  - Add explicit opt-in experimental writer flag `--experimental-self-identifying-blocks`.
+  - Encode per-payload identity in `crushr-payload-block-identity.v1` and emit repeated verified path checkpoints via `crushr-path-checkpoint.v1`.
+  - Extend salvage fallback precedence with payload-block identity path after file-identity extents.
+- Rationale:
+  - Improve metadata-independent file membership recovery under index/footer/tail loss while preserving strict verification-only semantics.
+- Blast radius:
+  - Experimental writer/salvage/comparison flows only; no default format migration and no `crushr-extract` semantic changes.

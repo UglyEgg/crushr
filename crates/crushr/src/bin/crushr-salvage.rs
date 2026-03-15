@@ -27,6 +27,8 @@ const CHECKPOINT_MAP_PATH: &str = "CHECKPOINT_MAP_PATH";
 const SELF_DESCRIBING_EXTENT_PATH: &str = "SELF_DESCRIBING_EXTENT_PATH";
 const FILE_IDENTITY_EXTENT_PATH: &str = "FILE_IDENTITY_EXTENT_PATH";
 const FILE_IDENTITY_EXTENT_PATH_ANONYMOUS: &str = "FILE_IDENTITY_EXTENT_PATH_ANONYMOUS";
+const PAYLOAD_BLOCK_IDENTITY_PATH: &str = "PAYLOAD_BLOCK_IDENTITY_PATH";
+const PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS: &str = "PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS";
 
 struct FileReader {
     file: File,
@@ -150,6 +152,23 @@ struct FileIdentityExtentRecord {
     raw_hash_blake3: String,
 }
 
+#[derive(Debug)]
+struct PayloadBlockIdentityRecord {
+    archive_identity: String,
+    file_id: u32,
+    block_index: u64,
+    total_block_count: u64,
+    full_file_size: u64,
+    logical_offset: u64,
+    logical_length: u64,
+    payload_codec: u32,
+    payload_length: u64,
+    block_id: u32,
+    block_scan_offset: Option<u64>,
+    payload_hash_blake3: String,
+    raw_hash_blake3: String,
+}
+
 #[derive(Debug, Serialize, Clone)]
 struct BlockCandidate {
     scan_offset: u64,
@@ -205,7 +224,7 @@ struct BlockVerification {
     verified_raw_len: Option<u64>,
 }
 
-#[derive(Debug)]
+type PayloadIdentityGroup = (String, u64, u64, Vec<(u64, Extent)>);
 struct BlockExportData {
     archive_offset: u64,
     block_id: u32,
@@ -782,6 +801,254 @@ fn parse_file_identity_path_map(values: &[Value]) -> BTreeMap<u32, String> {
         out.insert(file_id, path.to_string());
     }
     out
+}
+
+fn parse_payload_block_path_checkpoints(values: &[Value]) -> BTreeMap<u32, String> {
+    let mut out = BTreeMap::new();
+    for value in values {
+        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-path-checkpoint.v1") {
+            continue;
+        }
+        let Some(entries) = value.get("entries").and_then(|v| v.as_array()) else {
+            continue;
+        };
+        for entry in entries {
+            let Some(file_id_u64) = entry.get("file_id").and_then(|v| v.as_u64()) else {
+                continue;
+            };
+            let Ok(file_id) = u32::try_from(file_id_u64) else {
+                continue;
+            };
+            let Some(path) = entry.get("path").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let Some(path_digest) = entry.get("path_digest_blake3").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let Some(full_file_size) = entry.get("full_file_size").and_then(|v| v.as_u64()) else {
+                continue;
+            };
+            let Some(total_block_count) = entry.get("total_block_count").and_then(|v| v.as_u64())
+            else {
+                continue;
+            };
+            if total_block_count == 0 {
+                continue;
+            }
+            let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
+            if computed != path_digest {
+                continue;
+            }
+            if entry
+                .get("path")
+                .and_then(|_| entry.get("full_file_size"))
+                .is_some()
+                && full_file_size > 0
+            {
+                out.insert(file_id, path.to_string());
+            }
+        }
+    }
+    out
+}
+
+fn parse_payload_block_identity_records(values: &[Value]) -> Vec<PayloadBlockIdentityRecord> {
+    let mut out = Vec::new();
+    for value in values {
+        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-payload-block-identity.v1")
+        {
+            continue;
+        }
+        let Some(archive_identity) = value.get("archive_identity").and_then(|v| v.as_str()) else {
+            continue;
+        };
+        let Some(file_id_u64) = value.get("file_id").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Ok(file_id) = u32::try_from(file_id_u64) else {
+            continue;
+        };
+        let Some(block_index) = value.get("block_index").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Some(total_block_count) = value.get("total_block_count").and_then(|v| v.as_u64())
+        else {
+            continue;
+        };
+        let Some(full_file_size) = value.get("full_file_size").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Some(logical_offset) = value.get("logical_offset").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Some(logical_length) = value.get("logical_length").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Some(payload_codec_u64) = value.get("payload_codec").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Ok(payload_codec) = u32::try_from(payload_codec_u64) else {
+            continue;
+        };
+        let Some(payload_length) = value.get("payload_length").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Some(block_id_u64) = value.get("block_id").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Ok(block_id) = u32::try_from(block_id_u64) else {
+            continue;
+        };
+        let block_scan_offset = value.get("block_scan_offset").and_then(|v| v.as_u64());
+        let Some(payload_hash_blake3) = value
+            .get("content_identity")
+            .and_then(|v| v.get("payload_hash_blake3"))
+            .and_then(|v| v.as_str())
+        else {
+            continue;
+        };
+        let Some(raw_hash_blake3) = value
+            .get("content_identity")
+            .and_then(|v| v.get("raw_hash_blake3"))
+            .and_then(|v| v.as_str())
+        else {
+            continue;
+        };
+        out.push(PayloadBlockIdentityRecord {
+            archive_identity: archive_identity.to_string(),
+            file_id,
+            block_index,
+            total_block_count,
+            full_file_size,
+            logical_offset,
+            logical_length,
+            payload_codec,
+            payload_length,
+            block_id,
+            block_scan_offset,
+            payload_hash_blake3: payload_hash_blake3.to_string(),
+            raw_hash_blake3: raw_hash_blake3.to_string(),
+        });
+    }
+    out
+}
+
+fn verify_and_plan_payload_block_identity_records(
+    records: Vec<PayloadBlockIdentityRecord>,
+    values: &[Value],
+    block_verification: &BTreeMap<u32, BlockVerification>,
+    verified_candidate_offsets: &BTreeSet<u64>,
+) -> Result<Vec<FilePlan>> {
+    let path_map = parse_payload_block_path_checkpoints(values);
+    let mut grouped: BTreeMap<String, PayloadIdentityGroup> = BTreeMap::new();
+    for record in records {
+        if record.total_block_count == 0 {
+            bail!("payload block identity total_block_count must be > 0");
+        }
+        if record.payload_codec != 1 {
+            bail!("payload block identity codec mismatch");
+        }
+        if !matches!(block_verification.get(&record.block_id), Some(v) if v.content_verified) {
+            if let Some(scan_offset) = record.block_scan_offset {
+                if !verified_candidate_offsets.contains(&scan_offset) {
+                    bail!("payload block identity points to unverified content block");
+                }
+            } else {
+                bail!("payload block identity points to unverified content block");
+            }
+        }
+        if let Some(value) = values.iter().find(|value| {
+            value.get("schema").and_then(|v| v.as_str()) == Some("crushr-payload-block-identity.v1")
+                && value.get("block_id").and_then(|v| v.as_u64()) == Some(record.block_id as u64)
+        }) {
+            let payload = value
+                .get("content_identity")
+                .and_then(|v| v.get("payload_hash_blake3"))
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+            let raw = value
+                .get("content_identity")
+                .and_then(|v| v.get("raw_hash_blake3"))
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+            if payload != record.payload_hash_blake3 || raw != record.raw_hash_blake3 {
+                bail!("payload block identity content hash mismatch");
+            }
+        }
+        let path = path_map
+            .get(&record.file_id)
+            .cloned()
+            .unwrap_or_else(|| format!("anonymous_verified/file_{:08}.bin", record.file_id));
+        let entry = grouped.entry(path).or_insert_with(|| {
+            (
+                record.archive_identity.clone(),
+                record.full_file_size,
+                record.total_block_count,
+                Vec::new(),
+            )
+        });
+        if entry.0 != record.archive_identity {
+            bail!("payload block identity archive mismatch");
+        }
+        if entry.1 != record.full_file_size {
+            bail!("payload block identity file size mismatch");
+        }
+        if entry.2 != record.total_block_count {
+            bail!("payload block identity total block count mismatch");
+        }
+        if record
+            .logical_offset
+            .checked_add(record.logical_length)
+            .context("payload block logical bounds overflow")?
+            > record.full_file_size
+        {
+            bail!("payload block logical bounds exceed full file size");
+        }
+        if record.payload_length == 0 {
+            bail!("payload block payload length must be non-zero");
+        }
+        entry.3.push((
+            record.block_index,
+            Extent {
+                block_id: record.block_id,
+                offset: record.logical_offset,
+                len: record.logical_length,
+            },
+        ));
+    }
+
+    let files = grouped
+        .into_iter()
+        .map(|(path, (_archive_id, size, total_blocks, mut extents))| {
+            extents.sort_by_key(|(idx, _)| *idx);
+            if extents.len() as u64 != total_blocks {
+                bail!("payload block identity missing required block coverage");
+            }
+            for (expected, (idx, _)) in extents.iter().enumerate() {
+                if *idx != expected as u64 {
+                    bail!("payload block identity block index gap");
+                }
+            }
+            Ok(RedundantMapFile {
+                path,
+                size,
+                extents: extents.into_iter().map(|(_, e)| e).collect(),
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    let mut plans = verify_and_plan_redundant_map(files, block_verification)?;
+    let has_named_paths = plans
+        .iter()
+        .all(|p| !p.file_path.starts_with("anonymous_verified/"));
+    for plan in &mut plans {
+        plan.mapping_provenance = if has_named_paths {
+            PAYLOAD_BLOCK_IDENTITY_PATH
+        } else {
+            PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS
+        };
+    }
+    Ok(plans)
 }
 
 fn parse_file_identity_extent_records(values: &[Value]) -> Vec<FileIdentityExtentRecord> {
@@ -1501,6 +1768,21 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
                             }
 
                             if file_plans.is_empty() {
+                                if let Ok(payload_identity_plans) =
+                                    verify_and_plan_payload_block_identity_records(
+                                        parse_payload_block_identity_records(&experimental_values),
+                                        &experimental_values,
+                                        &block_verification,
+                                        &BTreeSet::new(),
+                                    )
+                                {
+                                    if !payload_identity_plans.is_empty() {
+                                        file_plans = payload_identity_plans;
+                                    }
+                                }
+                            }
+
+                            if file_plans.is_empty() {
                                 if let Ok(extent_plans) = verify_and_plan_experimental_records(
                                     parse_self_describing_extent_records(&experimental_values),
                                     &block_verification,
@@ -1604,6 +1886,19 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
         ) {
             if !file_identity_plans.is_empty() {
                 file_plans = file_identity_plans;
+            }
+        }
+
+        if file_plans.is_empty() {
+            if let Ok(payload_identity_plans) = verify_and_plan_payload_block_identity_records(
+                parse_payload_block_identity_records(&experimental_values),
+                &experimental_values,
+                &synthesized_block_verification,
+                &verified_candidate_offsets,
+            ) {
+                if !payload_identity_plans.is_empty() {
+                    file_plans = payload_identity_plans;
+                }
             }
         }
     }

@@ -10,7 +10,7 @@ use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
 
 const ZSTD_CODEC: u32 = 1;
-const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  -h, --help                                 print this help text";
+const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  -h, --help                                 print this help text";
 
 fn compress_deterministic(raw: &[u8], level: i32) -> Result<Vec<u8>> {
     let mut encoder = zstd::Encoder::new(Vec::new(), level).context("create zstd encoder")?;
@@ -55,6 +55,7 @@ fn run() -> Result<()> {
     let mut level: i32 = 3;
     let mut experimental_self_describing_extents = false;
     let mut experimental_file_identity_extents = false;
+    let mut experimental_self_identifying_blocks = false;
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -74,6 +75,8 @@ fn run() -> Result<()> {
             experimental_self_describing_extents = true;
         } else if arg == "--experimental-file-identity-extents" {
             experimental_file_identity_extents = true;
+        } else if arg == "--experimental-self-identifying-blocks" {
+            experimental_self_identifying_blocks = true;
         } else if arg.starts_with('-') {
             bail!("unsupported flag: {arg}");
         } else {
@@ -92,6 +95,7 @@ fn run() -> Result<()> {
         level,
         experimental_self_describing_extents,
         experimental_file_identity_extents,
+        experimental_self_identifying_blocks,
     )
 }
 
@@ -101,6 +105,7 @@ fn pack_minimal_v1(
     level: i32,
     experimental_self_describing_extents: bool,
     experimental_file_identity_extents: bool,
+    experimental_self_identifying_blocks: bool,
 ) -> Result<()> {
     let files = collect_files(inputs)?;
     if files.is_empty() {
@@ -114,7 +119,14 @@ fn pack_minimal_v1(
     let mut experimental_records = Vec::new();
     let mut file_identity_extent_records = Vec::new();
     let mut file_identity_path_records = Vec::new();
+    let mut payload_block_identity_records = Vec::new();
+    let mut path_checkpoint_entries = Vec::new();
     let file_identity_archive_id = if experimental_file_identity_extents {
+        Some(compute_file_identity_archive_id(&files))
+    } else {
+        None
+    };
+    let payload_identity_archive_id = if experimental_self_identifying_blocks {
         Some(compute_file_identity_archive_id(&files))
     } else {
         None
@@ -241,6 +253,52 @@ fn pack_minimal_v1(
             }
         }
 
+        if experimental_self_identifying_blocks {
+            let archive_identity = payload_identity_archive_id.clone();
+            let path = file.rel_path.clone();
+            let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
+            let payload_record = json!({
+                "schema": "crushr-payload-block-identity.v1",
+                "archive_identity": archive_identity,
+                "file_id": block_id,
+                "block_id": block_id,
+                "block_index": 0,
+                "total_block_count": 1,
+                "full_file_size": raw.len() as u64,
+                "logical_offset": 0,
+                "payload_codec": ZSTD_CODEC,
+                "payload_length": compressed.len() as u64,
+                "logical_length": raw.len() as u64,
+                "block_scan_offset": block_scan_offset,
+                "content_identity": {
+                    "payload_hash_blake3": to_hex(&payload_hash),
+                    "raw_hash_blake3": to_hex(&raw_hash),
+                },
+            });
+            payload_block_identity_records.push(payload_record.clone());
+            write_experimental_metadata_block(&mut out, &payload_record, level)?;
+
+            path_checkpoint_entries.push(json!({
+                "file_id": block_id,
+                "path": path,
+                "path_digest_blake3": to_hex(&path_digest),
+                "full_file_size": raw.len() as u64,
+                "total_block_count": 1,
+            }));
+
+            if should_emit_anchor(ordinal, total_files) {
+                write_experimental_metadata_block(
+                    &mut out,
+                    &json!({
+                        "schema": "crushr-path-checkpoint.v1",
+                        "checkpoint_ordinal": ordinal as u64,
+                        "entries": path_checkpoint_entries,
+                    }),
+                    level,
+                )?;
+            }
+        }
+
         entries.push(Entry {
             path: file.rel_path,
             kind: EntryKind::Regular,
@@ -294,14 +352,35 @@ fn pack_minimal_v1(
         )?;
     }
 
+    if experimental_self_identifying_blocks {
+        write_experimental_metadata_block(
+            &mut out,
+            &json!({
+                "schema": "crushr-path-checkpoint.v1",
+                "checkpoint_ordinal": u64::MAX,
+                "entries": path_checkpoint_entries,
+            }),
+            level,
+        )?;
+        write_experimental_metadata_block(
+            &mut out,
+            &json!({
+                "schema": "crushr-payload-block-identity-summary.v1",
+                "records_emitted": payload_block_identity_records.len() as u64,
+            }),
+            level,
+        )?;
+    }
+
     let blocks_end_offset = out.stream_position()?;
     let idx3 = encode_index(&Index {
         entries: entries.clone(),
     });
     let redundant_file_map = json!({
-        "schema": if experimental_self_describing_extents || experimental_file_identity_extents { "crushr-redundant-file-map.experimental.v2" } else { "crushr-redundant-file-map.v1" },
+        "schema": if experimental_self_describing_extents || experimental_file_identity_extents || experimental_self_identifying_blocks { "crushr-redundant-file-map.experimental.v2" } else { "crushr-redundant-file-map.v1" },
         "experimental_self_describing_extents": experimental_self_describing_extents,
         "experimental_file_identity_extents": experimental_file_identity_extents,
+        "experimental_self_identifying_blocks": experimental_self_identifying_blocks,
         "files": entries
             .iter()
             .map(|entry| {
