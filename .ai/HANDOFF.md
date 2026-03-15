@@ -4,6 +4,9 @@
 
 Next salvage packet (TBD): measure CRUSHR-FORMAT-01 redundancy impact across broader corruption sets without adding reconstruction.
 
+
+CRUSHR-SALVAGE-08 added `crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir>` with compact deterministic `comparison_summary.json`/`.md` outputs and per-scenario improvement classes.
+
 ## First actions for a fresh instance
 
 1. Read startup order from `AI_BOOTSTRAP.md`.

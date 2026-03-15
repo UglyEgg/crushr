@@ -60,6 +60,9 @@ Expected payload families:
 `analysis.json`/`analysis.md` provide deterministic grouped outcome/export/profile views and compact evidence rankings without inlining full run metadata or salvage-plan blobs.
 
 
+`crushr-lab-salvage run-redundant-map-comparison` emits dedicated compact research artifacts: `comparison_summary.json` and `comparison_summary.md`. These are deterministic comparative aggregates (old-style vs new-style redundant map paths) and are not canonical extraction snapshots.
+
+
 ## Salvage harness input identity (research harness behavior)
 
 `crushr-lab-salvage` discovers candidate archives by bounded on-disk identity checks rather than filename extension. A file is accepted when it either starts with `BLK3` magic or has a parseable `FTR4` footer whose referenced index region begins with `IDX3` magic. This allows valid `.crushr`, `.crs`, and extensionless archives while safely rejecting sidecars/unrelated files.

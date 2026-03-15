@@ -470,3 +470,9 @@
 - Added strict redundant-map fallback validation/consumption in `crushr-salvage` when primary IDX3 mapping is unusable.
 - Bumped salvage plan schema to v3 with deterministic fallback provenance fields.
 - Added targeted tests for fallback improvement, rejection behavior, backward compatibility, and determinism.
+
+## 2026-03-15 — CRUSHR-SALVAGE-08
+
+- Added `crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir>` for bounded deterministic old-vs-new redundant-map salvage comparisons.
+- Added compact comparison outputs (`comparison_summary.json`, `comparison_summary.md`) with required aggregate deltas, grouped breakdowns, and stable per-scenario improvement classes.
+- Added focused comparison integration tests for execution/output presence, deterministic ordering, strict-boundary control behavior, and aggregate-delta correctness.

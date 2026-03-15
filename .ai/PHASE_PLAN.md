@@ -70,3 +70,9 @@
   - `crushr-pack` emits compact LDG1 `crushr-redundant-file-map.v1` per-file extent metadata
   - `crushr-salvage` falls back to redundant mapping only when IDX3 is unusable and redundant map verifies fully
   - salvage plan schema bumped to v3 with `redundant_map_analysis` and deterministic `mapping_provenance`
+
+
+- [x] 3.9 CRUSHR-SALVAGE-08 (bounded redundant-map before/after comparison, research-only)
+  - `crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir>` creates deterministic old-style vs new-style comparison runs
+  - emits compact `comparison_summary.json` + `comparison_summary.md` with grouped deltas and improvement classes
+  - includes strict-boundary control scenarios where invalid redundant metadata does not count as an improvement
