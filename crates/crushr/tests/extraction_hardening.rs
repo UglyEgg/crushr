@@ -42,7 +42,7 @@ fn regular_entry(path: &str, len: u64) -> Entry {
     Entry {
         path: path.to_string(),
         kind: EntryKind::Regular,
-        mode: 0,
+        mode: 0o644,
         mtime: 0,
         size: len,
         extents: vec![Extent {
