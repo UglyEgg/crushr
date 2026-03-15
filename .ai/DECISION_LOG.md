@@ -564,3 +564,36 @@ Blast radius:
 - Blast radius
   - `crushr-pack` input collection/validation and its regression tests.
   - Documentation updates describing new duplicate-path hard failure behavior.
+
+
+## 2026-03-15 — CRUSHR-PLAN-LEGACY-01 extraction authority boundary enforcement
+
+- Decision: supported extraction semantics are authoritative only through `crushr-extract`; root `crushr extract` and `crates/crushr/src/api.rs::extract_all` are quarantined legacy surfaces with explicit unsupported errors.
+- Alternatives considered:
+  1. Keep legacy CLI/API extraction behavior while documenting `crushr-extract` as preferred.
+  2. Delegate root CLI/API extraction to strict implementation in this packet.
+  3. Quarantine legacy surfaces with explicit fail-closed errors (chosen for bounded packet scope).
+- Rationale: removes contract drift immediately and prevents users from silently receiving non-authoritative semantics on supported-looking surfaces.
+- Blast radius: root `crushr extract` and API `extract_all` calls now fail with explicit migration guidance; mvp/regression tests updated to use canonical `crushr-extract`.
+
+
+## 2026-03-15 — CRUSHR-PLAN-LEGACY-01-f1 test-boundary clarity follow-up
+
+- Decision: keep quarantine-behavior test naming explicit and preserve a positive canonical `crushr-extract` roundtrip integration test alongside quarantine tests.
+- Alternatives considered:
+  1. Keep only quarantine tests and rely on existing cross-crate canonical extraction tests.
+  2. Rename quarantine tests without adding a positive integration roundtrip in this crate.
+  3. Rename + add explicit `crushr-pack` -> `crushr-extract` roundtrip integration test in `crates/crushr/tests/mvp.rs` (chosen).
+- Rationale: hostile-review remediation is clearer and safer when the same integration suite proves both sides of the boundary (legacy surface quarantined, canonical surface works).
+- Blast radius: test-only changes; no runtime extraction semantics changed.
+
+
+## 2026-03-15 — CRUSHR-PLAN-LEGACY-01-f2 apply preferred delegation implementation
+
+- Decision: replace temporary quarantine behavior with preferred delegation so root CLI/API extraction surfaces execute the same strict implementation as `crushr-extract`.
+- Alternatives considered:
+  1. Keep quarantine-only boundary indefinitely.
+  2. Delegate only one compatibility surface (CLI or API).
+  3. Delegate both compatibility surfaces to shared strict implementation (chosen).
+- Rationale: preferred packet outcome requires supported extraction surfaces to converge on a single authoritative implementation rather than relying on unsupported stubs.
+- Blast radius: root/API extraction behavior changes from explicit unsupported errors back to supported strict extraction behavior; tests/docs updated accordingly.

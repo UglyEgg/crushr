@@ -61,3 +61,6 @@
 
 ## Security scrub track
 - [x] CRUSHR-SCRUB-01 extraction confinement hardening (shared validator + canonical/legacy/API alignment + hostile tests)
+- [x] CRUSHR-PLAN-LEGACY-01 extraction authority boundary enforcement (canonical strict surface lock + legacy API/CLI extraction quarantine + regression tests)
+- [x] CRUSHR-PLAN-LEGACY-01-f1 post-review test clarity hardening (rename quarantine MVP test + add positive canonical `crushr-extract` roundtrip integration coverage)
+- [x] CRUSHR-PLAN-LEGACY-01-f2 preferred extraction authority alignment (root/API delegation to strict authoritative implementation + regression integration updates)

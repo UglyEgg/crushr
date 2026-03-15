@@ -2,7 +2,7 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-SCRUB-02-f1 complete** (duplicate-collision source ordering is now deterministic, with expanded collision-mode regression coverage)
+Current Step: **CRUSHR-PLAN-LEGACY-01-f2 complete** (preferred delegation applied: root/API extraction now use authoritative strict implementation)
 
 Immediate Next Step: **CRUSHR-FORMAT-06** (verified file manifest checkpoints as the next recovery-graph layer)
 
@@ -68,3 +68,21 @@ Recovery should degrade in reverse order:
 ## CRUSHR-SCRUB-02-f1 closeout
 - Stabilized duplicate-collision source listing order by sorting input files with `(rel_path, abs_path)` and sorting conflicting source vectors before formatting errors.
 - Added regression coverage for walked-tree vs walked-tree collisions and three-way collisions with explicit ordered-source error assertions.
+
+
+## CRUSHR-PLAN-LEGACY-01 closeout
+- Root `crushr extract` is now an explicit quarantined legacy surface and fails with a clear unsupported error for both all-entry and path-filtered modes.
+- `crates/crushr/src/api.rs` extraction (`extract_all`) is now explicitly quarantined and returns a clear unsupported error instead of silently routing legacy semantics.
+- Regression tests now cover root CLI quarantine behavior and mvp extraction flow now uses canonical `crushr-extract`, preventing silent fallback to legacy semantics.
+
+
+## CRUSHR-PLAN-LEGACY-01-f1 closeout
+- Renamed the MVP extraction test to match its true quarantine purpose for root `crushr extract`.
+- Added a positive integration test that performs a real `crushr-pack` -> `crushr-extract` roundtrip and asserts extracted content.
+- This preserves explicit authority boundary evidence: legacy root extract is quarantined while canonical `crushr-extract` still functions end-to-end.
+
+
+## CRUSHR-PLAN-LEGACY-01-f2 closeout
+- Replaced quarantine behavior with preferred delegation behavior: root `crushr extract` now executes authoritative strict extraction for both all-entry and path-filtered modes.
+- API extraction (`extract_all`) now delegates to the same strict implementation instead of returning unsupported errors.
+- Added/updated integration tests proving root and canonical extraction surfaces both roundtrip correctly from canonical `crushr-pack` archives.

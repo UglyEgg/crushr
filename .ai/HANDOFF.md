@@ -47,3 +47,19 @@
 ## Update: CRUSHR-SCRUB-02-f1 complete
 - Duplicate-collision source listing is now explicitly sorted for deterministic error output.
 - Input ordering for identical logical paths is stabilized by sorting collected files by `(rel_path, abs_path)` before duplicate detection.
+
+
+## Update: CRUSHR-PLAN-LEGACY-01 complete
+- Supported extraction authority is now explicit: `crushr-extract` only.
+- Root `crushr extract` and `crates/crushr/src/api.rs::extract_all` are quarantined legacy surfaces that fail with explicit unsupported errors.
+- Regression tests guard quarantine behavior for both all-entry and path-filtered root CLI extraction invocation modes.
+
+
+## Update: CRUSHR-PLAN-LEGACY-01-f1 complete
+- `crates/crushr/tests/mvp.rs` now names the root extract test by its quarantine behavior instead of roundtrip semantics.
+- Added positive integration evidence that `crushr-pack` archives still roundtrip through authoritative `crushr-extract`.
+
+
+## Update: CRUSHR-PLAN-LEGACY-01-f2 complete
+- Preferred boundary implementation is now active: root `crushr extract` and API `extract_all` delegate to the same strict extraction implementation used by `crushr-extract`.
+- Extraction authority remains singular by implementation, not quarantine: supported surfaces now share strict semantics.

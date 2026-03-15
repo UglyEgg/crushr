@@ -55,31 +55,6 @@ fn regular_entry(path: &str, len: u64) -> Entry {
     }
 }
 
-fn symlink_entry(path: &str, target: &str) -> Entry {
-    Entry {
-        path: path.to_string(),
-        kind: EntryKind::Symlink,
-        mode: 0,
-        mtime: 0,
-        size: target.len() as u64,
-        extents: vec![],
-        link_target: Some(target.to_string()),
-        xattrs: vec![],
-    }
-}
-
-fn run_ok(cmd: &mut std::process::Command) {
-    let out = cmd.output().expect("run");
-    if !out.status.success() {
-        panic!(
-            "command failed: {:?}\nstdout:\n{}\nstderr:\n{}",
-            cmd,
-            String::from_utf8_lossy(&out.stdout),
-            String::from_utf8_lossy(&out.stderr)
-        );
-    }
-}
-
 #[test]
 fn canonical_extractor_rejects_parent_traversal() {
     let td = TempDir::new().unwrap();
@@ -115,74 +90,99 @@ fn canonical_extractor_rejects_absolute_path() {
 }
 
 #[test]
-fn legacy_extract_rejects_parent_traversal_and_stays_confined() {
+fn root_crushr_extract_delegates_to_strict_for_all_entries() {
     let td = TempDir::new().unwrap();
-    let archive = td.path().join("legacy-bad.crs");
-    build_archive(&archive, regular_entry("../nested/escape.txt", 5), b"hello");
+    let in_dir = td.path().join("in");
+    fs::create_dir_all(in_dir.join("safe/dir")).unwrap();
+    fs::write(in_dir.join("safe/dir/file.txt"), b"hello").unwrap();
 
-    let out_dir = td.path().join("out");
-    fs::create_dir_all(&out_dir).unwrap();
-
-    let out = std::process::Command::new(env!("CARGO_BIN_EXE_crushr"))
+    let archive = td.path().join("root-all.crushr");
+    let pack = std::process::Command::new(env!("CARGO_BIN_EXE_crushr-pack"))
         .args([
-            "extract",
-            archive.to_str().unwrap(),
-            "--all",
+            in_dir.to_str().unwrap(),
             "-o",
-            out_dir.to_str().unwrap(),
+            archive.to_str().unwrap(),
+            "--level",
+            "3",
         ])
         .output()
-        .expect("run crushr extract");
-
-    assert!(!out.status.success());
-    assert!(!td.path().join("nested/escape.txt").exists());
-}
-
-#[test]
-fn legacy_extract_rejects_symlink_entries_in_hardened_mode() {
-    let td = TempDir::new().unwrap();
-    let archive = td.path().join("legacy-symlink.crs");
-    build_archive(&archive, symlink_entry("link", "target"), b"");
-
-    let out_dir = td.path().join("out");
-    fs::create_dir_all(&out_dir).unwrap();
-
-    let out = std::process::Command::new(env!("CARGO_BIN_EXE_crushr"))
-        .args([
-            "extract",
-            archive.to_str().unwrap(),
-            "--all",
-            "-o",
-            out_dir.to_str().unwrap(),
-        ])
-        .output()
-        .expect("run crushr extract");
-
-    assert!(!out.status.success());
-    let stderr = String::from_utf8_lossy(&out.stderr);
-    assert!(stderr.contains("symlink extraction is disabled in hardened mode"));
-}
-
-#[test]
-fn legacy_extract_accepts_safe_relative_path() {
-    let td = TempDir::new().unwrap();
-    let archive = td.path().join("legacy-safe.crs");
-    build_archive(&archive, regular_entry("safe/dir/file.txt", 5), b"hello");
-
-    let out_dir = td.path().join("out");
-    fs::create_dir_all(&out_dir).unwrap();
-
-    run_ok(
-        std::process::Command::new(env!("CARGO_BIN_EXE_crushr")).args([
-            "extract",
-            archive.to_str().unwrap(),
-            "--all",
-            "-o",
-            out_dir.to_str().unwrap(),
-        ]),
+        .expect("run crushr-pack");
+    assert!(
+        pack.status.success(),
+        "{}",
+        String::from_utf8_lossy(&pack.stderr)
     );
 
-    let extracted = out_dir.join("safe/dir/file.txt");
-    assert!(extracted.starts_with(&out_dir));
-    assert_eq!(fs::read(extracted).unwrap(), b"hello");
+    let out_dir = td.path().join("out");
+    fs::create_dir_all(&out_dir).unwrap();
+
+    let out = std::process::Command::new(env!("CARGO_BIN_EXE_crushr"))
+        .args([
+            "extract",
+            archive.to_str().unwrap(),
+            "--all",
+            "-o",
+            out_dir.to_str().unwrap(),
+        ])
+        .output()
+        .expect("run crushr extract");
+
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(
+        fs::read(out_dir.join("safe/dir/file.txt")).unwrap(),
+        b"hello"
+    );
+}
+
+#[test]
+fn root_crushr_extract_delegates_to_strict_for_path_filtered_mode() {
+    let td = TempDir::new().unwrap();
+    let in_dir = td.path().join("in");
+    fs::create_dir_all(in_dir.join("safe/dir")).unwrap();
+    fs::write(in_dir.join("safe/dir/file.txt"), b"hello").unwrap();
+
+    let archive = td.path().join("root-filtered.crushr");
+    let pack = std::process::Command::new(env!("CARGO_BIN_EXE_crushr-pack"))
+        .args([
+            in_dir.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--level",
+            "3",
+        ])
+        .output()
+        .expect("run crushr-pack");
+    assert!(
+        pack.status.success(),
+        "{}",
+        String::from_utf8_lossy(&pack.stderr)
+    );
+
+    let out_dir = td.path().join("out");
+    fs::create_dir_all(&out_dir).unwrap();
+
+    let out = std::process::Command::new(env!("CARGO_BIN_EXE_crushr"))
+        .args([
+            "extract",
+            archive.to_str().unwrap(),
+            "safe/dir/file.txt",
+            "-o",
+            out_dir.to_str().unwrap(),
+        ])
+        .output()
+        .expect("run crushr extract");
+
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(
+        fs::read(out_dir.join("safe/dir/file.txt")).unwrap(),
+        b"hello"
+    );
 }

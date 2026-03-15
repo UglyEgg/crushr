@@ -40,7 +40,9 @@ This document describes the current implemented boundary without speculative mat
   - emits primary IDX3 mapping plus compact LDG1 redundant file-map metadata (`crushr-redundant-file-map.v1`) for mapping survivability
 - `crushr-info`: read/report archive state
 - `crushr-fsck`: verify/analyze corruption and emit bounded diagnostics
-- `crushr-extract`: strict safe extraction + refusal reporting
+- `crushr-extract`: strict safe extraction + refusal reporting (authoritative supported extraction surface)
+- `crushr` root CLI `extract` subcommand: supported compatibility surface delegated to authoritative strict extraction implementation.
+- `crushr` public API `extract_all` in `src/api.rs`: delegated compatibility surface using the same authoritative strict extraction implementation.
 - `crushr-lab`: experiment orchestration support
 - `crushr-lab-salvage`: salvage experiment orchestration (`experiment_manifest.json` + per-run metadata + compact `summary.json`/`summary.md` + compact grouped `analysis.json`/`analysis.md`), delegating salvage execution to deterministically resolved `crushr-salvage`; archive discovery is format-identity based (not extension-based) and supports summary/analysis regeneration via `--resummarize <experiment_dir>`
 
@@ -135,3 +137,5 @@ Enforced rules:
 Policy: unsafe paths hard-fail (no rewrite/strip/rename).
 
 Symlink policy in hardened mode: extraction rejects symlink entries (fail closed).
+
+CRUSHR-PLAN-LEGACY-01 boundary lock: all supported extraction surfaces (`crushr-extract`, root `crushr extract`, and API `extract_all`) delegate to the same authoritative strict extraction implementation.
