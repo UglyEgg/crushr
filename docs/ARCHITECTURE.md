@@ -36,6 +36,7 @@ This document describes the current implemented boundary without speculative mat
 
 - `crushr-pack`: create archives
   - `--help` now prints bounded usage including experimental writer modes
+  - duplicate final logical archive paths are rejected before archive emission (hard fail; no rename/overwrite semantics)
   - emits primary IDX3 mapping plus compact LDG1 redundant file-map metadata (`crushr-redundant-file-map.v1`) for mapping survivability
 - `crushr-info`: read/report archive state
 - `crushr-fsck`: verify/analyze corruption and emit bounded diagnostics
@@ -54,6 +55,7 @@ This document describes the current implemented boundary without speculative mat
   - permissions are normalized to `mode=0`
   - xattrs are not emitted (empty metadata list)
   - zstd compression uses fixed encoder settings (single-thread, checksum off, content size on, dict id off)
+  - logical path normalization is deterministic (`\` → `/`) and duplicate detection runs against normalized final paths
 
 ## Active phase
 

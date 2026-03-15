@@ -544,3 +544,23 @@ Blast radius:
 - Alternatives considered: keep legacy permissive behavior; strip/normalize malicious paths; allow symlinks with best-effort checks.
 - Rationale: integrity-first semantics require deterministic fail-closed behavior and consistent safety across canonical, legacy, and API paths.
 - Blast radius: malicious archives that previously extracted now error deterministically; safe relative-path extraction is unchanged.
+
+
+## 2026-03-15 — CRUSHR-SCRUB-02 duplicate logical paths are hard pack-time failures
+
+- Decision
+  - `crushr-pack` must reject duplicate final logical archive paths before archive emission.
+  - Duplicate handling is fail-closed only: no auto-renaming, no last-writer-wins behavior.
+
+- Alternatives considered
+  1. Allow duplicates and keep last-writer-wins.
+  2. Auto-rename colliding paths during pack.
+  3. Fail pack deterministically before output write (chosen).
+
+- Rationale
+  - Integrity-first archives cannot safely encode ambiguous logical path ownership.
+  - Deterministic early rejection prevents silent corruption of archive semantics and prevents partial output side effects.
+
+- Blast radius
+  - `crushr-pack` input collection/validation and its regression tests.
+  - Documentation updates describing new duplicate-path hard failure behavior.

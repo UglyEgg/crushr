@@ -2,6 +2,7 @@
 
 ## Current focus
 - CRUSHR-FORMAT-05, -f1, -f2, and -f3 are complete; FORMAT-05 comparison now has behavioral runner/packer contract checks and no `crushr-pack --help` dependency.
+- CRUSHR-SCRUB-02 and CRUSHR-SCRUB-02-f1 are complete: `crushr-pack` now rejects duplicate logical archive paths before archive emission with deterministic, stably ordered collision source errors.
 - The next active packet is **CRUSHR-FORMAT-06**: verified file manifest checkpoints as the next recovery-graph layer.
 
 ## Important behavior locks
@@ -35,3 +36,14 @@
 - Shared extraction path confinement is now enforced in canonical (`crushr-extract`), legacy extraction, and API-routed extraction.
 - Unsafe archive entry paths now hard-fail deterministically; no silent fixups are allowed.
 - Symlink extraction is currently rejected in hardened mode by policy.
+
+
+## Update: CRUSHR-SCRUB-02 complete
+- `crushr-pack` now normalizes logical paths once (`\` to `/`) and rejects duplicate final logical archive paths before creating/writing output archives.
+- Duplicate collision errors are explicit and deterministic (colliding logical path + conflicting source inputs).
+- Regression tests now cover distinct success, basename collisions, normalization-only collisions, walked-tree collisions, three-way collisions, deterministic source-order assertions, and no partial archive emission behavior.
+
+
+## Update: CRUSHR-SCRUB-02-f1 complete
+- Duplicate-collision source listing is now explicitly sorted for deterministic error output.
+- Input ordering for identical logical paths is stabilized by sorting collected files by `(rel_path, abs_path)` before duplicate detection.

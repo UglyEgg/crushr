@@ -98,3 +98,9 @@ These remain explicitly deferred until payload identity + file manifest truth ha
 - Extraction path confinement is now an explicit locked security boundary across canonical, legacy, and API extraction surfaces.
 - Shared archive-path validation rejects absolute paths, parent traversal, empty/degenerate paths, and Windows-style path prefixes; unsafe paths now hard-fail deterministically.
 - Hardened mode rejects symlink extraction to avoid reintroducing escape semantics.
+
+
+## 2026-03-15 pack hardening update (CRUSHR-SCRUB-02)
+- `crushr-pack` now rejects duplicate final logical archive paths before archive emission (hard fail, deterministic error, no auto-rename).
+- Duplicate detection runs after logical path normalization (`\` → `/`) and reports colliding logical path plus conflicting source inputs.
+- On duplicate collision, no archive output file is created.

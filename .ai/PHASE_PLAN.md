@@ -43,7 +43,9 @@
 - [x] 3.15-f1 CRUSHR-FORMAT-05-f1 (format05 comparison runner/packer flag-contract + packer-bin resolution hardening + regression coverage)
 - [x] 3.15-f2 CRUSHR-FORMAT-05-f2 (remove `crushr-pack --help` probe dependency from format05 comparison; enforce direct writer-flag contract + regression coverage)
 - [x] 3.15-f3 CRUSHR-FORMAT-05-f3 (convert format05 contract regressions to behavioral runner/packer shim checks; self-check contract mismatch guard)
-- [ ] 3.16 CRUSHR-FORMAT-06 (verified file manifest checkpoints as the next recovery-graph layer)
+- [x] 3.16 CRUSHR-SCRUB-02 (reject duplicate logical archive paths at pack time before archive emission)
+- [x] 3.16-f1 CRUSHR-SCRUB-02-f1 (stabilize duplicate-collision source ordering + expand collision-mode test coverage)
+- [ ] 3.17 CRUSHR-FORMAT-06 (verified file manifest checkpoints as the next recovery-graph layer)
   - build the file-truth layer on top of payload block identity
   - validate full named / full anonymous / partial ordered recovery rules
   - target header/index/tail cases that FORMAT-05 still leaves as orphan evidence

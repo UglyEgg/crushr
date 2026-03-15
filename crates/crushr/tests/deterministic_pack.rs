@@ -17,6 +17,24 @@ fn run(cmd: &mut Command) {
     }
 }
 
+fn canonical(path: &Path) -> String {
+    fs::canonicalize(path)
+        .unwrap()
+        .to_string_lossy()
+        .to_string()
+}
+
+fn assert_ordered_duplicate_sources(stderr: &str, logical_path: &str, sources: &[String]) {
+    let expected = format!(
+        "duplicate logical archive path '{logical_path}' from inputs: {}",
+        sources.join(", ")
+    );
+    assert!(
+        stderr.contains(&expected),
+        "stderr did not contain expected ordered message: {stderr}"
+    );
+}
+
 fn read_index_entries(archive: &Path) -> Vec<crushr::format::Entry> {
     let bytes = fs::read(archive).expect("read archive bytes");
     assert!(bytes.len() >= FTR4_LEN, "archive too small for FTR4");
@@ -143,4 +161,181 @@ fn crushr_pack_accepts_experimental_writer_flags_and_emits_archives() {
         "--experimental-self-identifying-blocks",
     ]));
     assert!(format05.exists());
+}
+
+#[test]
+fn crushr_pack_distinct_standalone_paths_succeed() {
+    let td = TempDir::new().unwrap();
+    let left = td.path().join("left.txt");
+    let right = td.path().join("right.txt");
+    fs::write(&left, b"left").unwrap();
+    fs::write(&right, b"right").unwrap();
+
+    let archive = td.path().join("distinct.crs");
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    run(Command::new(bin).args([
+        left.to_str().unwrap(),
+        right.to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+        "--level",
+        "3",
+    ]));
+
+    assert!(archive.exists());
+}
+
+#[test]
+fn crushr_pack_rejects_duplicate_basename_collisions_before_archive_create() {
+    let td = TempDir::new().unwrap();
+    let left_dir = td.path().join("left");
+    let right_dir = td.path().join("right");
+    fs::create_dir_all(&left_dir).unwrap();
+    fs::create_dir_all(&right_dir).unwrap();
+    let left = left_dir.join("same.txt");
+    let right = right_dir.join("same.txt");
+    fs::write(&left, b"left").unwrap();
+    fs::write(&right, b"right").unwrap();
+
+    let archive = td.path().join("collision.crs");
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let out = Command::new(bin)
+        .args([
+            left.to_str().unwrap(),
+            right.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--level",
+            "3",
+        ])
+        .output()
+        .expect("run command");
+
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    let mut expected_sources = vec![canonical(&left), canonical(&right)];
+    expected_sources.sort();
+    assert_ordered_duplicate_sources(&stderr, "same.txt", &expected_sources);
+    assert!(
+        !archive.exists(),
+        "archive should not be created on duplicate"
+    );
+}
+
+#[test]
+fn crushr_pack_rejects_normalized_path_collisions() {
+    let td = TempDir::new().unwrap();
+    let standalone = td.path().join(r"dir\item.txt");
+    fs::write(&standalone, b"standalone").unwrap();
+
+    let tree_root = td.path().join("tree");
+    fs::create_dir_all(tree_root.join("dir")).unwrap();
+    fs::write(tree_root.join("dir/item.txt"), b"tree").unwrap();
+
+    let archive = td.path().join("normalized-collision.crs");
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let out = Command::new(bin)
+        .args([
+            standalone.to_str().unwrap(),
+            tree_root.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--level",
+            "3",
+        ])
+        .output()
+        .expect("run command");
+
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    let mut expected_sources = vec![
+        canonical(&standalone),
+        canonical(&tree_root.join("dir/item.txt")),
+    ];
+    expected_sources.sort();
+    assert_ordered_duplicate_sources(&stderr, "dir/item.txt", &expected_sources);
+    assert!(
+        !archive.exists(),
+        "archive should not be created on duplicate"
+    );
+}
+
+#[test]
+fn crushr_pack_rejects_walked_tree_to_walked_tree_collisions_with_ordered_sources() {
+    let td = TempDir::new().unwrap();
+    let first = td.path().join("first");
+    let second = td.path().join("second");
+    fs::create_dir_all(first.join("dir")).unwrap();
+    fs::create_dir_all(second.join("dir")).unwrap();
+    let first_file = first.join("dir/item.txt");
+    let second_file = second.join("dir/item.txt");
+    fs::write(&first_file, b"one").unwrap();
+    fs::write(&second_file, b"two").unwrap();
+
+    let archive = td.path().join("tree-tree-collision.crs");
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let out = Command::new(bin)
+        .args([
+            first.to_str().unwrap(),
+            second.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--level",
+            "3",
+        ])
+        .output()
+        .expect("run command");
+
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    let mut expected_sources = vec![canonical(&first_file), canonical(&second_file)];
+    expected_sources.sort();
+    assert_ordered_duplicate_sources(&stderr, "dir/item.txt", &expected_sources);
+    assert!(
+        !archive.exists(),
+        "archive should not be created on duplicate"
+    );
+}
+
+#[test]
+fn crushr_pack_rejects_three_way_collisions_with_stable_source_ordering() {
+    let td = TempDir::new().unwrap();
+    let a = td.path().join("a");
+    let b = td.path().join("b");
+    let c = td.path().join("c");
+    fs::create_dir_all(&a).unwrap();
+    fs::create_dir_all(&b).unwrap();
+    fs::create_dir_all(&c).unwrap();
+
+    let a_file = a.join("same.txt");
+    let b_file = b.join("same.txt");
+    let c_file = c.join("same.txt");
+    fs::write(&a_file, b"a").unwrap();
+    fs::write(&b_file, b"b").unwrap();
+    fs::write(&c_file, b"c").unwrap();
+
+    let archive = td.path().join("three-way-collision.crs");
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let out = Command::new(bin)
+        .args([
+            a_file.to_str().unwrap(),
+            b_file.to_str().unwrap(),
+            c_file.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--level",
+            "3",
+        ])
+        .output()
+        .expect("run command");
+
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    let mut expected_sources = vec![canonical(&a_file), canonical(&b_file), canonical(&c_file)];
+    expected_sources.sort();
+    assert_ordered_duplicate_sources(&stderr, "same.txt", &expected_sources);
+    assert!(
+        !archive.exists(),
+        "archive should not be created on duplicate"
+    );
 }
