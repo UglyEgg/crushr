@@ -2,7 +2,9 @@ use anyhow::{bail, Context, Result};
 use crushr::format::{Entry, EntryKind, Extent, Index};
 use crushr::index_codec::encode_index;
 use crushr_format::blk3::{write_blk3_header, Blk3Flags, Blk3Header};
+use crushr_format::ledger::LedgerBlob;
 use crushr_format::tailframe::assemble_tail_frame;
+use serde_json::json;
 use std::fs::File;
 use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
@@ -135,8 +137,34 @@ fn pack_minimal_v1(inputs: &[PathBuf], output: &Path, level: i32) -> Result<()> 
     }
 
     let blocks_end_offset = out.stream_position()?;
-    let idx3 = encode_index(&Index { entries });
-    let tail = assemble_tail_frame(blocks_end_offset, None, &idx3, None)?;
+    let idx3 = encode_index(&Index {
+        entries: entries.clone(),
+    });
+    let redundant_file_map = json!({
+        "schema": "crushr-redundant-file-map.v1",
+        "files": entries
+            .iter()
+            .map(|entry| {
+                json!({
+                    "path": entry.path,
+                    "size": entry.size,
+                    "extents": entry
+                        .extents
+                        .iter()
+                        .map(|extent| {
+                            json!({
+                                "block_id": extent.block_id,
+                                "file_offset": extent.offset,
+                                "len": extent.len,
+                            })
+                        })
+                        .collect::<Vec<_>>(),
+                })
+            })
+            .collect::<Vec<_>>(),
+    });
+    let ledger = LedgerBlob::from_value(&redundant_file_map)?;
+    let tail = assemble_tail_frame(blocks_end_offset, None, &idx3, Some(&ledger))?;
     out.write_all(&tail)?;
 
     Ok(())

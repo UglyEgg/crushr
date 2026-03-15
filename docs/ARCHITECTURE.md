@@ -35,6 +35,7 @@ This document describes the current implemented boundary without speculative mat
 ## Tool boundaries
 
 - `crushr-pack`: create archives
+  - emits primary IDX3 mapping plus compact LDG1 redundant file-map metadata (`crushr-redundant-file-map.v1`) for mapping survivability
 - `crushr-info`: read/report archive state
 - `crushr-fsck`: verify/analyze corruption and emit bounded diagnostics
 - `crushr-extract`: strict safe extraction + refusal reporting
@@ -62,3 +63,12 @@ This document describes the current implemented boundary without speculative mat
 - salvage verification/export in `crushr-salvage` is deterministic research evidence only and does not authorize canonical extraction
 - salvage experiment orchestration remains research-only and must not mutate archives or frozen Phase 2 corpus artifacts
 - optional `crushr-salvage --export-fragments <dir>` emits verified block/extents artifacts labeled `UNVERIFIED_RESEARCH_OUTPUT`
+
+
+## Redundant map fallback path (CRUSHR-FORMAT-01)
+
+- Primary mapping authority remains IDX3.
+- New archives include compact redundant per-file extent mapping in LDG1 JSON (`crushr-redundant-file-map.v1`).
+- `crushr-salvage` may use this metadata only when IDX3 mapping is unavailable/invalid and redundant metadata fully verifies.
+- Verification is strict and all-or-nothing: schema validity, unique paths, contiguous/non-overlapping extents, exact file-size coverage, mapped block references, and per-extent bounds against verified block raw lengths.
+- If redundant metadata is missing/corrupt/inconsistent, salvage does not guess mappings and remains in orphan-evidence outcomes where appropriate.

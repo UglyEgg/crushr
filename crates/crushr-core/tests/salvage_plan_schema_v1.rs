@@ -105,7 +105,7 @@ fn find_candidate(plan: &Value, offset: u64) -> &Value {
 #[test]
 fn salvage_plan_json_validates_and_is_deterministic_for_clean_archive() {
     ensure_bins_built();
-    let schema = load_schema("schemas/crushr-salvage-plan.v2.schema.json");
+    let schema = load_schema("schemas/crushr-salvage-plan.v3.schema.json");
 
     let root = unique_dir("crushr-salvage-clean");
     fs::create_dir_all(&root).unwrap();

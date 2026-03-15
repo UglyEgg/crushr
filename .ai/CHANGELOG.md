@@ -462,3 +462,11 @@
 - Added stable per-run outcome categories and aggregate counters for verified blocks, salvageability, and exported artifact classes.
 - Added `--resummarize <experiment_dir>` for summary-only regeneration from existing experiment outputs without rerunning salvage.
 - Added focused harness tests for summary generation, aggregate correctness, deterministic ordering, classification coverage, export-aware totals, and resummarize behavior.
+
+
+## 2026-03-15 — CRUSHR-FORMAT-01
+
+- Added LDG1 redundant file-map metadata emission in `crushr-pack` for new archives.
+- Added strict redundant-map fallback validation/consumption in `crushr-salvage` when primary IDX3 mapping is unusable.
+- Bumped salvage plan schema to v3 with deterministic fallback provenance fields.
+- Added targeted tests for fallback improvement, rejection behavior, backward compatibility, and determinism.

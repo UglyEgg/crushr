@@ -396,3 +396,21 @@ Blast radius:
   - Packet requires evidence artifact generation while preserving integrity-first canonical extraction boundary.
 - Blast radius:
   - `crushr-salvage` CLI and salvage-plan v2 schema/tests/docs only; no strict extraction contract changes.
+
+
+## 2026-03-15 — CRUSHR-FORMAT-01: add bounded redundant file-map metadata path (LDG1)
+
+- Decision:
+  - Emit compact redundant file-map metadata (`crushr-redundant-file-map.v1`) in LDG1 for new archives produced by `crushr-pack`.
+  - Keep IDX3 as primary authoritative mapping path; use redundant map only as strict fallback in `crushr-salvage` when IDX3 is unusable.
+  - Require all-or-nothing redundant-map verification (schema, structural consistency, block references, offsets/lengths, full file coverage) before any fallback use.
+  - Bump salvage output schema to `crushr-salvage-plan.v3` to record `redundant_map_analysis` and per-file `mapping_provenance`.
+- Alternatives:
+  1. Add a second full duplicate index table.
+  2. Keep plan v2 and add optional unversioned fields.
+- Rationale:
+  - Experiments showed orphan evidence was dominated by mapping loss, not block loss; compact per-file extent redundancy improves survivability with bounded tail-frame blast radius.
+  - Schema v3 avoids ambiguous partial compatibility for new provenance/reporting fields.
+- Blast radius:
+  - Affects `crushr-pack` tail-frame ledger content, `crushr-salvage` fallback behavior/reporting, and salvage schema/tests/docs.
+  - Does not change `crushr-extract` strict semantics or mutate old archives.
