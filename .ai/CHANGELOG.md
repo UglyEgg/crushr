@@ -504,3 +504,11 @@
 - Added focused regression tests ensuring help discoverability and acceptance/emission behavior for both experimental writer flags.
 - Revalidated lab comparison workflow commands end-to-end against the packer CLI surface to prevent unsupported-flag regressions.
 
+
+
+## 2026-03-15 — CRUSHR-FORMAT-04
+
+- Added distributed bootstrap anchors and per-entry path metadata for experimental file-identity archives.
+- Added deterministic footer/index-loss fallback metadata scan path plus bootstrap diagnostics in salvage-plan v3.
+- Added deterministic anonymous verified naming fallback and provenance for path-map-loss scenarios.
+- Added format04 comparison command/output aliases and updated tests/schema/docs accordingly.

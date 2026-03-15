@@ -96,3 +96,9 @@
   - `crushr-pack --help` now succeeds with bounded usage including experimental writer flags
   - lab comparison workflow writer invocations are aligned with packer-supported experimental flag surface
   - added regression coverage for packer help/experimental flag acceptance and archive emission
+
+- [x] 3.x CRUSHR-FORMAT-04 (experimental bootstrap-anchor + file-identity survivability hardening)
+  - distributed bootstrap anchors for file-identity experimental archives
+  - deterministic metadata-scan fallback when footer/index are unavailable
+  - strict anonymous verified naming fallback when path maps are missing
+  - bounded format04 comparison outputs (`format04_comparison_summary.json` / `.md`)

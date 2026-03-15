@@ -13,6 +13,7 @@
     "footer_analysis",
     "index_analysis",
     "redundant_map_analysis",
+    "bootstrap_anchor_analysis",
     "dictionary_analysis",
     "block_candidates",
     "file_plans",
@@ -338,7 +339,8 @@
               "REDUNDANT_VERIFIED_MAP_PATH",
               "CHECKPOINT_MAP_PATH",
               "SELF_DESCRIBING_EXTENT_PATH",
-              "FILE_IDENTITY_EXTENT_PATH"
+              "FILE_IDENTITY_EXTENT_PATH",
+              "FILE_IDENTITY_EXTENT_PATH_ANONYMOUS"
             ]
           }
         }
@@ -454,6 +456,32 @@
             "integer",
             "null"
           ],
+          "minimum": 0
+        }
+      }
+    },
+    "bootstrap_anchor_analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reason",
+        "verified_anchor_count"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "available",
+            "missing",
+            "unavailable"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verified_anchor_count": {
+          "type": "integer",
           "minimum": 0
         }
       }

@@ -460,3 +460,15 @@ Blast radius:
 - Blast radius:
   - `crushr-pack`, `crushr-salvage`, `crushr-lab-salvage`, salvage plan schema enum, targeted tests/docs/continuity files.
   - No `crushr-extract` semantic changes.
+
+
+## 2026-03-15 — Path/name recovery rule B for FORMAT-04
+
+- Decision:
+  - Use rule **B** for experimental file-identity fallback: allow deterministic anonymous verified recovery when path map linkage is missing, without inventing original filenames.
+- Alternatives:
+  1. Rule A: refuse recovery when path map is missing.
+- Rationale:
+  - Improves strict salvageability in index/tail/header damage cases while preserving integrity-first behavior (verified content + verified extent identity only).
+- Blast radius:
+  - Affects research-only salvage output naming and provenance (`FILE_IDENTITY_EXTENT_PATH_ANONYMOUS`); does not affect `crushr-extract` canonical behavior.

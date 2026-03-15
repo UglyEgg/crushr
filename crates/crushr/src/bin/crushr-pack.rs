@@ -10,7 +10,7 @@ use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
 
 const ZSTD_CODEC: u32 = 1;
-const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata\n  -h, --help                                 print this help text";
+const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  -h, --help                                 print this help text";
 
 fn compress_deterministic(raw: &[u8], level: i32) -> Result<Vec<u8>> {
     let mut encoder = zstd::Encoder::new(Vec::new(), level).context("create zstd encoder")?;
@@ -114,12 +114,20 @@ fn pack_minimal_v1(
     let mut experimental_records = Vec::new();
     let mut file_identity_extent_records = Vec::new();
     let mut file_identity_path_records = Vec::new();
+    let file_identity_archive_id = if experimental_file_identity_extents {
+        Some(compute_file_identity_archive_id(&files))
+    } else {
+        None
+    };
+    let total_files = files.len();
     let checkpoint_stride = 2usize;
     for (ordinal, file) in files.into_iter().enumerate() {
         let raw = std::fs::read(&file.abs_path)
             .with_context(|| format!("read {}", file.abs_path.display()))?;
         let compressed = compress_deterministic(&raw, level)
             .with_context(|| format!("compress {}", file.abs_path.display()))?;
+
+        let block_scan_offset = out.stream_position()?;
 
         let payload_hash = *blake3::hash(&compressed).as_bytes();
         let raw_hash = *blake3::hash(&raw).as_bytes();
@@ -177,7 +185,8 @@ fn pack_minimal_v1(
         }
 
         if experimental_file_identity_extents {
-            let path_digest = *blake3::hash(file.rel_path.as_bytes()).as_bytes();
+            let path = file.rel_path.clone();
+            let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
             file_identity_extent_records.push(json!({
                 "schema": "crushr-file-identity-extent.v1",
                 "file_id": block_id,
@@ -186,6 +195,7 @@ fn pack_minimal_v1(
                 "full_file_size": raw.len() as u64,
                 "extent_ordinal": 0,
                 "block_id": block_id,
+                "block_scan_offset": block_scan_offset,
                 "content_identity": {
                     "payload_hash_blake3": to_hex(&payload_hash),
                     "raw_hash_blake3": to_hex(&raw_hash),
@@ -196,9 +206,39 @@ fn pack_minimal_v1(
             }));
             file_identity_path_records.push(json!({
                 "file_id": block_id,
-                "path": file.rel_path,
+                "path": path.clone(),
                 "path_digest_blake3": to_hex(&path_digest),
             }));
+
+            write_experimental_metadata_block(
+                &mut out,
+                file_identity_extent_records
+                    .last()
+                    .context("missing file identity record")?,
+                level,
+            )?;
+            write_experimental_metadata_block(
+                &mut out,
+                &json!({
+                    "schema": "crushr-file-path-map-entry.v1",
+                    "file_id": block_id,
+                    "path": path,
+                    "path_digest_blake3": to_hex(&path_digest),
+                }),
+                level,
+            )?;
+            if should_emit_anchor(ordinal, total_files) {
+                write_experimental_metadata_block(
+                    &mut out,
+                    &json!({
+                        "schema": "crushr-bootstrap-anchor.v1",
+                        "anchor_ordinal": ordinal as u64,
+                        "archive_identity": file_identity_archive_id,
+                        "records_emitted": file_identity_extent_records.len() as u64,
+                    }),
+                    level,
+                )?;
+            }
         }
 
         entries.push(Entry {
@@ -234,9 +274,16 @@ fn pack_minimal_v1(
     }
 
     if experimental_file_identity_extents {
-        for record in &file_identity_extent_records {
-            write_experimental_metadata_block(&mut out, record, level)?;
-        }
+        write_experimental_metadata_block(
+            &mut out,
+            &json!({
+                "schema": "crushr-bootstrap-anchor.v1",
+                "anchor_ordinal": u64::MAX,
+                "archive_identity": file_identity_archive_id,
+                "records_emitted": file_identity_extent_records.len() as u64,
+            }),
+            level,
+        )?;
         write_experimental_metadata_block(
             &mut out,
             &json!({
@@ -285,6 +332,22 @@ fn pack_minimal_v1(
 
 fn to_hex(bytes: &[u8; 32]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+fn compute_file_identity_archive_id(files: &[InputFile]) -> String {
+    let mut hasher = blake3::Hasher::new();
+    for file in files {
+        hasher.update(file.rel_path.as_bytes());
+        hasher.update(&[0u8]);
+    }
+    hasher.finalize().to_hex().to_string()
+}
+
+fn should_emit_anchor(ordinal: usize, total: usize) -> bool {
+    if total <= 3 {
+        return true;
+    }
+    ordinal == 0 || ordinal + 1 == total || ordinal + 1 == total / 2
 }
 
 fn write_experimental_metadata_block(
