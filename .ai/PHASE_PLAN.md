@@ -91,3 +91,8 @@
   - `crushr-lab-salvage --help` now succeeds and lists bounded supported surfaces
   - parser treats known comparison subcommands as dispatch targets, not positional input paths
   - added regression coverage for help, command dispatch, and misparse prevention
+
+- [x] 3.13 CRUSHR-FORMAT-03-f2 (packer experimental writer/help contract repair)
+  - `crushr-pack --help` now succeeds with bounded usage including experimental writer flags
+  - lab comparison workflow writer invocations are aligned with packer-supported experimental flag surface
+  - added regression coverage for packer help/experimental flag acceptance and archive emission

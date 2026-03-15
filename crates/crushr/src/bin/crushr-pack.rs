@@ -10,6 +10,7 @@ use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
 
 const ZSTD_CODEC: u32 = 1;
+const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata\n  -h, --help                                 print this help text";
 
 fn compress_deterministic(raw: &[u8], level: i32) -> Result<Vec<u8>> {
     let mut encoder = zstd::Encoder::new(Vec::new(), level).context("create zstd encoder")?;
@@ -57,15 +58,15 @@ fn run() -> Result<()> {
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
+        if arg == "--help" || arg == "-h" || arg == "help" {
+            println!("{USAGE}");
+            return Ok(());
+        }
         if arg == "-o" || arg == "--output" {
-            let value = args
-                .next()
-                .context("usage: crushr-pack <input>... -o <archive> [--level <n>]")?;
+            let value = args.next().context(USAGE)?;
             output = Some(PathBuf::from(value));
         } else if arg == "--level" {
-            let value = args
-                .next()
-                .context("usage: crushr-pack <input>... -o <archive> [--level <n>]")?;
+            let value = args.next().context(USAGE)?;
             level = value
                 .parse::<i32>()
                 .with_context(|| format!("invalid --level value: {value}"))?;
@@ -80,9 +81,9 @@ fn run() -> Result<()> {
         }
     }
 
-    let output = output.context("usage: crushr-pack <input>... -o <archive> [--level <n>]")?;
+    let output = output.context(USAGE)?;
     if inputs.is_empty() {
-        bail!("usage: crushr-pack <input>... -o <archive> [--level <n>]");
+        bail!(USAGE);
     }
 
     pack_minimal_v1(

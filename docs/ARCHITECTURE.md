@@ -35,6 +35,7 @@ This document describes the current implemented boundary without speculative mat
 ## Tool boundaries
 
 - `crushr-pack`: create archives
+  - `--help` now prints bounded usage including experimental writer modes
   - emits primary IDX3 mapping plus compact LDG1 redundant file-map metadata (`crushr-redundant-file-map.v1`) for mapping survivability
 - `crushr-info`: read/report archive state
 - `crushr-fsck`: verify/analyze corruption and emit bounded diagnostics

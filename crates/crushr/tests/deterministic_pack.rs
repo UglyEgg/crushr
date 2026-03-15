@@ -90,3 +90,45 @@ fn crushr_pack_index_order_and_metadata_are_normalized() {
         assert!(entry.xattrs.is_empty(), "xattrs should be empty");
     }
 }
+
+#[test]
+fn crushr_pack_help_lists_experimental_flags() {
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let out = Command::new(bin).arg("--help").output().expect("run help");
+    assert!(out.status.success());
+
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("--experimental-self-describing-extents"));
+    assert!(stdout.contains("--experimental-file-identity-extents"));
+}
+
+#[test]
+fn crushr_pack_accepts_experimental_writer_flags_and_emits_archives() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    fs::write(input.join("payload.txt"), b"payload").unwrap();
+
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let self_describing = td.path().join("self-describing.crushr");
+    run(Command::new(bin).args([
+        input.to_str().unwrap(),
+        "-o",
+        self_describing.to_str().unwrap(),
+        "--level",
+        "3",
+        "--experimental-self-describing-extents",
+    ]));
+    assert!(self_describing.exists());
+
+    let file_identity = td.path().join("file-identity.crushr");
+    run(Command::new(bin).args([
+        input.to_str().unwrap(),
+        "-o",
+        file_identity.to_str().unwrap(),
+        "--level",
+        "3",
+        "--experimental-file-identity-extents",
+    ]));
+    assert!(file_identity.exists());
+}

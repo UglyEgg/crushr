@@ -498,3 +498,9 @@
 - Added parser guard preventing known comparison subcommand names from being consumed as positional input paths in experiment mode.
 - Added focused tests for help output coverage, subcommand misparse regression, and direct file-identity comparison command invocation.
 
+## 2026-03-15 — CRUSHR-FORMAT-03-f2
+
+- Added bounded `crushr-pack --help` support with explicit usage text listing `--experimental-self-describing-extents` and `--experimental-file-identity-extents`.
+- Added focused regression tests ensuring help discoverability and acceptance/emission behavior for both experimental writer flags.
+- Revalidated lab comparison workflow commands end-to-end against the packer CLI surface to prevent unsupported-flag regressions.
+
