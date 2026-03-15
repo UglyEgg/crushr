@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning Research Boundary
 
-Current Step: CRUSHR-SALVAGE-06 complete (deterministic grouped analysis outputs + summary/analysis regeneration via `--resummarize`)
+Current Step: CRUSHR-SALVAGE-07 complete (hardened salvage binary resolution + format-identity archive discovery)
 
-Recent completed packet: CRUSHR-SALVAGE-06 (deterministic compact grouped analysis views and non-rerunning summary+analysis resummarize mode)
+Recent completed packet: CRUSHR-SALVAGE-07 (deterministic salvage binary resolution without PATH dependency + format-identity archive discovery for `.crushr`/`.crs`/extensionless archives)
 
 ## Current truth
 
@@ -14,7 +14,7 @@ Recent completed packet: CRUSHR-SALVAGE-06 (deterministic compact grouped analys
 - Phase 2 comparison analysis is complete and frozen.
 - `crushr-extract` remains strict-only and unchanged as canonical extraction behavior.
 - `crushr-salvage` includes deterministic block-level verification states and optional verified fragment export (`--export-fragments`).
-- `crushr-lab-salvage` orchestrates deterministic salvage experiments over `.crushr` sets, writes experiment manifests/run metadata, and emits compact `summary.json` + `summary.md` outputs and grouped `analysis.json` + `analysis.md` views.
+- `crushr-lab-salvage` orchestrates deterministic salvage experiments over archives discovered by on-disk identity (not filename extension), writes experiment manifests/run metadata, and emits compact `summary.json` + `summary.md` outputs and grouped `analysis.json` + `analysis.md` views.
 
 ## Active constraints
 
@@ -30,3 +30,4 @@ Recent completed packet: CRUSHR-SALVAGE-06 (deterministic compact grouped analys
 3. Keep Phase 2 corpus and frozen artifacts unchanged.
 4. Keep salvage experiment outputs labeled as unverified research output and deterministic in archive ordering/IDs.
 5. Preserve `--resummarize <experiment_dir>` behavior as summary+analysis regeneration without rerunning salvage.
+6. Keep `crushr-lab-salvage` salvage binary resolution deterministic (sibling binary / test env / explicit `CRUSHR_SALVAGE_BIN`) and independent of global PATH.

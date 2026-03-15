@@ -58,3 +58,9 @@
   - `crushr-lab-salvage` emits compact `analysis.json` + `analysis.md` grouped views over experiment metadata
   - deterministic outcome/export/profile grouping + evidence rankings with explicit tie-breaking
   - `--resummarize <experiment_dir>` regenerates both summary and analysis outputs without rerunning salvage
+
+
+- [x] 3.7 CRUSHR-SALVAGE-07 (harness hardening for deterministic local research execution)
+  - `crushr-lab-salvage` resolves `crushr-salvage` deterministically without requiring global PATH
+  - archive discovery is format-identity based (accepts valid `.crushr`, `.crs`, and extensionless archives)
+  - non-archives (including sidecars) are ignored by identity with stable lexicographic ordering of accepted archives

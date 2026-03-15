@@ -1,3 +1,9 @@
+## 2026-03-15 — CRUSHR-SALVAGE-07 harness hardening for deterministic discovery/resolution
+
+- Hardened `crushr-lab-salvage` salvage binary resolution to avoid bare PATH dependency by using deterministic resolution (explicit `CRUSHR_SALVAGE_BIN`, sibling executable near current binary, and Cargo test binary environment path).
+- Replaced extension-only archive discovery with bounded format-identity checks (`BLK3` leading magic or valid `FTR4` footer + `IDX3` index marker), enabling valid `.crs` and extensionless archives.
+- Added focused harness regression tests for archive identity acceptance/rejection, deterministic ordering, PATH-independent binary resolution, and clear resolution failure messaging.
+
 ## 2026-03-14 — CRUSHR-SALVAGE-06 grouped analysis views for salvage experiments
 
 - Extended `crushr-lab-salvage` to emit compact deterministic `analysis.json` and `analysis.md` alongside existing summaries for each experiment.

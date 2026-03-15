@@ -53,6 +53,12 @@ fn read_json(path: &Path) -> Value {
     serde_json::from_slice(&fs::read(path).unwrap()).unwrap()
 }
 
+fn run_harness_expect_fail(cmd: &mut Command) -> String {
+    let out = cmd.output().expect("run command");
+    assert!(!out.status.success(), "expected command failure");
+    String::from_utf8_lossy(&out.stderr).to_string()
+}
+
 #[test]
 fn harness_generates_manifest_and_summary_outputs() {
     let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
@@ -442,4 +448,79 @@ fn resummarize_profile_grouping_from_filename_markers() {
         .map(|group| group["profile_key"].as_str().unwrap().to_string())
         .collect();
     assert_eq!(profile_keys, vec!["HEAVY", "LIGHT"]);
+}
+
+#[test]
+fn harness_accepts_identity_archives_and_stable_ordering() {
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let td = TempDir::new().unwrap();
+    let input_dir = td.path().join("archives");
+    fs::create_dir_all(&input_dir).unwrap();
+
+    build_archive(pack_bin, "src_a", "alpha", &input_dir.join("b.crs"));
+    build_archive(pack_bin, "src_b", "beta", &input_dir.join("a.crushr"));
+    build_archive(pack_bin, "src_c", "gamma", &input_dir.join("c"));
+    fs::write(input_dir.join("note.txt"), b"not an archive").unwrap();
+    fs::write(input_dir.join("note.corrupt.json"), b"{\"sidecar\":true}").unwrap();
+    let disguised = input_dir.join("bad.crushr");
+    fs::write(&disguised, b"totally not an archive").unwrap();
+
+    let output_dir = td.path().join("experiment");
+    run_harness(lab_bin, salvage_bin, &input_dir, &output_dir, false);
+
+    let manifest = read_json(&output_dir.join("experiment_manifest.json"));
+    assert_eq!(manifest["run_count"], 3);
+
+    let runs = read_json(&output_dir.join("summary.json"))["runs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| row["archive_path"].as_str().unwrap().to_string())
+        .collect::<Vec<_>>();
+    assert_eq!(runs, vec!["a.crushr", "b.crs", "c"]);
+}
+
+#[test]
+fn harness_resolves_salvage_without_path_dependency() {
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let input_dir = td.path().join("archives");
+    fs::create_dir_all(&input_dir).unwrap();
+
+    build_archive(pack_bin, "src", "payload", &input_dir.join("sample.crushr"));
+
+    let output_dir = td.path().join("experiment");
+    let mut cmd = Command::new(lab_bin);
+    cmd.arg(&input_dir)
+        .arg("--output")
+        .arg(&output_dir)
+        .env_remove("CRUSHR_SALVAGE_BIN")
+        .env("PATH", "");
+    run(&mut cmd);
+
+    let manifest = read_json(&output_dir.join("experiment_manifest.json"));
+    assert_eq!(manifest["run_count"], 1);
+}
+
+#[test]
+fn harness_reports_clear_error_when_salvage_bin_resolution_fails() {
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let input_dir = td.path().join("archives");
+    fs::create_dir_all(&input_dir).unwrap();
+
+    build_archive(pack_bin, "src", "payload", &input_dir.join("sample.crushr"));
+
+    let mut cmd = Command::new(lab_bin);
+    cmd.arg(&input_dir)
+        .arg("--output")
+        .arg(td.path().join("experiment"))
+        .env("CRUSHR_SALVAGE_BIN", td.path().join("missing-salvage"));
+
+    let stderr = run_harness_expect_fail(&mut cmd);
+    assert!(stderr.contains("CRUSHR_SALVAGE_BIN points to missing/non-file path"));
 }
