@@ -427,3 +427,20 @@ Blast radius:
 - Blast radius:
   - Affects `crushr-pack` tail-frame ledger content, `crushr-salvage` fallback behavior/reporting, and salvage schema/tests/docs.
   - Does not change `crushr-extract` strict semantics or mutate old archives.
+
+
+## 2026-03-15 — CRUSHR-FORMAT-02: bounded experimental self-describing extents and distributed checkpoints
+
+- Decision:
+  - Add explicit experimental writer mode (`crushr-pack --experimental-self-describing-extents`) rather than changing default archive behavior.
+  - Emit per-extent metadata blocks (`crushr-self-describing-extent.v1`) and separated checkpoint snapshots (`crushr-checkpoint-map-snapshot.v1`) only in experimental archives.
+  - Extend `crushr-salvage` precedence with verified experimental paths after existing authoritative/fallback paths and record provenance (`CHECKPOINT_MAP_PATH`, `SELF_DESCRIBING_EXTENT_PATH`).
+  - Add bounded three-arm comparison mode and compact outputs (`experimental_comparison_summary.json/.md`).
+- Alternatives:
+  1. Replace default writer path directly.
+  2. Keep only centralized redundant map with no experimental distributed metadata.
+- Rationale:
+  - Preserves strict integrity/extraction boundaries while allowing targeted survivability experimentation with explicit opt-in behavior.
+- Blast radius:
+  - `crushr-pack`, `crushr-salvage`, `crushr-lab-salvage`, focused tests, and continuity/docs updates only.
+  - No `crushr-extract` contract changes.

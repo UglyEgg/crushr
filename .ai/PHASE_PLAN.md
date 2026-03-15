@@ -76,3 +76,8 @@
   - `crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir>` creates deterministic old-style vs new-style comparison runs
   - emits compact `comparison_summary.json` + `comparison_summary.md` with grouped deltas and improvement classes
   - includes strict-boundary control scenarios where invalid redundant metadata does not count as an improvement
+
+- [x] 3.10 CRUSHR-FORMAT-02 (experimental self-describing extents + distributed checkpoints)
+  - added explicit experimental writer flag on `crushr-pack`
+  - added strict salvage fallback support for checkpoint and self-describing metadata provenance
+  - added bounded three-arm comparison mode + compact experimental summary artifacts

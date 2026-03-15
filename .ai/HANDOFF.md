@@ -2,7 +2,7 @@
 
 ## Immediate next packet
 
-Next salvage packet (TBD): measure CRUSHR-FORMAT-01 redundancy impact across broader corruption sets without adding reconstruction.
+Next packet (TBD): evaluate whether experimental CRUSHR-FORMAT-02 metadata should remain experimental or be iterated.
 
 
 CRUSHR-SALVAGE-08 added `crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir>` with compact deterministic `comparison_summary.json`/`.md` outputs and per-scenario improvement classes.
@@ -74,3 +74,11 @@ CRUSHR-SALVAGE-08 added `crushr-lab-salvage run-redundant-map-comparison --outpu
 - `crushr-salvage` validates redundant mapping metadata and uses it only when IDX3 mapping is unavailable/invalid
 - salvage-plan schema bumped to v3 with `redundant_map_analysis` and per-file `mapping_provenance`
 - focused regression tests cover fallback success, fallback rejection, backward compatibility, and determinism
+
+
+## Completed CRUSHR-FORMAT-02 outputs
+
+- explicit experimental writer flag in `crushr-pack`
+- self-describing extent + distributed checkpoint metadata emission in experimental archives
+- deterministic salvage fallback provenance for checkpoint/self-describing metadata
+- bounded three-arm comparison command with compact experimental summary outputs

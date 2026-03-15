@@ -52,6 +52,7 @@ fn run() -> Result<()> {
     let mut inputs = Vec::new();
     let mut output = None;
     let mut level: i32 = 3;
+    let mut experimental_self_describing_extents = false;
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -67,6 +68,8 @@ fn run() -> Result<()> {
             level = value
                 .parse::<i32>()
                 .with_context(|| format!("invalid --level value: {value}"))?;
+        } else if arg == "--experimental-self-describing-extents" {
+            experimental_self_describing_extents = true;
         } else if arg.starts_with('-') {
             bail!("unsupported flag: {arg}");
         } else {
@@ -79,10 +82,20 @@ fn run() -> Result<()> {
         bail!("usage: crushr-pack <input>... -o <archive> [--level <n>]");
     }
 
-    pack_minimal_v1(&inputs, &output, level)
+    pack_minimal_v1(
+        &inputs,
+        &output,
+        level,
+        experimental_self_describing_extents,
+    )
 }
 
-fn pack_minimal_v1(inputs: &[PathBuf], output: &Path, level: i32) -> Result<()> {
+fn pack_minimal_v1(
+    inputs: &[PathBuf],
+    output: &Path,
+    level: i32,
+    experimental_self_describing_extents: bool,
+) -> Result<()> {
     let files = collect_files(inputs)?;
     if files.is_empty() {
         bail!("no input files to pack");
@@ -92,7 +105,9 @@ fn pack_minimal_v1(inputs: &[PathBuf], output: &Path, level: i32) -> Result<()> 
     let mut entries = Vec::with_capacity(files.len());
     let mut block_id: u32 = 0;
 
-    for file in files {
+    let mut experimental_records = Vec::new();
+    let checkpoint_stride = 2usize;
+    for (ordinal, file) in files.into_iter().enumerate() {
         let raw = std::fs::read(&file.abs_path)
             .with_context(|| format!("read {}", file.abs_path.display()))?;
         let compressed = compress_deterministic(&raw, level)
@@ -116,6 +131,43 @@ fn pack_minimal_v1(inputs: &[PathBuf], output: &Path, level: i32) -> Result<()> 
         write_blk3_header(&mut out, &header)?;
         out.write_all(&compressed)?;
 
+        if experimental_self_describing_extents {
+            let record = json!({
+                "file_id": block_id,
+                "path": file.rel_path,
+                "logical_offset": 0,
+                "logical_length": raw.len() as u64,
+                "full_file_size": raw.len() as u64,
+                "extent_ordinal": 0,
+                "block_id": block_id,
+                "content_identity": {
+                    "payload_hash_blake3": to_hex(&payload_hash),
+                    "raw_hash_blake3": to_hex(&raw_hash),
+                }
+            });
+            experimental_records.push(record.clone());
+            write_experimental_metadata_block(
+                &mut out,
+                &json!({
+                    "schema": "crushr-self-describing-extent.v1",
+                    "record": record,
+                }),
+                level,
+            )?;
+
+            if (ordinal + 1) % checkpoint_stride == 0 {
+                write_experimental_metadata_block(
+                    &mut out,
+                    &json!({
+                        "schema": "crushr-checkpoint-map-snapshot.v1",
+                        "checkpoint_ordinal": ((ordinal + 1) / checkpoint_stride) as u64,
+                        "records": experimental_records,
+                    }),
+                    level,
+                )?;
+            }
+        }
+
         entries.push(Entry {
             path: file.rel_path,
             kind: EntryKind::Regular,
@@ -136,12 +188,25 @@ fn pack_minimal_v1(inputs: &[PathBuf], output: &Path, level: i32) -> Result<()> 
             .context("too many files for minimal packer")?;
     }
 
+    if experimental_self_describing_extents {
+        write_experimental_metadata_block(
+            &mut out,
+            &json!({
+                "schema": "crushr-checkpoint-map-snapshot.v1",
+                "checkpoint_ordinal": u64::MAX,
+                "records": experimental_records,
+            }),
+            level,
+        )?;
+    }
+
     let blocks_end_offset = out.stream_position()?;
     let idx3 = encode_index(&Index {
         entries: entries.clone(),
     });
     let redundant_file_map = json!({
-        "schema": "crushr-redundant-file-map.v1",
+        "schema": if experimental_self_describing_extents { "crushr-redundant-file-map.experimental.v2" } else { "crushr-redundant-file-map.v1" },
+        "experimental_self_describing_extents": experimental_self_describing_extents,
         "files": entries
             .iter()
             .map(|entry| {
@@ -167,6 +232,35 @@ fn pack_minimal_v1(inputs: &[PathBuf], output: &Path, level: i32) -> Result<()> 
     let tail = assemble_tail_frame(blocks_end_offset, None, &idx3, Some(&ledger))?;
     out.write_all(&tail)?;
 
+    Ok(())
+}
+
+fn to_hex(bytes: &[u8; 32]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+fn write_experimental_metadata_block(
+    out: &mut File,
+    value: &serde_json::Value,
+    level: i32,
+) -> Result<()> {
+    let raw = serde_json::to_vec(value)?;
+    let compressed = compress_deterministic(&raw, level)?;
+    let payload_hash = *blake3::hash(&compressed).as_bytes();
+    let raw_hash = *blake3::hash(&raw).as_bytes();
+    let header = Blk3Header {
+        header_len: (4 + 2 + 2 + 4 + 4 + 4 + 8 + 8 + 32 + 32) as u16,
+        flags: Blk3Flags(Blk3Flags::HAS_PAYLOAD_HASH | Blk3Flags::HAS_RAW_HASH),
+        codec: ZSTD_CODEC,
+        level,
+        dict_id: 0,
+        raw_len: raw.len() as u64,
+        comp_len: compressed.len() as u64,
+        payload_hash: Some(payload_hash),
+        raw_hash: Some(raw_hash),
+    };
+    write_blk3_header(&mut *out, &header)?;
+    out.write_all(&compressed)?;
     Ok(())
 }
 

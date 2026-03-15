@@ -9,7 +9,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const USAGE: &str = "usage: crushr-lab-salvage <input_dir> --output <experiment_dir> [--export-fragments] [--limit <N>] [--verbose]\n       crushr-lab-salvage --resummarize <experiment_dir>\n       crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir> [--verbose]";
+const USAGE: &str = "usage: crushr-lab-salvage <input_dir> --output <experiment_dir> [--export-fragments] [--limit <N>] [--verbose]\n       crushr-lab-salvage --resummarize <experiment_dir>\n       crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir> [--verbose]\n       crushr-lab-salvage run-experimental-resilience-comparison --output <comparison_dir> [--verbose]";
 const VERIFICATION_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
 const EXPERIMENT_SCHEMA_VERSION: &str = "crushr-lab-salvage-experiment.v1";
 const SUMMARY_SCHEMA_VERSION: &str = "crushr-lab-salvage-summary.v1";
@@ -41,6 +41,63 @@ enum Mode {
     RunRedundantMapComparison {
         comparison_dir: PathBuf,
     },
+    RunExperimentalResilienceComparison {
+        comparison_dir: PathBuf,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+struct ExperimentalScenarioRow {
+    scenario_id: String,
+    dataset: String,
+    corruption_model: String,
+    corruption_target: String,
+    magnitude: String,
+    seed: u64,
+    old_outcome: String,
+    redundant_outcome: String,
+    experimental_outcome: String,
+    old_verified_block_count: u64,
+    redundant_verified_block_count: u64,
+    experimental_verified_block_count: u64,
+    old_salvageable_file_count: u64,
+    redundant_salvageable_file_count: u64,
+    experimental_salvageable_file_count: u64,
+    old_exported_full_file_count: u64,
+    redundant_exported_full_file_count: u64,
+    experimental_exported_full_file_count: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct ExperimentalComparisonSummary {
+    schema_version: &'static str,
+    tool: &'static str,
+    tool_version: &'static str,
+    verification_label: &'static str,
+    scenario_count: usize,
+    old_outcome_counts: BTreeMap<String, u64>,
+    redundant_outcome_counts: BTreeMap<String, u64>,
+    experimental_outcome_counts: BTreeMap<String, u64>,
+    orphan_to_salvage_improvements_vs_old: u64,
+    orphan_to_salvage_improvements_vs_redundant: u64,
+    total_verified_block_delta_vs_old: i64,
+    total_salvageable_file_delta_vs_old: i64,
+    total_exported_full_file_delta_vs_old: i64,
+    by_dataset: Vec<ExperimentalComparisonGroup>,
+    by_corruption_target: Vec<ExperimentalComparisonGroup>,
+    per_scenario_rows: Vec<ExperimentalScenarioRow>,
+}
+
+#[derive(Debug, Serialize)]
+struct ExperimentalComparisonGroup {
+    key: String,
+    scenario_count: usize,
+    old_outcome_counts: BTreeMap<String, u64>,
+    redundant_outcome_counts: BTreeMap<String, u64>,
+    experimental_outcome_counts: BTreeMap<String, u64>,
+    verified_block_delta_vs_old: i64,
+    salvageable_file_delta_vs_old: i64,
+    exported_full_file_delta_vs_old: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -321,6 +378,30 @@ fn parse_cli_options() -> Result<CliOptions> {
                 verbose,
             });
         }
+        if first == "run-experimental-resilience-comparison" {
+            let mut output_dir = None;
+            let mut verbose = false;
+            while let Some(arg) = args.next() {
+                match arg.as_str() {
+                    "--output" => {
+                        output_dir = Some(PathBuf::from(args.next().context(USAGE)?));
+                    }
+                    "--verbose" => {
+                        verbose = true;
+                    }
+                    _ => bail!("unsupported comparison argument: {arg}"),
+                }
+            }
+
+            return Ok(CliOptions {
+                mode: Mode::RunExperimentalResilienceComparison {
+                    comparison_dir: output_dir.context(USAGE)?,
+                },
+                export_fragments: false,
+                limit: None,
+                verbose,
+            });
+        }
 
         let mut input_dir = None;
         let mut output_dir = None;
@@ -421,7 +502,9 @@ fn sanitize_component(value: &str) -> String {
 fn collect_archives(opts: &CliOptions) -> Result<Vec<ArchiveRun>> {
     let input_dir = match &opts.mode {
         Mode::RunExperiment { input_dir, .. } => input_dir,
-        Mode::Resummarize { .. } | Mode::RunRedundantMapComparison { .. } => {
+        Mode::Resummarize { .. }
+        | Mode::RunRedundantMapComparison { .. }
+        | Mode::RunExperimentalResilienceComparison { .. } => {
             bail!("internal error: collect_archives outside run mode")
         }
     };
@@ -1245,6 +1328,34 @@ stderr:
     Ok(())
 }
 
+fn build_archive_with_pack_experimental(
+    pack_bin: &Path,
+    input: &Path,
+    output: &Path,
+) -> Result<()> {
+    let out = Command::new(pack_bin)
+        .arg(input)
+        .arg("-o")
+        .arg(output)
+        .arg("--level")
+        .arg("3")
+        .arg("--experimental-self-describing-extents")
+        .output()
+        .with_context(|| format!("run {:?}", pack_bin))?;
+    if !out.status.success() {
+        bail!(
+            "crushr-pack failed
+stdout:
+{}
+stderr:
+{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+    Ok(())
+}
+
 fn remove_ledger_for_old_style(archive_path: &Path) -> Result<()> {
     let bytes = fs::read(archive_path)?;
     let footer_offset = bytes.len() - FTR4_LEN;
@@ -1792,6 +1903,202 @@ fn run_redundant_map_comparison(comparison_dir: &Path, verbose: bool) -> Result<
     Ok(())
 }
 
+fn build_experimental_groups(
+    rows: &[ExperimentalScenarioRow],
+    key_fn: impl Fn(&ExperimentalScenarioRow) -> &str,
+) -> Vec<ExperimentalComparisonGroup> {
+    let mut grouped: BTreeMap<String, Vec<&ExperimentalScenarioRow>> = BTreeMap::new();
+    for row in rows {
+        grouped
+            .entry(key_fn(row).to_string())
+            .or_default()
+            .push(row);
+    }
+
+    grouped
+        .into_iter()
+        .map(|(key, values)| ExperimentalComparisonGroup {
+            key,
+            scenario_count: values.len(),
+            old_outcome_counts: count_outcomes(values.iter().map(|r| r.old_outcome.as_str())),
+            redundant_outcome_counts: count_outcomes(
+                values.iter().map(|r| r.redundant_outcome.as_str()),
+            ),
+            experimental_outcome_counts: count_outcomes(
+                values.iter().map(|r| r.experimental_outcome.as_str()),
+            ),
+            verified_block_delta_vs_old: values
+                .iter()
+                .map(|r| {
+                    r.experimental_verified_block_count as i64 - r.old_verified_block_count as i64
+                })
+                .sum(),
+            salvageable_file_delta_vs_old: values
+                .iter()
+                .map(|r| {
+                    r.experimental_salvageable_file_count as i64
+                        - r.old_salvageable_file_count as i64
+                })
+                .sum(),
+            exported_full_file_delta_vs_old: values
+                .iter()
+                .map(|r| {
+                    r.experimental_exported_full_file_count as i64
+                        - r.old_exported_full_file_count as i64
+                })
+                .sum(),
+        })
+        .collect()
+}
+
+fn run_experimental_resilience_comparison(comparison_dir: &Path, verbose: bool) -> Result<()> {
+    fs::create_dir_all(comparison_dir)?;
+    let scenarios = comparison_scenarios();
+    let pack_bin = resolve_pack_bin()?;
+    let salvage_bin = resolve_salvage_bin()?;
+    let temp = comparison_dir.join(".tmp_experimental");
+    if temp.exists() {
+        fs::remove_dir_all(&temp)?;
+    }
+    fs::create_dir_all(&temp)?;
+    let archives_root = temp.join("archives");
+    fs::create_dir_all(&archives_root)?;
+
+    let mut rows = Vec::new();
+    for scenario in scenarios {
+        let dataset_input = temp.join("datasets").join(&scenario.scenario_id);
+        write_dataset_fixture(&dataset_input, scenario.dataset)?;
+
+        let old_archive = archives_root.join(format!("{}_old.crushr", scenario.scenario_id));
+        let redundant_archive =
+            archives_root.join(format!("{}_redundant.crushr", scenario.scenario_id));
+        let experimental_archive =
+            archives_root.join(format!("{}_experimental.crushr", scenario.scenario_id));
+        build_archive_with_pack(&pack_bin, &dataset_input, &old_archive)?;
+        build_archive_with_pack(&pack_bin, &dataset_input, &redundant_archive)?;
+        build_archive_with_pack_experimental(&pack_bin, &dataset_input, &experimental_archive)?;
+        remove_ledger_for_old_style(&old_archive)?;
+
+        corrupt_archive(&old_archive, &scenario)?;
+        corrupt_archive(&redundant_archive, &scenario)?;
+        corrupt_archive(&experimental_archive, &scenario)?;
+
+        let old_plan = run_salvage_plan(
+            &salvage_bin,
+            &old_archive,
+            &archives_root.join(format!("{}_old_plan.json", scenario.scenario_id)),
+        )?;
+        let redundant_plan = run_salvage_plan(
+            &salvage_bin,
+            &redundant_archive,
+            &archives_root.join(format!("{}_redundant_plan.json", scenario.scenario_id)),
+        )?;
+        let experimental_plan = run_salvage_plan(
+            &salvage_bin,
+            &experimental_archive,
+            &archives_root.join(format!("{}_experimental_plan.json", scenario.scenario_id)),
+        )?;
+
+        let old_metrics = outcome_from_plan(&old_plan);
+        let redundant_metrics = outcome_from_plan(&redundant_plan);
+        let experimental_metrics = outcome_from_plan(&experimental_plan);
+        if verbose {
+            eprintln!(
+                "scenario {} => {} / {} / {}",
+                scenario.scenario_id,
+                old_metrics.outcome,
+                redundant_metrics.outcome,
+                experimental_metrics.outcome
+            );
+        }
+
+        rows.push(ExperimentalScenarioRow {
+            scenario_id: scenario.scenario_id,
+            dataset: scenario.dataset.to_string(),
+            corruption_model: scenario.corruption_model.to_string(),
+            corruption_target: scenario.corruption_target.to_string(),
+            magnitude: scenario.magnitude.to_string(),
+            seed: scenario.seed,
+            old_outcome: old_metrics.outcome,
+            redundant_outcome: redundant_metrics.outcome,
+            experimental_outcome: experimental_metrics.outcome,
+            old_verified_block_count: old_metrics.verified_block_count,
+            redundant_verified_block_count: redundant_metrics.verified_block_count,
+            experimental_verified_block_count: experimental_metrics.verified_block_count,
+            old_salvageable_file_count: old_metrics.salvageable_file_count,
+            redundant_salvageable_file_count: redundant_metrics.salvageable_file_count,
+            experimental_salvageable_file_count: experimental_metrics.salvageable_file_count,
+            old_exported_full_file_count: old_metrics.exported_full_file_count,
+            redundant_exported_full_file_count: redundant_metrics.exported_full_file_count,
+            experimental_exported_full_file_count: experimental_metrics.exported_full_file_count,
+        });
+    }
+
+    rows.sort_by(|a, b| a.scenario_id.cmp(&b.scenario_id));
+    let summary = ExperimentalComparisonSummary {
+        schema_version: "crushr-lab-salvage-experimental-comparison.v1",
+        tool: "crushr-lab-salvage",
+        tool_version: env!("CARGO_PKG_VERSION"),
+        verification_label: VERIFICATION_LABEL,
+        scenario_count: rows.len(),
+        old_outcome_counts: count_outcomes(rows.iter().map(|r| r.old_outcome.as_str())),
+        redundant_outcome_counts: count_outcomes(rows.iter().map(|r| r.redundant_outcome.as_str())),
+        experimental_outcome_counts: count_outcomes(
+            rows.iter().map(|r| r.experimental_outcome.as_str()),
+        ),
+        orphan_to_salvage_improvements_vs_old: rows
+            .iter()
+            .filter(|r| {
+                outcome_rank(&r.old_outcome) <= 1 && outcome_rank(&r.experimental_outcome) >= 2
+            })
+            .count() as u64,
+        orphan_to_salvage_improvements_vs_redundant: rows
+            .iter()
+            .filter(|r| {
+                outcome_rank(&r.redundant_outcome) <= 1
+                    && outcome_rank(&r.experimental_outcome) >= 2
+            })
+            .count() as u64,
+        total_verified_block_delta_vs_old: rows
+            .iter()
+            .map(|r| r.experimental_verified_block_count as i64 - r.old_verified_block_count as i64)
+            .sum(),
+        total_salvageable_file_delta_vs_old: rows
+            .iter()
+            .map(|r| {
+                r.experimental_salvageable_file_count as i64 - r.old_salvageable_file_count as i64
+            })
+            .sum(),
+        total_exported_full_file_delta_vs_old: rows
+            .iter()
+            .map(|r| {
+                r.experimental_exported_full_file_count as i64
+                    - r.old_exported_full_file_count as i64
+            })
+            .sum(),
+        by_dataset: build_experimental_groups(&rows, |r| &r.dataset),
+        by_corruption_target: build_experimental_groups(&rows, |r| &r.corruption_target),
+        per_scenario_rows: rows,
+    };
+
+    fs::write(
+        comparison_dir.join("experimental_comparison_summary.json"),
+        serde_json::to_string_pretty(&summary)?,
+    )?;
+    let md = format!(
+        "# Experimental resilience comparison\n\nScenarios: {}\n\n- orphan->salvage vs old: {}\n- orphan->salvage vs redundant: {}\n",
+        summary.scenario_count,
+        summary.orphan_to_salvage_improvements_vs_old,
+        summary.orphan_to_salvage_improvements_vs_redundant
+    );
+    fs::write(
+        comparison_dir.join("experimental_comparison_summary.md"),
+        md,
+    )?;
+    let _ = fs::remove_dir_all(&temp);
+    Ok(())
+}
+
 fn run_timestamp() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
     let now = SystemTime::now()
@@ -1804,6 +2111,9 @@ fn run() -> Result<()> {
     let opts = parse_cli_options()?;
     if let Mode::RunRedundantMapComparison { comparison_dir } = &opts.mode {
         return run_redundant_map_comparison(comparison_dir, opts.verbose);
+    }
+    if let Mode::RunExperimentalResilienceComparison { comparison_dir } = &opts.mode {
+        return run_experimental_resilience_comparison(comparison_dir, opts.verbose);
     }
 
     let (experiment_dir, experiment_id, export_fragments_enabled, runs) = match &opts.mode {
@@ -1910,6 +2220,9 @@ fn run() -> Result<()> {
             )
         }
         Mode::RunRedundantMapComparison { .. } => {
+            bail!("internal error: comparison mode in summary pipeline")
+        }
+        Mode::RunExperimentalResilienceComparison { .. } => {
             bail!("internal error: comparison mode in summary pipeline")
         }
     };

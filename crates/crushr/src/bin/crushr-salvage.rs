@@ -23,6 +23,8 @@ const USAGE: &str =
 const RESEARCH_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
 const PRIMARY_INDEX_PATH: &str = "PRIMARY_INDEX_PATH";
 const REDUNDANT_VERIFIED_MAP_PATH: &str = "REDUNDANT_VERIFIED_MAP_PATH";
+const CHECKPOINT_MAP_PATH: &str = "CHECKPOINT_MAP_PATH";
+const SELF_DESCRIBING_EXTENT_PATH: &str = "SELF_DESCRIBING_EXTENT_PATH";
 
 struct FileReader {
     file: File,
@@ -117,6 +119,13 @@ struct RedundantMapFile {
     path: String,
     size: u64,
     extents: Vec<Extent>,
+}
+
+#[derive(Debug)]
+struct ExperimentalExtentRecord {
+    path: String,
+    size: u64,
+    extent: Extent,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -481,7 +490,9 @@ fn parse_redundant_map_files(ledger_json: &[u8]) -> Result<Vec<RedundantMapFile>
         .get("schema")
         .and_then(Value::as_str)
         .context("redundant map ledger missing schema")?;
-    if schema != "crushr-redundant-file-map.v1" {
+    if schema != "crushr-redundant-file-map.v1"
+        && schema != "crushr-redundant-file-map.experimental.v2"
+    {
         bail!("unsupported redundant map schema: {schema}");
     }
 
@@ -544,6 +555,190 @@ fn parse_redundant_map_files(ledger_json: &[u8]) -> Result<Vec<RedundantMapFile>
     }
 
     Ok(out)
+}
+
+fn parse_experimental_metadata_records(
+    archive_bytes: &[u8],
+    block_verification: &BTreeMap<u32, BlockVerification>,
+) -> Vec<Value> {
+    let mut records = Vec::new();
+    let mut offset = 0usize;
+    while offset + BLK3_MAGIC.len() <= archive_bytes.len() {
+        if archive_bytes[offset..offset + 4] != BLK3_MAGIC {
+            offset += 1;
+            continue;
+        }
+        let Some(header_prefix) = archive_bytes.get(offset + 4..offset + 6) else {
+            break;
+        };
+        let header_len = u16::from_le_bytes([header_prefix[0], header_prefix[1]]) as usize;
+        if offset + header_len > archive_bytes.len() {
+            offset += 1;
+            continue;
+        }
+        let Ok(header) = read_blk3_header(Cursor::new(&archive_bytes[offset..offset + header_len]))
+        else {
+            offset += 1;
+            continue;
+        };
+        let payload_offset = offset + header.header_len as usize;
+        let Some(payload_end) = payload_offset.checked_add(header.comp_len as usize) else {
+            offset += 1;
+            continue;
+        };
+        if payload_end > archive_bytes.len() || header.codec != 1 {
+            offset += 1;
+            continue;
+        }
+        if let Some(raw_hash) = header.raw_hash {
+            let Ok(raw) =
+                zstd::decode_all(Cursor::new(&archive_bytes[payload_offset..payload_end]))
+            else {
+                offset += 1;
+                continue;
+            };
+            if raw.len() as u64 != header.raw_len || blake3::hash(&raw).as_bytes() != &raw_hash {
+                offset += 1;
+                continue;
+            }
+            if let Ok(value) = serde_json::from_slice::<Value>(&raw) {
+                if let Some(block_id_u64) = value
+                    .get("record")
+                    .and_then(|r| r.get("block_id"))
+                    .and_then(|v| v.as_u64())
+                {
+                    if let Ok(block_id) = u32::try_from(block_id_u64) {
+                        if let Some(v) = block_verification.get(&block_id) {
+                            if !v.content_verified {
+                                offset += 1;
+                                continue;
+                            }
+                        }
+                    }
+                }
+                records.push(value);
+            }
+        }
+        offset += 1;
+    }
+    records
+}
+
+fn parse_self_describing_extent_records(values: &[Value]) -> Vec<ExperimentalExtentRecord> {
+    let mut out = Vec::new();
+    for value in values {
+        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-self-describing-extent.v1")
+        {
+            continue;
+        }
+        let Some(record) = value.get("record") else {
+            continue;
+        };
+        let Some(path) = record.get("path").and_then(|v| v.as_str()) else {
+            continue;
+        };
+        let Some(size) = record.get("full_file_size").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Some(block_id_u64) = record.get("block_id").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Some(offset) = record.get("logical_offset").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Some(len) = record.get("logical_length").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Ok(block_id) = u32::try_from(block_id_u64) else {
+            continue;
+        };
+        out.push(ExperimentalExtentRecord {
+            path: path.to_string(),
+            size,
+            extent: Extent {
+                block_id,
+                offset,
+                len,
+            },
+        });
+    }
+    out
+}
+
+fn parse_checkpoint_extent_records(values: &[Value]) -> Vec<ExperimentalExtentRecord> {
+    let mut out = Vec::new();
+    for value in values {
+        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-checkpoint-map-snapshot.v1")
+        {
+            continue;
+        }
+        let Some(records) = value.get("records").and_then(|v| v.as_array()) else {
+            continue;
+        };
+        for rec in records {
+            let Some(path) = rec.get("path").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let Some(size) = rec.get("full_file_size").and_then(|v| v.as_u64()) else {
+                continue;
+            };
+            let Some(block_id_u64) = rec.get("block_id").and_then(|v| v.as_u64()) else {
+                continue;
+            };
+            let Some(offset) = rec.get("logical_offset").and_then(|v| v.as_u64()) else {
+                continue;
+            };
+            let Some(len) = rec.get("logical_length").and_then(|v| v.as_u64()) else {
+                continue;
+            };
+            let Ok(block_id) = u32::try_from(block_id_u64) else {
+                continue;
+            };
+            out.push(ExperimentalExtentRecord {
+                path: path.to_string(),
+                size,
+                extent: Extent {
+                    block_id,
+                    offset,
+                    len,
+                },
+            });
+        }
+    }
+    out
+}
+
+fn verify_and_plan_experimental_records(
+    records: Vec<ExperimentalExtentRecord>,
+    block_verification: &BTreeMap<u32, BlockVerification>,
+    mapping_provenance: &'static str,
+) -> Result<Vec<FilePlan>> {
+    let mut grouped: BTreeMap<String, (u64, Vec<Extent>)> = BTreeMap::new();
+    for record in records {
+        let entry = grouped
+            .entry(record.path)
+            .or_insert_with(|| (record.size, Vec::new()));
+        if entry.0 != record.size {
+            bail!("inconsistent experimental file size");
+        }
+        entry.1.push(record.extent);
+    }
+    let files = grouped
+        .into_iter()
+        .map(|(path, (size, mut extents))| {
+            extents.sort_by_key(|e| e.offset);
+            RedundantMapFile {
+                path,
+                size,
+                extents,
+            }
+        })
+        .collect::<Vec<_>>();
+    let mut plans = verify_and_plan_redundant_map(files, block_verification)?;
+    for plan in &mut plans {
+        plan.mapping_provenance = mapping_provenance;
+    }
+    Ok(plans)
 }
 
 fn verify_and_plan_redundant_map(
@@ -1031,6 +1226,35 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
                                 reason: "ledger_absent",
                                 file_count: None,
                             };
+                        }
+
+                        if file_plans.is_empty() {
+                            let experimental_values = parse_experimental_metadata_records(
+                                &archive_bytes,
+                                &block_verification,
+                            );
+
+                            if let Ok(checkpoint_plans) = verify_and_plan_experimental_records(
+                                parse_checkpoint_extent_records(&experimental_values),
+                                &block_verification,
+                                CHECKPOINT_MAP_PATH,
+                            ) {
+                                if !checkpoint_plans.is_empty() {
+                                    file_plans = checkpoint_plans;
+                                }
+                            }
+
+                            if file_plans.is_empty() {
+                                if let Ok(extent_plans) = verify_and_plan_experimental_records(
+                                    parse_self_describing_extent_records(&experimental_values),
+                                    &block_verification,
+                                    SELF_DESCRIBING_EXTENT_PATH,
+                                ) {
+                                    if !extent_plans.is_empty() {
+                                        file_plans = extent_plans;
+                                    }
+                                }
+                            }
                         }
                     } else {
                         redundant_map_analysis = RedundantMapAnalysis {

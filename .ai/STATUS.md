@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning Research Boundary
 
-Current Step: CRUSHR-SALVAGE-08 complete (bounded deterministic redundant-map before/after comparison workflow)
+Current Step: CRUSHR-FORMAT-02 complete (experimental self-describing extents + distributed checkpoints + bounded three-arm comparison)
 
-Recent completed packet: CRUSHR-SALVAGE-08 (targeted old-vs-new redundant map salvage comparison summaries + deterministic classification/aggregate tests)
+Recent completed packet: CRUSHR-FORMAT-02 (experimental metadata writer path + strict salvage fallback provenance + bounded three-arm comparison summaries)
 
 ## Current truth
 
@@ -30,3 +30,11 @@ Recent completed packet: CRUSHR-SALVAGE-08 (targeted old-vs-new redundant map sa
 2. Keep redundant map fallback strict all-or-nothing and deterministic.
 3. Preserve deterministic comparison ordering/classification and compact grouped metrics outputs.
 4. Keep Phase 2 corpus and frozen artifacts unchanged.
+
+
+## Latest packet: CRUSHR-FORMAT-02
+
+- Added explicit experimental writer flag `--experimental-self-describing-extents` in `crushr-pack`.
+- Added strict salvage support for experimental metadata provenance paths: `CHECKPOINT_MAP_PATH` and `SELF_DESCRIBING_EXTENT_PATH`.
+- Added bounded comparison workflow `crushr-lab-salvage run-experimental-resilience-comparison --output <dir>`.
+- Comparison outputs: `experimental_comparison_summary.json` and `experimental_comparison_summary.md`.
