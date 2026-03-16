@@ -2,7 +2,7 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-PLAN-LEGACY-01-f2 complete** (preferred delegation applied: root/API extraction now use authoritative strict implementation)
+Current Step: **CRUSHR-FORMAT-05-f4 complete** (format05 comparison now auto-builds sibling salvage/pack binaries when running via `cargo run` to preserve end-to-end command operability)
 
 Immediate Next Step: **CRUSHR-FORMAT-06** (verified file manifest checkpoints as the next recovery-graph layer)
 
@@ -19,6 +19,7 @@ Security step note: **CRUSHR-SCRUB-01 complete** (extraction path confinement un
 - The architectural direction is now locked toward a **content-addressed recovery graph**.
 - The inversion principle is active for resilience work: prefer verified payload-adjacent truth over centralized metadata authority.
 - FORMAT-05 comparison now runs end-to-end without relying on `crushr-pack --help`; the runner invokes the canonical writer flag directly.
+- FORMAT-05 comparison now auto-builds sibling `crushr-pack`/`crushr-salvage` binaries when launched from `cargo run -p crushr --bin crushr-lab-salvage`, so the documented command executes end-to-end without manual binary path wiring.
 - `crushr-pack` now rejects duplicate logical archive paths before any archive bytes are written; collisions are explicit hard failures listing the logical path and source inputs.
 
 ## Active constraints
