@@ -1,0 +1,25 @@
+/* SPDX-License-Identifier: MIT OR Apache-2.0 */
+/* Copyright (c) 2026 Richard Majewski - Varanid Works */
+
+/*
+Deep forest green branding.
+Keep this file limited to palette + minor header sizing.
+Avoid layout hacks.
+*/
+
+:root {
+  /* Slightly taller header to accommodate a larger logo mark. */
+  --md-header-height: 4.25rem;
+}
+
+/* Enlarge the logo mark without stretching the header text. */
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 3.25rem;
+  width: auto;
+}
+
+/* Reduce visual noise in the tab bar. */
+.md-tabs {
+  background: var(--md-primary-fg-color);
+}
