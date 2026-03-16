@@ -73,6 +73,7 @@ fn help_lists_supported_comparison_commands() {
     assert!(stdout.contains("run-file-identity-comparison"));
     assert!(stdout.contains("run-format04-comparison"));
     assert!(stdout.contains("run-format05-comparison"));
+    assert!(stdout.contains("run-format06-comparison"));
     assert!(stdout.contains("run-redundant-map-comparison"));
 }
 
@@ -83,6 +84,20 @@ fn known_subcommand_name_is_not_treated_as_input_path() {
     let mut cmd = Command::new(lab_bin);
     cmd.arg(td.path())
         .arg("run-file-identity-comparison")
+        .arg("--output")
+        .arg(td.path().join("out"));
+    let stderr = run_harness_expect_fail(&mut cmd);
+
+    assert!(stderr.contains("must be used as the first argument"));
+}
+
+#[test]
+fn format06_subcommand_name_is_not_treated_as_input_path() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let mut cmd = Command::new(lab_bin);
+    cmd.arg(td.path())
+        .arg("run-format06-comparison")
         .arg("--output")
         .arg(td.path().join("out"));
     let stderr = run_harness_expect_fail(&mut cmd);

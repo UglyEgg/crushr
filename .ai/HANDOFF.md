@@ -85,3 +85,9 @@
 - `verify_and_apply_manifest_expectations` now seeds plans from manifest+payload-identity when earlier stages are empty, instead of only post-processing existing plans.
 - `file_digest` is now used for FULL_* classification validation (single-block verified digest path).
 - `run-format06-comparison` now emits classification aggregates/deltas (`FULL_VERIFIED`, `FULL_ANONYMOUS`, `PARTIAL_ORDERED`, `PARTIAL_UNORDERED`, `ORPHAN_BLOCKS`) against FORMAT-05 baseline.
+
+
+## Update: CRUSHR-FORMAT-06-f1 dispatch regression fix complete
+- Added focused harness regressions for FORMAT-06 dispatch safety: help now explicitly checked for `run-format06-comparison`, and misplaced `run-format06-comparison` is hard-rejected as non-positional in experiment mode.
+- Revalidated both comparison commands from user report path: `cargo run -p crushr --bin crushr-lab-salvage -- run-format06-comparison --output <tmp>` and FORMAT-05 equivalent both complete and emit expected summary artifacts.
+- No semantics/contract changes to FORMAT-05/06 comparison workflows; fix is dispatch-guard and regression-hardening only.

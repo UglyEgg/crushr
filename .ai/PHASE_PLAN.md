@@ -47,7 +47,7 @@
 - [x] 3.16 CRUSHR-SCRUB-02 (reject duplicate logical archive paths at pack time before archive emission)
 - [x] 3.16-f1 CRUSHR-SCRUB-02-f1 (stabilize duplicate-collision source ordering + expand collision-mode test coverage)
 - [x] 3.16-f2 CRUSHR-SCRUB-03 (modularize `crushr-salvage` + `crushr-lab-salvage` internals; preserve behavior + add regression coverage)
-- [ ] 3.17 CRUSHR-FORMAT-06 (verified file manifest checkpoints as the next recovery-graph layer)
+- [x] 3.17 CRUSHR-FORMAT-06 (verified file manifest checkpoints as the next recovery-graph layer)
   - build the file-truth layer on top of payload block identity
   - validate full named / full anonymous / partial ordered recovery rules
   - target header/index/tail cases that FORMAT-05 still leaves as orphan evidence
@@ -68,3 +68,5 @@
 - [x] CRUSHR-PLAN-LEGACY-01-f2 preferred extraction authority alignment (root/API delegation to strict authoritative implementation + regression integration updates)
 
 - [x] CRUSHR-FORMAT-06-f1 — manifest-sourced plan synthesis + digest-aware classification + format06 classification deltas
+
+- [x] 3.17-f1 CRUSHR-FORMAT-06-f1 dispatch regression fix (lock top-level `run-format06-comparison` dispatch behavior + subcommand-vs-path regression coverage + help discoverability assertion)
