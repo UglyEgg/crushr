@@ -51,11 +51,12 @@
 - [x] 3.17-f1 CRUSHR-FORMAT-06-f1 (manifest-sourced plan synthesis + digest-aware classification + dispatch hardening)
 - [x] 3.18 CRUSHR-FORMAT-07 (graph-aware salvage reasoning + explicit recovery classes)
 - [x] 3.19 CRUSHR-FORMAT-08 (metadata placement strategy experiment: `fixed_spread`, `hash_spread`, `golden_spread`)
-- [ ] 3.20 CRUSHR-FORMAT-09 (curated corruption grid / survivability evaluation harness)
+- [x] 3.20 CRUSHR-FORMAT-09 (curated corruption grid / survivability evaluation harness)
   - stress truth-layer loss rather than only coarse region damage
   - test named -> anonymous and ordered -> unordered downgrade behavior
   - measure whether weak duplicated metadata surfaces should be retained or pruned
   - keep the packet format-neutral: evaluation harness/reporting only
+- [ ] 3.21 CRUSHR-FORMAT-10 (metadata pruning/redesign decision packet informed by FORMAT-09 evidence)
 
 ## Security scrub track
 

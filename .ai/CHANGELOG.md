@@ -1,3 +1,10 @@
+## 2026-03-16 — CRUSHR-FORMAT-09 (metadata survivability and necessity audit harness)
+
+- Added `crushr-lab-salvage run-format09-comparison --output <dir>` command wiring and dispatch.
+- Expanded comparison harness with a deterministic FORMAT-09 scenario matrix (metadata regime × metadata target × payload topology) and targeted corruption operators for metadata/payload regions.
+- Added FORMAT-09 outputs: `format09_comparison_summary.json` and `format09_comparison_summary.md` including recovery, metadata survival, and metadata-recovery-gain metrics.
+- Added integration tests to cover help/dispatch and required FORMAT-09 summary fields.
+
 ## 2026-03-15 — CRUSHR-SALVAGE-07 harness hardening for deterministic discovery/resolution
 
 - Hardened `crushr-lab-salvage` salvage binary resolution to avoid bare PATH dependency by using deterministic resolution (explicit `CRUSHR_SALVAGE_BIN`, sibling executable near current binary, and Cargo test binary environment path).
@@ -36,8 +43,6 @@
 - Added `crates/crushr-lab/src/cli.rs` for shared command parsing (`Command` enum), usage text, and workspace-root resolution.
 - Moved `corrupt` command parsing/logging helpers and alias/target/magnitude parsing into `phase2_corruption.rs`; retained existing behavior/defaults and parsing tests there.
 - Moved write/build/run command orchestration wrappers into owning Phase 2 modules (`phase2_manifest`, `phase2_foundation`, `phase2_runner`) so `main.rs` no longer contains packet-grown helper logic.
-
-# .ai/CHANGELOG.md
 
 ## 2026-03-13 — Phase 2, Step 2.1 cleanup (CRUSHR-P2-CLEAN-06 domain model unification)
 

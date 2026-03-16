@@ -4,7 +4,8 @@
 
 - **CRUSHR-FORMAT-07 is complete**: salvage now reasons over verified relationships (`block -> extent -> manifest -> path`) and emits explicit recovery classes.
 - **CRUSHR-FORMAT-08 is complete**: experimental metadata placement strategies now exist (`fixed_spread`, `hash_spread`, `golden_spread`) and the bounded placement comparison command is wired and covered.
-- **CRUSHR-FORMAT-09 is the next evaluation packet**: the next meaningful pressure increase is the curated corruption grid that stresses truth-layer survivability, recovery downgrades, and metadata-layer failures more realistically.
+- **CRUSHR-FORMAT-09 is complete**: `run-format09-comparison` is now wired and emits survivability/gain evidence across metadata regimes, metadata targets, payload topologies, and placement strategies.
+- **CRUSHR-FORMAT-10 is next**: use FORMAT-09 evidence to decide metadata pruning/demotion/retention and potential redesign scope.
 
 ## Important behavior locks
 
@@ -33,6 +34,7 @@
 - `crushr-lab-salvage run-format06-comparison --output <dir>`
 - `crushr-lab-salvage run-format07-comparison --output <dir>`
 - `crushr-lab-salvage run-format08-placement-comparison --output <dir>`
+- `crushr-lab-salvage run-format09-comparison --output <dir>`
 
 ## Watch items
 
@@ -62,10 +64,8 @@ After structural stability and metadata pruning decisions settle, revisit distri
 
 ## Immediate next packet expectation
 
-- FORMAT-09 should stress:
-  - truth-layer loss
-  - metadata-layer disagreement
-  - block deletion / reorder
-  - named -> anonymous downgrade cases
-  - ordered -> unordered downgrade cases
-- FORMAT-09 should not rewrite the format; it should expand the evaluation harness and reporting model.
+- FORMAT-10 should use FORMAT-09 evidence to classify metadata layers into:
+  - retain (material recovery gain)
+  - demote (weak/conditional gain)
+  - prune (no meaningful survivability or gain)
+- Keep extraction semantics and payload structure unchanged while evaluating pruning/redesign options.

@@ -75,6 +75,8 @@ fn help_lists_supported_comparison_commands() {
     assert!(stdout.contains("run-format05-comparison"));
     assert!(stdout.contains("run-format06-comparison"));
     assert!(stdout.contains("run-format07-comparison"));
+    assert!(stdout.contains("run-format08-placement-comparison"));
+    assert!(stdout.contains("run-format09-comparison"));
     assert!(stdout.contains("run-redundant-map-comparison"));
 }
 
