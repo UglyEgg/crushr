@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-FORMAT-05-f4 complete** (format05 comparison now auto-builds sibling salvage/pack binaries when running via `cargo run` to preserve end-to-end command operability)
+Current Step: **CRUSHR-FORMAT-06-f1 dispatch regression fix complete** (top-level `run-format06-comparison` dispatch remains wired; added regression coverage so known FORMAT-06 subcommand tokens cannot be misparsed as positional input paths)
 
-Immediate Next Step: **CRUSHR-FORMAT-06** (verified file manifest checkpoints as the next recovery-graph layer)
+Immediate Next Step: **CRUSHR-SCRUB-04 / next user packet** (no active unresolved FORMAT-06 dispatch defects after regression hardening)
 
 Security step note: **CRUSHR-SCRUB-01 complete** (extraction path confinement unified across canonical/legacy/API; unsafe paths now hard-fail; symlink extraction disabled in hardened mode).
 
@@ -20,6 +20,7 @@ Security step note: **CRUSHR-SCRUB-01 complete** (extraction path confinement un
 - The inversion principle is active for resilience work: prefer verified payload-adjacent truth over centralized metadata authority.
 - FORMAT-05 comparison now runs end-to-end without relying on `crushr-pack --help`; the runner invokes the canonical writer flag directly.
 - FORMAT-05 comparison now auto-builds sibling `crushr-pack`/`crushr-salvage` binaries when launched from `cargo run -p crushr --bin crushr-lab-salvage`, so the documented command executes end-to-end without manual binary path wiring.
+- FORMAT-06 dispatch regression coverage now locks top-level command behavior (`run-format06-comparison` is explicitly recognized and guarded from positional-path misparse when not first arg).
 - `crushr-pack` now rejects duplicate logical archive paths before any archive bytes are written; collisions are explicit hard failures listing the logical path and source inputs.
 
 ## Active constraints
@@ -47,7 +48,7 @@ Recovery should degrade in reverse order:
 
 1. Preserve strict extraction interfaces/semantics untouched.
 2. Keep experimental work focused on metadata-independent reconstruction.
-3. Implement FORMAT-06 as the next graph layer: verified file manifest checkpoints.
+3. Preserve FORMAT-06 command dispatch/runner behavior with targeted regression tests (no semantics changes).
 4. Preserve deterministic comparison ordering/classification and compact grouped metrics outputs.
 5. Keep Phase 2 corpus and frozen artifacts unchanged.
 6. Treat payload identity + manifest truth as the active priority before checkpoint-placement strategy experiments.
@@ -99,3 +100,9 @@ Recovery should degrade in reverse order:
 - Manifest layer now synthesizes file plans when prior mapping stages are empty by joining manifest records with payload-block identity evidence, so FORMAT-06 contributes recoverable planning structure directly.
 - Manifest application now uses `file_digest` for verification in single-block completeness cases (digest must match recovered block raw hash for FULL_* classification).
 - FORMAT-06 comparison summary now aggregates and reports recovery-classification counts/deltas versus FORMAT-05.
+
+
+## Update: CRUSHR-FORMAT-06-f1 dispatch regression fix complete
+- Confirmed `run-format06-comparison` remains a first-argument top-level dispatch path and completes end-to-end via `cargo run -p crushr --bin crushr-lab-salvage`.
+- Added harness regression coverage ensuring FORMAT-06 subcommand token is rejected as positional input-path mode when misplaced.
+- Added help-surface regression assertion for `run-format06-comparison` discoverability alongside existing comparison commands.

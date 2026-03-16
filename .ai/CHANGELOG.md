@@ -593,3 +593,9 @@
 - Upgraded manifest handling from annotation-only to recovery-plan seeding when earlier mapping layers are empty.
 - Added digest-aware manifest completeness classification path (single-block verified case) using `file_digest` vs recovered raw-hash identity.
 - Expanded `format06_comparison_summary` with recovery-classification aggregates and deltas vs FORMAT-05; added regression coverage for format06 command output fields and manifest provenance/classification behavior.
+
+
+## 2026-03-16 — CRUSHR-FORMAT-06-f1 dispatch regression fix
+- Added lab harness regression asserting `--help` includes `run-format06-comparison` to keep the bounded dispatch/help surface discoverable.
+- Added regression that misplaced `run-format06-comparison` is not consumed as positional input-path mode and fails with explicit first-argument subcommand guidance.
+- Revalidated end-to-end `cargo run` command surfaces for both FORMAT-06 and FORMAT-05 comparison workflows including required summary artifact emission.
