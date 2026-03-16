@@ -22,7 +22,9 @@ const USAGE: &str = "usage: crushr-lab-salvage <input_dir> --output <experiment_
        crushr-lab-salvage run-format12-inline-path-comparison --output <comparison_dir> [--verbose]
        crushr-lab-salvage run-format12-stress-comparison --output <comparison_dir> [--verbose]
        crushr-lab-salvage run-format13-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format13-stress-comparison --output <comparison_dir> [--verbose]";
+       crushr-lab-salvage run-format13-stress-comparison --output <comparison_dir> [--verbose]
+       crushr-lab-salvage run-format14a-dictionary-resilience-comparison --output <comparison_dir> [--verbose]
+       crushr-lab-salvage run-format14a-dictionary-resilience-stress-comparison --output <comparison_dir> [--verbose]";
 const VERIFICATION_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
 const EXPERIMENT_SCHEMA_VERSION: &str = "crushr-lab-salvage-experiment.v1";
 const SUMMARY_SCHEMA_VERSION: &str = "crushr-lab-salvage-summary.v1";
@@ -100,6 +102,12 @@ enum Mode {
         comparison_dir: PathBuf,
     },
     RunFormat13StressComparison {
+        comparison_dir: PathBuf,
+    },
+    RunFormat14aDictionaryResilienceComparison {
+        comparison_dir: PathBuf,
+    },
+    RunFormat14aDictionaryResilienceStressComparison {
         comparison_dir: PathBuf,
     },
 }
@@ -502,7 +510,8 @@ use comparison::{
     run_format07_comparison, run_format08_placement_comparison, run_format09_comparison,
     run_format10_pruning_comparison, run_format11_extent_identity_comparison,
     run_format12_inline_path_comparison, run_format12_stress_comparison, run_format13_comparison,
-    run_format13_stress_comparison, run_redundant_map_comparison,
+    run_format13_stress_comparison, run_format14a_dictionary_resilience_comparison,
+    run_format14a_dictionary_resilience_stress_comparison, run_redundant_map_comparison,
 };
 use runner::{
     collect_archives, generate_summary_files, load_runs_from_experiment, run_salvage, to_hex,
@@ -566,6 +575,12 @@ fn run() -> Result<()> {
     }
     if let Mode::RunFormat13StressComparison { comparison_dir } = &opts.mode {
         return run_format13_stress_comparison(comparison_dir, opts.verbose);
+    }
+    if let Mode::RunFormat14aDictionaryResilienceComparison { comparison_dir } = &opts.mode {
+        return run_format14a_dictionary_resilience_comparison(comparison_dir, opts.verbose);
+    }
+    if let Mode::RunFormat14aDictionaryResilienceStressComparison { comparison_dir } = &opts.mode {
+        return run_format14a_dictionary_resilience_stress_comparison(comparison_dir, opts.verbose);
     }
 
     let (experiment_dir, experiment_id, export_fragments_enabled, runs) = match &opts.mode {
@@ -689,6 +704,10 @@ fn run() -> Result<()> {
         | Mode::RunFormat12StressComparison { .. }
         | Mode::RunFormat13Comparison { .. }
         | Mode::RunFormat13StressComparison { .. } => {
+            bail!("internal error: comparison mode in summary pipeline")
+        }
+        Mode::RunFormat14aDictionaryResilienceComparison { .. }
+        | Mode::RunFormat14aDictionaryResilienceStressComparison { .. } => {
             bail!("internal error: comparison mode in summary pipeline")
         }
     };

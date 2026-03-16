@@ -576,3 +576,16 @@ Blast radius:
 - Alternatives considered: pick first-seen copy; majority vote across copies.
 - Rationale: preserve deterministic, strict, fail-closed semantics under corruption.
 - Blast radius: affects only experimental FORMAT-13 metadata profiles and lab-comparison salvage planning.
+
+## 2026-03-16 — FORMAT-14A dictionary placement recommendation under direct dictionary-target corruption
+
+- Decision: keep `extent_identity_path_dict_header_tail` as the lead dictionary-placement candidate; treat `extent_identity_path_dict_single` as too fragile under direct primary-dictionary damage.
+- Alternatives considered:
+  1. Keep single-copy dictionary placement as co-lead despite direct-target fragility.
+  2. Re-introduce quasi-uniform as lead for this packet.
+- Rationale:
+  - Direct dictionary-target scenarios now explicitly demonstrate the required fail-closed behavior and conflict handling.
+  - Header+tail preserves named recovery when one copy is lost while still failing closed to anonymous recovery when both copies are unavailable or inconsistent.
+- Blast radius:
+  - Affects experimental FORMAT-14A recommendation and next-step policy lock only.
+  - No change to canonical `crushr-extract` semantics or default archive behavior.

@@ -1,4 +1,3 @@
-- **CRUSHR-FORMAT-13 is complete**: path-dictionary identity variants (single/header+tail/quasi-uniform) are wired with FORMAT-13 comparison commands and artifacts in `FORMAT13_RESULTS/`.
 # HANDOFF
 
 ## Current focus
@@ -7,6 +6,8 @@
 - **CRUSHR-FORMAT-08 is complete**: experimental metadata placement strategies now exist (`fixed_spread`, `hash_spread`, `golden_spread`) and the bounded placement comparison command is wired and covered.
 - **CRUSHR-FORMAT-09 is complete**: `run-format09-comparison` is now wired and emits survivability/gain evidence across metadata regimes, metadata targets, payload topologies, and placement strategies.
 - **CRUSHR-FORMAT-10 is complete**: pruning variants and comparison harness are wired.
+- **CRUSHR-FORMAT-13 is complete**: path-dictionary identity variants (single/header+tail/quasi-uniform) are wired with FORMAT-13 comparison commands and artifacts in `FORMAT13_RESULTS/`.
+- **CRUSHR-FORMAT-14A is complete**: dictionary-target corruption scenarios are wired with `run-format14a-dictionary-resilience-comparison` and `run-format14a-dictionary-resilience-stress-comparison`, emitting artifacts in `FORMAT14A_RESULTS/`.
 - `crushr-pack` now supports `--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only>` (opt-in).
 - `crushr-lab-salvage run-format10-pruning-comparison --output <dir>` emits `format10_comparison_summary.{json,md}`.
 - **CRUSHR-FORMAT-12 is complete**: inline per-extent path/name identity profile and comparison harness are wired (`run-format12-inline-path-comparison`).
@@ -79,3 +80,6 @@ After structural stability and metadata pruning decisions settle, revisit distri
 ## Latest completion
 - Added `run-format12-stress-comparison` to `crushr-lab-salvage` with deterministic stress datasets and summary artifacts (`format12_stress_comparison_summary.json`, `format12_stress_comparison_summary.md`).
 - Verify CLI wiring with: `cargo run -p crushr --bin crushr-lab-salvage -- run-format12-stress-comparison --help`.
+- Verify FORMAT-14A commands with:
+  - `cargo run -p crushr --bin crushr-lab-salvage -- run-format14a-dictionary-resilience-comparison --help`
+  - `cargo run -p crushr --bin crushr-lab-salvage -- run-format14a-dictionary-resilience-stress-comparison --help`

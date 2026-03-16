@@ -318,3 +318,13 @@ The important thing is that crushr is not being shaped by attachment to earlier 
 ## Read next
 
 For the mechanics behind these results, continue to [Testing Harness](testing-harness.md).
+
+## FORMAT-14A — dictionary-target resilience validation
+
+FORMAT-14A extends the deterministic harness with dictionary-target corruption scenarios focused on dictionary-based identity variants.
+
+- Added targets: `primary_dictionary`, `mirrored_dictionary`, `both_dictionaries`, `inconsistent_dictionaries`.
+- Added commands: `run-format14a-dictionary-resilience-comparison` and `run-format14a-dictionary-resilience-stress-comparison`.
+- Required artifacts: `format14a_dictionary_resilience_summary.{json,md}` and `format14a_dictionary_resilience_stress_summary.{json,md}`.
+
+The packet is explicitly bounded to resilience/fail-closed behavior under dictionary corruption and does not include namespace-factorization or dictionary size redesign work.

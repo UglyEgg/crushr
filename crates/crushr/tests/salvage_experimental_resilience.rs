@@ -867,3 +867,61 @@ fn format13_stress_comparison_command_writes_required_artifacts() {
     assert!(grouped.contains_key("path_length_bucket"));
     assert!(grouped.contains_key("extent_density_bucket"));
 }
+
+#[test]
+fn format14a_dictionary_resilience_comparison_writes_required_artifacts() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format14a");
+
+    run(Command::new(lab_bin)
+        .arg("run-format14a-dictionary-resilience-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format14a_dictionary_resilience_summary.json");
+    assert!(summary_path.exists());
+    assert!(out_dir
+        .join("format14a_dictionary_resilience_summary.md")
+        .exists());
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+
+    for v in [
+        "extent_identity_inline_path",
+        "extent_identity_path_dict_single",
+        "extent_identity_path_dict_header_tail",
+        "payload_plus_manifest",
+    ] {
+        let row = &summary["by_variant"][v];
+        assert!(row["successful_named_recovery_with_primary_dictionary_loss"].is_u64());
+        assert!(row["successful_named_recovery_with_mirror_dictionary_loss"].is_u64());
+        assert!(row["successful_named_recovery_with_both_dictionary_losses"].is_u64());
+        assert!(row["anonymous_fallback_with_primary_dictionary_loss"].is_u64());
+        assert!(row["anonymous_fallback_with_both_dictionary_losses"].is_u64());
+        assert!(row["conflict_fail_closed_count"].is_u64());
+        assert!(row["dictionary_conflict_detected_count"].is_u64());
+    }
+}
+
+#[test]
+fn format14a_dictionary_resilience_stress_comparison_writes_required_artifacts() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format14a-stress");
+
+    run(Command::new(lab_bin)
+        .arg("run-format14a-dictionary-resilience-stress-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format14a_dictionary_resilience_stress_summary.json");
+    assert!(summary_path.exists());
+    assert!(out_dir
+        .join("format14a_dictionary_resilience_stress_summary.md")
+        .exists());
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    let grouped = summary["grouped_breakdown"].as_object().unwrap();
+    assert!(grouped.contains_key("dataset"));
+    assert!(grouped.contains_key("corruption_target"));
+    assert!(grouped.contains_key("stress"));
+}

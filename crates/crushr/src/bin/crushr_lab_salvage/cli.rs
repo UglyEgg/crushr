@@ -91,6 +91,8 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
             || first == "run-format12-stress-comparison"
             || first == "run-format13-comparison"
             || first == "run-format13-stress-comparison"
+            || first == "run-format14a-dictionary-resilience-comparison"
+            || first == "run-format14a-dictionary-resilience-stress-comparison"
         {
             let mut output_dir = None;
             let mut verbose = false;
@@ -161,6 +163,14 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                     }
                 } else if first == "run-format13-stress-comparison" {
                     Mode::RunFormat13StressComparison {
+                        comparison_dir: output_dir.context(USAGE)?,
+                    }
+                } else if first == "run-format14a-dictionary-resilience-comparison" {
+                    Mode::RunFormat14aDictionaryResilienceComparison {
+                        comparison_dir: output_dir.context(USAGE)?,
+                    }
+                } else if first == "run-format14a-dictionary-resilience-stress-comparison" {
+                    Mode::RunFormat14aDictionaryResilienceStressComparison {
                         comparison_dir: output_dir.context(USAGE)?,
                     }
                 } else {
@@ -234,6 +244,8 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                 | "run-format12-inline-path-comparison"
                 | "run-format12-stress-comparison"
                 | "run-format13-comparison"
+                | "run-format14a-dictionary-resilience-comparison"
+                | "run-format14a-dictionary-resilience-stress-comparison"
                 | "run-format13-stress-comparison" => {
                     bail!("subcommand `{arg}` must be used as the first argument\n{USAGE}")
                 }

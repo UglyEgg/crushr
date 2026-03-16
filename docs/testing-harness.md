@@ -113,6 +113,29 @@ This phase directly tested whether metadata layers survive often enough to matte
 
 **Result:** metadata survival counts remained effectively zero, strongly suggesting that the real resilience mechanism is payload truth rather than traditional metadata.
 
+### FORMAT-14A — dictionary-target corruption resilience
+
+This phase directly targets dictionary copy regions for dictionary-based naming variants and checks fail-closed behavior under dictionary loss/conflict.
+
+Corruption targets:
+
+- `primary_dictionary`
+- `mirrored_dictionary`
+- `both_dictionaries`
+- `inconsistent_dictionaries`
+
+Command surfaces:
+
+- `run-format14a-dictionary-resilience-comparison`
+- `run-format14a-dictionary-resilience-stress-comparison`
+
+Outputs:
+
+- `format14a_dictionary_resilience_summary.{json,md}`
+- `format14a_dictionary_resilience_stress_summary.{json,md}`
+
+**Result:** direct dictionary damage is now measured explicitly; decisions can be made on single-copy fragility vs header+tail resilience with conflict-detection fail-closed evidence.
+
 ## What the harness has revealed so far
 
 The biggest lesson from the experiments is this:

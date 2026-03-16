@@ -1,3 +1,10 @@
+## 2026-03-16 — CRUSHR-FORMAT-14A (dictionary-target corruption resilience comparison)
+
+- Added two new lab commands: `run-format14a-dictionary-resilience-comparison` and `run-format14a-dictionary-resilience-stress-comparison`.
+- Extended the corruption harness with explicit dictionary-target scenarios (`primary_dictionary`, `mirrored_dictionary`, `both_dictionaries`, `inconsistent_dictionaries`) and variant-aware dictionary mutation support.
+- Added FORMAT-14A output artifacts: `format14a_dictionary_resilience_summary.{json,md}` and `format14a_dictionary_resilience_stress_summary.{json,md}`.
+- Added focused tests for command wiring/help visibility and required dictionary-target metrics/artifact presence.
+
 ## 2026-03-16 — CRUSHR-FORMAT-10 (metadata pruning experiment + comparison harness)
 
 - Added opt-in packer metadata profile surface: `--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental>`.
