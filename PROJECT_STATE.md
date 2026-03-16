@@ -116,3 +116,9 @@ These remain explicitly deferred until payload identity + file manifest truth ha
 - Preferred implementation is now applied: root `crushr extract` and API `extract_all` delegate to the same strict authoritative extraction implementation used by `crushr-extract`.
 - Legacy extraction surfaces are no longer quarantined; they are compatibility entry points with strict semantics parity.
 - Integration coverage now proves both root `crushr extract` and canonical `crushr-extract` roundtrip correctly from canonical `crushr-pack` archives.
+
+
+## Update: CRUSHR-FORMAT-08 complete
+- Added experimental metadata placement strategy selection for graph-supporting metadata checkpoints: `fixed_spread`, `hash_spread`, `golden_spread`.
+- Strategy scope is limited to metadata layers (path checkpoints + file manifest checkpoints); payload layout semantics are unchanged.
+- Added bounded `run-format08-placement-comparison` workflow; Phase-09 will apply a richer corruption grid on the same strategy surfaces.

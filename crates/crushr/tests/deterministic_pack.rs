@@ -339,3 +339,69 @@ fn crushr_pack_rejects_three_way_collisions_with_stable_source_ordering() {
         "archive should not be created on duplicate"
     );
 }
+
+#[test]
+fn placement_strategy_is_deterministic_per_strategy() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    for i in 0..6 {
+        fs::write(input.join(format!("f{i}.txt")), format!("payload-{i}")).unwrap();
+    }
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    for strategy in ["fixed_spread", "hash_spread", "golden_spread"] {
+        let a = td.path().join(format!("{strategy}-a.crushr"));
+        let b = td.path().join(format!("{strategy}-b.crushr"));
+        run(Command::new(bin).args([
+            input.to_str().unwrap(),
+            "-o",
+            a.to_str().unwrap(),
+            "--level",
+            "3",
+            "--experimental-self-identifying-blocks",
+            "--experimental-file-manifest-checkpoints",
+            "--placement-strategy",
+            strategy,
+        ]));
+        run(Command::new(bin).args([
+            input.to_str().unwrap(),
+            "-o",
+            b.to_str().unwrap(),
+            "--level",
+            "3",
+            "--experimental-self-identifying-blocks",
+            "--experimental-file-manifest-checkpoints",
+            "--placement-strategy",
+            strategy,
+        ]));
+        assert_eq!(fs::read(a).unwrap(), fs::read(b).unwrap());
+    }
+}
+
+#[test]
+fn placement_strategies_differ_for_representative_archive_size() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    for i in 0..9 {
+        fs::write(input.join(format!("f{i}.txt")), format!("payload-{i}")).unwrap();
+    }
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let mut outputs = Vec::new();
+    for strategy in ["fixed_spread", "hash_spread", "golden_spread"] {
+        let a = td.path().join(format!("{strategy}.crushr"));
+        run(Command::new(bin).args([
+            input.to_str().unwrap(),
+            "-o",
+            a.to_str().unwrap(),
+            "--level",
+            "3",
+            "--experimental-self-identifying-blocks",
+            "--experimental-file-manifest-checkpoints",
+            "--placement-strategy",
+            strategy,
+        ]));
+        outputs.push(fs::read(a).unwrap());
+    }
+    assert!(outputs[0] != outputs[1] || outputs[1] != outputs[2] || outputs[0] != outputs[2]);
+}

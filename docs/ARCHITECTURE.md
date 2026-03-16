@@ -148,3 +148,13 @@ To reduce layered patch breakage risk without changing semantics, salvage resear
 - `crushr-lab-salvage`: `cli` (dispatch), `runner` (archive collection/salvage execution/summaries), `comparison` (scenario generation/corruption/comparison reports).
 
 This split is internal-only and preserves existing command behavior and output contracts.
+
+
+## Experimental metadata placement strategies (CRUSHR-FORMAT-08)
+- Experimental writer mode supports metadata placement strategies: `fixed_spread`, `hash_spread`, `golden_spread`.
+- Scope is graph-supporting metadata surfaces only: `crushr-path-checkpoint.v1` and `crushr-file-manifest-checkpoint.v1` checkpoint emissions.
+- Payload block ordering and payload physical layout are unchanged by these strategies.
+- `fixed_spread`: deterministic early/middle/late style schedule.
+- `hash_spread`: deterministic pseudo-random schedule from stable archive seed material.
+- `golden_spread`: deterministic low-discrepancy schedule via golden-ratio stepping.
+- Phase-09 will stress these surfaces with a richer corruption grid; this packet remains bounded and opt-in.

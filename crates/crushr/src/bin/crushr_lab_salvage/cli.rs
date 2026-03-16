@@ -83,6 +83,7 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
             || first == "run-format05-comparison"
             || first == "run-format06-comparison"
             || first == "run-format07-comparison"
+            || first == "run-format08-placement-comparison"
         {
             let mut output_dir = None;
             let mut verbose = false;
@@ -121,6 +122,10 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                     }
                 } else if first == "run-format07-comparison" {
                     Mode::RunFormat07Comparison {
+                        comparison_dir: output_dir.context(USAGE)?,
+                    }
+                } else if first == "run-format08-placement-comparison" {
+                    Mode::RunFormat08PlacementComparison {
                         comparison_dir: output_dir.context(USAGE)?,
                     }
                 } else {

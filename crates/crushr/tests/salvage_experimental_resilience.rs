@@ -432,3 +432,68 @@ exec \"{}\" \"$@\"
     let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
     assert_eq!(summary["scenario_count"], 24);
 }
+
+#[test]
+fn format08_comparison_command_reports_required_fields() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format08");
+
+    run(Command::new(lab_bin)
+        .arg("run-format08-placement-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format08_comparison_summary.json");
+    assert!(summary_path.exists());
+    assert!(out_dir.join("format08_comparison_summary.md").exists());
+
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    assert_eq!(summary["placement_strategies"].as_array().unwrap().len(), 3);
+    let by = summary["by_placement_strategy"].as_object().unwrap();
+    assert!(by.contains_key("fixed_spread"));
+    assert!(by.contains_key("hash_spread"));
+    assert!(by.contains_key("golden_spread"));
+    for key in ["fixed_spread", "hash_spread", "golden_spread"] {
+        let row = &by[key];
+        assert!(row["recovery_outcome_counts"].is_object());
+        assert!(row["recovery_classification_counts"].is_object());
+        assert!(row["manifest_checkpoint_survival_count"].is_u64());
+        assert!(row["path_checkpoint_survival_count"].is_u64());
+        assert!(row["verified_metadata_node_count"].is_u64());
+    }
+}
+
+#[test]
+fn format08_comparison_command_is_not_treated_as_input_path() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let out = Command::new(lab_bin)
+        .arg("placeholder-input")
+        .arg("run-format08-placement-comparison")
+        .arg("--output")
+        .arg("/tmp/nowhere")
+        .output()
+        .expect("run misplaced command");
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("unexpected argument")
+            || stderr.contains("unsupported argument")
+            || stderr.contains("usage:")
+    );
+}
+
+#[test]
+fn format07_comparison_command_still_dispatches_after_format08() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format07-regression");
+
+    run(Command::new(lab_bin)
+        .arg("run-format07-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    assert!(out_dir.join("format07_comparison_summary.json").exists());
+    assert!(out_dir.join("format07_comparison_summary.md").exists());
+}

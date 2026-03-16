@@ -993,11 +993,9 @@ pub(super) fn verify_and_apply_manifest_expectations(
             };
             if plan.file_size == manifest.file_size
                 && plan.required_block_ids.len() as u64 == manifest.expected_block_count
-                && digest_match
+                && !digest_match
             {
-                if !digest_match {
-                    plan.failure_reasons.push("manifest_digest_not_verified");
-                }
+                plan.failure_reasons.push("manifest_digest_not_verified");
             }
             plan.recovery_classification =
                 classify_from_verified_graph(plan, &verified_graph, Some(manifest.file_id));

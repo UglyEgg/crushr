@@ -5,7 +5,7 @@
 - `crushr-lab-salvage` now includes `run-format07-comparison` with CLI/help/dispatch wiring and summary artifacts (`format07_comparison_summary.json` + `.md`).
 - CRUSHR-FORMAT-05, -f1, -f2, -f3, and -f4 are complete; FORMAT-05 comparison now has behavioral runner/packer contract checks, no `crushr-pack --help` dependency, and `cargo run` operability via sibling salvage/pack auto-build fallback.
 - CRUSHR-SCRUB-02 and CRUSHR-SCRUB-02-f1 are complete: `crushr-pack` now rejects duplicate logical archive paths before archive emission with deterministic, stably ordered collision source errors.
-- The next active packet is **CRUSHR-FORMAT-06**: verified file manifest checkpoints as the next recovery-graph layer.
+- The next active packet is **CRUSHR-SCRUB-04 / next user packet** after CRUSHR-FORMAT-08 completion.
 
 ## Important behavior locks
 - `crushr-extract` remains strict-only and unchanged.
@@ -93,3 +93,9 @@
 - Added focused harness regressions for FORMAT-06 dispatch safety: help now explicitly checked for `run-format06-comparison`, and misplaced `run-format06-comparison` is hard-rejected as non-positional in experiment mode.
 - Revalidated both comparison commands from user report path: `cargo run -p crushr --bin crushr-lab-salvage -- run-format06-comparison --output <tmp>` and FORMAT-05 equivalent both complete and emit expected summary artifacts.
 - No semantics/contract changes to FORMAT-05/06 comparison workflows; fix is dispatch-guard and regression-hardening only.
+
+
+## Update: CRUSHR-FORMAT-08 complete
+- Added opt-in metadata placement strategies (`fixed_spread`, `hash_spread`, `golden_spread`) for graph-supporting metadata checkpoint placement.
+- Added `run-format08-placement-comparison` in `crushr-lab-salvage`; output artifacts: `format08_comparison_summary.json` and `.md`.
+- FORMAT-07 command dispatch remains intact and regression-covered.
