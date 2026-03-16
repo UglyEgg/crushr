@@ -57,7 +57,8 @@
   - measure whether weak duplicated metadata surfaces should be retained or pruned
   - keep the packet format-neutral: evaluation harness/reporting only
 - [x] 3.21 CRUSHR-FORMAT-10 (metadata pruning experiment + four-variant recovery/size comparison harness)
-- [ ] 3.22 CRUSHR-FORMAT-11 (metadata keep/prune decision lock from FORMAT-10 evidence)
+- [x] 3.22 CRUSHR-FORMAT-11 (distributed extent-identity experiment + FORMAT-11 comparison harness)
+- [ ] 3.23 CRUSHR-FORMAT-12 (metadata keep/prune decision lock from FORMAT-10/11 evidence)
 
 ## Security scrub track
 

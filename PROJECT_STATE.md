@@ -33,7 +33,7 @@ Non-negotiable baseline:
 - Phase 2 execution matrix: complete and frozen.
 - Phase 2 normalization: complete and frozen.
 - Phase 2 comparison/ranking analysis: complete and frozen.
-- Current experimental direction after FORMAT-10: payload identity remains the primary recovery truth, and metadata layers are now under explicit pruning evaluation. FORMAT-10 adds a bounded four-variant comparison (`full_current_experimental`, `payload_only`, `payload_plus_manifest`, `payload_plus_path`) to test recovery impact vs archive-size overhead.
+- Current experimental direction after FORMAT-11: payload identity remains the primary recovery truth, and metadata layers are now under explicit pruning evaluation. FORMAT-11 adds the bounded `extent_identity_only` experiment to test distributed structure-first recovery (anonymous by design, no path fields in local extent identity records) against FORMAT-10 baselines for recovery impact vs archive-size overhead.
 
 Canonical Phase 2 workspace root remains `PHASE2_RESEARCH/`.
 
@@ -70,11 +70,12 @@ Recovery should degrade in reverse order:
   - `hash_spread`
   - `golden_spread`
 
-### FORMAT-09 / FORMAT-10 active boundary
+### FORMAT-09 / FORMAT-11 active boundary
 
 - FORMAT-09 established metadata survivability evidence and showed near-zero verified checkpoint survival in the bounded matrix.
-- FORMAT-10 is a pruning experiment, not a canonical format change.
+- FORMAT-10/11 are pruning experiments, not canonical format changes.
 - FORMAT-10 compares four metadata profiles and records both recovery outcomes and size overhead (`format10_comparison_summary.{json,md}`).
+- FORMAT-11 compares `payload_only`, `payload_plus_manifest`, `full_current_experimental`, and `extent_identity_only`, emitting `format11_comparison_summary.{json,md}` for distributed extent-identity evidence.
 - It must not weaken `crushr-extract` or redefine canonical extraction semantics.
 
 ## Near-term product-completeness track (planned, not active yet)

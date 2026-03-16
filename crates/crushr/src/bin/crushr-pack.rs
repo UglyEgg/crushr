@@ -11,7 +11,7 @@ use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
 
 const ZSTD_CODEC: u32 = 1;
-const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  -h, --help                                 print this help text";
+const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  -h, --help                                 print this help text";
 
 #[derive(Clone, Copy, Debug)]
 enum PlacementStrategy {
@@ -36,6 +36,7 @@ enum MetadataProfile {
     PayloadPlusManifest,
     PayloadPlusPath,
     FullCurrentExperimental,
+    ExtentIdentityOnly,
 }
 
 impl PlacementStrategy {
@@ -64,6 +65,7 @@ impl MetadataProfile {
             "payload_plus_manifest" => Ok(Self::PayloadPlusManifest),
             "payload_plus_path" => Ok(Self::PayloadPlusPath),
             "full_current_experimental" => Ok(Self::FullCurrentExperimental),
+            "extent_identity_only" => Ok(Self::ExtentIdentityOnly),
             _ => bail!("unsupported metadata profile: {value}"),
         }
     }
@@ -74,6 +76,7 @@ impl MetadataProfile {
             Self::PayloadPlusManifest => "payload_plus_manifest",
             Self::PayloadPlusPath => "payload_plus_path",
             Self::FullCurrentExperimental => "full_current_experimental",
+            Self::ExtentIdentityOnly => "extent_identity_only",
         }
     }
 

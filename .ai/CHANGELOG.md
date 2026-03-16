@@ -534,3 +534,10 @@
 - Added explicit near-term product-completeness track for Unix metadata preservation (including xattrs and core Unix file-object metadata) so crushr can close the common tar-on-Unix criticism cleanly.
 - Added explicit post-stabilization optimization track for distributed dictionary experiments, with the reminder that dictionary work must obey the same verification/dependency discipline as the rest of the format.
 - Marked Phase-09 as the point where weak metadata layers can be judged and potentially pruned if they add archive size without enough survivability benefit.
+
+## 2026-03-16 — CRUSHR-FORMAT-11 (distributed extent-identity experiment + comparison harness)
+
+- Added `extent_identity_only` metadata profile in `crushr-pack` and wired it through deterministic experimental metadata emission.
+- Extended payload-identity salvage planning to keep ordered partial classifications when total extent coverage is incomplete.
+- Added `run-format11-extent-identity-comparison` CLI wiring + runner output artifacts: `format11_comparison_summary.json` and `format11_comparison_summary.md`.
+- Added tests for format11 command dispatch/reporting, format10 non-regression, and payload-identity grouping/ordered-partial behavior.
