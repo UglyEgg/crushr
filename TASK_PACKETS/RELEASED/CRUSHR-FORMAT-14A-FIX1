@@ -1,0 +1,77 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-FORMAT-14A-FIX1
+
+Title
+Repair dictionary-corruption salvage classification and outcome reporting
+
+Role
+BUILDER
+
+Objective
+Fix the dictionary-corruption experiment implementation so every scenario produces a valid recovery classification and dictionary-aware variants behave according to the intended fail-closed/anonymous-fallback semantics.
+
+Context
+
+FORMAT-14A result artifacts are invalid as decision evidence.
+
+Observed defect signature:
+- all recovery outcome counts are zero for all variants
+- inline-path variant also loses all classification under dictionary-target scenarios
+- inconsistent-dictionary scenarios report no detected conflicts
+- archive sizes are present, indicating scenario generation/execution occurred, but recovery classification did not complete correctly
+
+This packet is a code-repair packet, not a new research packet.
+
+Required fixes
+
+1. Ensure every salvage run ends in exactly one classification:
+- named recovery
+- anonymous full recovery
+- partial ordered recovery
+- partial unordered recovery
+- orphan evidence
+- no verified evidence
+
+2. Ensure dictionary load failure does not abort classification.
+It must:
+- disable named recovery when appropriate
+- continue salvage where payload/extent identity still permits it
+- classify final result
+
+3. Ensure `extent_identity_inline_path` bypasses dictionary resolution entirely and classifies normally under dictionary-target scenarios.
+
+4. Ensure `extent_identity_path_dict_single` behaves as:
+- primary dictionary destroyed -> no named recovery
+- anonymous fallback if extents still verify
+
+5. Ensure `extent_identity_path_dict_header_tail` behaves as:
+- one dictionary copy destroyed + one intact -> named recovery still possible
+- both destroyed -> anonymous fallback
+- conflicting copies -> detect conflict and fail closed for naming
+
+6. Ensure `inconsistent_dictionaries` scenarios actually create an inconsistency visible to validation code.
+
+Required tests
+
+- classifier always emits exactly one terminal outcome
+- inline-path variant remains classifiable under dictionary-target scenarios
+- single-dictionary loss yields anonymous fallback when extents verify
+- header+tail survives one-copy loss for named recovery
+- both-copy loss yields anonymous fallback
+- inconsistent copies increment conflict detection and fail-closed counters
+
+Required reruns
+
+Re-run:
+- format14a_dictionary_resilience_summary
+- format14a_dictionary_resilience_stress_summary
+
+Submission requirements
+
+Include:
+- patch/diff
+- exact commands run
+- updated JSON/Markdown artifacts
+- one-paragraph explanation of root cause
