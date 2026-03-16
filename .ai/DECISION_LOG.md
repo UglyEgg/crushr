@@ -597,3 +597,18 @@ Blast radius:
   3. Delegate both compatibility surfaces to shared strict implementation (chosen).
 - Rationale: preferred packet outcome requires supported extraction surfaces to converge on a single authoritative implementation rather than relying on unsupported stubs.
 - Blast radius: root/API extraction behavior changes from explicit unsupported errors back to supported strict extraction behavior; tests/docs updated accordingly.
+
+## 2026-03-16 — CRUSHR-FORMAT-07 recovery class semantics are graph-derived verified evidence classes
+
+- Decision:
+  - Salvage recovery classification now derives from a verified relationship graph (`block -> extent -> file_manifest -> path`) rather than flat per-plan heuristics.
+  - Recovery classes are now the ordered FORMAT-07 set: `FULL_NAMED_VERIFIED`, `FULL_ANONYMOUS_VERIFIED`, `PARTIAL_ORDERED_VERIFIED`, `PARTIAL_UNORDERED_VERIFIED`, `ORPHAN_EVIDENCE_ONLY`, `NO_VERIFIED_EVIDENCE`.
+- Alternatives considered:
+  1. Keep legacy `FULL_VERIFIED/FULL_ANONYMOUS/PARTIAL_* /ORPHAN_BLOCKS` labels and only add FORMAT-07 comparison command.
+  2. Add new classes without graph-backed derivation.
+  3. Graph-backed derivation + explicit class replacement (chosen).
+- Rationale:
+  - Packet objective requires verified-graph reasoning and explicit recovery class determination without archive-format layout changes.
+- Blast radius:
+  - `crushr-salvage` plan `file_plans[*].recovery_classification` values changed.
+  - Comparison summaries and tests now track FORMAT-07 class names.

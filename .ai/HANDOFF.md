@@ -1,6 +1,8 @@
 # HANDOFF
 
 ## Current focus
+- **CRUSHR-FORMAT-07 is complete**: salvage now classifies from verified graph relationships (block->extent->manifest->path) and emits explicit verified classes (`FULL_NAMED_VERIFIED`, `FULL_ANONYMOUS_VERIFIED`, `PARTIAL_ORDERED_VERIFIED`, `PARTIAL_UNORDERED_VERIFIED`, `ORPHAN_EVIDENCE_ONLY`, `NO_VERIFIED_EVIDENCE`).
+- `crushr-lab-salvage` now includes `run-format07-comparison` with CLI/help/dispatch wiring and summary artifacts (`format07_comparison_summary.json` + `.md`).
 - CRUSHR-FORMAT-05, -f1, -f2, -f3, and -f4 are complete; FORMAT-05 comparison now has behavioral runner/packer contract checks, no `crushr-pack --help` dependency, and `cargo run` operability via sibling salvage/pack auto-build fallback.
 - CRUSHR-SCRUB-02 and CRUSHR-SCRUB-02-f1 are complete: `crushr-pack` now rejects duplicate logical archive paths before archive emission with deterministic, stably ordered collision source errors.
 - The next active packet is **CRUSHR-FORMAT-06**: verified file manifest checkpoints as the next recovery-graph layer.

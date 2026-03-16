@@ -260,7 +260,7 @@ fn format06_archive_uses_manifest_path_when_primary_and_ledger_are_unusable() {
     );
     assert_eq!(
         plan["file_plans"][0]["recovery_classification"],
-        "FULL_VERIFIED"
+        "FULL_NAMED_VERIFIED"
     );
 }
 
@@ -297,6 +297,46 @@ fn format06_comparison_command_reports_recovery_classification_deltas() {
     );
     assert!(
         summary["recovery_classification_delta_vs_format05"]["orphan_blocks_delta"].is_number()
+    );
+}
+
+#[test]
+fn format07_comparison_command_reports_graph_classification_fields() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format07");
+
+    run(Command::new(lab_bin)
+        .arg("run-format07-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format07_comparison_summary.json");
+    assert!(summary_path.exists());
+    assert!(out_dir.join("format07_comparison_summary.md").exists());
+
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    assert_eq!(summary["scenario_count"], 24);
+    assert!(summary["format07_outcome_counts"].is_object());
+    assert!(summary["format07_recovery_classification_counts"].is_object());
+    assert!(
+        summary["recovery_classification_delta_vs_format06"]["full_named_verified_delta"]
+            .is_number()
+    );
+    assert!(
+        summary["recovery_classification_delta_vs_format06"]["full_anonymous_verified_delta"]
+            .is_number()
+    );
+    assert!(
+        summary["recovery_classification_delta_vs_format06"]["partial_ordered_verified_delta"]
+            .is_number()
+    );
+    assert!(summary["recovery_classification_delta_vs_format06"]
+        ["partial_unordered_verified_delta"]
+        .is_number());
+    assert!(
+        summary["recovery_classification_delta_vs_format06"]["orphan_evidence_only_delta"]
+            .is_number()
     );
 }
 

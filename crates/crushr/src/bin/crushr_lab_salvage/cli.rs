@@ -24,6 +24,14 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                     "--verbose" => {
                         verbose = true;
                     }
+                    "--help" | "-h" => {
+                        return Ok(CliOptions {
+                            mode: Mode::Help,
+                            export_fragments: false,
+                            limit: None,
+                            verbose: false,
+                        });
+                    }
                     _ => bail!("unsupported comparison argument: {arg}"),
                 }
             }
@@ -48,6 +56,14 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                     "--verbose" => {
                         verbose = true;
                     }
+                    "--help" | "-h" => {
+                        return Ok(CliOptions {
+                            mode: Mode::Help,
+                            export_fragments: false,
+                            limit: None,
+                            verbose: false,
+                        });
+                    }
                     _ => bail!("unsupported comparison argument: {arg}"),
                 }
             }
@@ -66,6 +82,7 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
             || first == "run-format04-comparison"
             || first == "run-format05-comparison"
             || first == "run-format06-comparison"
+            || first == "run-format07-comparison"
         {
             let mut output_dir = None;
             let mut verbose = false;
@@ -76,6 +93,14 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                     }
                     "--verbose" => {
                         verbose = true;
+                    }
+                    "--help" | "-h" => {
+                        return Ok(CliOptions {
+                            mode: Mode::Help,
+                            export_fragments: false,
+                            limit: None,
+                            verbose: false,
+                        });
                     }
                     _ => bail!("unsupported comparison argument: {arg}"),
                 }
@@ -92,6 +117,10 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                     }
                 } else if first == "run-format06-comparison" {
                     Mode::RunFormat06Comparison {
+                        comparison_dir: output_dir.context(USAGE)?,
+                    }
+                } else if first == "run-format07-comparison" {
+                    Mode::RunFormat07Comparison {
                         comparison_dir: output_dir.context(USAGE)?,
                     }
                 } else {
@@ -156,7 +185,8 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                 | "run-file-identity-comparison"
                 | "run-format04-comparison"
                 | "run-format05-comparison"
-                | "run-format06-comparison" => {
+                | "run-format06-comparison"
+                | "run-format07-comparison" => {
                     bail!("subcommand `{arg}` must be used as the first argument\n{USAGE}")
                 }
                 _ if arg.starts_with('-') => bail!("unsupported flag: {arg}"),
