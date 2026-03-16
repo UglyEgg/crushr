@@ -62,7 +62,7 @@
 - [x] 3.21 CRUSHR-FORMAT-10 (metadata pruning experiment + four-variant recovery/size comparison harness)
 - [x] 3.22 CRUSHR-FORMAT-11 (distributed extent-identity experiment + FORMAT-11 comparison harness)
 - [x] 3.23 CRUSHR-FORMAT-12 (inline per-extent path/name identity + FORMAT-12 comparison harness and artifacts)
-- [ ] 3.24 CRUSHR-FORMAT-13 (compact distributed-name follow-up or keep/demote/prune lock)
+- [x] 3.24 CRUSHR-FORMAT-13 (compact distributed-name follow-up evidence packet completed: path-dictionary variants + baseline/stress outputs)
 
 ## Security scrub track
 

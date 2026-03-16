@@ -569,3 +569,10 @@ Blast radius:
 - Blast radius: `crushr-pack`, `crushr-salvage`, and `crushr-lab-salvage` experimental comparison/reporting only.
 
 - Update (same packet): `extent_identity_distributed_names` is retained as a required FORMAT-12 comparison arm (distributed path checkpoints without inline per-extent path duplication) for direct evidence against inline naming and manifest-heavy controls.
+
+## 2026-03-16 — FORMAT-13 dictionary identity fail-closed policy
+
+- Decision: dictionary-based naming recovery requires a verified surviving dictionary copy; if multiple surviving copies disagree, salvage does not guess and falls back to anonymous recovery.
+- Alternatives considered: pick first-seen copy; majority vote across copies.
+- Rationale: preserve deterministic, strict, fail-closed semantics under corruption.
+- Blast radius: affects only experimental FORMAT-13 metadata profiles and lab-comparison salvage planning.

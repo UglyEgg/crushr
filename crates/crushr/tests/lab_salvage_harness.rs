@@ -81,6 +81,8 @@ fn help_lists_supported_comparison_commands() {
     assert!(stdout.contains("run-format11-extent-identity-comparison"));
     assert!(stdout.contains("run-format12-inline-path-comparison"));
     assert!(stdout.contains("run-format12-stress-comparison"));
+    assert!(stdout.contains("run-format13-comparison"));
+    assert!(stdout.contains("run-format13-stress-comparison"));
     assert!(stdout.contains("run-redundant-map-comparison"));
 }
 

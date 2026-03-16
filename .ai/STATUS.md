@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-FORMAT-12-STRESS complete** (deterministic inline-naming stress comparison + artifacts)
+Current Step: **CRUSHR-FORMAT-13 complete** (dictionary-encoded path identity variants + baseline/stress comparison artifacts)
 
-Immediate Next Step: **CRUSHR-FORMAT-13 follow-up packet** (decide compact distributed-name design vs keep/demote/prune from FORMAT-12 evidence; now informed by FORMAT-12 stress comparison)
+Immediate Next Step: **Policy lock follow-up** (review FORMAT-13 evidence to keep inline path vs adopt a dictionary-placement winner)
 
 ## Current truth
 
@@ -23,6 +23,7 @@ Immediate Next Step: **CRUSHR-FORMAT-13 follow-up packet** (decide compact distr
 - FORMAT-11 adds `extent_identity_only` (distributed per-extent identity via payload-block identity records; no local path/name fields) and emits `format11_comparison_summary.{json,md}` with recovery/size deltas vs `payload_plus_manifest`.
 - FORMAT-12 adds `extent_identity_inline_path` (inline verified `name`/`path`/`path_digest` embedded in each payload identity record) and `extent_identity_distributed_names` (distributed checkpoint naming), and emits `format12_comparison_summary.{json,md}` for naming-gain vs size-cost evidence.
 - FORMAT-12 stress packet (`CRUSHR-FORMAT-12-STRESS`) adds `run-format12-stress-comparison` and emits `format12_stress_comparison_summary.{json,md}` over deterministic `deep_paths`, `long_names`, `fragmentation_heavy`, and `mixed_worst_case` datasets, including overhead/path/extent metrics and explicit evaluation answers.
+- FORMAT-13 adds `extent_identity_path_dict_single`, `extent_identity_path_dict_header_tail`, and `extent_identity_path_dict_quasi_uniform`, plus `run-format13-comparison` and `run-format13-stress-comparison` with artifacts `format13_comparison_summary.{json,md}` and `format13_stress_comparison_summary.{json,md}`.
 
 ## Active constraints
 

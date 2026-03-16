@@ -195,6 +195,7 @@ struct PayloadBlockIdentityRecord {
     name: Option<String>,
     path: Option<String>,
     path_digest_blake3: Option<String>,
+    path_id: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Clone)]

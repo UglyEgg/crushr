@@ -811,3 +811,59 @@ fn format12_stress_comparison_command_is_not_treated_as_input_path() {
             || stderr.contains("usage:")
     );
 }
+
+#[test]
+fn format13_comparison_command_writes_required_artifacts() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format13");
+
+    run(Command::new(lab_bin)
+        .arg("run-format13-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format13_comparison_summary.json");
+    assert!(summary_path.exists());
+    assert!(out_dir.join("format13_comparison_summary.md").exists());
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    let variants = summary["variants"].as_array().unwrap();
+    for v in [
+        "payload_only",
+        "extent_identity_inline_path",
+        "extent_identity_path_dict_single",
+        "extent_identity_path_dict_header_tail",
+        "extent_identity_path_dict_quasi_uniform",
+        "payload_plus_manifest",
+    ] {
+        assert!(variants.iter().any(|x| x == v));
+        let row = &summary["by_variant"][v];
+        assert!(row["dictionary_entry_count"].is_u64());
+        assert!(row["dictionary_total_bytes"].is_u64());
+        assert!(row["number_of_dictionary_copies"].is_u64());
+    }
+}
+
+#[test]
+fn format13_stress_comparison_command_writes_required_artifacts() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format13-stress");
+
+    run(Command::new(lab_bin)
+        .arg("run-format13-stress-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format13_stress_comparison_summary.json");
+    assert!(summary_path.exists());
+    assert!(out_dir
+        .join("format13_stress_comparison_summary.md")
+        .exists());
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    let grouped = summary["grouped_breakdown"].as_object().unwrap();
+    assert!(grouped.contains_key("dataset"));
+    assert!(grouped.contains_key("corruption_target"));
+    assert!(grouped.contains_key("path_length_bucket"));
+    assert!(grouped.contains_key("extent_density_bucket"));
+}

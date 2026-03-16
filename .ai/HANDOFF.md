@@ -1,3 +1,4 @@
+- **CRUSHR-FORMAT-13 is complete**: path-dictionary identity variants (single/header+tail/quasi-uniform) are wired with FORMAT-13 comparison commands and artifacts in `FORMAT13_RESULTS/`.
 # HANDOFF
 
 ## Current focus

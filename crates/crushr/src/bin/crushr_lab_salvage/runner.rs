@@ -46,7 +46,9 @@ pub(super) fn collect_archives(opts: &CliOptions) -> Result<Vec<ArchiveRun>> {
         | Mode::RunFormat10PruningComparison { .. }
         | Mode::RunFormat11ExtentIdentityComparison { .. }
         | Mode::RunFormat12InlinePathComparison { .. }
-        | Mode::RunFormat12StressComparison { .. } => {
+        | Mode::RunFormat12StressComparison { .. }
+        | Mode::RunFormat13Comparison { .. }
+        | Mode::RunFormat13StressComparison { .. } => {
             bail!("internal error: collect_archives outside run mode")
         }
     };

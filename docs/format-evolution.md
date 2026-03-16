@@ -296,6 +296,9 @@ FORMAT-12/12-STRESS compare at least:
 - `payload_plus_manifest`
 - `full_current_experimental`
 - `extent_identity_inline_path`
+- `extent_identity_path_dict_single`
+- `extent_identity_path_dict_header_tail`
+- `extent_identity_path_dict_quasi_uniform`
 
 and answer whether embedding name/path truth into local extent identity buys enough named recovery to justify its byte cost.
 

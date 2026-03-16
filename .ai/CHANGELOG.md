@@ -555,3 +555,5 @@
 - Added required artifact filenames `format12_stress_comparison_summary.json` and `format12_stress_comparison_summary.md` (while retaining legacy compatibility copies).
 - Added deterministic fixture test coverage in `comparison.rs` plus stress visibility assertions in `salvage_experimental_resilience.rs` for path-length and extent-density stress guarantees.
 - Saved generated artifacts under `PHASE2_RESEARCH/FORMAT12_STRESS_RESULTS/`.
+
+- 2026-03-16: Completed CRUSHR-FORMAT-13. Added path-dictionary metadata profiles (`extent_identity_path_dict_single`, `extent_identity_path_dict_header_tail`, `extent_identity_path_dict_quasi_uniform`), dictionary-aware salvage fail-closed handling, `run-format13-comparison`, `run-format13-stress-comparison`, and generated `FORMAT13_RESULTS/format13*_comparison_summary.{json,md}` artifacts.

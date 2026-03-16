@@ -94,7 +94,9 @@ Expected payload families:
 
 ## FORMAT-12 experimental payload identity extension
 
-When `--metadata-profile extent_identity_inline_path` is used, each `crushr-payload-block-identity.v1` record additionally carries:
+When `--metadata-profile extent_identity_inline_path` is used
+
+When `--metadata-profile` is one of `extent_identity_path_dict_single`, `extent_identity_path_dict_header_tail`, or `extent_identity_path_dict_quasi_uniform`, each `crushr-payload-block-identity.v1` record carries `path_id` (instead of inline `path`/`name`) and the archive emits one or more `crushr-path-dictionary-copy.v1` records with `{path_id, path, path_digest_blake3}` entries., each `crushr-payload-block-identity.v1` record additionally carries:
 - `name`
 - `path`
 - `path_digest_blake3`

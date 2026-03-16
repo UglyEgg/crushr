@@ -180,4 +180,6 @@ This split is internal-only and preserves existing command behavior and output c
 
 ## Experimental inline per-extent naming (CRUSHR-FORMAT-12)
 
-FORMAT-12 introduces an experimental metadata profile `extent_identity_inline_path` that keeps payload identity distributed while embedding verified local naming (`name`, `path`, `path_digest_blake3`) directly in each payload-block identity record. Salvage may use this path only when digest-verified and internally name-consistent; otherwise it falls back to checkpoint path maps or anonymous recovery. This does not change strict extraction semantics.
+FORMAT-12 introduces an experimental metadata profile `extent_identity_inline_path`
+
+FORMAT-13 extends this family with dictionary-encoded path identity variants where payload identity records carry `path_id` and naming is recovered only when a verified `crushr-path-dictionary-copy.v1` survives. Dictionary copies are deterministically placed by profile (header-only, header+tail, or quasi-uniform interior mirrors). Conflicting surviving dictionary copies fail closed to anonymous recovery. that keeps payload identity distributed while embedding verified local naming (`name`, `path`, `path_digest_blake3`) directly in each payload-block identity record. Salvage may use this path only when digest-verified and internally name-consistent; otherwise it falls back to checkpoint path maps or anonymous recovery. This does not change strict extraction semantics.

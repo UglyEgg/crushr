@@ -332,6 +332,52 @@ pub(super) fn parse_payload_block_path_checkpoints(values: &[Value]) -> BTreeMap
     out
 }
 
+pub(super) fn parse_payload_block_path_dictionary(
+    values: &[Value],
+) -> (BTreeMap<u32, String>, bool) {
+    let mut canonical: Option<BTreeMap<u32, String>> = None;
+    let mut conflict = false;
+    for value in values {
+        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-path-dictionary-copy.v1") {
+            continue;
+        }
+        let Some(entries) = value.get("entries").and_then(|v| v.as_array()) else {
+            continue;
+        };
+        let mut map = BTreeMap::new();
+        for entry in entries {
+            let Some(path_id_u64) = entry.get("path_id").and_then(|v| v.as_u64()) else {
+                continue;
+            };
+            let Ok(path_id) = u32::try_from(path_id_u64) else {
+                continue;
+            };
+            let Some(path) = entry.get("path").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let Some(path_digest) = entry.get("path_digest_blake3").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
+            if computed != path_digest {
+                continue;
+            }
+            map.insert(path_id, path.to_string());
+        }
+        if map.is_empty() {
+            continue;
+        }
+        if let Some(existing) = &canonical {
+            if existing != &map {
+                conflict = true;
+            }
+        } else {
+            canonical = Some(map);
+        }
+    }
+    (canonical.unwrap_or_default(), conflict)
+}
+
 pub(super) fn parse_payload_block_identity_records(
     values: &[Value],
 ) -> Vec<PayloadBlockIdentityRecord> {
@@ -408,6 +454,10 @@ pub(super) fn parse_payload_block_identity_records(
             .get("path_digest_blake3")
             .and_then(|v| v.as_str())
             .map(|v| v.to_string());
+        let path_id = value
+            .get("path_id")
+            .and_then(|v| v.as_u64())
+            .and_then(|v| u32::try_from(v).ok());
         out.push(PayloadBlockIdentityRecord {
             archive_identity: archive_identity.to_string(),
             file_id,
@@ -425,6 +475,7 @@ pub(super) fn parse_payload_block_identity_records(
             name,
             path,
             path_digest_blake3,
+            path_id,
         });
     }
     out
@@ -437,6 +488,7 @@ pub(super) fn verify_and_plan_payload_block_identity_records(
     verified_candidate_offsets: &BTreeSet<u64>,
 ) -> Result<Vec<FilePlan>> {
     let path_map = parse_payload_block_path_checkpoints(values);
+    let (path_dictionary, dictionary_conflict) = parse_payload_block_path_dictionary(values);
     let mut grouped: BTreeMap<String, PayloadIdentityGroup> = BTreeMap::new();
     for record in records {
         if record.total_block_count == 0 {
@@ -484,9 +536,19 @@ pub(super) fn verify_and_plan_payload_block_identity_records(
             }
             _ => None,
         };
-        let path = inline_verified_path
-            .or_else(|| path_map.get(&record.file_id).cloned())
-            .unwrap_or_else(|| format!("anonymous_verified/file_{:08}.bin", record.file_id));
+        let path = if dictionary_conflict {
+            inline_verified_path
+                .unwrap_or_else(|| format!("anonymous_verified/file_{:08}.bin", record.file_id))
+        } else {
+            inline_verified_path
+                .or_else(|| {
+                    record
+                        .path_id
+                        .and_then(|id| path_dictionary.get(&id).cloned())
+                })
+                .or_else(|| path_map.get(&record.file_id).cloned())
+                .unwrap_or_else(|| format!("anonymous_verified/file_{:08}.bin", record.file_id))
+        };
         let entry = grouped.entry(path).or_insert_with(|| {
             (
                 record.archive_identity.clone(),
@@ -1238,6 +1300,7 @@ mod tests {
             name: None,
             path: None,
             path_digest_blake3: None,
+            path_id: None,
         }];
         let manifests = BTreeMap::from([(7u32, manifest(7, Some("named/a.txt"), 1))]);
         let path_map = BTreeMap::from([(7u32, "named/a.txt".to_string())]);
@@ -1401,6 +1464,7 @@ mod tests {
                 name: None,
                 path: None,
                 path_digest_blake3: None,
+                path_id: None,
             },
             PayloadBlockIdentityRecord {
                 archive_identity: "aid".to_string(),
@@ -1419,6 +1483,7 @@ mod tests {
                 name: None,
                 path: None,
                 path_digest_blake3: None,
+                path_id: None,
             },
         ];
         let values = vec![
@@ -1484,6 +1549,7 @@ mod tests {
             name: None,
             path: None,
             path_digest_blake3: None,
+            path_id: None,
         }];
         let values = vec![serde_json::json!({
             "schema": "crushr-payload-block-identity.v1",
@@ -1533,6 +1599,7 @@ mod tests {
             name: Some("file.txt".to_string()),
             path: Some(path.to_string()),
             path_digest_blake3: Some(to_hex(blake3::hash(path.as_bytes()).as_bytes())),
+            path_id: None,
         }];
         let values = vec![serde_json::json!({
             "schema": "crushr-payload-block-identity.v1",
@@ -1580,6 +1647,7 @@ mod tests {
             name: Some("wrong.txt".to_string()),
             path: Some("nested/file.txt".to_string()),
             path_digest_blake3: Some("00".repeat(32)),
+            path_id: None,
         }];
         let values = vec![serde_json::json!({
             "schema": "crushr-payload-block-identity.v1",
@@ -1605,6 +1673,86 @@ mod tests {
 
         assert_eq!(plans.len(), 1);
         assert!(plans[0].file_path.starts_with("anonymous_verified/"));
+        assert_eq!(plans[0].recovery_classification, "FULL_ANONYMOUS_VERIFIED");
+    }
+}
+
+#[cfg(test)]
+mod format13_dictionary_tests {
+    use super::*;
+
+    #[test]
+    fn path_dictionary_parser_is_deterministic() {
+        let values = vec![serde_json::json!({
+            "schema": "crushr-path-dictionary-copy.v1",
+            "entries": [
+                {"path_id": 0, "path": "a/b.txt", "path_digest_blake3": to_hex(blake3::hash("a/b.txt".as_bytes()).as_bytes())},
+                {"path_id": 1, "path": "c.txt", "path_digest_blake3": to_hex(blake3::hash("c.txt".as_bytes()).as_bytes())}
+            ]
+        })];
+        let (a, conflict_a) = parse_payload_block_path_dictionary(&values);
+        let (b, conflict_b) = parse_payload_block_path_dictionary(&values);
+        assert_eq!(a, b);
+        assert!(!conflict_a);
+        assert!(!conflict_b);
+    }
+
+    #[test]
+    fn conflicting_dictionary_copies_fail_closed_to_anonymous() {
+        let records = vec![PayloadBlockIdentityRecord {
+            archive_identity: "aid".to_string(),
+            file_id: 7,
+            block_index: 0,
+            total_block_count: 1,
+            full_file_size: 6,
+            logical_offset: 0,
+            logical_length: 6,
+            payload_codec: 1,
+            payload_length: 6,
+            block_id: 1,
+            block_scan_offset: Some(10),
+            payload_hash_blake3: "p1".to_string(),
+            raw_hash_blake3: "r1".to_string(),
+            name: None,
+            path: None,
+            path_digest_blake3: None,
+            path_id: Some(0),
+        }];
+        let values = vec![
+            serde_json::json!({
+                "schema": "crushr-payload-block-identity.v1",
+                "block_id": 1,
+                "content_identity": {"payload_hash_blake3":"p1", "raw_hash_blake3":"r1"},
+            }),
+            serde_json::json!({
+                "schema": "crushr-path-dictionary-copy.v1",
+                "entries": [
+                    {"path_id": 0, "path": "one.txt", "path_digest_blake3": to_hex(blake3::hash("one.txt".as_bytes()).as_bytes())}
+                ]
+            }),
+            serde_json::json!({
+                "schema": "crushr-path-dictionary-copy.v1",
+                "entries": [
+                    {"path_id": 0, "path": "two.txt", "path_digest_blake3": to_hex(blake3::hash("two.txt".as_bytes()).as_bytes())}
+                ]
+            }),
+        ];
+        let block_verification = BTreeMap::from([(
+            1u32,
+            BlockVerification {
+                content_verified: true,
+                verified_raw_len: Some(6),
+            },
+        )]);
+        let verified_offsets = BTreeSet::from([10u64]);
+
+        let plans = verify_and_plan_payload_block_identity_records(
+            records,
+            &values,
+            &block_verification,
+            &verified_offsets,
+        )
+        .unwrap();
         assert_eq!(plans[0].recovery_classification, "FULL_ANONYMOUS_VERIFIED");
     }
 }
