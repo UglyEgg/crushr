@@ -35,10 +35,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r docs/requirements.txt
 
-      - name: Build docs
-        run: |
-          ./scripts/build_docs.sh
-
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
