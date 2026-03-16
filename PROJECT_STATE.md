@@ -79,6 +79,7 @@ Recovery should degrade in reverse order:
 - FORMAT-12 adds `extent_identity_inline_path` and `extent_identity_distributed_names`, and emits `format12_comparison_summary.{json,md}` with grouped recovery/size analysis including path-length duplication visibility.
 - FORMAT-12 stress comparison command (`run-format12-stress-comparison`) now emits `format12_stress_comparison_summary.{json,md}` over deterministic `deep_paths`, `long_names`, `fragmentation_heavy`, and `mixed_worst_case` datasets to measure worst-case inline path-duplication overhead.
 - FORMAT-13 adds dictionary-encoded path identity variants (`extent_identity_path_dict_single`, `extent_identity_path_dict_header_tail`, `extent_identity_path_dict_quasi_uniform`) and new lab commands `run-format13-comparison` + `run-format13-stress-comparison` for baseline/stress evidence.
+- FORMAT-14A adds direct dictionary-target corruption resilience comparisons via `run-format14a-dictionary-resilience-comparison` and `run-format14a-dictionary-resilience-stress-comparison`, with targets `primary_dictionary`, `mirrored_dictionary`, `both_dictionaries`, and `inconsistent_dictionaries`.
 - It must not weaken `crushr-extract` or redefine canonical extraction semantics.
 
 ## Near-term product-completeness track (planned, not active yet)

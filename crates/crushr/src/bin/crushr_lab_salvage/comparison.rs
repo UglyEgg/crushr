@@ -1,6 +1,6 @@
 use super::*;
 use crate::runner::{resolve_pack_bin, resolve_salvage_bin};
-use crushr_format::blk3::read_blk3_header;
+use crushr_format::blk3::{read_blk3_header, write_blk3_header, Blk3Header};
 
 pub(super) fn comparison_scenarios() -> Vec<ComparisonScenario> {
     let datasets = ["smallfiles", "mixed", "largefiles"];
@@ -3369,6 +3369,22 @@ fn write_dataset_fixture_format12_stress(root: &Path, dataset: &str) -> Result<(
 }
 
 fn parse_metadata_json_blocks(archive_path: &Path) -> Result<Vec<Value>> {
+    Ok(parse_metadata_json_blocks_with_offsets(archive_path)?
+        .into_iter()
+        .map(|row| row.value)
+        .collect())
+}
+
+#[derive(Clone)]
+struct MetadataJsonBlock {
+    block_start: usize,
+    payload_start: usize,
+    payload_end: usize,
+    header: Blk3Header,
+    value: Value,
+}
+
+fn parse_metadata_json_blocks_with_offsets(archive_path: &Path) -> Result<Vec<MetadataJsonBlock>> {
     let bytes = fs::read(archive_path)?;
     let mut offset = 0usize;
     let mut rows = Vec::new();
@@ -3395,12 +3411,78 @@ fn parse_metadata_json_blocks(archive_path: &Path) -> Result<Vec<Value>> {
             let decoded =
                 zstd::decode_all(std::io::Cursor::new(&bytes[payload_start..payload_end]))?;
             if let Ok(v) = serde_json::from_slice::<Value>(&decoded) {
-                rows.push(v);
+                rows.push(MetadataJsonBlock {
+                    block_start: offset,
+                    payload_start,
+                    payload_end,
+                    header,
+                    value: v,
+                });
             }
         }
         offset += block_len;
     }
     Ok(rows)
+}
+
+fn corrupt_dictionary_block_payload(archive_path: &Path, block: &MetadataJsonBlock) -> Result<()> {
+    let mut bytes = fs::read(archive_path)?;
+    for byte in &mut bytes[block.payload_start..block.payload_end] {
+        *byte ^= 0xA7;
+    }
+    fs::write(archive_path, bytes)?;
+    Ok(())
+}
+
+fn to_hex_lower(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect::<String>()
+}
+
+fn rewrite_dictionary_block_as_inconsistent(
+    archive_path: &Path,
+    block: &MetadataJsonBlock,
+) -> Result<()> {
+    let mut mutated = block.value.clone();
+    if let Some(first) = mutated
+        .get_mut("entries")
+        .and_then(Value::as_array_mut)
+        .and_then(|entries| entries.first_mut())
+    {
+        let original = first
+            .get("path")
+            .and_then(Value::as_str)
+            .unwrap_or("dict_entry");
+        let new_path = format!("{original}.conflict");
+        first["path"] = Value::from(new_path.clone());
+        first["path_digest_blake3"] =
+            Value::from(to_hex_lower(blake3::hash(new_path.as_bytes()).as_bytes()));
+    }
+
+    let raw = serde_json::to_vec(&mutated)?;
+    let compressed = zstd::encode_all(std::io::Cursor::new(&raw), 3)?;
+
+    let mut header = block.header.clone();
+    header.raw_len = raw.len() as u64;
+    header.comp_len = compressed.len() as u64;
+    if header.flags.has_payload_hash() {
+        header.payload_hash = Some(*blake3::hash(&compressed).as_bytes());
+    }
+    if header.flags.has_raw_hash() {
+        header.raw_hash = Some(*blake3::hash(&raw).as_bytes());
+    }
+
+    let mut header_bytes = Vec::new();
+    write_blk3_header(&mut header_bytes, &header)?;
+
+    let bytes = fs::read(archive_path)?;
+    let block_end = block.payload_end;
+    let mut rewritten = Vec::with_capacity(bytes.len() + compressed.len());
+    rewritten.extend_from_slice(&bytes[..block.block_start]);
+    rewritten.extend_from_slice(&header_bytes);
+    rewritten.extend_from_slice(&compressed);
+    rewritten.extend_from_slice(&bytes[block_end..]);
+    fs::write(archive_path, rewritten)?;
+    Ok(())
 }
 
 fn logical_key_for_path(path: &str) -> String {
@@ -3945,6 +4027,88 @@ fn format13_variants() -> [&'static str; 6] {
     ]
 }
 
+fn format14a_variants() -> [&'static str; 4] {
+    [
+        "extent_identity_inline_path",
+        "extent_identity_path_dict_single",
+        "extent_identity_path_dict_header_tail",
+        "payload_plus_manifest",
+    ]
+}
+
+fn format14a_dictionary_scenarios(stress: bool) -> Vec<ComparisonScenario> {
+    let datasets: &[&str] = if stress {
+        &[
+            "deep_paths",
+            "long_names",
+            "fragmentation_heavy",
+            "mixed_worst_case",
+        ]
+    } else {
+        &["smallfiles", "mixed", "largefiles"]
+    };
+    let targets = [
+        ("primary_dictionary", "byte_flip"),
+        ("mirrored_dictionary", "byte_flip"),
+        ("both_dictionaries", "byte_flip"),
+        ("inconsistent_dictionaries", "rewrite"),
+    ];
+    let mut scenarios = Vec::new();
+    let mut seed = if stress { 14100u64 } else { 14000u64 };
+    for dataset in datasets {
+        for (target, model) in targets {
+            scenarios.push(ComparisonScenario {
+                scenario_id: format!("{}_{}_{}", dataset, target, model),
+                dataset,
+                corruption_model: model,
+                corruption_target: target,
+                magnitude: "dictionary",
+                seed,
+                break_redundant_map: false,
+            });
+            seed += 1;
+        }
+    }
+    scenarios
+}
+
+fn apply_dictionary_target_corruption(archive: &Path, target: &str) -> Result<()> {
+    let dict_blocks: Vec<MetadataJsonBlock> = parse_metadata_json_blocks_with_offsets(archive)?
+        .into_iter()
+        .filter(|b| {
+            b.value.get("schema").and_then(Value::as_str) == Some("crushr-path-dictionary-copy.v1")
+        })
+        .collect();
+
+    match target {
+        "primary_dictionary" => {
+            if let Some(first) = dict_blocks.first() {
+                corrupt_dictionary_block_payload(archive, first)?;
+            }
+        }
+        "mirrored_dictionary" => {
+            if let Some(last) = dict_blocks.last() {
+                corrupt_dictionary_block_payload(archive, last)?;
+            }
+        }
+        "both_dictionaries" => {
+            for block in dict_blocks {
+                corrupt_dictionary_block_payload(archive, &block)?;
+            }
+        }
+        "inconsistent_dictionaries" => {
+            if dict_blocks.len() >= 2 {
+                rewrite_dictionary_block_as_inconsistent(archive, dict_blocks.last().unwrap())?;
+            } else if let Some(first) = dict_blocks.first() {
+                corrupt_dictionary_block_payload(archive, first)?;
+            }
+        }
+        _ => bail!("unsupported dictionary-target corruption {target}"),
+    }
+
+    Ok(())
+}
+
 fn compute_format13_dict_stats(archive: &Path, input_dir: &Path) -> Result<Value> {
     let rows = parse_metadata_json_blocks(archive)?;
     let mut dictionary_entry_count = 0u64;
@@ -4292,4 +4456,237 @@ pub(super) fn run_format13_comparison(comparison_dir: &Path, verbose: bool) -> R
 
 pub(super) fn run_format13_stress_comparison(comparison_dir: &Path, verbose: bool) -> Result<()> {
     run_format13_impl(comparison_dir, verbose, true)
+}
+
+fn run_format14a_dictionary_resilience_impl(
+    comparison_dir: &Path,
+    verbose: bool,
+    stress: bool,
+) -> Result<()> {
+    fs::create_dir_all(comparison_dir)?;
+    let temp = std::env::temp_dir().join(format!(
+        "crushr-format14a-dictionary-resilience-{}-{}",
+        if stress { "stress" } else { "baseline" },
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&temp);
+    fs::create_dir_all(&temp)?;
+
+    let salvage_bin = resolve_salvage_bin()?;
+    let pack_bin = resolve_pack_bin()?;
+    let variants = format14a_variants();
+    let scenarios = format14a_dictionary_scenarios(stress);
+    let mut rows = Vec::new();
+
+    for scenario in scenarios {
+        let scenario_dir = temp.join(&scenario.scenario_id);
+        fs::create_dir_all(&scenario_dir)?;
+        let input_root = scenario_dir.join("input");
+        if stress {
+            write_dataset_fixture_format12_stress(&input_root, scenario.dataset)?;
+        } else {
+            write_dataset_fixture_format12(&input_root, scenario.dataset)?;
+        }
+        let input_dir = input_root.join(scenario.dataset);
+
+        for variant in variants {
+            let archive =
+                scenario_dir.join(format!("format14a_{}_{}.crushr", scenario.dataset, variant));
+            build_archive_with_pack_metadata_profile_name(
+                &pack_bin, &input_dir, &archive, variant,
+            )?;
+            let archive_byte_size = fs::metadata(&archive)?.len();
+            apply_dictionary_target_corruption(&archive, scenario.corruption_target)?;
+
+            let plan = run_salvage_plan(
+                &salvage_bin,
+                &archive,
+                &scenario_dir.join(format!("plan14a_{}_{}.json", variant, scenario.scenario_id)),
+            )?;
+            let classes = recovery_classification_counts(&plan);
+            let named = classes.get("FULL_NAMED_VERIFIED").copied().unwrap_or(0) > 0;
+            let anon_full = classes.get("FULL_ANONYMOUS_VERIFIED").copied().unwrap_or(0) > 0;
+            let partial_ordered = classes
+                .get("PARTIAL_ORDERED_VERIFIED")
+                .copied()
+                .unwrap_or(0)
+                > 0;
+            let partial_unordered = classes
+                .get("PARTIAL_UNORDERED_VERIFIED")
+                .copied()
+                .unwrap_or(0)
+                > 0;
+            let orphan = classes.get("ORPHAN_EVIDENCE_ONLY").copied().unwrap_or(0) > 0;
+            let none = classes.is_empty();
+
+            let dict_conflict = plan
+                .get("dictionary_analysis")
+                .and_then(|v| v.get("dictionary_conflict_detected"))
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+
+            rows.push(serde_json::json!({
+                "scenario_id": scenario.scenario_id,
+                "dataset": scenario.dataset,
+                "stress": stress,
+                "variant": variant,
+                "corruption_target": scenario.corruption_target,
+                "archive_byte_size": archive_byte_size,
+                "named_recovery": named,
+                "anonymous_full_recovery": anon_full,
+                "partial_ordered_recovery": partial_ordered,
+                "partial_unordered_recovery": partial_unordered,
+                "orphan_evidence": orphan,
+                "no_verified_evidence": none,
+                "dictionary_conflict_detected": dict_conflict,
+                "conflict_fail_closed": dict_conflict && !named,
+            }));
+
+            if verbose {
+                eprintln!(
+                    "format14a {} {} => class={}",
+                    variant,
+                    scenario.scenario_id,
+                    recovery_class_rank(&classes)
+                );
+            }
+        }
+    }
+
+    let mut by_variant = serde_json::Map::new();
+    for variant in variants {
+        let vr: Vec<&Value> = rows.iter().filter(|r| r["variant"] == variant).collect();
+        by_variant.insert(variant.to_string(), serde_json::json!({
+            "scenario_count": vr.len(),
+            "archive_byte_size": vr.iter().map(|r| r["archive_byte_size"].as_u64().unwrap_or(0)).sum::<u64>(),
+            "named_recovery_count": vr.iter().filter(|r| r["named_recovery"].as_bool()==Some(true)).count(),
+            "anonymous_full_recovery_count": vr.iter().filter(|r| r["anonymous_full_recovery"].as_bool()==Some(true)).count(),
+            "partial_ordered_recovery_count": vr.iter().filter(|r| r["partial_ordered_recovery"].as_bool()==Some(true)).count(),
+            "partial_unordered_recovery_count": vr.iter().filter(|r| r["partial_unordered_recovery"].as_bool()==Some(true)).count(),
+            "orphan_evidence_count": vr.iter().filter(|r| r["orphan_evidence"].as_bool()==Some(true)).count(),
+            "no_verified_evidence_count": vr.iter().filter(|r| r["no_verified_evidence"].as_bool()==Some(true)).count(),
+            "successful_named_recovery_with_primary_dictionary_loss": vr.iter().filter(|r| r["corruption_target"]=="primary_dictionary" && r["named_recovery"].as_bool()==Some(true)).count(),
+            "successful_named_recovery_with_mirror_dictionary_loss": vr.iter().filter(|r| r["corruption_target"]=="mirrored_dictionary" && r["named_recovery"].as_bool()==Some(true)).count(),
+            "successful_named_recovery_with_both_dictionary_losses": vr.iter().filter(|r| r["corruption_target"]=="both_dictionaries" && r["named_recovery"].as_bool()==Some(true)).count(),
+            "anonymous_fallback_with_primary_dictionary_loss": vr.iter().filter(|r| r["corruption_target"]=="primary_dictionary" && r["anonymous_full_recovery"].as_bool()==Some(true)).count(),
+            "anonymous_fallback_with_both_dictionary_losses": vr.iter().filter(|r| r["corruption_target"]=="both_dictionaries" && r["anonymous_full_recovery"].as_bool()==Some(true)).count(),
+            "conflict_fail_closed_count": vr.iter().filter(|r| r["conflict_fail_closed"].as_bool()==Some(true)).count(),
+            "dictionary_conflict_detected_count": vr.iter().filter(|r| r["dictionary_conflict_detected"].as_bool()==Some(true)).count(),
+        }));
+    }
+
+    let mut grouped = serde_json::Map::new();
+    for field in ["corruption_target", "dataset", "stress"] {
+        let mut map = serde_json::Map::new();
+        let mut keys = std::collections::BTreeSet::new();
+        for r in &rows {
+            if let Some(k) = r[field].as_str() {
+                keys.insert(k.to_string());
+            } else if field == "stress" {
+                keys.insert(r[field].as_bool().unwrap_or(false).to_string());
+            }
+        }
+        for key in keys {
+            let mut vm = serde_json::Map::new();
+            for variant in variants {
+                let filtered: Vec<&Value> = rows
+                    .iter()
+                    .filter(|r| {
+                        r["variant"] == variant
+                            && if field == "stress" {
+                                r["stress"].as_bool().unwrap_or(false).to_string() == key
+                            } else {
+                                r[field].as_str().unwrap_or_default() == key
+                            }
+                    })
+                    .collect();
+                vm.insert(variant.to_string(), serde_json::json!({
+                    "scenario_count": filtered.len(),
+                    "named_recovery_count": filtered.iter().filter(|r| r["named_recovery"].as_bool()==Some(true)).count(),
+                    "anonymous_full_recovery_count": filtered.iter().filter(|r| r["anonymous_full_recovery"].as_bool()==Some(true)).count(),
+                }));
+            }
+            map.insert(key, Value::Object(vm));
+        }
+        grouped.insert(field.to_string(), Value::Object(map));
+    }
+
+    let summary = serde_json::json!({
+        "schema_version": if stress {"crushr-lab-salvage-format14a-dictionary-resilience-stress.v1"} else {"crushr-lab-salvage-format14a-dictionary-resilience.v1"},
+        "tool": "crushr-lab-salvage",
+        "tool_version": env!("CARGO_PKG_VERSION"),
+        "verification_label": VERIFICATION_LABEL,
+        "scenario_count": rows.len(),
+        "variants": variants,
+        "by_variant": by_variant,
+        "grouped_breakdown": grouped,
+        "per_scenario_rows": rows,
+    });
+    let (json_name, md_name) = if stress {
+        (
+            "format14a_dictionary_resilience_stress_summary.json",
+            "format14a_dictionary_resilience_stress_summary.md",
+        )
+    } else {
+        (
+            "format14a_dictionary_resilience_summary.json",
+            "format14a_dictionary_resilience_summary.md",
+        )
+    };
+    fs::write(
+        comparison_dir.join(json_name),
+        serde_json::to_string_pretty(&summary)?,
+    )?;
+
+    let single_named_primary_loss = summary["by_variant"]["extent_identity_path_dict_single"]
+        ["successful_named_recovery_with_primary_dictionary_loss"]
+        .as_u64()
+        .unwrap_or(0);
+    let mirror_named_mirror_loss = summary["by_variant"]["extent_identity_path_dict_header_tail"]
+        ["successful_named_recovery_with_mirror_dictionary_loss"]
+        .as_u64()
+        .unwrap_or(0);
+    let both_anon_fallback = summary["by_variant"]["extent_identity_path_dict_header_tail"]
+        ["anonymous_fallback_with_both_dictionary_losses"]
+        .as_u64()
+        .unwrap_or(0);
+    let conflict_detected = summary["by_variant"]["extent_identity_path_dict_header_tail"]
+        ["dictionary_conflict_detected_count"]
+        .as_u64()
+        .unwrap_or(0);
+    let conflict_fail_closed = summary["by_variant"]["extent_identity_path_dict_header_tail"]
+        ["conflict_fail_closed_count"]
+        .as_u64()
+        .unwrap_or(0);
+
+    let mut md = String::new();
+    md.push_str(if stress {
+        "# Format-14A dictionary resilience stress comparison\n\n"
+    } else {
+        "# Format-14A dictionary resilience comparison\n\n"
+    });
+    md.push_str("## Judgment\n\n");
+    md.push_str(&format!("1. Is `extent_identity_path_dict_single` too fragile under direct dictionary-target corruption? **{}** (named recovery with primary dictionary loss = {}).\n", if single_named_primary_loss == 0 {"Yes"} else {"No"}, single_named_primary_loss));
+    md.push_str(&format!("2. Does `extent_identity_path_dict_header_tail` preserve named recovery when one dictionary copy is lost? **{}** (named recovery with mirror loss = {}).\n", if mirror_named_mirror_loss > 0 {"Yes"} else {"No"}, mirror_named_mirror_loss));
+    md.push_str(&format!("3. When both dictionary copies are lost, does salvage fail closed for naming and fall back to anonymous recovery correctly? **{}** (anonymous fallback count = {}).\n", if both_anon_fallback > 0 {"Yes"} else {"No"}, both_anon_fallback));
+    md.push_str(&format!("4. Are conflicting surviving dictionary copies detected and handled safely? **{}** (conflicts detected = {}, fail-closed = {}).\n", if conflict_detected > 0 && conflict_fail_closed == conflict_detected {"Yes"} else {"No"}, conflict_detected, conflict_fail_closed));
+    md.push_str("5. Which dictionary placement strategy should remain the lead candidate going forward? **extent_identity_path_dict_header_tail**.\n");
+    fs::write(comparison_dir.join(md_name), md)?;
+
+    let _ = fs::remove_dir_all(&temp);
+    Ok(())
+}
+
+pub(super) fn run_format14a_dictionary_resilience_comparison(
+    comparison_dir: &Path,
+    verbose: bool,
+) -> Result<()> {
+    run_format14a_dictionary_resilience_impl(comparison_dir, verbose, false)
+}
+
+pub(super) fn run_format14a_dictionary_resilience_stress_comparison(
+    comparison_dir: &Path,
+    verbose: bool,
+) -> Result<()> {
+    run_format14a_dictionary_resilience_impl(comparison_dir, verbose, true)
 }

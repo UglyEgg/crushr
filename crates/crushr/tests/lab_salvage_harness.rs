@@ -83,6 +83,8 @@ fn help_lists_supported_comparison_commands() {
     assert!(stdout.contains("run-format12-stress-comparison"));
     assert!(stdout.contains("run-format13-comparison"));
     assert!(stdout.contains("run-format13-stress-comparison"));
+    assert!(stdout.contains("run-format14a-dictionary-resilience-comparison"));
+    assert!(stdout.contains("run-format14a-dictionary-resilience-stress-comparison"));
     assert!(stdout.contains("run-redundant-map-comparison"));
 }
 
