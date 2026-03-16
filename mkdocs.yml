@@ -1,15 +1,30 @@
 site_name: crushr
 site_description: Integrity-first archival and salvage-first compression format documentation
 site_url: https://crushr.entropy.quest/
+
 repo_name: crushr
+
 nav:
   - Welcome: index.md
   - Format Evolution: format-evolution.md
   - Testing Harness: testing-harness.md
-theme:
-  name: readthedocs
+
+name: mkdocs
+color_mode: auto
+user_color_mode_toggle: true
+
 markdown_extensions:
   - admonition
+  - attr_list
   - tables
   - toc:
       permalink: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+extra_javascript:
+  - javascripts/mermaid-init.js
+  - https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js
