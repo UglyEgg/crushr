@@ -52,9 +52,10 @@
   - validate full named / full anonymous / partial ordered recovery rules
   - target header/index/tail cases that FORMAT-05 still leaves as orphan evidence
   - keep the work experimental and opt-in only
-- [ ] 3.17 Future: graph-aware salvage reasoning
-  - choose the best surviving verified recovery path
-  - mature the content-addressed recovery graph beyond payload identity + manifests
+- [x] 3.17 CRUSHR-FORMAT-07 (graph-aware salvage reasoning + explicit recovery-class determination + format07 comparison command wiring)
+  - build verified relationship graph from surviving records (block->extent->manifest->path)
+  - classify recovery from connected verified evidence using ordered FORMAT-07 classes
+  - extend lab comparison harness with `run-format07-comparison` JSON/Markdown outputs and delta reporting
 - [ ] 3.18 Future: placement-strategy experiments (deferred)
   - deterministic distributed-hash checkpoint placement
   - deterministic low-discrepancy / golden-ratio placement

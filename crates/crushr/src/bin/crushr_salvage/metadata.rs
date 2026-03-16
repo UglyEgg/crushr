@@ -715,6 +715,116 @@ pub(super) struct FileManifestRecord {
     file_digest: String,
 }
 
+#[derive(Debug, Default)]
+struct VerifiedRelationshipGraph {
+    block_to_extent_edges: Vec<(u32, (u32, u64))>,
+    extent_to_manifest_edges: Vec<((u32, u64), u32)>,
+    manifest_to_path_edges: Vec<(u32, String)>,
+    extent_ordinals_by_file: BTreeMap<u32, BTreeSet<u64>>,
+    manifest_expected_count: BTreeMap<u32, u64>,
+    manifest_has_path: BTreeMap<u32, bool>,
+}
+
+fn build_verified_graph(
+    payload_records: &[PayloadBlockIdentityRecord],
+    manifests: &BTreeMap<u32, FileManifestRecord>,
+    path_map: &BTreeMap<u32, String>,
+) -> VerifiedRelationshipGraph {
+    let mut graph = VerifiedRelationshipGraph::default();
+    let mut block_owner = BTreeMap::<u32, u32>::new();
+    let mut rejected_blocks = BTreeSet::<u32>::new();
+
+    for record in payload_records {
+        if let Some(prev_owner) = block_owner.insert(record.block_id, record.file_id) {
+            if prev_owner != record.file_id {
+                rejected_blocks.insert(record.block_id);
+            }
+        }
+    }
+
+    for (&file_id, manifest) in manifests {
+        graph
+            .manifest_expected_count
+            .insert(file_id, manifest.expected_block_count);
+        graph.manifest_has_path.insert(
+            file_id,
+            path_map.contains_key(&file_id) || manifest.path.is_some(),
+        );
+    }
+
+    for record in payload_records {
+        if rejected_blocks.contains(&record.block_id) || !manifests.contains_key(&record.file_id) {
+            continue;
+        }
+        let extent_node = (record.file_id, record.block_index);
+        graph
+            .block_to_extent_edges
+            .push((record.block_id, extent_node));
+        graph
+            .extent_to_manifest_edges
+            .push((extent_node, record.file_id));
+        graph
+            .extent_ordinals_by_file
+            .entry(record.file_id)
+            .or_default()
+            .insert(record.block_index);
+    }
+
+    for (&file_id, path) in path_map {
+        if manifests.contains_key(&file_id) {
+            graph.manifest_to_path_edges.push((file_id, path.clone()));
+        }
+    }
+
+    graph
+}
+
+fn classify_from_verified_graph(
+    plan: &FilePlan,
+    graph: &VerifiedRelationshipGraph,
+    manifest_file_id: Option<u32>,
+) -> &'static str {
+    let block_count = plan.required_block_ids.len() as u64;
+    let ordering_from_extents = plan.extents.windows(2).all(|w| w[0].offset <= w[1].offset);
+
+    let Some(file_id) = manifest_file_id else {
+        return if block_count > 0 {
+            "ORPHAN_EVIDENCE_ONLY"
+        } else {
+            "NO_VERIFIED_EVIDENCE"
+        };
+    };
+
+    let has_manifest = graph.manifest_expected_count.contains_key(&file_id);
+    let expected_count = graph
+        .manifest_expected_count
+        .get(&file_id)
+        .copied()
+        .unwrap_or(0);
+    let has_path = graph
+        .manifest_has_path
+        .get(&file_id)
+        .copied()
+        .unwrap_or(false);
+    let ordering_known = ordering_from_extents
+        || graph
+            .extent_ordinals_by_file
+            .get(&file_id)
+            .is_some_and(|ordinals| !ordinals.is_empty());
+
+    if has_manifest && block_count == expected_count && has_path {
+        "FULL_NAMED_VERIFIED"
+    } else if has_manifest && block_count == expected_count {
+        "FULL_ANONYMOUS_VERIFIED"
+    } else if block_count > 0 && ordering_known {
+        "PARTIAL_ORDERED_VERIFIED"
+    } else if block_count > 0 {
+        "PARTIAL_UNORDERED_VERIFIED"
+    } else {
+        "ORPHAN_EVIDENCE_ONLY"
+    }
+}
+
 pub(super) fn parse_file_manifest_records(values: &[Value]) -> Vec<FileManifestRecord> {
     let mut out = Vec::new();
     for value in values {
@@ -777,6 +887,8 @@ pub(super) fn verify_and_apply_manifest_expectations(
         manifest_by_id.insert(m.file_id, m);
     }
 
+    let payload_records = parse_payload_block_identity_records(values);
+    let verified_graph = build_verified_graph(&payload_records, &manifest_by_id, &payload_path_map);
     let mut block_raw_hash = BTreeMap::new();
     for value in values {
         if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-payload-block-identity.v1")
@@ -800,7 +912,6 @@ pub(super) fn verify_and_apply_manifest_expectations(
     }
 
     if plans.is_empty() {
-        let payload_records = parse_payload_block_identity_records(values);
         let mut by_file_id: BTreeMap<u32, Vec<PayloadBlockIdentityRecord>> = BTreeMap::new();
         for record in payload_records {
             by_file_id.entry(record.file_id).or_default().push(record);
@@ -841,13 +952,7 @@ pub(super) fn verify_and_apply_manifest_expectations(
             }
             plans.push(FilePlan {
                 mapping_provenance,
-                recovery_classification: if extents.is_empty() {
-                    "ORPHAN_BLOCKS"
-                } else if extents.windows(2).all(|w| w[0].offset <= w[1].offset) {
-                    "PARTIAL_ORDERED"
-                } else {
-                    "PARTIAL_UNORDERED"
-                },
+                recovery_classification: "ORPHAN_EVIDENCE_ONLY",
                 file_path: manifest
                     .path
                     .clone()
@@ -890,24 +995,17 @@ pub(super) fn verify_and_apply_manifest_expectations(
                 && plan.required_block_ids.len() as u64 == manifest.expected_block_count
                 && digest_match
             {
-                plan.recovery_classification = if plan.file_path.starts_with("anonymous_verified/")
-                {
-                    "FULL_ANONYMOUS"
-                } else {
-                    "FULL_VERIFIED"
-                };
-            } else if plan.extents.windows(2).all(|w| w[0].offset <= w[1].offset) {
                 if !digest_match {
                     plan.failure_reasons.push("manifest_digest_not_verified");
                 }
-                plan.recovery_classification = "PARTIAL_ORDERED";
-            } else {
-                plan.recovery_classification = "PARTIAL_UNORDERED";
             }
+            plan.recovery_classification =
+                classify_from_verified_graph(plan, &verified_graph, Some(manifest.file_id));
         } else if plan.status == "UNMAPPABLE" {
-            plan.recovery_classification = "ORPHAN_BLOCKS";
+            plan.recovery_classification = "ORPHAN_EVIDENCE_ONLY";
         } else if plan.status == "UNSALVAGEABLE" {
-            plan.recovery_classification = "PARTIAL_ORDERED";
+            plan.recovery_classification =
+                classify_from_verified_graph(plan, &verified_graph, None);
         }
     }
 
@@ -943,7 +1041,7 @@ pub(super) fn verify_and_plan_experimental_records(
     let mut plans = verify_and_plan_redundant_map(files, block_verification)?;
     for plan in &mut plans {
         plan.mapping_provenance = mapping_provenance;
-        plan.recovery_classification = "FULL_VERIFIED";
+        plan.recovery_classification = "FULL_NAMED_VERIFIED";
     }
     Ok(plans)
 }
@@ -1026,7 +1124,7 @@ pub(super) fn verify_and_plan_redundant_map(
 
         plans.push(FilePlan {
             mapping_provenance: REDUNDANT_VERIFIED_MAP_PATH,
-            recovery_classification: "FULL_VERIFIED",
+            recovery_classification: "FULL_NAMED_VERIFIED",
             file_path: file.path,
             status,
             reason,
@@ -1039,4 +1137,193 @@ pub(super) fn verify_and_plan_redundant_map(
 
     plans.sort_by(|a, b| a.file_path.cmp(&b.file_path));
     Ok(plans)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn manifest(file_id: u32, path: Option<&str>, expected_block_count: u64) -> FileManifestRecord {
+        FileManifestRecord {
+            file_id,
+            path: path.map(str::to_string),
+            file_size: 12,
+            expected_block_count,
+            extent_count: expected_block_count,
+            file_digest: "digest".to_string(),
+        }
+    }
+
+    fn plan(blocks: Vec<u32>, extents: Vec<Extent>) -> FilePlan {
+        FilePlan {
+            mapping_provenance: FILE_MANIFEST_PATH,
+            recovery_classification: "ORPHAN_EVIDENCE_ONLY",
+            file_path: "named/a.txt".to_string(),
+            status: "SALVAGEABLE",
+            reason: "ok",
+            failure_reasons: Vec::new(),
+            required_block_ids: blocks,
+            extents,
+            file_size: 12,
+        }
+    }
+
+    #[test]
+    fn graph_construction_basic() {
+        let records = vec![PayloadBlockIdentityRecord {
+            archive_identity: "a".to_string(),
+            file_id: 7,
+            block_index: 0,
+            total_block_count: 1,
+            full_file_size: 12,
+            logical_offset: 0,
+            logical_length: 12,
+            payload_codec: 1,
+            payload_length: 12,
+            block_id: 42,
+            block_scan_offset: Some(4),
+            payload_hash_blake3: "p".to_string(),
+            raw_hash_blake3: "r".to_string(),
+        }];
+        let manifests = BTreeMap::from([(7u32, manifest(7, Some("named/a.txt"), 1))]);
+        let path_map = BTreeMap::from([(7u32, "named/a.txt".to_string())]);
+
+        let graph = build_verified_graph(&records, &manifests, &path_map);
+        assert_eq!(graph.block_to_extent_edges, vec![(42, (7, 0))]);
+        assert_eq!(graph.extent_to_manifest_edges, vec![((7, 0), 7)]);
+        assert_eq!(
+            graph.manifest_to_path_edges,
+            vec![(7, "named/a.txt".to_string())]
+        );
+    }
+
+    #[test]
+    fn classification_full_named() {
+        let graph = VerifiedRelationshipGraph {
+            manifest_expected_count: BTreeMap::from([(1u32, 2u64)]),
+            manifest_has_path: BTreeMap::from([(1u32, true)]),
+            extent_ordinals_by_file: BTreeMap::from([(1u32, BTreeSet::from([0u64, 1u64]))]),
+            ..VerifiedRelationshipGraph::default()
+        };
+        let p = plan(
+            vec![1, 2],
+            vec![
+                Extent {
+                    block_id: 1,
+                    offset: 0,
+                    len: 6,
+                },
+                Extent {
+                    block_id: 2,
+                    offset: 6,
+                    len: 6,
+                },
+            ],
+        );
+        assert_eq!(
+            classify_from_verified_graph(&p, &graph, Some(1)),
+            "FULL_NAMED_VERIFIED"
+        );
+    }
+
+    #[test]
+    fn classification_full_anonymous() {
+        let graph = VerifiedRelationshipGraph {
+            manifest_expected_count: BTreeMap::from([(1u32, 1u64)]),
+            manifest_has_path: BTreeMap::from([(1u32, false)]),
+            extent_ordinals_by_file: BTreeMap::from([(1u32, BTreeSet::from([0u64]))]),
+            ..VerifiedRelationshipGraph::default()
+        };
+        let p = plan(
+            vec![1],
+            vec![Extent {
+                block_id: 1,
+                offset: 0,
+                len: 12,
+            }],
+        );
+        assert_eq!(
+            classify_from_verified_graph(&p, &graph, Some(1)),
+            "FULL_ANONYMOUS_VERIFIED"
+        );
+    }
+
+    #[test]
+    fn classification_partial_ordered() {
+        let graph = VerifiedRelationshipGraph {
+            manifest_expected_count: BTreeMap::from([(1u32, 3u64)]),
+            manifest_has_path: BTreeMap::from([(1u32, true)]),
+            extent_ordinals_by_file: BTreeMap::from([(1u32, BTreeSet::from([0u64, 1u64]))]),
+            ..VerifiedRelationshipGraph::default()
+        };
+        let p = plan(
+            vec![1, 2],
+            vec![
+                Extent {
+                    block_id: 1,
+                    offset: 0,
+                    len: 6,
+                },
+                Extent {
+                    block_id: 2,
+                    offset: 6,
+                    len: 6,
+                },
+            ],
+        );
+        assert_eq!(
+            classify_from_verified_graph(&p, &graph, Some(1)),
+            "PARTIAL_ORDERED_VERIFIED"
+        );
+    }
+
+    #[test]
+    fn classification_partial_unordered() {
+        let graph = VerifiedRelationshipGraph {
+            manifest_expected_count: BTreeMap::from([(1u32, 3u64)]),
+            manifest_has_path: BTreeMap::from([(1u32, false)]),
+            ..VerifiedRelationshipGraph::default()
+        };
+        let p = plan(
+            vec![1, 2],
+            vec![
+                Extent {
+                    block_id: 1,
+                    offset: 6,
+                    len: 6,
+                },
+                Extent {
+                    block_id: 2,
+                    offset: 0,
+                    len: 6,
+                },
+            ],
+        );
+        assert_eq!(
+            classify_from_verified_graph(&p, &graph, Some(1)),
+            "PARTIAL_UNORDERED_VERIFIED"
+        );
+    }
+
+    #[test]
+    fn classification_orphan() {
+        let graph = VerifiedRelationshipGraph::default();
+        let p = plan(
+            vec![9],
+            vec![Extent {
+                block_id: 9,
+                offset: 0,
+                len: 4,
+            }],
+        );
+        assert_eq!(
+            classify_from_verified_graph(&p, &graph, None),
+            "ORPHAN_EVIDENCE_ONLY"
+        );
+        let p_no_blocks = plan(Vec::new(), Vec::new());
+        assert_eq!(
+            classify_from_verified_graph(&p_no_blocks, &graph, None),
+            "NO_VERIFIED_EVIDENCE"
+        );
+    }
 }

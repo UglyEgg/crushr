@@ -599,3 +599,11 @@
 - Added lab harness regression asserting `--help` includes `run-format06-comparison` to keep the bounded dispatch/help surface discoverable.
 - Added regression that misplaced `run-format06-comparison` is not consumed as positional input-path mode and fails with explicit first-argument subcommand guidance.
 - Revalidated end-to-end `cargo run` command surfaces for both FORMAT-06 and FORMAT-05 comparison workflows including required summary artifact emission.
+
+## 2026-03-16 — Phase 3, Step 3.17 (CRUSHR-FORMAT-07 graph-aware salvage reasoning)
+
+- Reworked salvage recovery classification to use a verified relationship graph built from surviving payload block identity + manifest + path checkpoint evidence.
+- Replaced legacy coarse recovery labels with FORMAT-07 classes: `FULL_NAMED_VERIFIED`, `FULL_ANONYMOUS_VERIFIED`, `PARTIAL_ORDERED_VERIFIED`, `PARTIAL_UNORDERED_VERIFIED`, `ORPHAN_EVIDENCE_ONLY`, `NO_VERIFIED_EVIDENCE`.
+- Added graph/classification unit tests in salvage metadata (`graph_construction_basic`, full/partial/orphan class tests).
+- Added `run-format07-comparison` to `crushr-lab-salvage` CLI parser, mode enum, dispatch, help surface, and comparison summary writer.
+- Added harness/integration tests covering FORMAT-07 subcommand discoverability, positional-misparse regression, and summary field presence.

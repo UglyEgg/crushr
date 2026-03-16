@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-FORMAT-06-f1 dispatch regression fix complete** (top-level `run-format06-comparison` dispatch remains wired; added regression coverage so known FORMAT-06 subcommand tokens cannot be misparsed as positional input paths)
+Current Step: **CRUSHR-FORMAT-07 complete** (graph-aware verified relationship reasoning + FORMAT-07 comparison command wired and covered)
 
-Immediate Next Step: **CRUSHR-SCRUB-04 / next user packet** (no active unresolved FORMAT-06 dispatch defects after regression hardening)
+Immediate Next Step: **CRUSHR-SCRUB-04 / next user packet** (FORMAT-07 packet delivered; monitor follow-up packet scope)
 
 Security step note: **CRUSHR-SCRUB-01 complete** (extraction path confinement unified across canonical/legacy/API; unsafe paths now hard-fail; symlink extraction disabled in hardened mode).
 
@@ -21,6 +21,9 @@ Security step note: **CRUSHR-SCRUB-01 complete** (extraction path confinement un
 - FORMAT-05 comparison now runs end-to-end without relying on `crushr-pack --help`; the runner invokes the canonical writer flag directly.
 - FORMAT-05 comparison now auto-builds sibling `crushr-pack`/`crushr-salvage` binaries when launched from `cargo run -p crushr --bin crushr-lab-salvage`, so the documented command executes end-to-end without manual binary path wiring.
 - FORMAT-06 dispatch regression coverage now locks top-level command behavior (`run-format06-comparison` is explicitly recognized and guarded from positional-path misparse when not first arg).
+- FORMAT-07 salvage classification now uses verified relationship-graph reasoning over surviving block->extent->manifest->path evidence and emits the new ordered classes (`FULL_NAMED_VERIFIED`, `FULL_ANONYMOUS_VERIFIED`, `PARTIAL_ORDERED_VERIFIED`, `PARTIAL_UNORDERED_VERIFIED`, `ORPHAN_EVIDENCE_ONLY`, `NO_VERIFIED_EVIDENCE`).
+- `crushr-lab-salvage` now exposes `run-format07-comparison`, emits `format07_comparison_summary.{json,md}`, and includes format07 outcome/classification delta fields in comparison summaries.
+- Regression/unit coverage now includes graph construction/classification tests in salvage metadata plus CLI/help/dispatch and format07 comparison integration tests.
 - `crushr-pack` now rejects duplicate logical archive paths before any archive bytes are written; collisions are explicit hard failures listing the logical path and source inputs.
 
 ## Active constraints
