@@ -94,3 +94,7 @@
 - [ ] 5.1 Revisit dictionary strategy after resilience/placement/grid results settle
 - [ ] 5.2 Compare archive-global vs clustered vs explicit dictionary-object approaches
 - [ ] 5.3 Keep dictionary dependencies verifiable and recovery-honest
+
+
+- [x] 3.25.1 CRUSHR-FORMAT-14A-FIX1 (repair dictionary-corruption classification/outcome reporting; rerun required FORMAT-14A artifacts)
+- [x] 3.25.2 CRUSHR-FORMAT-14A-FIX2 (restore header+tail dual-copy one-loss named recovery; rerun FORMAT-14A artifacts)

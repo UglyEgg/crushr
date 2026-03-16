@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-FORMAT-14A complete** (dictionary-target corruption resilience comparison for dictionary-placement variants)
+Current Step: **CRUSHR-FORMAT-14A-FIX2 complete** (restore dual-copy survival recoverability in FORMAT-14A dictionary resilience reporting)
 
-Immediate Next Step: **Policy lock follow-up** (review FORMAT-14A evidence to decide whether single-copy can remain acceptable or header+tail mirroring is required)
+Immediate Next Step: **Policy lock follow-up** (review corrected FORMAT-14A FIX2 artifacts and decide dictionary placement policy)
 
 ## Current truth
 
