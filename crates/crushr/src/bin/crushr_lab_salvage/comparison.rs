@@ -3290,3 +3290,346 @@ pub(super) fn run_format12_inline_path_comparison(
     let _ = fs::remove_dir_all(&temp);
     Ok(())
 }
+
+fn make_segment(seed: usize, len: usize) -> String {
+    let alphabet = b"abcdefghijklmnopqrstuvwxyz0123456789";
+    (0..len)
+        .map(|i| alphabet[(seed + i) % alphabet.len()] as char)
+        .collect()
+}
+
+fn write_dataset_fixture_format12_stress(root: &Path, dataset: &str) -> Result<()> {
+    let input = root.join(dataset);
+    fs::create_dir_all(&input)?;
+    match dataset {
+        "deep_paths" => {
+            for i in 0..320usize {
+                let mut dir = input.clone();
+                for d in 0..20usize {
+                    dir = dir.join(format!("l{:02}_{}", d, make_segment(i + d * 7, 5)));
+                }
+                fs::create_dir_all(&dir)?;
+                let file_name = format!("file_{:04}_{}.bin", i, make_segment(i * 11, 16));
+                fs::write(
+                    dir.join(file_name),
+                    vec![(i % 251) as u8; 1536 + (i % 7) * 64],
+                )?;
+            }
+        }
+        "long_names" => {
+            for i in 0..200usize {
+                let name = format!(
+                    "very_long_filename_{}_{}_{}.bin",
+                    make_segment(i * 3, 90),
+                    make_segment(i * 7 + 13, 42),
+                    i
+                );
+                fs::write(
+                    input.join(name),
+                    vec![(i % 241) as u8; 2048 + (i % 5) * 128],
+                )?;
+            }
+        }
+        "fragmentation_heavy" => {
+            for logical in 0..20usize {
+                let dir = input.join(format!("logical_{:02}", logical));
+                fs::create_dir_all(&dir)?;
+                for frag in 0..48usize {
+                    let name = format!("logical_{:02}__frag_{:03}.bin", logical, frag);
+                    let size = 768 + ((logical * 13 + frag * 29) % 512);
+                    fs::write(dir.join(name), vec![((logical + frag) % 251) as u8; size])?;
+                }
+            }
+        }
+        "mixed_worst_case" => {
+            for logical in 0..20usize {
+                let mut dir = input.clone();
+                for d in 0..20usize {
+                    dir = dir.join(format!("mx{:02}_{}", d, make_segment(logical + d * 5, 4)));
+                }
+                fs::create_dir_all(&dir)?;
+                for frag in 0..48usize {
+                    let name = format!(
+                        "logical_{:02}_fragment_{:03}_{}.bin",
+                        logical,
+                        frag,
+                        make_segment(logical * 17 + frag * 19, 120)
+                    );
+                    let size = 640 + ((logical * 31 + frag * 7) % 256);
+                    fs::write(
+                        dir.join(name),
+                        vec![((logical * 3 + frag) % 253) as u8; size],
+                    )?;
+                }
+            }
+        }
+        _ => bail!("unsupported stress dataset {dataset}"),
+    }
+    Ok(())
+}
+
+fn parse_metadata_json_blocks(archive_path: &Path) -> Result<Vec<Value>> {
+    let bytes = fs::read(archive_path)?;
+    let mut offset = 0usize;
+    let mut rows = Vec::new();
+    while offset + BLK3_MAGIC.len() <= bytes.len() {
+        if bytes[offset..offset + 4] != BLK3_MAGIC {
+            offset += 1;
+            continue;
+        }
+        let header = match read_blk3_header(std::io::Cursor::new(&bytes[offset..])) {
+            Ok(h) => h,
+            Err(_) => {
+                offset += 1;
+                continue;
+            }
+        };
+        let block_len = header.header_len as usize + header.comp_len as usize;
+        if block_len == 0 || offset + block_len > bytes.len() {
+            offset += 1;
+            continue;
+        }
+        if header.flags.is_meta_frame() {
+            let payload_start = offset + header.header_len as usize;
+            let payload_end = offset + block_len;
+            let decoded =
+                zstd::decode_all(std::io::Cursor::new(&bytes[payload_start..payload_end]))?;
+            if let Ok(v) = serde_json::from_slice::<Value>(&decoded) {
+                rows.push(v);
+            }
+        }
+        offset += block_len;
+    }
+    Ok(rows)
+}
+
+fn logical_key_for_path(path: &str) -> String {
+    let name = Path::new(path)
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| path.to_string());
+    if let Some(idx) = name.find("__frag_") {
+        return name[..idx].to_string();
+    }
+    if let Some(idx) = name.find("_fragment_") {
+        return name[..idx].to_string();
+    }
+    path.to_string()
+}
+
+pub(super) fn run_format12_stress_comparison(comparison_dir: &Path, verbose: bool) -> Result<()> {
+    fs::create_dir_all(comparison_dir)?;
+    let temp = std::env::temp_dir().join(format!(
+        "crushr-format12-stress-comparison-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&temp);
+    fs::create_dir_all(&temp)?;
+
+    let pack_bin = resolve_pack_bin()?;
+    let variants = [
+        "payload_only",
+        "extent_identity_only",
+        "extent_identity_inline_path",
+        "payload_plus_manifest",
+    ];
+    let datasets = [
+        "deep_paths",
+        "long_names",
+        "fragmentation_heavy",
+        "mixed_worst_case",
+    ];
+    let mut rows = Vec::new();
+
+    for dataset in datasets {
+        let dataset_root = temp.join(dataset);
+        write_dataset_fixture_format12_stress(&dataset_root, dataset)?;
+        let input = dataset_root.join(dataset);
+
+        for variant in variants {
+            let archive = dataset_root.join(format!("stress_{}_{}.crushr", dataset, variant));
+            build_archive_with_pack_metadata_profile_name(&pack_bin, &input, &archive, variant)?;
+            let archive_byte_size = fs::metadata(&archive)?.len();
+            let meta_rows = parse_metadata_json_blocks(&archive)?;
+            let mut total_extent_count = 0u64;
+            let mut total_path_len = 0u64;
+            let mut path_count = 0u64;
+            let mut by_logical: std::collections::BTreeMap<String, u64> =
+                std::collections::BTreeMap::new();
+            for row in &meta_rows {
+                if row.get("schema").and_then(Value::as_str)
+                    == Some("crushr-payload-block-identity.v1")
+                {
+                    total_extent_count += 1;
+                    if let Some(path) = row.get("path").and_then(Value::as_str) {
+                        total_path_len += path.len() as u64;
+                        path_count += 1;
+                        let key = logical_key_for_path(path);
+                        *by_logical.entry(key).or_insert(0) += 1;
+                    }
+                }
+            }
+            if path_count == 0 {
+                let mut stack = vec![input.clone()];
+                while let Some(dir) = stack.pop() {
+                    for e in fs::read_dir(&dir)? {
+                        let e = e?;
+                        let p = e.path();
+                        if p.is_dir() {
+                            stack.push(p);
+                        } else if p.is_file() {
+                            let rel = p.strip_prefix(&input).unwrap_or(&p);
+                            let s = rel.to_string_lossy();
+                            total_path_len += s.len() as u64;
+                            path_count += 1;
+                            let key = logical_key_for_path(&s);
+                            *by_logical.entry(key).or_insert(0) += 1;
+                        }
+                    }
+                }
+            }
+            let mut dist: std::collections::BTreeMap<String, u64> =
+                std::collections::BTreeMap::new();
+            for cnt in by_logical.values() {
+                *dist.entry(cnt.to_string()).or_insert(0) += 1;
+            }
+            rows.push(serde_json::json!({
+                "dataset": dataset,
+                "variant": variant,
+                "archive_byte_size": archive_byte_size,
+                "average_path_length": if path_count > 0 { total_path_len as f64 / path_count as f64 } else { 0.0 },
+                "total_extent_count": total_extent_count,
+                "extents_per_file_distribution": dist,
+                "_path_char_count": total_path_len,
+            }));
+            if verbose {
+                eprintln!(
+                    "format12-stress dataset={} variant={} size={} extents={}",
+                    dataset, variant, archive_byte_size, total_extent_count
+                );
+            }
+        }
+    }
+
+    let mut summary_rows = Vec::new();
+    for dataset in datasets {
+        let payload = rows
+            .iter()
+            .find(|r| r["dataset"] == dataset && r["variant"] == "payload_only")
+            .unwrap();
+        let extent = rows
+            .iter()
+            .find(|r| r["dataset"] == dataset && r["variant"] == "extent_identity_only")
+            .unwrap();
+        for variant in variants {
+            let r = rows
+                .iter()
+                .find(|r| r["dataset"] == dataset && r["variant"] == variant)
+                .unwrap();
+            let size = r["archive_byte_size"].as_u64().unwrap_or(0);
+            let payload_size = payload["archive_byte_size"].as_u64().unwrap_or(1);
+            let extent_size = extent["archive_byte_size"].as_u64().unwrap_or(1);
+            let added_vs_extent = size.saturating_sub(extent_size);
+            let path_chars = r["_path_char_count"].as_u64().unwrap_or(0);
+            let extents = r["total_extent_count"].as_u64().unwrap_or(0);
+            summary_rows.push(serde_json::json!({
+                "dataset": dataset,
+                "variant": variant,
+                "archive_byte_size": size,
+                "overhead_vs_payload_only": (size as i64) - (payload_size as i64),
+                "overhead_vs_extent_identity_only": (size as i64) - (extent_size as i64),
+                "average_path_length": r["average_path_length"],
+                "total_extent_count": extents,
+                "extents_per_file_distribution": r["extents_per_file_distribution"],
+                "bytes_added_per_character_of_path": if path_chars > 0 { added_vs_extent as f64 / path_chars as f64 } else { 0.0 },
+                "bytes_added_per_extent": if extents > 0 { added_vs_extent as f64 / extents as f64 } else { 0.0 }
+            }));
+        }
+    }
+
+    let inline_vs_payload: Vec<i64> = summary_rows
+        .iter()
+        .filter(|r| r["variant"] == "extent_identity_inline_path")
+        .map(|r| {
+            let base = rows
+                .iter()
+                .find(|x| x["dataset"] == r["dataset"] && x["variant"] == "payload_only")
+                .and_then(|x| x["archive_byte_size"].as_u64())
+                .unwrap_or(1) as f64;
+            let sz = r["archive_byte_size"].as_u64().unwrap_or(0) as f64;
+            (((sz - base) / base) * 100.0).round() as i64
+        })
+        .collect();
+    let q1 = inline_vs_payload.iter().any(|p| *p > 20);
+
+    let summary = serde_json::json!({
+        "schema_version": "crushr-lab-salvage-format12-stress-comparison.v1",
+        "tool": "crushr-lab-salvage",
+        "tool_version": env!("CARGO_PKG_VERSION"),
+        "verification_label": VERIFICATION_LABEL,
+        "variants": variants,
+        "datasets": datasets,
+        "rows": summary_rows,
+        "evaluation": {
+            "inline_path_expansion_gt_20_percent_any_dataset": q1,
+            "inline_smaller_than_manifest_all_datasets": datasets.iter().all(|d| {
+                let inl = rows.iter().find(|r| r["dataset"] == *d && r["variant"] == "extent_identity_inline_path").and_then(|r| r["archive_byte_size"].as_u64()).unwrap_or(u64::MAX);
+                let man = rows.iter().find(|r| r["dataset"] == *d && r["variant"] == "payload_plus_manifest").and_then(|r| r["archive_byte_size"].as_u64()).unwrap_or(0);
+                inl < man
+            }),
+            "fragmentation_multiplier_note": "Fragmentation scenarios are represented as deterministic logical-file fragments; extents_per_file_distribution reports fragment counts grouped by logical file key."
+        }
+    });
+    fs::write(
+        comparison_dir.join("format12_stress_summary.json"),
+        serde_json::to_string_pretty(&summary)?,
+    )?;
+
+    let mut md = String::new();
+    md.push_str("# Format-12 stress comparison\n\n");
+    md.push_str("| dataset | variant | archive_byte_size | overhead_vs_payload_only | overhead_vs_extent_identity_only | avg_path_length | total_extent_count | bytes_added_per_character_of_path | bytes_added_per_extent |\n");
+    md.push_str("|---|---|---:|---:|---:|---:|---:|---:|---:|\n");
+    for r in summary["rows"].as_array().unwrap_or(&Vec::new()) {
+        md.push_str(&format!(
+            "| {} | {} | {} | {} | {} | {:.2} | {} | {:.6} | {:.6} |\n",
+            r["dataset"].as_str().unwrap_or(""),
+            r["variant"].as_str().unwrap_or(""),
+            r["archive_byte_size"].as_u64().unwrap_or(0),
+            r["overhead_vs_payload_only"].as_i64().unwrap_or(0),
+            r["overhead_vs_extent_identity_only"].as_i64().unwrap_or(0),
+            r["average_path_length"].as_f64().unwrap_or(0.0),
+            r["total_extent_count"].as_u64().unwrap_or(0),
+            r["bytes_added_per_character_of_path"]
+                .as_f64()
+                .unwrap_or(0.0),
+            r["bytes_added_per_extent"].as_f64().unwrap_or(0.0),
+        ));
+    }
+    md.push_str("\n## Evaluation answers\n\n");
+    md.push_str(&format!(
+        "1. Inline path duplication >20% expansion under worst-case: **{}**.\n",
+        if summary["evaluation"]["inline_path_expansion_gt_20_percent_any_dataset"].as_bool()
+            == Some(true)
+        {
+            "Yes"
+        } else {
+            "No"
+        }
+    ));
+    md.push_str(&format!(
+        "2. Inline naming smaller than manifest-based approach across stress datasets: **{}**.\n",
+        if summary["evaluation"]["inline_smaller_than_manifest_all_datasets"].as_bool()
+            == Some(true)
+        {
+            "Yes"
+        } else {
+            "No"
+        }
+    ));
+    md.push_str("3. Fragmentation impact: see `fragmentation_heavy` + `mixed_worst_case` rows and `extents_per_file_distribution`; bytes-per-extent quantifies multiplier behavior.\n");
+    md.push_str("\n");
+    fs::write(comparison_dir.join("format12_stress_summary.md"), md)?;
+
+    let _ = fs::remove_dir_all(&temp);
+    Ok(())
+}

@@ -73,3 +73,8 @@ After structural stability and metadata pruning decisions settle, revisit distri
   - demote (weak/conditional gain)
   - prune (no meaningful survivability or gain)
 - Keep extraction semantics and payload structure unchanged while evaluating pruning/redesign options.
+
+
+## Latest completion
+- Added `run-format12-stress-comparison` to `crushr-lab-salvage` with deterministic stress datasets and summary artifacts (`format12_stress_summary.json`, `format12_stress_summary.md`).
+- Verify CLI wiring with: `cargo run -p crushr --bin crushr-lab-salvage -- run-format12-stress-comparison --help`.
