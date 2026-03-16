@@ -4,7 +4,7 @@ crushr is moving quickly, so this page is intended as a living map rather than a
 
 The short version is:
 
-> crushr started as an integrity-first archive format and is evolving into a **salvage-first archive design** where the strongest truth lives with the payload rather than in a fragile metadata hub.
+> crushr started as an integrity-first archive format and is evolving into an **integrity-first, salvage-aware archive design** where the strongest durable truth lives as close to the payload as possible, and heavier metadata is kept only if the corruption harness proves it earns its keep.
 
 This page exists to help readers understand how the format changed, what the harness proved, and why the current direction looks the way it does.
 
@@ -46,6 +46,8 @@ flowchart TD
     E --> F["FORMAT-08 metadata placement comparison"]
     F --> G["FORMAT-09 metadata survivability audit"]
     G --> H["FORMAT-10 pruning / simplification direction"]
+    H --> I["FORMAT-11 distributed extent identity"]
+    I --> J["FORMAT-12 inline naming experiment pending"]
 ```
 
 ## Phase-by-phase evolution
@@ -145,6 +147,70 @@ The answer was stark:
 
 This strongly suggested that the current metadata layers were not driving resilience.
 
+### FORMAT-10 — pruning and simplification direction
+
+FORMAT-10 turned the FORMAT-09 findings into an explicit design challenge.
+
+Instead of assuming every metadata surface deserved to remain because it seemed useful in theory, the project began comparing stripped-down variants against manifest-bearing and full experimental designs.
+
+**What changed conceptually**
+
+The design question shifted from:
+
+```text
+how do we protect more metadata?
+```
+
+to:
+
+```text
+which metadata surfaces are actually worth carrying at all?
+```
+
+**What the harness showed**
+
+FORMAT-10 reinforced a now-recurring pattern:
+
+- manifest-bearing variants still materially helped named recovery
+- broader experimental metadata caused very large size overhead
+- weak or partial metadata layers did not justify themselves just by existing
+
+That moved the project toward a more selective keep/demote/prune mindset.
+
+### FORMAT-11 — distributed extent identity
+
+FORMAT-11 tested a more radical hypothesis.
+
+Instead of relying on a larger centralized naming or manifest structure, the archive could carry stronger structural identity locally with each extent.
+
+The key experimental arm was:
+
+- `extent_identity_only`
+
+This variant was intentionally anonymous by design. It focused on distributed structural truth rather than human-meaningful naming.
+
+**What changed conceptually**
+
+FORMAT-11 asked whether the archive could keep the cheap survivability benefits of local identity without paying the size cost of manifest-heavy designs.
+
+It separated two questions that had been getting blurred together:
+
+- can the archive still prove what surviving extents belong together?
+- can it still recover user-meaningful file naming?
+
+Those are not the same requirement.
+
+**What the harness showed**
+
+FORMAT-11 produced a useful but limited result:
+
+- `extent_identity_only` stayed very close to `payload_only` on size
+- `extent_identity_only` did **not** materially improve named recovery over `payload_only`
+- manifest-bearing variants still dominated on named recovery
+- distributed extent identity looked cheap enough to remain interesting as a salvage aid, but not as a drop-in replacement for naming metadata
+
+In practical terms, FORMAT-11 showed that local structural identity is cheap, but anonymous structural identity alone does not buy back the naming benefits of manifests.
+
 ## What the project learned
 
 The experiments so far point to a simple but important conclusion:
@@ -162,6 +228,16 @@ It means metadata appears to be:
 - helpful for confidence and naming when it survives
 - not the primary source of recoverability
 
+It also means the term “metadata” needs to be treated more carefully.
+
+At this stage the project has to distinguish between:
+
+- **structural identity** needed to verify and group surviving data
+- **naming/path truth** needed for human-meaningful recovery
+- a broader **Unix metadata envelope** such as mode, uid, gid, mtime, xattrs, and related policy
+
+Those layers should not be treated as one undifferentiated blob.
+
 ## Current direction
 
 The format is now moving toward a more minimal, evidence-driven architecture.
@@ -172,7 +248,8 @@ The working model looks like this:
 minimal container framing
 + self-identifying payload blocks
 + salvage reasoning
-+ only the metadata that proves its worth
++ distributed structural identity where it proves worth
++ only the naming/metadata surfaces that survive enough to justify their byte cost
 ```
 
 This is a major refinement of the original mission.
@@ -195,17 +272,34 @@ crushr is increasingly exploring a different principle:
 
 That is the core reason the project is interesting.
 
+At the same time, crushr is still a compression-oriented archive format, not merely a forensic container.
+
+That means size overhead remains a first-class design constraint. A recovery feature that inflates the archive enough to undermine the format’s compression credibility has to clear a much higher bar.
+
 ## What comes next
 
-The next major question is no longer “how do we add more metadata?”
+The next major question is no longer simply “how do we add more metadata?”
 
-It is:
+After FORMAT-11, the sharper question is:
 
-- which metadata layers actually matter?
-- which ones can be pruned?
-- how small and elegant can the format become without losing recovery capability?
+- can distributed naming restore named recovery without the size blow-up of manifest-heavy variants?
+- if names and paths are the one thing metadata is still buying, can that truth be distributed locally instead of centralized?
+- how much duplication is too much before the format stops looking credible as a compression-oriented design?
 
-That is why the post-FORMAT-09 direction is likely to emphasize **simplification** rather than growth.
+That is the purpose of the pending FORMAT-12 experiment.
+
+FORMAT-12 is expected to compare at least:
+
+- `payload_only`
+- `extent_identity_only`
+- `payload_plus_manifest`
+- `full_current_experimental`
+- `extent_identity_inline_path`
+
+and answer whether embedding name/path truth into local extent identity buys enough named recovery to justify its byte cost.
+
+If it does, that points toward a retained distributed naming surface.
+If it does not, that strengthens the case for pruning or demoting naming-heavy metadata rather than carrying it on principle.
 
 ## Reading this page later
 
