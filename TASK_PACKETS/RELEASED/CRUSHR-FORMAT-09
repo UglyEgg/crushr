@@ -1,0 +1,311 @@
+TASK_PACKET
+
+Packet ID
+CRUSHR-FORMAT-09
+
+Title
+Phase-9 corruption grid and survivability evaluation harness
+
+Objective
+Introduce a structured corruption matrix (“grid”) that exercises the crushr
+recovery model across multiple independent damage dimensions.
+
+This packet expands the salvage experiment framework and reporting model.
+It does not modify the archive format.
+
+Scope
+- corruption grid specification
+- corruption operators
+- grid execution harness
+- enhanced classification reporting
+- CLI command
+- experiment outputs
+- test coverage
+
+Out of Scope
+- archive format changes
+- metadata placement strategy (FORMAT-08)
+- compression algorithm changes
+- block structure changes
+
+-------------------------------------------------------------------------------
+
+BACKGROUND
+
+Earlier phases evaluated corruption using coarse region failures:
+
+- header damage
+- index damage
+- payload damage
+- tail truncation
+
+These tests validated the basic survivability architecture.
+
+However, FORMAT-07 introduced graph-aware recovery reasoning and finer
+recovery classes. The existing corruption suite is now too coarse to
+exercise the new reasoning capabilities.
+
+Phase-9 introduces a structured corruption grid to test how different
+“truth layers” and payload topologies interact during recovery.
+
+-------------------------------------------------------------------------------
+
+GRID MODEL
+
+The corruption matrix is defined by four axes.
+
+Axis A — Truth layer damage
+
+These scenarios simulate loss of specific metadata layers.
+
+A1 header corruption
+A2 index corruption
+A3 manifest corruption
+A4 path checkpoint corruption
+A5 manifest + path corruption
+A6 index + manifest corruption
+
+Axis B — Payload damage
+
+These scenarios simulate block-level failures.
+
+B0 none
+B1 single block deletion
+B2 sparse block deletion (every Nth block)
+B3 clustered block deletion
+B4 block reorder
+B5 block duplication
+
+Axis C — Damage topology
+
+These scenarios describe spatial distribution of corruption.
+
+C1 single contiguous region
+C2 two independent regions
+C3 scattered corruption
+C4 region + metadata layer damage
+
+Axis D — Dataset class
+
+Reuse existing datasets:
+
+D1 smallfiles
+D2 mixed
+D3 largefiles
+
+-------------------------------------------------------------------------------
+
+SCENARIO GENERATION
+
+The grid is not executed as a full combinatorial explosion.
+
+Instead a curated matrix is defined.
+
+Initial Phase-9 test set:
+
+target scenario count: ~48
+
+Examples:
+
+smallfiles_manifest_corruption_single_block
+smallfiles_manifest_corruption_sparse_blocks
+mixed_index_manifest_corruption_clustered
+largefiles_block_reorder_two_regions
+mixed_manifest_path_corruption_sparse
+largefiles_sparse_deletion_scattered
+
+Scenarios must include a reproducible RNG seed.
+
+-------------------------------------------------------------------------------
+
+NEW CORRUPTION OPERATORS
+
+The harness must implement the following operators.
+
+delete_random_block
+remove a verified payload block
+
+delete_every_nth_block
+remove blocks at regular interval
+
+delete_cluster
+remove contiguous block region
+
+reorder_blocks
+shuffle block order in archive
+
+duplicate_block
+insert duplicate block payload
+
+manifest_corruption
+damage manifest structure
+
+path_checkpoint_corruption
+damage path record surface
+
+Operators must be deterministic when seeded.
+
+-------------------------------------------------------------------------------
+
+RECOVERY CLASSIFICATION
+
+FORMAT-07 recovery classes remain authoritative:
+
+FULL_NAMED_VERIFIED
+FULL_ANONYMOUS_VERIFIED
+PARTIAL_ORDERED_VERIFIED
+PARTIAL_UNORDERED_VERIFIED
+ORPHAN_EVIDENCE_ONLY
+NO_VERIFIED_EVIDENCE
+
+Phase-9 requires additional reporting fields:
+
+recovered_file_count
+verified_block_count
+verified_component_count
+ordering_proven
+name_truth_proven
+
+-------------------------------------------------------------------------------
+
+NEW EXPERIMENT COMMAND
+
+CLI command
+
+run-format09-grid
+
+Purpose
+
+Execute corruption grid and produce recovery statistics.
+
+Invocation example
+
+cargo run -p crushr --bin crushr-lab-salvage -- \
+  run-format09-grid \
+  --output /tmp/crushr_format09_grid
+
+-------------------------------------------------------------------------------
+
+CLI INTEGRATION REQUIREMENT (CRITICAL)
+
+The command must be wired into the CLI dispatcher.
+
+Builder has previously implemented commands without registering them.
+
+Required integration points:
+
+command enum
+Command::RunFormat09Grid
+
+argument parser registration
+
+match dispatch in CLI handler
+
+help text entry
+
+Verification step (required):
+
+cargo run -p crushr --bin crushr-lab-salvage -- run-format09-grid --help
+
+If the command is not recognized the packet is incomplete.
+
+-------------------------------------------------------------------------------
+
+OUTPUT ARTIFACTS
+
+The grid experiment must produce:
+
+1 JSON summary
+
+format09_grid_summary.json
+
+fields
+
+scenario_id
+corruption_axes
+dataset
+recovery_class
+verified_block_count
+recovered_file_count
+
+2 Markdown report
+
+format09_grid_summary.md
+
+The report should include:
+
+scenario counts by recovery class
+dataset breakdown
+truth-layer survivability statistics
+
+-------------------------------------------------------------------------------
+
+MANDATORY TESTS
+
+Unit tests
+
+test_delete_random_block
+test_sparse_block_deletion
+test_block_reorder_operator
+test_manifest_corruption_operator
+
+Classification tests
+
+test_partial_ordered_detection
+test_partial_unordered_detection
+test_full_named_detection
+test_orphan_evidence_detection
+
+CLI test
+
+cargo run -p crushr --bin crushr-lab-salvage -- run-format09-grid --help
+
+must succeed.
+
+Integration test
+
+run-format09-grid must produce:
+
+JSON output
+Markdown report
+non-empty scenario set
+
+-------------------------------------------------------------------------------
+
+ACCEPTANCE CRITERIA
+
+1 project compiles without warnings
+2 corruption operators deterministic
+3 CLI command recognized
+4 grid executes ≥ 40 scenarios
+5 JSON summary generated
+6 Markdown report generated
+7 recovery classes populated
+8 existing salvage functionality unaffected
+
+-------------------------------------------------------------------------------
+
+EXPECTED OUTCOME
+
+Phase-9 will not necessarily increase recovery counts.
+
+Instead it will reveal:
+
+- which truth layers survive most often
+- when recovery downgrades from named to anonymous
+- when ordered recovery becomes unordered
+- how metadata placement strategies perform
+
+These results inform future format design decisions.
+
+-------------------------------------------------------------------------------
+
+NOTES FOR BUILDER
+
+Before submission verify the CLI command is wired correctly.
+
+Run:
+
+cargo run -p crushr --bin crushr-lab-salvage -- run-format09-grid --help
+
+If the command is not recognized the packet is incomplete.

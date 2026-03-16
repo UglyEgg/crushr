@@ -1,0 +1,315 @@
+TASK_PACKET
+
+Packet ID
+CRUSHR-FORMAT-07
+
+Title
+Graph-aware salvage reasoning and explicit recovery class determination
+
+Objective
+Extend the salvage engine so recovery decisions are made from a verified relationship graph rather than flat metadata surfaces.
+
+This packet does NOT change the archive format layout.
+
+It changes the reasoning model used by the salvage analysis tool and exposes a new comparison experiment command.
+
+Scope
+- salvage reasoning engine
+- recovery classification logic
+- salvage comparison experiment
+- CLI command wiring
+- test coverage
+
+Out of Scope
+- archive layout changes
+- compression pipeline changes
+- block placement experiments (FORMAT-08)
+- new metadata structures inside the archive
+
+---
+
+ARCHITECTURAL GOAL
+
+Current salvage classification is derived from simple rule checks.
+
+FORMAT-07 introduces graph-aware reasoning using surviving verified records.
+
+Recovered information is treated as nodes and relationships.
+
+Example conceptual model:
+
+nodes
+- block
+- extent
+- file_manifest
+- path_checkpoint
+
+edges
+- block -> extent
+- extent -> file_manifest
+- file_manifest -> path_checkpoint
+
+Salvage builds a surviving verified graph and classifies recovery strength from connected components.
+
+---
+
+NEW RECOVERY CLASSES
+
+Replace coarse classification with the following ordered hierarchy.
+
+1 FULL_NAMED_VERIFIED
+
+Definition
+All blocks verified
+file manifest verified
+path mapping verified
+
+Meaning
+Complete recovery including original path and name.
+
+2 FULL_ANONYMOUS_VERIFIED
+
+Definition
+All blocks verified
+file manifest verified
+path mapping missing or rejected
+
+Meaning
+Complete file recovered but without trusted filename.
+
+3 PARTIAL_ORDERED_VERIFIED
+
+Definition
+Subset of blocks verified
+ordering provable from manifest or extents
+
+Meaning
+Recoverable file fragment with known order.
+
+4 PARTIAL_UNORDERED_VERIFIED
+
+Definition
+Subset of blocks verified
+ordering cannot be proven
+
+Meaning
+Data fragments recovered but sequence uncertain.
+
+5 ORPHAN_EVIDENCE_ONLY
+
+Definition
+Verified blocks exist
+no provable file grouping
+
+Meaning
+Forensic evidence but no file reconstruction.
+
+6 NO_VERIFIED_EVIDENCE
+
+Definition
+No blocks pass verification.
+
+Meaning
+Archive unrecoverable.
+
+---
+
+SALVAGE GRAPH CONSTRUCTION
+
+Inputs
+
+verified_blocks
+verified_extents
+verified_file_manifests
+verified_path_records
+
+Graph build rules
+
+block node created for each verified payload block
+
+extent node created when extent record survives
+
+file_manifest node created when manifest record survives
+
+path node created when path checkpoint survives
+
+Edges
+
+block -> extent
+extent -> file_manifest
+file_manifest -> path
+
+Only edges backed by verified records are allowed.
+
+Conflicting metadata must be rejected.
+
+---
+
+CLASSIFICATION ALGORITHM
+
+Pseudo logic
+
+build_verified_graph()
+
+group connected components by file_manifest
+
+for each component
+
+    block_count = verified blocks
+    expected_count = manifest block count if known
+    has_manifest = manifest node present
+    has_path = path node present
+    ordering_known = extent sequence verified
+
+    if has_manifest AND block_count == expected_count AND has_path
+        FULL_NAMED_VERIFIED
+
+    else if has_manifest AND block_count == expected_count
+        FULL_ANONYMOUS_VERIFIED
+
+    else if block_count > 0 AND ordering_known
+        PARTIAL_ORDERED_VERIFIED
+
+    else if block_count > 0
+        PARTIAL_UNORDERED_VERIFIED
+
+    else
+        ORPHAN_EVIDENCE_ONLY
+
+---
+
+NEW EXPERIMENT COMMAND
+
+Command name
+
+run-format07-comparison
+
+Purpose
+
+Compare recovery outcomes across
+
+old
+redundant
+format05
+format06
+format07
+
+This extends the existing salvage comparison harness.
+
+Output
+
+JSON summary
+Markdown report
+
+Same structure as format06 comparison with additional classification fields.
+
+---
+
+CLI INTEGRATION REQUIREMENT (CRITICAL)
+
+The new command MUST be attached to the CLI command enum and dispatcher.
+
+Builder has repeatedly implemented commands without registering them.
+
+Required integration points must include:
+
+crushr-lab-salvage CLI command enum
+
+Command::RunFormat07Comparison
+
+CLI parser registration
+
+match dispatch in main command handler
+
+Command help text
+
+cargo run must recognize the command.
+
+---
+
+MANDATORY TESTS
+
+Unit tests
+
+graph_construction_basic
+verifies block->manifest->path edges created correctly
+
+classification_full_named
+manifest + path + full blocks -> FULL_NAMED_VERIFIED
+
+classification_full_anonymous
+manifest + full blocks -> FULL_ANONYMOUS_VERIFIED
+
+classification_partial_ordered
+partial blocks with extents -> PARTIAL_ORDERED_VERIFIED
+
+classification_partial_unordered
+partial blocks without extents -> PARTIAL_UNORDERED_VERIFIED
+
+classification_orphan
+verified blocks without grouping -> ORPHAN_EVIDENCE_ONLY
+
+---
+
+CLI TEST
+
+A runtime test MUST execute:
+
+cargo run -p crushr --bin crushr-lab-salvage -- run-format07-comparison --help
+
+Expected result
+
+Command recognized
+Help text printed
+
+This test prevents the missing CLI wiring failure.
+
+---
+
+EXPERIMENT TEST
+
+Integration test must run
+
+run-format07-comparison
+
+and confirm
+
+summary JSON generated
+classification fields present
+format07 results included
+
+---
+
+ACCEPTANCE CRITERIA
+
+1 program compiles without warnings
+2 new command recognized by CLI
+3 salvage graph construction passes tests
+4 classification algorithm produces deterministic results
+5 comparison experiment runs successfully
+6 JSON summary contains format07 fields
+7 Markdown report generated
+
+---
+
+EXPECTED OUTCOME
+
+FORMAT-07 will likely produce identical outcomes to FORMAT-06 for most scenarios.
+
+However it enables future experiments where metadata conflict or partial survival occurs.
+
+It also exposes richer diagnostic reasoning for salvage decisions.
+
+---
+
+NOTES FOR BUILDER
+
+Common failure from previous packets:
+
+command implemented but not wired to CLI.
+
+Before submission run:
+
+cargo run -p crushr --bin crushr-lab-salvage -- run-format07-comparison --help
+
+If the command is not recognized the packet is incomplete.
