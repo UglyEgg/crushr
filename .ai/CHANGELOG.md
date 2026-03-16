@@ -581,3 +581,15 @@
 ## 2026-03-15 — CRUSHR-PLAN-LEGACY-01-f2
 - Implemented preferred delegation solution: root `crushr extract` and API `extract_all` now call shared strict extraction implementation used by `crushr-extract`.
 - Replaced quarantine-only integration expectations with strict roundtrip integration coverage for root and canonical extraction entry points.
+
+
+## 2026-03-16 — CRUSHR-FORMAT-06
+- Added experimental file-manifest metadata emission (`crushr-file-manifest.v1`) and distributed checkpoint snapshots (`crushr-file-manifest-checkpoint.v1`) in `crushr-pack`.
+- Added salvage manifest parsing/application path and `recovery_classification` states for file plans.
+- Added `run-format06-comparison` with `format06_comparison_summary.json` and `format06_comparison_summary.md` outputs.
+
+
+## 2026-03-16 — CRUSHR-FORMAT-06-f1
+- Upgraded manifest handling from annotation-only to recovery-plan seeding when earlier mapping layers are empty.
+- Added digest-aware manifest completeness classification path (single-block verified case) using `file_digest` vs recovered raw-hash identity.
+- Expanded `format06_comparison_summary` with recovery-classification aggregates and deltas vs FORMAT-05; added regression coverage for format06 command output fields and manifest provenance/classification behavior.

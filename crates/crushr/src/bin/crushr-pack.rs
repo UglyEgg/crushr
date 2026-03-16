@@ -11,7 +11,7 @@ use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
 
 const ZSTD_CODEC: u32 = 1;
-const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  -h, --help                                 print this help text";
+const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  -h, --help                                 print this help text";
 
 fn compress_deterministic(raw: &[u8], level: i32) -> Result<Vec<u8>> {
     let mut encoder = zstd::Encoder::new(Vec::new(), level).context("create zstd encoder")?;
@@ -57,6 +57,7 @@ fn run() -> Result<()> {
     let mut experimental_self_describing_extents = false;
     let mut experimental_file_identity_extents = false;
     let mut experimental_self_identifying_blocks = false;
+    let mut experimental_file_manifest_checkpoints = false;
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -78,6 +79,8 @@ fn run() -> Result<()> {
             experimental_file_identity_extents = true;
         } else if arg == "--experimental-self-identifying-blocks" {
             experimental_self_identifying_blocks = true;
+        } else if arg == "--experimental-file-manifest-checkpoints" {
+            experimental_file_manifest_checkpoints = true;
         } else if arg.starts_with('-') {
             bail!("unsupported flag: {arg}");
         } else {
@@ -97,6 +100,7 @@ fn run() -> Result<()> {
         experimental_self_describing_extents,
         experimental_file_identity_extents,
         experimental_self_identifying_blocks,
+        experimental_file_manifest_checkpoints,
     )
 }
 
@@ -107,6 +111,7 @@ fn pack_minimal_v1(
     experimental_self_describing_extents: bool,
     experimental_file_identity_extents: bool,
     experimental_self_identifying_blocks: bool,
+    experimental_file_manifest_checkpoints: bool,
 ) -> Result<()> {
     let files = collect_files(inputs)?;
     if files.is_empty() {
@@ -123,6 +128,7 @@ fn pack_minimal_v1(
     let mut file_identity_path_records = Vec::new();
     let mut payload_block_identity_records = Vec::new();
     let mut path_checkpoint_entries = Vec::new();
+    let mut file_manifest_records = Vec::new();
     let file_identity_archive_id = if experimental_file_identity_extents {
         Some(compute_file_identity_archive_id(&files))
     } else {
@@ -301,6 +307,33 @@ fn pack_minimal_v1(
             }
         }
 
+        if experimental_file_manifest_checkpoints {
+            let file_digest = to_hex(blake3::hash(&raw).as_bytes());
+            let manifest_record = json!({
+                "schema": "crushr-file-manifest.v1",
+                "file_id": block_id,
+                "path": file.rel_path,
+                "file_size": raw.len() as u64,
+                "expected_block_count": 1,
+                "extent_count": 1,
+                "file_digest": file_digest,
+            });
+            file_manifest_records.push(manifest_record.clone());
+            write_experimental_metadata_block(&mut out, &manifest_record, level)?;
+
+            if should_emit_anchor(ordinal, total_files) {
+                write_experimental_metadata_block(
+                    &mut out,
+                    &json!({
+                        "schema": "crushr-file-manifest-checkpoint.v1",
+                        "checkpoint_ordinal": ordinal as u64,
+                        "records": file_manifest_records,
+                    }),
+                    level,
+                )?;
+            }
+        }
+
         entries.push(Entry {
             path: file.rel_path,
             kind: EntryKind::Regular,
@@ -374,15 +407,28 @@ fn pack_minimal_v1(
         )?;
     }
 
+    if experimental_file_manifest_checkpoints {
+        write_experimental_metadata_block(
+            &mut out,
+            &json!({
+                "schema": "crushr-file-manifest-checkpoint.v1",
+                "checkpoint_ordinal": u64::MAX,
+                "records": file_manifest_records,
+            }),
+            level,
+        )?;
+    }
+
     let blocks_end_offset = out.stream_position()?;
     let idx3 = encode_index(&Index {
         entries: entries.clone(),
     });
     let redundant_file_map = json!({
-        "schema": if experimental_self_describing_extents || experimental_file_identity_extents || experimental_self_identifying_blocks { "crushr-redundant-file-map.experimental.v2" } else { "crushr-redundant-file-map.v1" },
+        "schema": if experimental_self_describing_extents || experimental_file_identity_extents || experimental_self_identifying_blocks || experimental_file_manifest_checkpoints { "crushr-redundant-file-map.experimental.v2" } else { "crushr-redundant-file-map.v1" },
         "experimental_self_describing_extents": experimental_self_describing_extents,
         "experimental_file_identity_extents": experimental_file_identity_extents,
         "experimental_self_identifying_blocks": experimental_self_identifying_blocks,
+        "experimental_file_manifest_checkpoints": experimental_file_manifest_checkpoints,
         "files": entries
             .iter()
             .map(|entry| {

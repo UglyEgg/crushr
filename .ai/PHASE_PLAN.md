@@ -66,3 +66,5 @@
 - [x] CRUSHR-PLAN-LEGACY-01 extraction authority boundary enforcement (canonical strict surface lock + legacy API/CLI extraction quarantine + regression tests)
 - [x] CRUSHR-PLAN-LEGACY-01-f1 post-review test clarity hardening (rename quarantine MVP test + add positive canonical `crushr-extract` roundtrip integration coverage)
 - [x] CRUSHR-PLAN-LEGACY-01-f2 preferred extraction authority alignment (root/API delegation to strict authoritative implementation + regression integration updates)
+
+- [x] CRUSHR-FORMAT-06-f1 — manifest-sourced plan synthesis + digest-aware classification + format06 classification deltas

@@ -73,3 +73,15 @@
 - `crushr-salvage` internals are now split by responsibility (`cli`, `discovery`, `metadata`, `artifacts`) to reduce layered-patch fragility while preserving behavior.
 - `crushr-lab-salvage` internals are now split by responsibility (`cli`, `runner`, `comparison`) with stable command surface and output compatibility.
 - Added regression coverage for salvage binary resolution precedence (`CRUSHR_SALVAGE_BIN` remains highest-priority explicit override).
+
+
+## Update: CRUSHR-FORMAT-06 complete
+- `crushr-pack` now supports `--experimental-file-manifest-checkpoints` and emits distributed `crushr-file-manifest.v1` / `crushr-file-manifest-checkpoint.v1` metadata.
+- `crushr-salvage` now parses manifest metadata and annotates `file_plans` with `recovery_classification`; manifest processing is layered after checkpoint path and before identity extents.
+- `crushr-lab-salvage` now supports `run-format06-comparison` and writes `format06_comparison_summary.json` / `.md`.
+
+
+## Update: CRUSHR-FORMAT-06-f1 complete
+- `verify_and_apply_manifest_expectations` now seeds plans from manifest+payload-identity when earlier stages are empty, instead of only post-processing existing plans.
+- `file_digest` is now used for FULL_* classification validation (single-block verified digest path).
+- `run-format06-comparison` now emits classification aggregates/deltas (`FULL_VERIFIED`, `FULL_ANONYMOUS`, `PARTIAL_ORDERED`, `PARTIAL_UNORDERED`, `ORPHAN_BLOCKS`) against FORMAT-05 baseline.

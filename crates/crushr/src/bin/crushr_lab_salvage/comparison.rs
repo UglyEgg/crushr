@@ -1223,3 +1223,219 @@ pub(super) fn run_format05_comparison(comparison_dir: &Path, verbose: bool) -> R
     let _ = fs::remove_dir_all(&temp);
     Ok(())
 }
+
+pub(super) fn build_archive_with_pack_format06(
+    pack_bin: &Path,
+    input: &Path,
+    output: &Path,
+) -> Result<()> {
+    let out = Command::new(pack_bin)
+        .arg(input)
+        .arg("-o")
+        .arg(output)
+        .arg("--level")
+        .arg("3")
+        .arg(FORMAT05_PACK_FLAG)
+        .arg(FORMAT06_PACK_FLAG)
+        .output()
+        .with_context(|| format!("run {:?}", pack_bin))?;
+    if !out.status.success() {
+        bail!(
+            "crushr-pack failed\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+    Ok(())
+}
+
+fn recovery_classification_counts(plan: &Value) -> BTreeMap<String, u64> {
+    let mut counts = BTreeMap::new();
+    if let Some(rows) = plan.get("file_plans").and_then(Value::as_array) {
+        for row in rows {
+            if let Some(classification) = row.get("recovery_classification").and_then(Value::as_str)
+            {
+                *counts.entry(classification.to_string()).or_insert(0) += 1;
+            }
+        }
+    }
+    counts
+}
+
+fn classification_delta(
+    format05: &BTreeMap<String, u64>,
+    format06: &BTreeMap<String, u64>,
+    key: &str,
+) -> i64 {
+    format06.get(key).copied().unwrap_or(0) as i64 - format05.get(key).copied().unwrap_or(0) as i64
+}
+
+pub(super) fn run_format06_comparison(comparison_dir: &Path, verbose: bool) -> Result<()> {
+    fs::create_dir_all(comparison_dir)?;
+    let temp =
+        std::env::temp_dir().join(format!("crushr-format06-comparison-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&temp);
+    fs::create_dir_all(&temp)?;
+
+    let salvage_bin = resolve_salvage_bin()?;
+    let pack_bin = resolve_pack_bin()?;
+    let scenarios = comparison_scenarios();
+    let mut rows = Vec::new();
+
+    for scenario in scenarios {
+        let scenario_dir = temp.join(&scenario.scenario_id);
+        fs::create_dir_all(&scenario_dir)?;
+        let input_dir = scenario_dir.join("input");
+        write_dataset_fixture(&input_dir, scenario.dataset)?;
+
+        let old_archive = scenario_dir.join("old.crushr");
+        let redundant_archive = scenario_dir.join("redundant.crushr");
+        let format05_archive = scenario_dir.join("format05.crushr");
+        let format06_archive = scenario_dir.join("format06.crushr");
+
+        build_archive_with_pack(&pack_bin, &input_dir.join(scenario.dataset), &old_archive)?;
+        build_archive_with_pack_experimental(
+            &pack_bin,
+            &input_dir.join(scenario.dataset),
+            &redundant_archive,
+        )?;
+        build_archive_with_pack_format05(
+            &pack_bin,
+            &input_dir.join(scenario.dataset),
+            &format05_archive,
+        )?;
+        build_archive_with_pack_format06(
+            &pack_bin,
+            &input_dir.join(scenario.dataset),
+            &format06_archive,
+        )?;
+
+        if scenario.break_redundant_map {
+            remove_ledger_for_old_style(&old_archive)?;
+        }
+
+        corrupt_archive(&old_archive, &scenario)?;
+        corrupt_archive(&redundant_archive, &scenario)?;
+        corrupt_archive(&format05_archive, &scenario)?;
+        corrupt_archive(&format06_archive, &scenario)?;
+
+        let old_plan = run_salvage_plan(
+            &salvage_bin,
+            &old_archive,
+            &scenario_dir.join("old_plan.json"),
+        )?;
+        let redundant_plan = run_salvage_plan(
+            &salvage_bin,
+            &redundant_archive,
+            &scenario_dir.join("redundant_plan.json"),
+        )?;
+        let format05_plan = run_salvage_plan(
+            &salvage_bin,
+            &format05_archive,
+            &scenario_dir.join("format05_plan.json"),
+        )?;
+        let format06_plan = run_salvage_plan(
+            &salvage_bin,
+            &format06_archive,
+            &scenario_dir.join("format06_plan.json"),
+        )?;
+        let old_metrics = outcome_from_plan(&old_plan);
+        let redundant_metrics = outcome_from_plan(&redundant_plan);
+        let format05_metrics = outcome_from_plan(&format05_plan);
+        let format06_metrics = outcome_from_plan(&format06_plan);
+        let format05_classifications = recovery_classification_counts(&format05_plan);
+        let format06_classifications = recovery_classification_counts(&format06_plan);
+
+        if verbose {
+            eprintln!(
+                "scenario {} => format06 {}",
+                scenario.scenario_id, format06_metrics.outcome
+            );
+        }
+
+        rows.push(serde_json::json!({
+            "scenario_id": scenario.scenario_id,
+            "dataset": scenario.dataset,
+            "corruption_model": scenario.corruption_model,
+            "corruption_target": scenario.corruption_target,
+            "magnitude": scenario.magnitude,
+            "seed": scenario.seed,
+            "old_outcome": old_metrics.outcome,
+            "redundant_outcome": redundant_metrics.outcome,
+            "format05_outcome": format05_metrics.outcome,
+            "format06_outcome": format06_metrics.outcome,
+            "old_verified_block_count": old_metrics.verified_block_count,
+            "redundant_verified_block_count": redundant_metrics.verified_block_count,
+            "format05_verified_block_count": format05_metrics.verified_block_count,
+            "format06_verified_block_count": format06_metrics.verified_block_count,
+            "old_salvageable_file_count": old_metrics.salvageable_file_count,
+            "redundant_salvageable_file_count": redundant_metrics.salvageable_file_count,
+            "format05_salvageable_file_count": format05_metrics.salvageable_file_count,
+            "format06_salvageable_file_count": format06_metrics.salvageable_file_count,
+            "format05_recovery_classification_counts": format05_classifications,
+            "format06_recovery_classification_counts": format06_classifications
+        }));
+    }
+
+    let mut format05_recovery_classification_counts = BTreeMap::<String, u64>::new();
+    let mut format06_recovery_classification_counts = BTreeMap::<String, u64>::new();
+    for row in &rows {
+        if let Some(counts) = row
+            .get("format05_recovery_classification_counts")
+            .and_then(Value::as_object)
+        {
+            for (k, v) in counts {
+                *format05_recovery_classification_counts
+                    .entry(k.clone())
+                    .or_insert(0) += v.as_u64().unwrap_or(0);
+            }
+        }
+        if let Some(counts) = row
+            .get("format06_recovery_classification_counts")
+            .and_then(Value::as_object)
+        {
+            for (k, v) in counts {
+                *format06_recovery_classification_counts
+                    .entry(k.clone())
+                    .or_insert(0) += v.as_u64().unwrap_or(0);
+            }
+        }
+    }
+
+    let summary = serde_json::json!({
+        "schema_version": "crushr-lab-salvage-format06-comparison.v1",
+        "tool": "crushr-lab-salvage",
+        "tool_version": env!("CARGO_PKG_VERSION"),
+        "verification_label": VERIFICATION_LABEL,
+        "scenario_count": rows.len(),
+        "old_outcome_counts": count_outcomes(rows.iter().filter_map(|r| r.get("old_outcome").and_then(Value::as_str))),
+        "redundant_outcome_counts": count_outcomes(rows.iter().filter_map(|r| r.get("redundant_outcome").and_then(Value::as_str))),
+        "format05_outcome_counts": count_outcomes(rows.iter().filter_map(|r| r.get("format05_outcome").and_then(Value::as_str))),
+        "format06_outcome_counts": count_outcomes(rows.iter().filter_map(|r| r.get("format06_outcome").and_then(Value::as_str))),
+        "format05_recovery_classification_counts": format05_recovery_classification_counts,
+        "format06_recovery_classification_counts": format06_recovery_classification_counts,
+        "recovery_classification_delta_vs_format05": {
+            "full_verified_delta": classification_delta(&format05_recovery_classification_counts, &format06_recovery_classification_counts, "FULL_VERIFIED"),
+            "full_anonymous_delta": classification_delta(&format05_recovery_classification_counts, &format06_recovery_classification_counts, "FULL_ANONYMOUS"),
+            "partial_ordered_delta": classification_delta(&format05_recovery_classification_counts, &format06_recovery_classification_counts, "PARTIAL_ORDERED"),
+            "partial_unordered_delta": classification_delta(&format05_recovery_classification_counts, &format06_recovery_classification_counts, "PARTIAL_UNORDERED"),
+            "orphan_blocks_delta": classification_delta(&format05_recovery_classification_counts, &format06_recovery_classification_counts, "ORPHAN_BLOCKS")
+        },
+        "per_scenario_rows": rows
+    });
+
+    fs::write(
+        comparison_dir.join("format06_comparison_summary.json"),
+        serde_json::to_string_pretty(&summary)?,
+    )?;
+    fs::write(
+        comparison_dir.join("format06_comparison_summary.md"),
+        format!(
+            "# Format-06 comparison\n\nScenarios: {}\n\n- outcomes tracked: old, redundant, format05, format06\n",
+            summary.get("scenario_count").and_then(Value::as_u64).unwrap_or(0)
+        ),
+    )?;
+
+    let _ = fs::remove_dir_all(&temp);
+    Ok(())
+}
