@@ -4,14 +4,14 @@ use crushr::index_codec::encode_index;
 use crushr_format::blk3::{write_blk3_header, Blk3Flags, Blk3Header};
 use crushr_format::ledger::LedgerBlob;
 use crushr_format::tailframe::assemble_tail_frame;
-use serde_json::json;
+use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
 
 const ZSTD_CODEC: u32 = 1;
-const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only|extent_identity_inline_path|extent_identity_distributed_names>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only | extent_identity_inline_path | extent_identity_distributed_names\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  -h, --help                                 print this help text";
+const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only|extent_identity_inline_path|extent_identity_distributed_names|extent_identity_path_dict_single|extent_identity_path_dict_header_tail|extent_identity_path_dict_quasi_uniform>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only | extent_identity_inline_path | extent_identity_distributed_names | extent_identity_path_dict_single | extent_identity_path_dict_header_tail | extent_identity_path_dict_quasi_uniform\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  -h, --help                                 print this help text";
 
 #[derive(Clone, Copy, Debug)]
 enum PlacementStrategy {
@@ -39,6 +39,9 @@ enum MetadataProfile {
     ExtentIdentityOnly,
     ExtentIdentityInlinePath,
     ExtentIdentityDistributedNames,
+    ExtentIdentityPathDictSingle,
+    ExtentIdentityPathDictHeaderTail,
+    ExtentIdentityPathDictQuasiUniform,
 }
 
 impl PlacementStrategy {
@@ -70,6 +73,11 @@ impl MetadataProfile {
             "extent_identity_only" => Ok(Self::ExtentIdentityOnly),
             "extent_identity_inline_path" => Ok(Self::ExtentIdentityInlinePath),
             "extent_identity_distributed_names" => Ok(Self::ExtentIdentityDistributedNames),
+            "extent_identity_path_dict_single" => Ok(Self::ExtentIdentityPathDictSingle),
+            "extent_identity_path_dict_header_tail" => Ok(Self::ExtentIdentityPathDictHeaderTail),
+            "extent_identity_path_dict_quasi_uniform" => {
+                Ok(Self::ExtentIdentityPathDictQuasiUniform)
+            }
             _ => bail!("unsupported metadata profile: {value}"),
         }
     }
@@ -83,6 +91,9 @@ impl MetadataProfile {
             Self::ExtentIdentityOnly => "extent_identity_only",
             Self::ExtentIdentityInlinePath => "extent_identity_inline_path",
             Self::ExtentIdentityDistributedNames => "extent_identity_distributed_names",
+            Self::ExtentIdentityPathDictSingle => "extent_identity_path_dict_single",
+            Self::ExtentIdentityPathDictHeaderTail => "extent_identity_path_dict_header_tail",
+            Self::ExtentIdentityPathDictQuasiUniform => "extent_identity_path_dict_quasi_uniform",
         }
     }
 
@@ -99,6 +110,15 @@ impl MetadataProfile {
         matches!(
             self,
             Self::PayloadPlusManifest | Self::FullCurrentExperimental
+        )
+    }
+
+    fn uses_path_dictionary(self) -> bool {
+        matches!(
+            self,
+            Self::ExtentIdentityPathDictSingle
+                | Self::ExtentIdentityPathDictHeaderTail
+                | Self::ExtentIdentityPathDictQuasiUniform
         )
     }
 }
@@ -265,6 +285,31 @@ fn pack_minimal_v1(
         options.metadata_profile,
         Some(MetadataProfile::ExtentIdentityInlinePath)
     );
+    let use_path_dictionary = options
+        .metadata_profile
+        .map(MetadataProfile::uses_path_dictionary)
+        .unwrap_or(false);
+
+    let mut path_id_by_path = BTreeMap::new();
+    for (idx, file) in files.iter().enumerate() {
+        path_id_by_path.insert(file.rel_path.clone(), idx as u32);
+    }
+    let path_dictionary_entries: Vec<_> = path_id_by_path
+        .iter()
+        .map(|(path, path_id)| {
+            json!({
+                "path_id": *path_id,
+                "path": path,
+                "path_digest_blake3": to_hex(blake3::hash(path.as_bytes()).as_bytes())
+            })
+        })
+        .collect();
+    let path_dictionary = json!({
+        "schema": "crushr-path-dictionary-copy.v1",
+        "copy_role": "primary",
+        "entry_count": path_dictionary_entries.len() as u64,
+        "entries": path_dictionary_entries,
+    });
 
     let payload_identity_archive_id = if emit_payload_identity {
         Some(compute_file_identity_archive_id(&files))
@@ -281,6 +326,23 @@ fn pack_minimal_v1(
             scheduled_metadata_ordinals(strategy, "path_checkpoint", total_files, &placement_seed)
         })
         .unwrap_or_default();
+    let quasi_uniform_ordinals = if matches!(
+        options.metadata_profile,
+        Some(MetadataProfile::ExtentIdentityPathDictQuasiUniform)
+    ) {
+        scheduled_metadata_ordinals(
+            PlacementStrategy::Golden,
+            "path_dictionary",
+            total_files,
+            &placement_seed,
+        )
+    } else {
+        BTreeSet::new()
+    };
+
+    if use_path_dictionary {
+        write_experimental_metadata_block(&mut out, &path_dictionary, level)?;
+    }
     let manifest_checkpoint_ordinals = options
         .placement_strategy
         .filter(|_| emit_manifest_checkpoints)
@@ -421,6 +483,7 @@ fn pack_minimal_v1(
                 .map(|name| name.to_string_lossy().to_string())
                 .unwrap_or_else(|| path.clone());
             let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
+            let path_id = path_id_by_path.get(&path).copied();
             let payload_record = json!({
                 "schema": "crushr-payload-block-identity.v1",
                 "archive_identity": archive_identity,
@@ -444,9 +507,16 @@ fn pack_minimal_v1(
                 "name": inline_payload_path.then_some(name),
                 "path": inline_payload_path.then_some(path.clone()),
                 "path_digest_blake3": inline_payload_path.then_some(to_hex(&path_digest)),
+                "path_id": if use_path_dictionary { path_id } else { None },
             });
             payload_block_identity_records.push(payload_record.clone());
             write_experimental_metadata_block(&mut out, &payload_record, level)?;
+
+            if use_path_dictionary && quasi_uniform_ordinals.contains(&ordinal) {
+                let mut copy = path_dictionary.clone();
+                copy["copy_role"] = Value::String("interior_mirror".to_string());
+                write_experimental_metadata_block(&mut out, &copy, level)?;
+            }
 
             if emit_path_checkpoints {
                 path_checkpoint_entries.push(json!({
@@ -522,6 +592,16 @@ fn pack_minimal_v1(
         block_id = block_id
             .checked_add(1)
             .context("too many files for minimal packer")?;
+    }
+
+    if matches!(
+        options.metadata_profile,
+        Some(MetadataProfile::ExtentIdentityPathDictHeaderTail)
+            | Some(MetadataProfile::ExtentIdentityPathDictQuasiUniform)
+    ) {
+        let mut copy = path_dictionary.clone();
+        copy["copy_role"] = Value::String("tail_mirror".to_string());
+        write_experimental_metadata_block(&mut out, &copy, level)?;
     }
 
     if options.self_describing_extents {
