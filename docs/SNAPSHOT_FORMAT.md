@@ -78,3 +78,10 @@ Expected payload families:
 
 
 `crushr-lab-salvage run-format05-comparison` emits `format05_comparison_summary.json` and `format05_comparison_summary.md` for bounded five-arm targeted comparisons (old / redundant / format-02 experimental / format-03 file-identity / format-05 payload-block identity). These are deterministic research comparison aggregates only and are not extraction snapshots.
+
+
+## Experimental metadata checkpoint placement (FORMAT-08)
+- Optional packer surface: `--placement-strategy <fixed_spread|hash_spread|golden_spread>`.
+- Valid only with experimental graph-supporting metadata writer flags (path checkpoints and/or file-manifest checkpoints).
+- This setting influences checkpoint copy placement for `crushr-path-checkpoint.v1` and `crushr-file-manifest-checkpoint.v1` metadata only.
+- Payload semantics, payload ordering, and strict extraction behavior are unchanged.

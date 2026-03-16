@@ -71,3 +71,5 @@
 - [x] CRUSHR-FORMAT-06-f1 — manifest-sourced plan synthesis + digest-aware classification + format06 classification deltas
 
 - [x] 3.17-f1 CRUSHR-FORMAT-06-f1 dispatch regression fix (lock top-level `run-format06-comparison` dispatch behavior + subcommand-vs-path regression coverage + help discoverability assertion)
+
+- [x] 3.18 CRUSHR-FORMAT-08 (metadata placement strategy experiment: fixed_spread/hash_spread/golden_spread + bounded format08 comparison)

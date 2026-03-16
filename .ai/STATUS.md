@@ -2,7 +2,7 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-FORMAT-07 complete** (graph-aware verified relationship reasoning + FORMAT-07 comparison command wired and covered)
+Current Step: **CRUSHR-FORMAT-08 complete** (metadata placement strategy experiment + FORMAT-08 comparison command wired and covered)
 
 Immediate Next Step: **CRUSHR-SCRUB-04 / next user packet** (FORMAT-07 packet delivered; monitor follow-up packet scope)
 
@@ -109,3 +109,9 @@ Recovery should degrade in reverse order:
 - Confirmed `run-format06-comparison` remains a first-argument top-level dispatch path and completes end-to-end via `cargo run -p crushr --bin crushr-lab-salvage`.
 - Added harness regression coverage ensuring FORMAT-06 subcommand token is rejected as positional input-path mode when misplaced.
 - Added help-surface regression assertion for `run-format06-comparison` discoverability alongside existing comparison commands.
+
+
+## Update: CRUSHR-FORMAT-08 complete
+- `crushr-pack` now supports opt-in `--placement-strategy <fixed_spread|hash_spread|golden_spread>` for graph-supporting metadata checkpoints in experimental writer paths.
+- Placement strategy applies to path checkpoints and file-manifest checkpoints only; payload ordering/layout remains unchanged.
+- `crushr-lab-salvage` now supports `run-format08-placement-comparison` with required summary outputs and metadata-layer failure focus fields.

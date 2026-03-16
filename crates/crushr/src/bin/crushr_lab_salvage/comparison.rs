@@ -164,6 +164,38 @@ stderr:
     Ok(())
 }
 
+pub(super) fn build_archive_with_pack_format08(
+    pack_bin: &Path,
+    input: &Path,
+    output: &Path,
+    strategy: &str,
+) -> Result<()> {
+    let out = Command::new(pack_bin)
+        .arg(input)
+        .arg("-o")
+        .arg(output)
+        .arg("--level")
+        .arg("3")
+        .arg(FORMAT05_PACK_FLAG)
+        .arg(FORMAT06_PACK_FLAG)
+        .arg("--placement-strategy")
+        .arg(strategy)
+        .output()
+        .with_context(|| format!("run {:?}", pack_bin))?;
+    if !out.status.success() {
+        bail!(
+            "crushr-pack failed
+stdout:
+{}
+stderr:
+{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+    Ok(())
+}
+
 pub(super) fn remove_ledger_for_old_style(archive_path: &Path) -> Result<()> {
     let bytes = fs::read(archive_path)?;
     let footer_offset = bytes.len() - FTR4_LEN;
@@ -1280,6 +1312,207 @@ fn merge_classification_counts(rows: &[Value], field: &str) -> BTreeMap<String, 
         }
     }
     merged
+}
+
+fn metadata_node_count(plan: &Value, schema: &str) -> u64 {
+    plan.get("experimental_metadata")
+        .and_then(Value::as_array)
+        .map(|rows| {
+            rows.iter()
+                .filter(|row| row.get("schema").and_then(Value::as_str) == Some(schema))
+                .count() as u64
+        })
+        .unwrap_or(0)
+}
+
+pub(super) fn run_format08_placement_comparison(
+    comparison_dir: &Path,
+    verbose: bool,
+) -> Result<()> {
+    fs::create_dir_all(comparison_dir)?;
+    let temp = std::env::temp_dir().join(format!(
+        "crushr-format08-placement-comparison-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&temp);
+    fs::create_dir_all(&temp)?;
+
+    let salvage_bin = resolve_salvage_bin()?;
+    let pack_bin = resolve_pack_bin()?;
+    let scenarios = comparison_scenarios();
+    let strategies = [
+        FORMAT08_STRATEGY_FIXED,
+        FORMAT08_STRATEGY_HASH,
+        FORMAT08_STRATEGY_GOLDEN,
+    ];
+    let mut rows = Vec::new();
+
+    for scenario in scenarios {
+        let scenario_dir = temp.join(&scenario.scenario_id);
+        fs::create_dir_all(&scenario_dir)?;
+        let input_dir = scenario_dir.join("input");
+        write_dataset_fixture(&input_dir, scenario.dataset)?;
+
+        for strategy in strategies {
+            let archive = scenario_dir.join(format!("format08_{}.crushr", strategy));
+            build_archive_with_pack_format08(
+                &pack_bin,
+                &input_dir.join(scenario.dataset),
+                &archive,
+                strategy,
+            )?;
+            corrupt_archive(&archive, &scenario)?;
+            let plan = run_salvage_plan(
+                &salvage_bin,
+                &archive,
+                &scenario_dir.join(format!("plan_{}.json", strategy)),
+            )?;
+            let metrics = outcome_from_plan(&plan);
+            let classes = recovery_classification_counts(&plan);
+            let manifest_survival =
+                metadata_node_count(&plan, "crushr-file-manifest-checkpoint.v1");
+            let path_survival = metadata_node_count(&plan, "crushr-path-checkpoint.v1");
+            let metadata_nodes = manifest_survival + path_survival;
+            if verbose {
+                eprintln!(
+                    "scenario {} strategy {} => {}",
+                    scenario.scenario_id, strategy, metrics.outcome
+                );
+            }
+            rows.push(serde_json::json!({
+                "scenario_id": scenario.scenario_id,
+                "dataset": scenario.dataset,
+                "corruption_model": scenario.corruption_model,
+                "corruption_target": scenario.corruption_target,
+                "magnitude": scenario.magnitude,
+                "seed": scenario.seed,
+                "placement_strategy": strategy,
+                "outcome": metrics.outcome,
+                "verified_block_count": metrics.verified_block_count,
+                "salvageable_file_count": metrics.salvageable_file_count,
+                "recovery_classification_counts": classes,
+                "manifest_checkpoint_survival_count": manifest_survival,
+                "path_checkpoint_survival_count": path_survival,
+                "verified_metadata_node_count": metadata_nodes,
+            }));
+        }
+    }
+
+    let mut by_strategy = serde_json::Map::new();
+    for strategy in strategies {
+        let strategy_rows: Vec<Value> = rows
+            .iter()
+            .filter(|r| r["placement_strategy"] == strategy)
+            .cloned()
+            .collect();
+        let outcomes = count_outcomes(
+            strategy_rows
+                .iter()
+                .filter_map(|r| r.get("outcome").and_then(Value::as_str)),
+        );
+        let classes = merge_classification_counts(&strategy_rows, "recovery_classification_counts");
+        let manifest_checkpoint_survival_count: u64 = strategy_rows
+            .iter()
+            .map(|r| {
+                r["manifest_checkpoint_survival_count"]
+                    .as_u64()
+                    .unwrap_or(0)
+            })
+            .sum();
+        let path_checkpoint_survival_count: u64 = strategy_rows
+            .iter()
+            .map(|r| r["path_checkpoint_survival_count"].as_u64().unwrap_or(0))
+            .sum();
+        let verified_metadata_node_count: u64 = strategy_rows
+            .iter()
+            .map(|r| r["verified_metadata_node_count"].as_u64().unwrap_or(0))
+            .sum();
+        by_strategy.insert(strategy.to_string(), serde_json::json!({
+            "scenario_count": strategy_rows.len(),
+            "recovery_outcome_counts": outcomes,
+            "recovery_classification_counts": classes,
+            "named_recovery_count": classes.get("FULL_NAMED_VERIFIED").copied().unwrap_or(0),
+            "anonymous_recovery_count": classes.get("FULL_ANONYMOUS_VERIFIED").copied().unwrap_or(0),
+            "partial_ordered_recovery_count": classes.get("PARTIAL_ORDERED_VERIFIED").copied().unwrap_or(0),
+            "partial_unordered_recovery_count": classes.get("PARTIAL_UNORDERED_VERIFIED").copied().unwrap_or(0),
+            "orphan_evidence_count": classes.get("ORPHAN_EVIDENCE_ONLY").copied().unwrap_or(0),
+            "manifest_checkpoint_survival_count": manifest_checkpoint_survival_count,
+            "path_checkpoint_survival_count": path_checkpoint_survival_count,
+            "verified_metadata_node_count": verified_metadata_node_count,
+        }));
+    }
+
+    let summary = serde_json::json!({
+        "schema_version": "crushr-lab-salvage-format08-placement-comparison.v1",
+        "tool": "crushr-lab-salvage",
+        "tool_version": env!("CARGO_PKG_VERSION"),
+        "verification_label": VERIFICATION_LABEL,
+        "scenario_count": rows.len(),
+        "placement_strategies": strategies,
+        "by_placement_strategy": by_strategy,
+        "by_dataset": group_rows_by_key(&rows, "dataset"),
+        "by_corruption_target": group_rows_by_key(&rows, "corruption_target"),
+        "metadata_layer_failure_focus": {
+            "no_manifest_checkpoint_rows": rows.iter().filter(|r| r["manifest_checkpoint_survival_count"].as_u64().unwrap_or(0) == 0).count(),
+            "no_path_checkpoint_rows": rows.iter().filter(|r| r["path_checkpoint_survival_count"].as_u64().unwrap_or(0) == 0).count(),
+            "no_metadata_nodes_rows": rows.iter().filter(|r| r["verified_metadata_node_count"].as_u64().unwrap_or(0) == 0).count(),
+        },
+        "per_scenario_rows": rows,
+    });
+
+    fs::write(
+        comparison_dir.join("format08_comparison_summary.json"),
+        serde_json::to_string_pretty(&summary)?,
+    )?;
+    fs::write(
+        comparison_dir.join("format08_comparison_summary.md"),
+        format!(
+            "# Format-08 placement comparison
+
+Scenarios: {}
+
+Strategies: fixed_spread, hash_spread, golden_spread
+",
+            summary
+                .get("scenario_count")
+                .and_then(Value::as_u64)
+                .unwrap_or(0)
+        ),
+    )?;
+    let _ = fs::remove_dir_all(&temp);
+    Ok(())
+}
+
+fn group_rows_by_key(rows: &[Value], key: &str) -> Value {
+    let mut out = serde_json::Map::new();
+    let mut keys = BTreeMap::<String, Vec<Value>>::new();
+    for row in rows {
+        if let Some(k) = row.get(key).and_then(Value::as_str) {
+            keys.entry(k.to_string()).or_default().push(row.clone());
+        }
+    }
+    for (k, group) in keys {
+        let outcomes = count_outcomes(
+            group
+                .iter()
+                .filter_map(|r| r.get("outcome").and_then(Value::as_str)),
+        );
+        let classes = merge_classification_counts(&group, "recovery_classification_counts");
+        out.insert(k, serde_json::json!({
+            "scenario_count": group.len(),
+            "recovery_outcome_counts": outcomes,
+            "recovery_classification_counts": classes,
+            "named_recovery_count": classes.get("FULL_NAMED_VERIFIED").copied().unwrap_or(0),
+            "anonymous_recovery_count": classes.get("FULL_ANONYMOUS_VERIFIED").copied().unwrap_or(0),
+            "partial_ordered_recovery_count": classes.get("PARTIAL_ORDERED_VERIFIED").copied().unwrap_or(0),
+            "partial_unordered_recovery_count": classes.get("PARTIAL_UNORDERED_VERIFIED").copied().unwrap_or(0),
+            "orphan_evidence_count": classes.get("ORPHAN_EVIDENCE_ONLY").copied().unwrap_or(0),
+            "manifest_checkpoint_survival_count": group.iter().map(|r| r["manifest_checkpoint_survival_count"].as_u64().unwrap_or(0)).sum::<u64>(),
+            "path_checkpoint_survival_count": group.iter().map(|r| r["path_checkpoint_survival_count"].as_u64().unwrap_or(0)).sum::<u64>(),
+            "verified_metadata_node_count": group.iter().map(|r| r["verified_metadata_node_count"].as_u64().unwrap_or(0)).sum::<u64>(),
+        }));
+    }
+    Value::Object(out)
 }
 
 pub(super) fn run_format06_comparison(comparison_dir: &Path, verbose: bool) -> Result<()> {

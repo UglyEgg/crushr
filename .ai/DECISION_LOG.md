@@ -612,3 +612,10 @@ Blast radius:
 - Blast radius:
   - `crushr-salvage` plan `file_plans[*].recovery_classification` values changed.
   - Comparison summaries and tests now track FORMAT-07 class names.
+
+
+## 2026-03-16 — CRUSHR-FORMAT-08 metadata placement strategy names and scope are locked for bounded experiment
+- Decision: expose exactly `fixed_spread`, `hash_spread`, and `golden_spread` as the user-facing placement strategies for graph-supporting metadata checkpoint placement in experimental writer mode.
+- Alternatives considered: retain legacy anchor-only placement; expose generic low-discrepancy naming; apply to payload layout.
+- Rationale: packet goal is metadata survivability comparison while preserving payload identity semantics and strict extraction rules.
+- Blast radius: `crushr-pack` experimental flags, `crushr-lab-salvage` format08 comparison workflow, docs/state continuity files.

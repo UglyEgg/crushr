@@ -5,13 +5,48 @@ use crushr_format::blk3::{write_blk3_header, Blk3Flags, Blk3Header};
 use crushr_format::ledger::LedgerBlob;
 use crushr_format::tailframe::assemble_tail_frame;
 use serde_json::json;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
 
 const ZSTD_CODEC: u32 = 1;
-const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  -h, --help                                 print this help text";
+const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--placement-strategy <fixed_spread|hash_spread|golden_spread>]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  -h, --help                                 print this help text";
+
+#[derive(Clone, Copy, Debug)]
+enum PlacementStrategy {
+    Fixed,
+    Hash,
+    Golden,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct PackExperimentalOptions {
+    self_describing_extents: bool,
+    file_identity_extents: bool,
+    self_identifying_blocks: bool,
+    file_manifest_checkpoints: bool,
+    placement_strategy: Option<PlacementStrategy>,
+}
+
+impl PlacementStrategy {
+    fn parse(value: &str) -> Result<Self> {
+        match value {
+            "fixed_spread" => Ok(Self::Fixed),
+            "hash_spread" => Ok(Self::Hash),
+            "golden_spread" => Ok(Self::Golden),
+            _ => bail!("unsupported placement strategy: {value}"),
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Fixed => "fixed_spread",
+            Self::Hash => "hash_spread",
+            Self::Golden => "golden_spread",
+        }
+    }
+}
 
 fn compress_deterministic(raw: &[u8], level: i32) -> Result<Vec<u8>> {
     let mut encoder = zstd::Encoder::new(Vec::new(), level).context("create zstd encoder")?;
@@ -58,6 +93,7 @@ fn run() -> Result<()> {
     let mut experimental_file_identity_extents = false;
     let mut experimental_self_identifying_blocks = false;
     let mut experimental_file_manifest_checkpoints = false;
+    let mut placement_strategy = None;
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -81,6 +117,8 @@ fn run() -> Result<()> {
             experimental_self_identifying_blocks = true;
         } else if arg == "--experimental-file-manifest-checkpoints" {
             experimental_file_manifest_checkpoints = true;
+        } else if arg == "--placement-strategy" {
+            placement_strategy = Some(PlacementStrategy::parse(&args.next().context(USAGE)?)?);
         } else if arg.starts_with('-') {
             bail!("unsupported flag: {arg}");
         } else {
@@ -92,15 +130,26 @@ fn run() -> Result<()> {
     if inputs.is_empty() {
         bail!(USAGE);
     }
+    if placement_strategy.is_some()
+        && !experimental_self_identifying_blocks
+        && !experimental_file_manifest_checkpoints
+    {
+        bail!(
+            "--placement-strategy requires --experimental-self-identifying-blocks and/or --experimental-file-manifest-checkpoints"
+        );
+    }
 
     pack_minimal_v1(
         &inputs,
         &output,
         level,
-        experimental_self_describing_extents,
-        experimental_file_identity_extents,
-        experimental_self_identifying_blocks,
-        experimental_file_manifest_checkpoints,
+        PackExperimentalOptions {
+            self_describing_extents: experimental_self_describing_extents,
+            file_identity_extents: experimental_file_identity_extents,
+            self_identifying_blocks: experimental_self_identifying_blocks,
+            file_manifest_checkpoints: experimental_file_manifest_checkpoints,
+            placement_strategy,
+        },
     )
 }
 
@@ -108,10 +157,7 @@ fn pack_minimal_v1(
     inputs: &[PathBuf],
     output: &Path,
     level: i32,
-    experimental_self_describing_extents: bool,
-    experimental_file_identity_extents: bool,
-    experimental_self_identifying_blocks: bool,
-    experimental_file_manifest_checkpoints: bool,
+    options: PackExperimentalOptions,
 ) -> Result<()> {
     let files = collect_files(inputs)?;
     if files.is_empty() {
@@ -129,18 +175,38 @@ fn pack_minimal_v1(
     let mut payload_block_identity_records = Vec::new();
     let mut path_checkpoint_entries = Vec::new();
     let mut file_manifest_records = Vec::new();
-    let file_identity_archive_id = if experimental_file_identity_extents {
+    let file_identity_archive_id = if options.file_identity_extents {
         Some(compute_file_identity_archive_id(&files))
     } else {
         None
     };
-    let payload_identity_archive_id = if experimental_self_identifying_blocks {
+    let payload_identity_archive_id = if options.self_identifying_blocks {
         Some(compute_file_identity_archive_id(&files))
     } else {
         None
     };
     let total_files = files.len();
     let checkpoint_stride = 2usize;
+    let placement_seed = compute_file_identity_archive_id(&files);
+    let path_checkpoint_ordinals = options
+        .placement_strategy
+        .filter(|_| options.self_identifying_blocks)
+        .map(|strategy| {
+            scheduled_metadata_ordinals(strategy, "path_checkpoint", total_files, &placement_seed)
+        })
+        .unwrap_or_default();
+    let manifest_checkpoint_ordinals = options
+        .placement_strategy
+        .filter(|_| options.file_manifest_checkpoints)
+        .map(|strategy| {
+            scheduled_metadata_ordinals(
+                strategy,
+                "file_manifest_checkpoint",
+                total_files,
+                &placement_seed,
+            )
+        })
+        .unwrap_or_default();
     for (ordinal, file) in files.into_iter().enumerate() {
         let raw = std::fs::read(&file.abs_path)
             .with_context(|| format!("read {}", file.abs_path.display()))?;
@@ -167,7 +233,7 @@ fn pack_minimal_v1(
         write_blk3_header(&mut out, &header)?;
         out.write_all(&compressed)?;
 
-        if experimental_self_describing_extents {
+        if options.self_describing_extents {
             let record = json!({
                 "file_id": block_id,
                 "path": file.rel_path,
@@ -204,7 +270,7 @@ fn pack_minimal_v1(
             }
         }
 
-        if experimental_file_identity_extents {
+        if options.file_identity_extents {
             let path = file.rel_path.clone();
             let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
             file_identity_extent_records.push(json!({
@@ -261,7 +327,7 @@ fn pack_minimal_v1(
             }
         }
 
-        if experimental_self_identifying_blocks {
+        if options.self_identifying_blocks {
             let archive_identity = payload_identity_archive_id.clone();
             let path = file.rel_path.clone();
             let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
@@ -294,12 +360,15 @@ fn pack_minimal_v1(
                 "total_block_count": 1,
             }));
 
-            if should_emit_anchor(ordinal, total_files) {
+            if should_emit_anchor(ordinal, total_files)
+                || path_checkpoint_ordinals.contains(&ordinal)
+            {
                 write_experimental_metadata_block(
                     &mut out,
                     &json!({
                         "schema": "crushr-path-checkpoint.v1",
                         "checkpoint_ordinal": ordinal as u64,
+                        "placement_strategy": options.placement_strategy.map(|s| s.as_str()),
                         "entries": path_checkpoint_entries,
                     }),
                     level,
@@ -307,7 +376,7 @@ fn pack_minimal_v1(
             }
         }
 
-        if experimental_file_manifest_checkpoints {
+        if options.file_manifest_checkpoints {
             let file_digest = to_hex(blake3::hash(&raw).as_bytes());
             let manifest_record = json!({
                 "schema": "crushr-file-manifest.v1",
@@ -321,12 +390,15 @@ fn pack_minimal_v1(
             file_manifest_records.push(manifest_record.clone());
             write_experimental_metadata_block(&mut out, &manifest_record, level)?;
 
-            if should_emit_anchor(ordinal, total_files) {
+            if should_emit_anchor(ordinal, total_files)
+                || manifest_checkpoint_ordinals.contains(&ordinal)
+            {
                 write_experimental_metadata_block(
                     &mut out,
                     &json!({
                         "schema": "crushr-file-manifest-checkpoint.v1",
                         "checkpoint_ordinal": ordinal as u64,
+                        "placement_strategy": options.placement_strategy.map(|s| s.as_str()),
                         "records": file_manifest_records,
                     }),
                     level,
@@ -354,7 +426,7 @@ fn pack_minimal_v1(
             .context("too many files for minimal packer")?;
     }
 
-    if experimental_self_describing_extents {
+    if options.self_describing_extents {
         write_experimental_metadata_block(
             &mut out,
             &json!({
@@ -366,7 +438,7 @@ fn pack_minimal_v1(
         )?;
     }
 
-    if experimental_file_identity_extents {
+    if options.file_identity_extents {
         write_experimental_metadata_block(
             &mut out,
             &json!({
@@ -387,12 +459,13 @@ fn pack_minimal_v1(
         )?;
     }
 
-    if experimental_self_identifying_blocks {
+    if options.self_identifying_blocks {
         write_experimental_metadata_block(
             &mut out,
             &json!({
                 "schema": "crushr-path-checkpoint.v1",
                 "checkpoint_ordinal": u64::MAX,
+                "placement_strategy": options.placement_strategy.map(|s| s.as_str()),
                 "entries": path_checkpoint_entries,
             }),
             level,
@@ -407,12 +480,13 @@ fn pack_minimal_v1(
         )?;
     }
 
-    if experimental_file_manifest_checkpoints {
+    if options.file_manifest_checkpoints {
         write_experimental_metadata_block(
             &mut out,
             &json!({
                 "schema": "crushr-file-manifest-checkpoint.v1",
                 "checkpoint_ordinal": u64::MAX,
+                "placement_strategy": options.placement_strategy.map(|s| s.as_str()),
                 "records": file_manifest_records,
             }),
             level,
@@ -424,11 +498,12 @@ fn pack_minimal_v1(
         entries: entries.clone(),
     });
     let redundant_file_map = json!({
-        "schema": if experimental_self_describing_extents || experimental_file_identity_extents || experimental_self_identifying_blocks || experimental_file_manifest_checkpoints { "crushr-redundant-file-map.experimental.v2" } else { "crushr-redundant-file-map.v1" },
-        "experimental_self_describing_extents": experimental_self_describing_extents,
-        "experimental_file_identity_extents": experimental_file_identity_extents,
-        "experimental_self_identifying_blocks": experimental_self_identifying_blocks,
-        "experimental_file_manifest_checkpoints": experimental_file_manifest_checkpoints,
+        "schema": if options.self_describing_extents || options.file_identity_extents || options.self_identifying_blocks || options.file_manifest_checkpoints { "crushr-redundant-file-map.experimental.v2" } else { "crushr-redundant-file-map.v1" },
+        "experimental_self_describing_extents": options.self_describing_extents,
+        "experimental_file_identity_extents": options.file_identity_extents,
+        "experimental_self_identifying_blocks": options.self_identifying_blocks,
+        "experimental_file_manifest_checkpoints": options.file_manifest_checkpoints,
+        "metadata_placement_strategy": options.placement_strategy.map(|s| s.as_str()),
         "files": entries
             .iter()
             .map(|entry| {
@@ -475,6 +550,86 @@ fn should_emit_anchor(ordinal: usize, total: usize) -> bool {
         return true;
     }
     ordinal == 0 || ordinal + 1 == total || ordinal + 1 == total / 2
+}
+
+fn scheduled_metadata_ordinals(
+    strategy: PlacementStrategy,
+    label: &str,
+    total_files: usize,
+    seed_material: &str,
+) -> BTreeSet<usize> {
+    if total_files == 0 {
+        return BTreeSet::new();
+    }
+    let target = total_files.min(3);
+    match strategy {
+        PlacementStrategy::Fixed => {
+            let mut set = BTreeSet::new();
+            set.insert(0);
+            set.insert(total_files / 2);
+            set.insert(total_files - 1);
+            set
+        }
+        PlacementStrategy::Hash => hashed_ordinals(label, total_files, target, seed_material),
+        PlacementStrategy::Golden => {
+            golden_ratio_ordinals(label, total_files, target, seed_material)
+        }
+    }
+}
+
+fn hashed_ordinals(
+    label: &str,
+    total_files: usize,
+    target: usize,
+    seed_material: &str,
+) -> BTreeSet<usize> {
+    let mut set = BTreeSet::new();
+    let mut counter = 0u64;
+    while set.len() < target {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(seed_material.as_bytes());
+        hasher.update(label.as_bytes());
+        hasher.update(&counter.to_le_bytes());
+        let digest = hasher.finalize();
+        let mut candidate =
+            u64::from_le_bytes(digest.as_bytes()[0..8].try_into().unwrap()) as usize % total_files;
+        while set.contains(&candidate) {
+            candidate = (candidate + 1) % total_files;
+        }
+        set.insert(candidate);
+        counter += 1;
+    }
+    set
+}
+
+fn golden_ratio_ordinals(
+    label: &str,
+    total_files: usize,
+    target: usize,
+    seed_material: &str,
+) -> BTreeSet<usize> {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(seed_material.as_bytes());
+    hasher.update(label.as_bytes());
+    let digest = hasher.finalize();
+    let seed = u64::from_le_bytes(digest.as_bytes()[0..8].try_into().unwrap()) as f64;
+    let seed_fraction = seed / u64::MAX as f64;
+    let step = 0.6180339887498949_f64;
+    let mut set = BTreeSet::new();
+    let mut i = 0usize;
+    while set.len() < target {
+        let value = (seed_fraction + (i as f64) * step).fract();
+        let mut candidate = (value * total_files as f64).floor() as usize;
+        if candidate >= total_files {
+            candidate = total_files - 1;
+        }
+        while set.contains(&candidate) {
+            candidate = (candidate + 1) % total_files;
+        }
+        set.insert(candidate);
+        i += 1;
+    }
+    set
 }
 
 fn write_experimental_metadata_block(

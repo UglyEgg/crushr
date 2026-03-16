@@ -1,3 +1,8 @@
+## 2026-03-16 — CRUSHR-FORMAT-08 (metadata placement strategy survivability experiment)
+- Added `crushr-pack --placement-strategy <fixed_spread|hash_spread|golden_spread>` for experimental graph-supporting metadata checkpoints.
+- Added `run-format08-placement-comparison` in `crushr-lab-salvage` with required summary artifacts and grouped metadata survivability metrics.
+- Added determinism/differentiation/dispatch regression tests, including FORMAT-07 dispatch non-regression.
+
 ## 2026-03-16 — CRUSHR-SCRUB-03 (salvage/lab-salvage internal modularization hardening)
 
 - Refactored `crushr-salvage` monolith into internal modules (`cli`, `discovery`, `metadata`, `artifacts`) while preserving existing command behavior and salvage plan/output semantics.
