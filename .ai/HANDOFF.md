@@ -76,5 +76,5 @@ After structural stability and metadata pruning decisions settle, revisit distri
 
 
 ## Latest completion
-- Added `run-format12-stress-comparison` to `crushr-lab-salvage` with deterministic stress datasets and summary artifacts (`format12_stress_summary.json`, `format12_stress_summary.md`).
+- Added `run-format12-stress-comparison` to `crushr-lab-salvage` with deterministic stress datasets and summary artifacts (`format12_stress_comparison_summary.json`, `format12_stress_comparison_summary.md`).
 - Verify CLI wiring with: `cargo run -p crushr --bin crushr-lab-salvage -- run-format12-stress-comparison --help`.

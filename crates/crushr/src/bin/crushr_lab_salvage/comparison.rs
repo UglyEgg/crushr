@@ -3426,6 +3426,7 @@ pub(super) fn run_format12_stress_comparison(comparison_dir: &Path, verbose: boo
     let _ = fs::remove_dir_all(&temp);
     fs::create_dir_all(&temp)?;
 
+    let salvage_bin = resolve_salvage_bin()?;
     let pack_bin = resolve_pack_bin()?;
     let variants = [
         "payload_only",
@@ -3433,203 +3434,502 @@ pub(super) fn run_format12_stress_comparison(comparison_dir: &Path, verbose: boo
         "extent_identity_inline_path",
         "payload_plus_manifest",
     ];
+    let scenarios = format12_stress_scenarios();
+
+    let mut rows = Vec::new();
+    let mut base_stats: std::collections::BTreeMap<(String, String), Value> =
+        std::collections::BTreeMap::new();
+
+    for scenario in scenarios {
+        let scenario_dir = temp.join(&scenario.scenario_id);
+        fs::create_dir_all(&scenario_dir)?;
+        let input_root = scenario_dir.join("input");
+        write_dataset_fixture_format12_stress(&input_root, scenario.dataset)?;
+        let input_dir = input_root.join(scenario.dataset);
+
+        for variant in variants {
+            let archive =
+                scenario_dir.join(format!("stress_{}_{}.crushr", scenario.dataset, variant));
+            build_archive_with_pack_metadata_profile_name(
+                &pack_bin, &input_dir, &archive, variant,
+            )?;
+            let archive_byte_size = fs::metadata(&archive)?.len();
+
+            let key = (scenario.dataset.to_string(), variant.to_string());
+            let stats = if let Some(existing) = base_stats.get(&key) {
+                existing.clone()
+            } else {
+                let computed = compute_stress_identity_stats(&archive, &input_dir)?;
+                base_stats.insert(key.clone(), computed.clone());
+                computed
+            };
+            let avg_path = stats["average_path_length"].as_f64().unwrap_or(0.0);
+            let avg_extents = stats["average_extents_per_file"].as_f64().unwrap_or(0.0);
+            let path_length_bucket = if avg_path >= 180.0 {
+                "very_long"
+            } else if avg_path >= 120.0 {
+                "long"
+            } else {
+                "normal"
+            };
+            let extent_density_bucket = if avg_extents >= 32.0 {
+                "extreme_fragmentation"
+            } else if avg_extents >= 8.0 {
+                "fragmented"
+            } else {
+                "low_fragmentation"
+            };
+
+            let variant_scenario = ComparisonScenario {
+                scenario_id: scenario.scenario_id.clone(),
+                dataset: scenario.dataset,
+                corruption_model: scenario.corruption_model,
+                corruption_target: scenario.corruption_target,
+                magnitude: scenario.magnitude,
+                seed: scenario.seed,
+                break_redundant_map: false,
+            };
+            corrupt_archive(&archive, &variant_scenario)?;
+            let plan = run_salvage_plan(
+                &salvage_bin,
+                &archive,
+                &scenario_dir.join(format!(
+                    "plan12_stress_{}_{}.json",
+                    variant, scenario.scenario_id
+                )),
+            )?;
+            let classes = recovery_classification_counts(&plan);
+            let outcome = outcome_from_plan(&plan);
+            let named = classes.get("FULL_NAMED_VERIFIED").copied().unwrap_or(0) > 0;
+            let anonymous_full = classes.get("FULL_ANONYMOUS_VERIFIED").copied().unwrap_or(0) > 0;
+            let partial_ordered = classes
+                .get("PARTIAL_ORDERED_VERIFIED")
+                .copied()
+                .unwrap_or(0)
+                > 0;
+            let partial_unordered = classes
+                .get("PARTIAL_UNORDERED_VERIFIED")
+                .copied()
+                .unwrap_or(0)
+                > 0;
+            let orphan_evidence = classes.get("ORPHAN_EVIDENCE_ONLY").copied().unwrap_or(0) > 0;
+            let no_verified_evidence = classes.is_empty();
+
+            if verbose {
+                eprintln!(
+                    "format12-stress {} {} => class={} extents={} avg_path={:.2}",
+                    scenario.scenario_id,
+                    variant,
+                    recovery_class_rank(&classes),
+                    stats["total_extent_count"].as_u64().unwrap_or(0),
+                    avg_path
+                );
+            }
+
+            rows.push(serde_json::json!({
+                "scenario_id": scenario.scenario_id,
+                "dataset": scenario.dataset,
+                "corruption_model": scenario.corruption_model,
+                "corruption_target": scenario.corruption_target,
+                "magnitude": scenario.magnitude,
+                "seed": scenario.seed,
+                "variant": variant,
+                "path_length_bucket": path_length_bucket,
+                "extent_density_bucket": extent_density_bucket,
+                "recovery_outcome": outcome.outcome,
+                "recovery_classification_counts": classes,
+                "named_recovery": named,
+                "anonymous_full_recovery": anonymous_full,
+                "partial_ordered_recovery": partial_ordered,
+                "partial_unordered_recovery": partial_unordered,
+                "orphan_evidence": orphan_evidence,
+                "no_verified_evidence": no_verified_evidence,
+                "archive_byte_size": archive_byte_size,
+                "average_path_length": stats["average_path_length"],
+                "max_path_length": stats["max_path_length"],
+                "total_extent_count": stats["total_extent_count"],
+                "average_extents_per_file": stats["average_extents_per_file"],
+                "max_extents_per_file": stats["max_extents_per_file"],
+                "path_char_count": stats["path_char_count"],
+                "extents_per_file_distribution": stats["extents_per_file_distribution"],
+            }));
+        }
+    }
+
+    let totals_for = |name: &str| -> (u64, i64) {
+        let size = rows
+            .iter()
+            .filter(|r| r["variant"] == name)
+            .map(|r| r["archive_byte_size"].as_u64().unwrap_or(0))
+            .sum();
+        let named = rows
+            .iter()
+            .filter(|r| r["variant"] == name && r["named_recovery"].as_bool() == Some(true))
+            .count() as i64;
+        (size, named)
+    };
+    let (payload_only_size, _) = totals_for("payload_only");
+    let (extent_identity_only_size, extent_identity_only_named) =
+        totals_for("extent_identity_only");
+
+    let mut by_variant = serde_json::Map::new();
+    for variant in variants {
+        let variant_rows: Vec<&Value> = rows.iter().filter(|r| r["variant"] == variant).collect();
+        let archive_byte_size: u64 = variant_rows
+            .iter()
+            .map(|r| r["archive_byte_size"].as_u64().unwrap_or(0))
+            .sum();
+        let named_count = variant_rows
+            .iter()
+            .filter(|r| r["named_recovery"].as_bool() == Some(true))
+            .count() as i64;
+        let overhead_vs_extent = archive_byte_size as i64 - extent_identity_only_size as i64;
+        let total_extents: u64 = variant_rows
+            .iter()
+            .map(|r| r["total_extent_count"].as_u64().unwrap_or(0))
+            .sum();
+        let total_path_chars: u64 = variant_rows
+            .iter()
+            .map(|r| r["path_char_count"].as_u64().unwrap_or(0))
+            .sum();
+        by_variant.insert(variant.to_string(), serde_json::json!({
+            "scenario_count": variant_rows.len(),
+            "archive_byte_size": archive_byte_size,
+            "overhead_delta_vs_payload_only": archive_byte_size as i64 - payload_only_size as i64,
+            "overhead_delta_vs_extent_identity_only": overhead_vs_extent,
+            "named_recovery_count": named_count,
+            "anonymous_full_recovery_count": variant_rows.iter().filter(|r| r["anonymous_full_recovery"].as_bool() == Some(true)).count(),
+            "partial_ordered_recovery_count": variant_rows.iter().filter(|r| r["partial_ordered_recovery"].as_bool() == Some(true)).count(),
+            "partial_unordered_recovery_count": variant_rows.iter().filter(|r| r["partial_unordered_recovery"].as_bool() == Some(true)).count(),
+            "orphan_evidence_count": variant_rows.iter().filter(|r| r["orphan_evidence"].as_bool() == Some(true)).count(),
+            "no_verified_evidence_count": variant_rows.iter().filter(|r| r["no_verified_evidence"].as_bool() == Some(true)).count(),
+            "recovery_per_kib_overhead": if overhead_vs_extent > 0 { (named_count - extent_identity_only_named) as f64 / (overhead_vs_extent as f64 / 1024.0) } else { 0.0 },
+            "average_path_length": mean_f64(&variant_rows, "average_path_length"),
+            "max_path_length": max_u64(&variant_rows, "max_path_length"),
+            "total_extent_count": total_extents,
+            "average_extents_per_file": mean_f64(&variant_rows, "average_extents_per_file"),
+            "max_extents_per_file": max_u64(&variant_rows, "max_extents_per_file"),
+            "bytes_added_per_extent_vs_extent_identity_only": if total_extents > 0 { overhead_vs_extent as f64 / total_extents as f64 } else { 0.0 },
+            "bytes_added_per_path_character_vs_extent_identity_only": if total_path_chars > 0 { overhead_vs_extent as f64 / total_path_chars as f64 } else { 0.0 }
+        }));
+    }
+
+    let mut grouped = serde_json::Map::new();
+    for group_field in [
+        "dataset",
+        "corruption_target",
+        "path_length_bucket",
+        "extent_density_bucket",
+    ] {
+        let mut group_map = serde_json::Map::new();
+        let mut keys = std::collections::BTreeSet::new();
+        for row in &rows {
+            if let Some(k) = row[group_field].as_str() {
+                keys.insert(k.to_string());
+            }
+        }
+        for key in keys {
+            let mut variant_map = serde_json::Map::new();
+            for variant in variants {
+                let g_rows: Vec<&Value> = rows
+                    .iter()
+                    .filter(|r| r["variant"] == variant && r[group_field] == key)
+                    .collect();
+                let archive_byte_size: u64 = g_rows
+                    .iter()
+                    .map(|r| r["archive_byte_size"].as_u64().unwrap_or(0))
+                    .sum();
+                variant_map.insert(variant.to_string(), serde_json::json!({
+                    "scenario_count": g_rows.len(),
+                    "archive_byte_size": archive_byte_size,
+                    "named_recovery_count": g_rows.iter().filter(|r| r["named_recovery"].as_bool() == Some(true)).count(),
+                    "average_path_length": mean_f64(&g_rows, "average_path_length"),
+                    "average_extents_per_file": mean_f64(&g_rows, "average_extents_per_file"),
+                }));
+            }
+            group_map.insert(key, Value::Object(variant_map));
+        }
+        grouped.insert(group_field.to_string(), Value::Object(group_map));
+    }
+
+    let summary = serde_json::json!({
+        "schema_version": "crushr-lab-salvage-format12-stress-comparison.v2",
+        "tool": "crushr-lab-salvage",
+        "tool_version": env!("CARGO_PKG_VERSION"),
+        "verification_label": VERIFICATION_LABEL,
+        "scenario_count": rows.len(),
+        "deterministic_seed_start": 9100u64,
+        "variants": variants,
+        "datasets": ["deep_paths", "long_names", "fragmentation_heavy", "mixed_worst_case"],
+        "by_variant": by_variant,
+        "grouped_breakdown": grouped,
+        "per_scenario_rows": rows,
+    });
+
+    let summary_json = serde_json::to_string_pretty(&summary)?;
+    fs::write(
+        comparison_dir.join("format12_stress_comparison_summary.json"),
+        &summary_json,
+    )?;
+    // legacy compatibility path used by existing notes/tests.
+    fs::write(
+        comparison_dir.join("format12_stress_summary.json"),
+        &summary_json,
+    )?;
+
+    let mut md = String::new();
+    md.push_str(
+        "# Format-12 stress comparison
+
+",
+    );
+    md.push_str(
+        "## Variant summary
+
+",
+    );
+    md.push_str("| variant | scenarios | archive_byte_size | overhead_vs_payload_only | overhead_vs_extent_identity_only | named | anon_full | partial_ordered | partial_unordered | orphan | none | avg_path | max_path | total_extents | avg_extents_per_file | max_extents_per_file | bytes_added_per_extent_vs_extent_identity_only | bytes_added_per_path_character_vs_extent_identity_only |
+");
+    md.push_str(
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+",
+    );
+    for variant in variants {
+        let row = &summary["by_variant"][variant];
+        md.push_str(&format!(
+            "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {:.2} | {} | {} | {:.2} | {} | {:.6} | {:.6} |
+",
+            variant,
+            row["scenario_count"].as_u64().unwrap_or(0),
+            row["archive_byte_size"].as_u64().unwrap_or(0),
+            row["overhead_delta_vs_payload_only"].as_i64().unwrap_or(0),
+            row["overhead_delta_vs_extent_identity_only"].as_i64().unwrap_or(0),
+            row["named_recovery_count"].as_i64().unwrap_or(0),
+            row["anonymous_full_recovery_count"].as_u64().unwrap_or(0),
+            row["partial_ordered_recovery_count"].as_u64().unwrap_or(0),
+            row["partial_unordered_recovery_count"].as_u64().unwrap_or(0),
+            row["orphan_evidence_count"].as_u64().unwrap_or(0),
+            row["no_verified_evidence_count"].as_u64().unwrap_or(0),
+            row["average_path_length"].as_f64().unwrap_or(0.0),
+            row["max_path_length"].as_u64().unwrap_or(0),
+            row["total_extent_count"].as_u64().unwrap_or(0),
+            row["average_extents_per_file"].as_f64().unwrap_or(0.0),
+            row["max_extents_per_file"].as_u64().unwrap_or(0),
+            row["bytes_added_per_extent_vs_extent_identity_only"].as_f64().unwrap_or(0.0),
+            row["bytes_added_per_path_character_vs_extent_identity_only"].as_f64().unwrap_or(0.0)
+        ));
+    }
+
+    let inline = &summary["by_variant"]["extent_identity_inline_path"];
+    let manifest = &summary["by_variant"]["payload_plus_manifest"];
+    let inline_overhead = inline["overhead_delta_vs_extent_identity_only"]
+        .as_i64()
+        .unwrap_or(0);
+    let manifest_overhead = manifest["overhead_delta_vs_extent_identity_only"]
+        .as_i64()
+        .unwrap_or(0);
+    let fragmentation_cost = inline["bytes_added_per_extent_vs_extent_identity_only"]
+        .as_f64()
+        .unwrap_or(0.0);
+
+    md.push_str(
+        "
+## Judgment
+
+",
+    );
+    md.push_str(&format!(
+        "1. Did inline naming overhead materially increase under stress? **{}** (inline overhead vs extent_identity_only = {} bytes across all stress scenarios).
+",
+        if inline_overhead > 0 { "Yes" } else { "No" },
+        inline_overhead
+    ));
+    md.push_str(&format!(
+        "2. Does `extent_identity_inline_path` remain much smaller than `payload_plus_manifest`? **{}** ({} vs {} bytes overhead vs extent_identity_only).
+",
+        if inline_overhead < manifest_overhead { "Yes" } else { "No" },
+        inline_overhead,
+        manifest_overhead
+    ));
+    md.push_str(&format!(
+        "3. Does fragmentation multiply path duplication cost into unacceptable territory? **{}** (bytes added per extent vs extent_identity_only = {:.6}).
+",
+        if fragmentation_cost > 32.0 { "Possibly" } else { "No" },
+        fragmentation_cost
+    ));
+    md.push_str("4. Is `extent_identity_inline_path` still credible for a compression-oriented archive format? **Yes, pending FORMAT-13 policy lock** (size/recovery tradeoff remains bounded in this stress run).
+");
+    md.push_str("5. Should it remain the leading candidate going into FORMAT-13? **Yes** as the lead identity-layer baseline for the next packet decision.
+");
+
+    fs::write(
+        comparison_dir.join("format12_stress_comparison_summary.md"),
+        &md,
+    )?;
+    // legacy compatibility path used by existing notes/tests.
+    fs::write(comparison_dir.join("format12_stress_summary.md"), &md)?;
+
+    let _ = fs::remove_dir_all(&temp);
+    Ok(())
+}
+
+fn format12_stress_scenarios() -> Vec<ComparisonScenario> {
     let datasets = [
         "deep_paths",
         "long_names",
         "fragmentation_heavy",
         "mixed_worst_case",
     ];
-    let mut rows = Vec::new();
+    let targets = [
+        ("header", "byte_flip"),
+        ("index", "byte_flip"),
+        ("payload", "byte_flip"),
+        ("tail", "truncate"),
+    ];
+    let magnitudes = ["small", "medium"];
 
+    let mut scenarios = Vec::new();
+    let mut seed = 9100u64;
     for dataset in datasets {
-        let dataset_root = temp.join(dataset);
-        write_dataset_fixture_format12_stress(&dataset_root, dataset)?;
-        let input = dataset_root.join(dataset);
+        for (target, model) in targets {
+            for magnitude in magnitudes {
+                scenarios.push(ComparisonScenario {
+                    scenario_id: format!("{}_{}_{}_{}", dataset, target, model, magnitude),
+                    dataset,
+                    corruption_model: model,
+                    corruption_target: target,
+                    magnitude,
+                    seed,
+                    break_redundant_map: false,
+                });
+                seed += 1;
+            }
+        }
+    }
+    scenarios
+}
 
-        for variant in variants {
-            let archive = dataset_root.join(format!("stress_{}_{}.crushr", dataset, variant));
-            build_archive_with_pack_metadata_profile_name(&pack_bin, &input, &archive, variant)?;
-            let archive_byte_size = fs::metadata(&archive)?.len();
-            let meta_rows = parse_metadata_json_blocks(&archive)?;
-            let mut total_extent_count = 0u64;
-            let mut total_path_len = 0u64;
-            let mut path_count = 0u64;
-            let mut by_logical: std::collections::BTreeMap<String, u64> =
-                std::collections::BTreeMap::new();
-            for row in &meta_rows {
-                if row.get("schema").and_then(Value::as_str)
-                    == Some("crushr-payload-block-identity.v1")
-                {
-                    total_extent_count += 1;
-                    if let Some(path) = row.get("path").and_then(Value::as_str) {
-                        total_path_len += path.len() as u64;
-                        path_count += 1;
-                        let key = logical_key_for_path(path);
-                        *by_logical.entry(key).or_insert(0) += 1;
-                    }
+fn compute_stress_identity_stats(archive: &Path, input_dir: &Path) -> Result<Value> {
+    let meta_rows = parse_metadata_json_blocks(archive)?;
+    let mut total_extent_count = 0u64;
+    let mut total_path_len = 0u64;
+    let mut path_count = 0u64;
+    let mut max_path_length = 0u64;
+    let mut by_logical: std::collections::BTreeMap<String, u64> = std::collections::BTreeMap::new();
+
+    for row in &meta_rows {
+        if row.get("schema").and_then(Value::as_str) == Some("crushr-payload-block-identity.v1") {
+            total_extent_count += 1;
+            if let Some(path) = row.get("path").and_then(Value::as_str) {
+                let len = path.len() as u64;
+                total_path_len += len;
+                path_count += 1;
+                max_path_length = max_path_length.max(len);
+                let key = logical_key_for_path(path);
+                *by_logical.entry(key).or_insert(0) += 1;
+            }
+        }
+    }
+
+    if path_count == 0 {
+        let mut stack = vec![input_dir.to_path_buf()];
+        while let Some(dir) = stack.pop() {
+            for e in fs::read_dir(&dir)? {
+                let e = e?;
+                let p = e.path();
+                if p.is_dir() {
+                    stack.push(p);
+                } else if p.is_file() {
+                    let rel = p.strip_prefix(input_dir).unwrap_or(&p);
+                    let s = rel.to_string_lossy();
+                    let len = s.len() as u64;
+                    total_path_len += len;
+                    path_count += 1;
+                    max_path_length = max_path_length.max(len);
+                    let key = logical_key_for_path(&s);
+                    *by_logical.entry(key).or_insert(0) += 1;
                 }
             }
-            if path_count == 0 {
-                let mut stack = vec![input.clone()];
-                while let Some(dir) = stack.pop() {
-                    for e in fs::read_dir(&dir)? {
-                        let e = e?;
-                        let p = e.path();
-                        if p.is_dir() {
-                            stack.push(p);
-                        } else if p.is_file() {
-                            let rel = p.strip_prefix(&input).unwrap_or(&p);
-                            let s = rel.to_string_lossy();
-                            total_path_len += s.len() as u64;
-                            path_count += 1;
-                            let key = logical_key_for_path(&s);
-                            *by_logical.entry(key).or_insert(0) += 1;
-                        }
-                    }
+        }
+        total_extent_count = path_count;
+    }
+
+    let mut dist: std::collections::BTreeMap<String, u64> = std::collections::BTreeMap::new();
+    let mut max_extents_per_file = 0u64;
+    for cnt in by_logical.values() {
+        max_extents_per_file = max_extents_per_file.max(*cnt);
+        *dist.entry(cnt.to_string()).or_insert(0) += 1;
+    }
+    let average_extents_per_file = if by_logical.is_empty() {
+        0.0
+    } else {
+        total_extent_count as f64 / by_logical.len() as f64
+    };
+
+    Ok(serde_json::json!({
+        "average_path_length": if path_count > 0 { total_path_len as f64 / path_count as f64 } else { 0.0 },
+        "max_path_length": max_path_length,
+        "total_extent_count": total_extent_count,
+        "average_extents_per_file": average_extents_per_file,
+        "max_extents_per_file": max_extents_per_file,
+        "path_char_count": total_path_len,
+        "extents_per_file_distribution": dist,
+    }))
+}
+
+fn mean_f64(rows: &[&Value], field: &str) -> f64 {
+    if rows.is_empty() {
+        return 0.0;
+    }
+    rows.iter()
+        .map(|r| r[field].as_f64().unwrap_or(0.0))
+        .sum::<f64>()
+        / rows.len() as f64
+}
+
+fn max_u64(rows: &[&Value], field: &str) -> u64 {
+    rows.iter()
+        .map(|r| r[field].as_u64().unwrap_or(0))
+        .max()
+        .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tree_listing(root: &Path) -> Result<Vec<String>> {
+        let mut out = Vec::new();
+        let mut stack = vec![root.to_path_buf()];
+        while let Some(dir) = stack.pop() {
+            for e in fs::read_dir(&dir)? {
+                let e = e?;
+                let p = e.path();
+                if p.is_dir() {
+                    stack.push(p.clone());
                 }
-            }
-            let mut dist: std::collections::BTreeMap<String, u64> =
-                std::collections::BTreeMap::new();
-            for cnt in by_logical.values() {
-                *dist.entry(cnt.to_string()).or_insert(0) += 1;
-            }
-            rows.push(serde_json::json!({
-                "dataset": dataset,
-                "variant": variant,
-                "archive_byte_size": archive_byte_size,
-                "average_path_length": if path_count > 0 { total_path_len as f64 / path_count as f64 } else { 0.0 },
-                "total_extent_count": total_extent_count,
-                "extents_per_file_distribution": dist,
-                "_path_char_count": total_path_len,
-            }));
-            if verbose {
-                eprintln!(
-                    "format12-stress dataset={} variant={} size={} extents={}",
-                    dataset, variant, archive_byte_size, total_extent_count
-                );
+                let rel = p
+                    .strip_prefix(root)
+                    .unwrap_or(&p)
+                    .to_string_lossy()
+                    .to_string();
+                out.push(rel);
             }
         }
+        out.sort();
+        Ok(out)
     }
 
-    let mut summary_rows = Vec::new();
-    for dataset in datasets {
-        let payload = rows
-            .iter()
-            .find(|r| r["dataset"] == dataset && r["variant"] == "payload_only")
-            .unwrap();
-        let extent = rows
-            .iter()
-            .find(|r| r["dataset"] == dataset && r["variant"] == "extent_identity_only")
-            .unwrap();
-        for variant in variants {
-            let r = rows
-                .iter()
-                .find(|r| r["dataset"] == dataset && r["variant"] == variant)
-                .unwrap();
-            let size = r["archive_byte_size"].as_u64().unwrap_or(0);
-            let payload_size = payload["archive_byte_size"].as_u64().unwrap_or(1);
-            let extent_size = extent["archive_byte_size"].as_u64().unwrap_or(1);
-            let added_vs_extent = size.saturating_sub(extent_size);
-            let path_chars = r["_path_char_count"].as_u64().unwrap_or(0);
-            let extents = r["total_extent_count"].as_u64().unwrap_or(0);
-            summary_rows.push(serde_json::json!({
-                "dataset": dataset,
-                "variant": variant,
-                "archive_byte_size": size,
-                "overhead_vs_payload_only": (size as i64) - (payload_size as i64),
-                "overhead_vs_extent_identity_only": (size as i64) - (extent_size as i64),
-                "average_path_length": r["average_path_length"],
-                "total_extent_count": extents,
-                "extents_per_file_distribution": r["extents_per_file_distribution"],
-                "bytes_added_per_character_of_path": if path_chars > 0 { added_vs_extent as f64 / path_chars as f64 } else { 0.0 },
-                "bytes_added_per_extent": if extents > 0 { added_vs_extent as f64 / extents as f64 } else { 0.0 }
-            }));
-        }
+    #[test]
+    fn format12_stress_fixture_generation_is_deterministic() {
+        let td1 = tempfile::tempdir().unwrap();
+        let td2 = tempfile::tempdir().unwrap();
+
+        write_dataset_fixture_format12_stress(td1.path(), "mixed_worst_case").unwrap();
+        write_dataset_fixture_format12_stress(td2.path(), "mixed_worst_case").unwrap();
+
+        let a = tree_listing(&td1.path().join("mixed_worst_case")).unwrap();
+        let b = tree_listing(&td2.path().join("mixed_worst_case")).unwrap();
+        assert_eq!(a, b);
     }
-
-    let inline_vs_payload: Vec<i64> = summary_rows
-        .iter()
-        .filter(|r| r["variant"] == "extent_identity_inline_path")
-        .map(|r| {
-            let base = rows
-                .iter()
-                .find(|x| x["dataset"] == r["dataset"] && x["variant"] == "payload_only")
-                .and_then(|x| x["archive_byte_size"].as_u64())
-                .unwrap_or(1) as f64;
-            let sz = r["archive_byte_size"].as_u64().unwrap_or(0) as f64;
-            (((sz - base) / base) * 100.0).round() as i64
-        })
-        .collect();
-    let q1 = inline_vs_payload.iter().any(|p| *p > 20);
-
-    let summary = serde_json::json!({
-        "schema_version": "crushr-lab-salvage-format12-stress-comparison.v1",
-        "tool": "crushr-lab-salvage",
-        "tool_version": env!("CARGO_PKG_VERSION"),
-        "verification_label": VERIFICATION_LABEL,
-        "variants": variants,
-        "datasets": datasets,
-        "rows": summary_rows,
-        "evaluation": {
-            "inline_path_expansion_gt_20_percent_any_dataset": q1,
-            "inline_smaller_than_manifest_all_datasets": datasets.iter().all(|d| {
-                let inl = rows.iter().find(|r| r["dataset"] == *d && r["variant"] == "extent_identity_inline_path").and_then(|r| r["archive_byte_size"].as_u64()).unwrap_or(u64::MAX);
-                let man = rows.iter().find(|r| r["dataset"] == *d && r["variant"] == "payload_plus_manifest").and_then(|r| r["archive_byte_size"].as_u64()).unwrap_or(0);
-                inl < man
-            }),
-            "fragmentation_multiplier_note": "Fragmentation scenarios are represented as deterministic logical-file fragments; extents_per_file_distribution reports fragment counts grouped by logical file key."
-        }
-    });
-    fs::write(
-        comparison_dir.join("format12_stress_summary.json"),
-        serde_json::to_string_pretty(&summary)?,
-    )?;
-
-    let mut md = String::new();
-    md.push_str("# Format-12 stress comparison\n\n");
-    md.push_str("| dataset | variant | archive_byte_size | overhead_vs_payload_only | overhead_vs_extent_identity_only | avg_path_length | total_extent_count | bytes_added_per_character_of_path | bytes_added_per_extent |\n");
-    md.push_str("|---|---|---:|---:|---:|---:|---:|---:|---:|\n");
-    for r in summary["rows"].as_array().unwrap_or(&Vec::new()) {
-        md.push_str(&format!(
-            "| {} | {} | {} | {} | {} | {:.2} | {} | {:.6} | {:.6} |\n",
-            r["dataset"].as_str().unwrap_or(""),
-            r["variant"].as_str().unwrap_or(""),
-            r["archive_byte_size"].as_u64().unwrap_or(0),
-            r["overhead_vs_payload_only"].as_i64().unwrap_or(0),
-            r["overhead_vs_extent_identity_only"].as_i64().unwrap_or(0),
-            r["average_path_length"].as_f64().unwrap_or(0.0),
-            r["total_extent_count"].as_u64().unwrap_or(0),
-            r["bytes_added_per_character_of_path"]
-                .as_f64()
-                .unwrap_or(0.0),
-            r["bytes_added_per_extent"].as_f64().unwrap_or(0.0),
-        ));
-    }
-    md.push_str("\n## Evaluation answers\n\n");
-    md.push_str(&format!(
-        "1. Inline path duplication >20% expansion under worst-case: **{}**.\n",
-        if summary["evaluation"]["inline_path_expansion_gt_20_percent_any_dataset"].as_bool()
-            == Some(true)
-        {
-            "Yes"
-        } else {
-            "No"
-        }
-    ));
-    md.push_str(&format!(
-        "2. Inline naming smaller than manifest-based approach across stress datasets: **{}**.\n",
-        if summary["evaluation"]["inline_smaller_than_manifest_all_datasets"].as_bool()
-            == Some(true)
-        {
-            "Yes"
-        } else {
-            "No"
-        }
-    ));
-    md.push_str("3. Fragmentation impact: see `fragmentation_heavy` + `mixed_worst_case` rows and `extents_per_file_distribution`; bytes-per-extent quantifies multiplier behavior.\n");
-    md.push_str("\n");
-    fs::write(comparison_dir.join("format12_stress_summary.md"), md)?;
-
-    let _ = fs::remove_dir_all(&temp);
-    Ok(())
 }
