@@ -1,11 +1,11 @@
 site_name: crushr
 site_description: Integrity-first archival and salvage-first compression format documentation
-site_url: https://example.com/
+site_url: https://crushr.entropy.quest/
 repo_name: crushr
 nav:
-  - Welcome: docs/index.md
-  - Format Evolution: docs/format-evolution.md
-  - Testing Harness: docs/testing-harness.md
+  - Welcome: index.md
+  - Format Evolution: format-evolution.md
+  - Testing Harness: testing-harness.md
 theme:
   name: readthedocs
 markdown_extensions:
