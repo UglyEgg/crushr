@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-FORMAT-11 complete** (extent identity variant + comparison harness)
+Current Step: **CRUSHR-FORMAT-12 complete** (inline per-extent path/name identity experiment + comparison harness)
 
-Immediate Next Step: **CRUSHR-FORMAT-12 decision packet** (interpret FORMAT-10/11 recovery+size deltas and lock keep/prune policy)
+Immediate Next Step: **CRUSHR-FORMAT-13 follow-up packet** (decide compact distributed-name design vs keep/demote/prune from FORMAT-12 evidence)
 
 ## Current truth
 
@@ -21,6 +21,7 @@ Immediate Next Step: **CRUSHR-FORMAT-12 decision packet** (interpret FORMAT-10/1
 - FORMAT-09 added an expanded corruption matrix (metadata regime × metadata target × payload topology) and emitted `format09_comparison_summary.{json,md}` with survivability/gain metrics.
 - FORMAT-10 now adds explicit metadata-pruning variants and emits `format10_comparison_summary.{json,md}` including recovery outcomes, classification counts, and archive-size overhead deltas versus `payload_only`.
 - FORMAT-11 adds `extent_identity_only` (distributed per-extent identity via payload-block identity records; no local path/name fields) and emits `format11_comparison_summary.{json,md}` with recovery/size deltas vs `payload_plus_manifest`.
+- FORMAT-12 adds `extent_identity_inline_path` (inline verified `name`/`path`/`path_digest` embedded in each payload identity record) and `extent_identity_distributed_names` (distributed checkpoint naming), and emits `format12_comparison_summary.{json,md}` for naming-gain vs size-cost evidence.
 
 ## Active constraints
 
@@ -47,7 +48,7 @@ Recovery should degrade in reverse order:
 
 1. Preserve strict extraction interfaces/semantics untouched.
 2. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
-3. Prepare FORMAT-12 decision packet to lock retained metadata surfaces and retire no-value layers.
+3. Use FORMAT-12 evidence to determine whether inline repeated naming is keep-worthy or should be replaced with a compact distributed-names follow-up.
 4. Keep Phase 2 corpus and frozen artifacts unchanged.
 5. Keep builder honest on CLI wiring; every new comparison command must be proven callable via the documented runtime command.
 

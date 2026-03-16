@@ -192,6 +192,9 @@ struct PayloadBlockIdentityRecord {
     block_scan_offset: Option<u64>,
     payload_hash_blake3: String,
     raw_hash_blake3: String,
+    name: Option<String>,
+    path: Option<String>,
+    path_digest_blake3: Option<String>,
 }
 
 #[derive(Debug, Serialize, Clone)]

@@ -541,3 +541,5 @@
 - Extended payload-identity salvage planning to keep ordered partial classifications when total extent coverage is incomplete.
 - Added `run-format11-extent-identity-comparison` CLI wiring + runner output artifacts: `format11_comparison_summary.json` and `format11_comparison_summary.md`.
 - Added tests for format11 command dispatch/reporting, format10 non-regression, and payload-identity grouping/ordered-partial behavior.
+
+- 2026-03-16: Completed CRUSHR-FORMAT-12. Added `extent_identity_inline_path`, `extent_identity_distributed_names`, salvage inline-path verification fallback behavior, `run-format12-inline-path-comparison`, and generated `FORMAT12_RESULTS/format12_comparison_summary.{json,md}`.

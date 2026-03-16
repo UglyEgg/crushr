@@ -18,7 +18,8 @@ const USAGE: &str = "usage: crushr-lab-salvage <input_dir> --output <experiment_
        crushr-lab-salvage run-format08-placement-comparison --output <comparison_dir> [--verbose]
        crushr-lab-salvage run-format09-comparison --output <comparison_dir> [--verbose]
        crushr-lab-salvage run-format10-pruning-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format11-extent-identity-comparison --output <comparison_dir> [--verbose]";
+       crushr-lab-salvage run-format11-extent-identity-comparison --output <comparison_dir> [--verbose]
+       crushr-lab-salvage run-format12-inline-path-comparison --output <comparison_dir> [--verbose]";
 const VERIFICATION_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
 const EXPERIMENT_SCHEMA_VERSION: &str = "crushr-lab-salvage-experiment.v1";
 const SUMMARY_SCHEMA_VERSION: &str = "crushr-lab-salvage-summary.v1";
@@ -84,6 +85,9 @@ enum Mode {
         comparison_dir: PathBuf,
     },
     RunFormat11ExtentIdentityComparison {
+        comparison_dir: PathBuf,
+    },
+    RunFormat12InlinePathComparison {
         comparison_dir: PathBuf,
     },
 }
@@ -485,7 +489,7 @@ use comparison::{
     run_experimental_resilience_comparison, run_format05_comparison, run_format06_comparison,
     run_format07_comparison, run_format08_placement_comparison, run_format09_comparison,
     run_format10_pruning_comparison, run_format11_extent_identity_comparison,
-    run_redundant_map_comparison,
+    run_format12_inline_path_comparison, run_redundant_map_comparison,
 };
 use runner::{
     collect_archives, generate_summary_files, load_runs_from_experiment, run_salvage, to_hex,
@@ -537,6 +541,9 @@ fn run() -> Result<()> {
     }
     if let Mode::RunFormat11ExtentIdentityComparison { comparison_dir } = &opts.mode {
         return run_format11_extent_identity_comparison(comparison_dir, opts.verbose);
+    }
+    if let Mode::RunFormat12InlinePathComparison { comparison_dir } = &opts.mode {
+        return run_format12_inline_path_comparison(comparison_dir, opts.verbose);
     }
 
     let (experiment_dir, experiment_id, export_fragments_enabled, runs) = match &opts.mode {
@@ -655,7 +662,8 @@ fn run() -> Result<()> {
         | Mode::RunFormat08PlacementComparison { .. }
         | Mode::RunFormat09Comparison { .. }
         | Mode::RunFormat10PruningComparison { .. }
-        | Mode::RunFormat11ExtentIdentityComparison { .. } => {
+        | Mode::RunFormat11ExtentIdentityComparison { .. }
+        | Mode::RunFormat12InlinePathComparison { .. } => {
             bail!("internal error: comparison mode in summary pipeline")
         }
     };

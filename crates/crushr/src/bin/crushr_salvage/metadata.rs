@@ -396,6 +396,18 @@ pub(super) fn parse_payload_block_identity_records(
         else {
             continue;
         };
+        let name = value
+            .get("name")
+            .and_then(|v| v.as_str())
+            .map(|v| v.to_string());
+        let path = value
+            .get("path")
+            .and_then(|v| v.as_str())
+            .map(|v| v.to_string());
+        let path_digest_blake3 = value
+            .get("path_digest_blake3")
+            .and_then(|v| v.as_str())
+            .map(|v| v.to_string());
         out.push(PayloadBlockIdentityRecord {
             archive_identity: archive_identity.to_string(),
             file_id,
@@ -410,6 +422,9 @@ pub(super) fn parse_payload_block_identity_records(
             block_scan_offset,
             payload_hash_blake3: payload_hash_blake3.to_string(),
             raw_hash_blake3: raw_hash_blake3.to_string(),
+            name,
+            path,
+            path_digest_blake3,
         });
     }
     out
@@ -457,9 +472,20 @@ pub(super) fn verify_and_plan_payload_block_identity_records(
                 bail!("payload block identity content hash mismatch");
             }
         }
-        let path = path_map
-            .get(&record.file_id)
-            .cloned()
+        let inline_verified_path = match (&record.name, &record.path, &record.path_digest_blake3) {
+            (Some(name), Some(path), Some(digest))
+                if to_hex(blake3::hash(path.as_bytes()).as_bytes()) == *digest
+                    && Path::new(path)
+                        .file_name()
+                        .map(|p| p.to_string_lossy().as_ref() == name)
+                        .unwrap_or(false) =>
+            {
+                Some(path.clone())
+            }
+            _ => None,
+        };
+        let path = inline_verified_path
+            .or_else(|| path_map.get(&record.file_id).cloned())
             .unwrap_or_else(|| format!("anonymous_verified/file_{:08}.bin", record.file_id));
         let entry = grouped.entry(path).or_insert_with(|| {
             (
@@ -1209,6 +1235,9 @@ mod tests {
             block_scan_offset: Some(4),
             payload_hash_blake3: "p".to_string(),
             raw_hash_blake3: "r".to_string(),
+            name: None,
+            path: None,
+            path_digest_blake3: None,
         }];
         let manifests = BTreeMap::from([(7u32, manifest(7, Some("named/a.txt"), 1))]);
         let path_map = BTreeMap::from([(7u32, "named/a.txt".to_string())]);
@@ -1369,6 +1398,9 @@ mod tests {
                 block_scan_offset: Some(20),
                 payload_hash_blake3: "p2".to_string(),
                 raw_hash_blake3: "r2".to_string(),
+                name: None,
+                path: None,
+                path_digest_blake3: None,
             },
             PayloadBlockIdentityRecord {
                 archive_identity: "aid".to_string(),
@@ -1384,6 +1416,9 @@ mod tests {
                 block_scan_offset: Some(10),
                 payload_hash_blake3: "p1".to_string(),
                 raw_hash_blake3: "r1".to_string(),
+                name: None,
+                path: None,
+                path_digest_blake3: None,
             },
         ];
         let values = vec![
@@ -1446,6 +1481,9 @@ mod tests {
             block_scan_offset: Some(10),
             payload_hash_blake3: "p1".to_string(),
             raw_hash_blake3: "r1".to_string(),
+            name: None,
+            path: None,
+            path_digest_blake3: None,
         }];
         let values = vec![serde_json::json!({
             "schema": "crushr-payload-block-identity.v1",
@@ -1473,5 +1511,100 @@ mod tests {
         let plan = &plans[0];
         assert_eq!(plan.status, "UNSALVAGEABLE");
         assert_eq!(plan.recovery_classification, "PARTIAL_ORDERED_VERIFIED");
+    }
+
+    #[test]
+    fn payload_identity_inline_path_recovers_named_path() {
+        let path = "nested/file.txt";
+        let records = vec![PayloadBlockIdentityRecord {
+            archive_identity: "aid".to_string(),
+            file_id: 7,
+            block_index: 0,
+            total_block_count: 1,
+            full_file_size: 6,
+            logical_offset: 0,
+            logical_length: 6,
+            payload_codec: 1,
+            payload_length: 6,
+            block_id: 1,
+            block_scan_offset: Some(10),
+            payload_hash_blake3: "p1".to_string(),
+            raw_hash_blake3: "r1".to_string(),
+            name: Some("file.txt".to_string()),
+            path: Some(path.to_string()),
+            path_digest_blake3: Some(to_hex(blake3::hash(path.as_bytes()).as_bytes())),
+        }];
+        let values = vec![serde_json::json!({
+            "schema": "crushr-payload-block-identity.v1",
+            "block_id": 1,
+            "content_identity": {"payload_hash_blake3":"p1", "raw_hash_blake3":"r1"},
+        })];
+        let block_verification = BTreeMap::from([(
+            1u32,
+            BlockVerification {
+                content_verified: true,
+                verified_raw_len: Some(6),
+            },
+        )]);
+        let verified_offsets = BTreeSet::from([10u64]);
+
+        let plans = verify_and_plan_payload_block_identity_records(
+            records,
+            &values,
+            &block_verification,
+            &verified_offsets,
+        )
+        .unwrap();
+
+        assert_eq!(plans.len(), 1);
+        assert_eq!(plans[0].file_path, path);
+        assert_eq!(plans[0].recovery_classification, "FULL_NAMED_VERIFIED");
+    }
+
+    #[test]
+    fn payload_identity_invalid_inline_path_falls_back_to_anonymous() {
+        let records = vec![PayloadBlockIdentityRecord {
+            archive_identity: "aid".to_string(),
+            file_id: 7,
+            block_index: 0,
+            total_block_count: 1,
+            full_file_size: 6,
+            logical_offset: 0,
+            logical_length: 6,
+            payload_codec: 1,
+            payload_length: 6,
+            block_id: 1,
+            block_scan_offset: Some(10),
+            payload_hash_blake3: "p1".to_string(),
+            raw_hash_blake3: "r1".to_string(),
+            name: Some("wrong.txt".to_string()),
+            path: Some("nested/file.txt".to_string()),
+            path_digest_blake3: Some("00".repeat(32)),
+        }];
+        let values = vec![serde_json::json!({
+            "schema": "crushr-payload-block-identity.v1",
+            "block_id": 1,
+            "content_identity": {"payload_hash_blake3":"p1", "raw_hash_blake3":"r1"},
+        })];
+        let block_verification = BTreeMap::from([(
+            1u32,
+            BlockVerification {
+                content_verified: true,
+                verified_raw_len: Some(6),
+            },
+        )]);
+        let verified_offsets = BTreeSet::from([10u64]);
+
+        let plans = verify_and_plan_payload_block_identity_records(
+            records,
+            &values,
+            &block_verification,
+            &verified_offsets,
+        )
+        .unwrap();
+
+        assert_eq!(plans.len(), 1);
+        assert!(plans[0].file_path.starts_with("anonymous_verified/"));
+        assert_eq!(plans[0].recovery_classification, "FULL_ANONYMOUS_VERIFIED");
     }
 }

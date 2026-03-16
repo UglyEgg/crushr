@@ -561,3 +561,11 @@ Blast radius:
   - Preserves strict semantics by requiring verified local identity and avoiding speculative naming.
 - Blast radius:
   - Experimental writer/salvage/lab surfaces only; canonical extraction behavior remains unchanged.
+
+## 2026-03-16 — CRUSHR-FORMAT-12 inline naming remains experimental
+
+- Decision: introduce `extent_identity_inline_path` as an opt-in metadata profile only; do not change default archive behavior or extraction semantics.
+- Rationale: collect bounded evidence on named recovery gain vs duplication overhead before any keep/prune lock.
+- Blast radius: `crushr-pack`, `crushr-salvage`, and `crushr-lab-salvage` experimental comparison/reporting only.
+
+- Update (same packet): `extent_identity_distributed_names` is retained as a required FORMAT-12 comparison arm (distributed path checkpoints without inline per-extent path duplication) for direct evidence against inline naming and manifest-heavy controls.

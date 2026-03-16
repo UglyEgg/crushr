@@ -2955,3 +2955,338 @@ pub(super) fn run_format11_extent_identity_comparison(
     let _ = fs::remove_dir_all(&temp);
     Ok(())
 }
+
+#[derive(Clone, Copy)]
+enum Format12Variant {
+    PayloadOnly,
+    ExtentIdentityOnly,
+    ExtentIdentityDistributedNames,
+    PayloadPlusManifest,
+    FullCurrentExperimental,
+    ExtentIdentityInlinePath,
+}
+
+impl Format12Variant {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::PayloadOnly => "payload_only",
+            Self::ExtentIdentityOnly => "extent_identity_only",
+            Self::ExtentIdentityDistributedNames => "extent_identity_distributed_names",
+            Self::PayloadPlusManifest => "payload_plus_manifest",
+            Self::FullCurrentExperimental => "full_current_experimental",
+            Self::ExtentIdentityInlinePath => "extent_identity_inline_path",
+        }
+    }
+}
+
+fn write_dataset_fixture_format12(root: &Path, dataset: &str) -> Result<()> {
+    let input = root.join(dataset);
+    fs::create_dir_all(&input).with_context(|| format!("create {}", input.display()))?;
+
+    match dataset {
+        "smallfiles" => {
+            fs::write(input.join("tiny.txt"), b"small-dataset-payload")?;
+            fs::write(input.join("a.txt"), b"short")?;
+        }
+        "mixed" => {
+            fs::write(
+                input.join("mixed.bin"),
+                (0..4096).map(|i| (i % 251) as u8).collect::<Vec<_>>(),
+            )?;
+            let long_path = input
+                .join("nested")
+                .join("deeply")
+                .join("named")
+                .join("path")
+                .join("for")
+                .join("inline")
+                .join("duplication")
+                .join("cost")
+                .join("visibility")
+                .join("sample-long-name.txt");
+            if let Some(parent) = long_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(long_path, b"long-path-payload")?;
+        }
+        "largefiles" => {
+            fs::write(input.join("large.dat"), vec![13u8; 8192])?;
+        }
+        _ => bail!("unsupported dataset {dataset}"),
+    }
+
+    Ok(())
+}
+
+pub(super) fn run_format12_inline_path_comparison(
+    comparison_dir: &Path,
+    verbose: bool,
+) -> Result<()> {
+    fs::create_dir_all(comparison_dir)?;
+    let temp = std::env::temp_dir().join(format!(
+        "crushr-format12-inline-path-comparison-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&temp);
+    fs::create_dir_all(&temp)?;
+
+    let salvage_bin = resolve_salvage_bin()?;
+    let pack_bin = resolve_pack_bin()?;
+    let variants = [
+        Format12Variant::PayloadOnly,
+        Format12Variant::ExtentIdentityOnly,
+        Format12Variant::ExtentIdentityDistributedNames,
+        Format12Variant::PayloadPlusManifest,
+        Format12Variant::FullCurrentExperimental,
+        Format12Variant::ExtentIdentityInlinePath,
+    ];
+    let scenarios = comparison_scenarios();
+    let mut rows = Vec::new();
+
+    for scenario in scenarios {
+        let scenario_dir = temp.join(&scenario.scenario_id);
+        fs::create_dir_all(&scenario_dir)?;
+        let input_dir = scenario_dir.join("input");
+        write_dataset_fixture_format12(&input_dir, scenario.dataset)?;
+
+        for variant in variants {
+            let variant_name = variant.as_str();
+            let archive = scenario_dir.join(format!("format12_{}.crushr", variant_name));
+            build_archive_with_pack_metadata_profile_name(
+                &pack_bin,
+                &input_dir.join(scenario.dataset),
+                &archive,
+                variant_name,
+            )?;
+            let archive_byte_size = fs::metadata(&archive)?.len();
+            let metadata_byte_estimate = estimate_metadata_byte_size(&archive)?;
+            let variant_scenario = ComparisonScenario {
+                scenario_id: scenario.scenario_id.clone(),
+                dataset: scenario.dataset,
+                corruption_model: scenario.corruption_model,
+                corruption_target: scenario.corruption_target,
+                magnitude: scenario.magnitude,
+                seed: scenario.seed,
+                break_redundant_map: false,
+            };
+            corrupt_archive(&archive, &variant_scenario)?;
+            let plan = run_salvage_plan(
+                &salvage_bin,
+                &archive,
+                &scenario_dir.join(format!(
+                    "plan12_{}_{}.json",
+                    variant_name, scenario.scenario_id
+                )),
+            )?;
+            let classes = recovery_classification_counts(&plan);
+            let outcome = outcome_from_plan(&plan);
+            let path_bucket = if scenario.dataset == "mixed" {
+                "long_path"
+            } else {
+                "short_path"
+            };
+            if verbose {
+                eprintln!(
+                    "format12 {} {} => class={}",
+                    scenario.scenario_id,
+                    variant_name,
+                    recovery_class_rank(&classes)
+                );
+            }
+            rows.push(serde_json::json!({
+                "scenario_id": scenario.scenario_id,
+                "dataset": scenario.dataset,
+                "corruption_model": scenario.corruption_model,
+                "corruption_target": scenario.corruption_target,
+                "magnitude": scenario.magnitude,
+                "seed": scenario.seed,
+                "path_length_bucket": path_bucket,
+                "variant": variant_name,
+                "recovery_outcome": outcome.outcome,
+                "recovery_classification_counts": classes,
+                "named_recovery": classes.get("FULL_NAMED_VERIFIED").copied().unwrap_or(0) > 0,
+                "anonymous_full_recovery": classes.get("FULL_ANONYMOUS_VERIFIED").copied().unwrap_or(0) > 0,
+                "partial_ordered_recovery": classes.get("PARTIAL_ORDERED_VERIFIED").copied().unwrap_or(0) > 0,
+                "partial_unordered_recovery": classes.get("PARTIAL_UNORDERED_VERIFIED").copied().unwrap_or(0) > 0,
+                "orphan_evidence": classes.get("ORPHAN_EVIDENCE_ONLY").copied().unwrap_or(0) > 0,
+                "no_verified_evidence": classes.is_empty(),
+                "archive_byte_size": archive_byte_size,
+                "metadata_byte_estimate": metadata_byte_estimate,
+            }));
+        }
+    }
+
+    let totals_for = |name: &str| -> (u64, i64) {
+        let size = rows
+            .iter()
+            .filter(|r| r["variant"] == name)
+            .map(|r| r["archive_byte_size"].as_u64().unwrap_or(0))
+            .sum();
+        let named = rows
+            .iter()
+            .filter(|r| r["variant"] == name && r["named_recovery"].as_bool() == Some(true))
+            .count() as i64;
+        (size, named)
+    };
+    let (payload_only_size, _) = totals_for("payload_only");
+    let (extent_identity_only_size, extent_identity_only_named) =
+        totals_for("extent_identity_only");
+    let (payload_plus_manifest_size, payload_plus_manifest_named) =
+        totals_for("payload_plus_manifest");
+
+    let mut by_variant = serde_json::Map::new();
+    for variant in [
+        "payload_only",
+        "extent_identity_only",
+        "extent_identity_distributed_names",
+        "payload_plus_manifest",
+        "full_current_experimental",
+        "extent_identity_inline_path",
+    ] {
+        let variant_rows: Vec<&Value> = rows.iter().filter(|r| r["variant"] == variant).collect();
+        let archive_byte_size: u64 = variant_rows
+            .iter()
+            .map(|r| r["archive_byte_size"].as_u64().unwrap_or(0))
+            .sum();
+        let metadata_byte_estimate: u64 = variant_rows
+            .iter()
+            .map(|r| r["metadata_byte_estimate"].as_u64().unwrap_or(0))
+            .sum();
+        let named_count = variant_rows
+            .iter()
+            .filter(|r| r["named_recovery"].as_bool() == Some(true))
+            .count() as i64;
+        let mut classes = BTreeMap::new();
+        for row in &variant_rows {
+            if let Some(obj) = row["recovery_classification_counts"].as_object() {
+                for (k, v) in obj {
+                    *classes.entry(k.clone()).or_insert(0) += v.as_u64().unwrap_or(0);
+                }
+            }
+        }
+        let named_delta_vs_extent = named_count - extent_identity_only_named;
+        let overhead_vs_extent = archive_byte_size as i64 - extent_identity_only_size as i64;
+        by_variant.insert(variant.to_string(), serde_json::json!({
+            "scenario_count": variant_rows.len(),
+            "recovery_outcome_counts": count_outcomes(variant_rows.iter().filter_map(|r| r["recovery_outcome"].as_str())),
+            "recovery_classification_counts": classes,
+            "named_recovery_count": named_count,
+            "anonymous_full_recovery_count": variant_rows.iter().filter(|r| r["anonymous_full_recovery"].as_bool() == Some(true)).count(),
+            "partial_ordered_recovery_count": variant_rows.iter().filter(|r| r["partial_ordered_recovery"].as_bool() == Some(true)).count(),
+            "partial_unordered_recovery_count": variant_rows.iter().filter(|r| r["partial_unordered_recovery"].as_bool() == Some(true)).count(),
+            "orphan_evidence_count": variant_rows.iter().filter(|r| r["orphan_evidence"].as_bool() == Some(true)).count(),
+            "no_verified_evidence_count": variant_rows.iter().filter(|r| r["no_verified_evidence"].as_bool() == Some(true)).count(),
+            "archive_byte_size": archive_byte_size,
+            "metadata_byte_estimate": metadata_byte_estimate,
+            "overhead_delta_vs_payload_only": archive_byte_size as i64 - payload_only_size as i64,
+            "overhead_delta_vs_extent_identity_only": overhead_vs_extent,
+            "overhead_delta_vs_payload_plus_manifest": archive_byte_size as i64 - payload_plus_manifest_size as i64,
+            "recovery_delta_vs_extent_identity_only": {"named_recovery_count_delta": named_delta_vs_extent},
+            "recovery_delta_vs_payload_plus_manifest": {"named_recovery_count_delta": named_count - payload_plus_manifest_named},
+            "recovery_per_kib_overhead": if overhead_vs_extent > 0 { (named_delta_vs_extent as f64) / (overhead_vs_extent as f64 / 1024.0) } else { 0.0 },
+        }));
+    }
+
+    let mut grouped = serde_json::Map::new();
+    for group_field in ["dataset", "corruption_target", "path_length_bucket"] {
+        let mut group_map = serde_json::Map::new();
+        let mut keys = std::collections::BTreeSet::new();
+        for row in &rows {
+            if let Some(k) = row[group_field].as_str() {
+                keys.insert(k.to_string());
+            }
+        }
+        for key in keys {
+            let mut variant_map = serde_json::Map::new();
+            for variant in [
+                "payload_only",
+                "extent_identity_only",
+                "extent_identity_distributed_names",
+                "payload_plus_manifest",
+                "full_current_experimental",
+                "extent_identity_inline_path",
+            ] {
+                let g_rows: Vec<&Value> = rows
+                    .iter()
+                    .filter(|r| r["variant"] == variant && r[group_field] == key)
+                    .collect();
+                variant_map.insert(variant.to_string(), serde_json::json!({
+                    "scenario_count": g_rows.len(),
+                    "named_recovery_count": g_rows.iter().filter(|r| r["named_recovery"].as_bool() == Some(true)).count(),
+                    "archive_byte_size": g_rows.iter().map(|r| r["archive_byte_size"].as_u64().unwrap_or(0)).sum::<u64>(),
+                }));
+            }
+            group_map.insert(key, Value::Object(variant_map));
+        }
+        grouped.insert(group_field.to_string(), Value::Object(group_map));
+    }
+
+    let summary = serde_json::json!({
+        "schema_version": "crushr-lab-salvage-format12-inline-path-comparison.v1",
+        "tool": "crushr-lab-salvage",
+        "tool_version": env!("CARGO_PKG_VERSION"),
+        "verification_label": VERIFICATION_LABEL,
+        "scenario_count": rows.len(),
+        "variants": ["payload_only", "extent_identity_only", "extent_identity_distributed_names", "payload_plus_manifest", "full_current_experimental", "extent_identity_inline_path"],
+        "by_variant": by_variant,
+        "grouped_breakdown": grouped,
+        "per_scenario_rows": rows,
+    });
+
+    fs::write(
+        comparison_dir.join("format12_comparison_summary.json"),
+        serde_json::to_string_pretty(&summary)?,
+    )?;
+
+    let mut md = String::new();
+    md.push_str("# Format-12 inline path comparison\n\n");
+    md.push_str("## Variant summary\n\n");
+    md.push_str("| variant | scenarios | named | anon_full | partial_ordered | partial_unordered | orphan | none | archive_byte_size | overhead_vs_payload_only | overhead_vs_extent_identity_only | overhead_vs_payload_plus_manifest | named_delta_vs_extent_identity_only | named_delta_vs_payload_plus_manifest | recovery_per_kib_overhead |\n");
+    md.push_str("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n");
+    for variant in [
+        "payload_only",
+        "extent_identity_only",
+        "extent_identity_distributed_names",
+        "payload_plus_manifest",
+        "full_current_experimental",
+        "extent_identity_inline_path",
+    ] {
+        let row = &summary["by_variant"][variant];
+        md.push_str(&format!(
+            "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {:.6} |\n",
+            variant,
+            row["scenario_count"].as_u64().unwrap_or(0),
+            row["named_recovery_count"].as_i64().unwrap_or(0),
+            row["anonymous_full_recovery_count"].as_u64().unwrap_or(0),
+            row["partial_ordered_recovery_count"].as_u64().unwrap_or(0),
+            row["partial_unordered_recovery_count"]
+                .as_u64()
+                .unwrap_or(0),
+            row["orphan_evidence_count"].as_u64().unwrap_or(0),
+            row["no_verified_evidence_count"].as_u64().unwrap_or(0),
+            row["archive_byte_size"].as_u64().unwrap_or(0),
+            row["overhead_delta_vs_payload_only"].as_i64().unwrap_or(0),
+            row["overhead_delta_vs_extent_identity_only"]
+                .as_i64()
+                .unwrap_or(0),
+            row["overhead_delta_vs_payload_plus_manifest"]
+                .as_i64()
+                .unwrap_or(0),
+            row["recovery_delta_vs_extent_identity_only"]["named_recovery_count_delta"]
+                .as_i64()
+                .unwrap_or(0),
+            row["recovery_delta_vs_payload_plus_manifest"]["named_recovery_count_delta"]
+                .as_i64()
+                .unwrap_or(0),
+            row["recovery_per_kib_overhead"].as_f64().unwrap_or(0.0),
+        ));
+    }
+    md.push_str("\n## Explicit judgment\n\n");
+    md.push_str("- `extent_identity_inline_path` is credible for compression-oriented use only if its overhead remains materially below `payload_plus_manifest` while preserving similar named recovery.\n");
+    md.push_str("- Use the table above to determine whether overhead is closer to `extent_identity_only`, `payload_plus_manifest`, or `full_current_experimental`.\n");
+    md.push_str("- If named-recovery gain is small relative to added bytes, this variant should be treated as evidence for a more compact distributed naming design rather than immediate adoption.\n");
+    fs::write(comparison_dir.join("format12_comparison_summary.md"), md)?;
+
+    let _ = fs::remove_dir_all(&temp);
+    Ok(())
+}

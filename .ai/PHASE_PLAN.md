@@ -58,7 +58,8 @@
   - keep the packet format-neutral: evaluation harness/reporting only
 - [x] 3.21 CRUSHR-FORMAT-10 (metadata pruning experiment + four-variant recovery/size comparison harness)
 - [x] 3.22 CRUSHR-FORMAT-11 (distributed extent-identity experiment + FORMAT-11 comparison harness)
-- [ ] 3.23 CRUSHR-FORMAT-12 (metadata keep/prune decision lock from FORMAT-10/11 evidence)
+- [x] 3.23 CRUSHR-FORMAT-12 (inline per-extent path/name identity + FORMAT-12 comparison harness and artifacts)
+- [ ] 3.24 CRUSHR-FORMAT-13 (compact distributed-name follow-up or keep/demote/prune lock)
 
 ## Security scrub track
 
