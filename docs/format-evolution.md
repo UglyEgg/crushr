@@ -39,13 +39,13 @@ That process changed the architecture.
 
 ```mermaid
 flowchart TD
-    A[Initial integrity-first archive idea] --> B[Corruption harness introduced]
-    B --> C[FORMAT-05 self-identifying payload blocks]
-    C --> D[FORMAT-06 file manifests]
-    D --> E[FORMAT-07 graph-aware salvage reasoning]
-    E --> F[FORMAT-08 metadata placement comparison]
-    F --> G[FORMAT-09 metadata survivability audit]
-    G --> H[FORMAT-10 pruning / simplification direction]
+    A["Initial integrity-first archive idea"] --> B["Corruption harness introduced"]
+    B --> C["FORMAT-05 self-identifying payload blocks"]
+    C --> D["FORMAT-06 file manifests"]
+    D --> E["FORMAT-07 graph-aware salvage reasoning"]
+    E --> F["FORMAT-08 metadata placement comparison"]
+    F --> G["FORMAT-09 metadata survivability audit"]
+    G --> H["FORMAT-10 pruning / simplification direction"]
 ```
 
 ## Phase-by-phase evolution

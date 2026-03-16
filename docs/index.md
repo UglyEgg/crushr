@@ -84,13 +84,13 @@ crushr is active research software. The format, metadata model, and recovery str
 
 ```mermaid
 flowchart LR
-    A[Input files] --> B[crushr-pack]
-    B --> C[Archive]
-    C --> D[crushr-verify]
-    C --> E[crushr-extract]
-    C --> F[crushr-salvage]
-    F --> G[Recovery classes]
-    G --> H[Provable recovered data]
+    A["Input files"] --> B["crushr-pack"]
+    B --> C["Archive"]
+    C --> D["crushr-verify"]
+    C --> E["crushr-extract"]
+    C --> F["crushr-salvage"]
+    F --> G["Recovery classes"]
+    G --> H["Provable recovered data"]
 ```
 
 ## Read next

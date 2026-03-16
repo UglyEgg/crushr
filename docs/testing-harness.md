@@ -31,12 +31,12 @@ The harness makes it possible to ask questions like:
 
 ```mermaid
 flowchart TD
-    A[Dataset corpus] --> B[Build archive variants]
-    B --> C[Apply deterministic corruption]
-    C --> D[Run salvage analysis]
-    D --> E[Classify recovery]
-    E --> F[Aggregate results]
-    F --> G[Design decision]
+    A["Dataset corpus"] --> B["Build archive variants"]
+    B --> C["Apply deterministic corruption"]
+    C --> D["Run salvage analysis"]
+    D --> E["Classify recovery"]
+    E --> F["Aggregate results"]
+    F --> G["Design decision"]
 ```
 
 ## Corpus used by the harness
@@ -64,14 +64,14 @@ As crushr evolved, later phases introduced richer corruption families targeting 
 
 The harness records recovery using the recovery classes exposed by the salvage engine.
 
-| Class | Meaning |
-|---|---|
-| `FULL_NAMED_VERIFIED` | Complete recovery with trusted name/path |
-| `FULL_VERIFIED` | Complete recovery without trusted name/path |
-| `PARTIAL_ORDERED_VERIFIED` | Partial recovery with provable order |
-| `PARTIAL_UNORDERED_VERIFIED` | Partial recovery without proven order |
-| `ORPHAN_EVIDENCE_ONLY` | Verified fragments with no file reconstruction |
-| `NO_VERIFIED_EVIDENCE` | Nothing salvageable remains |
+| Class                        | Meaning                                        |
+| ---------------------------- | ---------------------------------------------- |
+| `FULL_NAMED_VERIFIED`        | Complete recovery with trusted name/path       |
+| `FULL_VERIFIED`              | Complete recovery without trusted name/path    |
+| `PARTIAL_ORDERED_VERIFIED`   | Partial recovery with provable order           |
+| `PARTIAL_UNORDERED_VERIFIED` | Partial recovery without proven order          |
+| `ORPHAN_EVIDENCE_ONLY`       | Verified fragments with no file reconstruction |
+| `NO_VERIFIED_EVIDENCE`       | Nothing salvageable remains                    |
 
 These classes matter because crushr is not just measuring “did extraction succeed?” It is measuring **what level of truth still survives**.
 
@@ -161,10 +161,10 @@ These outputs are used to decide whether a design change should be kept, changed
 
 ```mermaid
 flowchart LR
-    A[Add experimental feature] --> B[Run corruption suite]
-    B --> C{Improves recovery?}
-    C -- Yes --> D[Keep or refine]
-    C -- No --> E[Prune or demote]
+    A["Add experimental feature"] --> B["Run corruption suite"]
+    B --> C{"Improves recovery?"}
+    C -- Yes --> D["Keep or refine"]
+    C -- No --> E["Prune or demote"]
 ```
 
 This is how crushr is being shaped into something smaller and more evidence-driven over time.
