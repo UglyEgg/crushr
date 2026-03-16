@@ -90,3 +90,18 @@ Expected payload families:
 - Valid only with experimental graph-supporting metadata writer flags (path checkpoints and/or file-manifest checkpoints).
 - This setting influences checkpoint copy placement for `crushr-path-checkpoint.v1` and `crushr-file-manifest-checkpoint.v1` metadata only.
 - Payload semantics, payload ordering, and strict extraction behavior are unchanged.
+
+
+## FORMAT-12 experimental payload identity extension
+
+When `--metadata-profile extent_identity_inline_path` is used, each `crushr-payload-block-identity.v1` record additionally carries:
+- `name`
+- `path`
+- `path_digest_blake3`
+- `extent_index` (mirrors `block_index`)
+- `total_extent_count` (mirrors `total_block_count`)
+- `extent_length` (mirrors `logical_length`)
+
+These fields are experimental and used only by salvage research workflows.
+
+`--metadata-profile extent_identity_distributed_names` keeps payload identities pathless but enables distributed `crushr-path-checkpoint.v1` naming checkpoints without manifest checkpoints, to compare naming recovery/overhead against inline repetition.

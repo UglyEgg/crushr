@@ -87,6 +87,7 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
             || first == "run-format09-comparison"
             || first == "run-format10-pruning-comparison"
             || first == "run-format11-extent-identity-comparison"
+            || first == "run-format12-inline-path-comparison"
         {
             let mut output_dir = None;
             let mut verbose = false;
@@ -141,6 +142,10 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                     }
                 } else if first == "run-format11-extent-identity-comparison" {
                     Mode::RunFormat11ExtentIdentityComparison {
+                        comparison_dir: output_dir.context(USAGE)?,
+                    }
+                } else if first == "run-format12-inline-path-comparison" {
+                    Mode::RunFormat12InlinePathComparison {
                         comparison_dir: output_dir.context(USAGE)?,
                     }
                 } else {
@@ -210,7 +215,8 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                 | "run-format08-placement-comparison"
                 | "run-format09-comparison"
                 | "run-format10-pruning-comparison"
-                | "run-format11-extent-identity-comparison" => {
+                | "run-format11-extent-identity-comparison"
+                | "run-format12-inline-path-comparison" => {
                     bail!("subcommand `{arg}` must be used as the first argument\n{USAGE}")
                 }
                 _ if arg.starts_with('-') => bail!("unsupported flag: {arg}"),

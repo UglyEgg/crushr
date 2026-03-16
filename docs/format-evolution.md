@@ -218,3 +218,5 @@ The important thing is that crushr is not being shaped by attachment to earlier 
 ## Read next
 
 For the mechanics behind these results, continue to [Testing Harness](testing-harness.md).
+
+- FORMAT-12: added experimental profiles `extent_identity_inline_path` and `extent_identity_distributed_names`, and comparison command `run-format12-inline-path-comparison` producing `format12_comparison_summary.{json,md}` for named-recovery-vs-size evaluation.

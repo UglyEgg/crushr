@@ -176,3 +176,8 @@ This split is internal-only and preserves existing command behavior and output c
 - Local extent identity records (serialized via `crushr-payload-block-identity.v1`) carry: `file_id`, `block_index` (extent order), `total_block_count`, `logical_length`/`payload_length`, and content digests (`payload_hash_blake3`, `raw_hash_blake3`).
 - For this packet, local extent identity intentionally omits filename/path fields; naming remains optional and separate.
 - Lab command `run-format11-extent-identity-comparison` evaluates `payload_only`, `payload_plus_manifest`, `full_current_experimental`, and `extent_identity_only`, emitting `format11_comparison_summary.{json,md}`.
+
+
+## Experimental inline per-extent naming (CRUSHR-FORMAT-12)
+
+FORMAT-12 introduces an experimental metadata profile `extent_identity_inline_path` that keeps payload identity distributed while embedding verified local naming (`name`, `path`, `path_digest_blake3`) directly in each payload-block identity record. Salvage may use this path only when digest-verified and internally name-consistent; otherwise it falls back to checkpoint path maps or anonymous recovery. This does not change strict extraction semantics.

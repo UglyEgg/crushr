@@ -11,7 +11,7 @@ use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
 
 const ZSTD_CODEC: u32 = 1;
-const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  -h, --help                                 print this help text";
+const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only|extent_identity_inline_path|extent_identity_distributed_names>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only | extent_identity_inline_path | extent_identity_distributed_names\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  -h, --help                                 print this help text";
 
 #[derive(Clone, Copy, Debug)]
 enum PlacementStrategy {
@@ -37,6 +37,8 @@ enum MetadataProfile {
     PayloadPlusPath,
     FullCurrentExperimental,
     ExtentIdentityOnly,
+    ExtentIdentityInlinePath,
+    ExtentIdentityDistributedNames,
 }
 
 impl PlacementStrategy {
@@ -66,6 +68,8 @@ impl MetadataProfile {
             "payload_plus_path" => Ok(Self::PayloadPlusPath),
             "full_current_experimental" => Ok(Self::FullCurrentExperimental),
             "extent_identity_only" => Ok(Self::ExtentIdentityOnly),
+            "extent_identity_inline_path" => Ok(Self::ExtentIdentityInlinePath),
+            "extent_identity_distributed_names" => Ok(Self::ExtentIdentityDistributedNames),
             _ => bail!("unsupported metadata profile: {value}"),
         }
     }
@@ -77,11 +81,18 @@ impl MetadataProfile {
             Self::PayloadPlusPath => "payload_plus_path",
             Self::FullCurrentExperimental => "full_current_experimental",
             Self::ExtentIdentityOnly => "extent_identity_only",
+            Self::ExtentIdentityInlinePath => "extent_identity_inline_path",
+            Self::ExtentIdentityDistributedNames => "extent_identity_distributed_names",
         }
     }
 
     fn emit_path_checkpoints(self) -> bool {
-        matches!(self, Self::PayloadPlusPath | Self::FullCurrentExperimental)
+        matches!(
+            self,
+            Self::PayloadPlusPath
+                | Self::FullCurrentExperimental
+                | Self::ExtentIdentityDistributedNames
+        )
     }
 
     fn emit_manifest_checkpoints(self) -> bool {
@@ -250,6 +261,10 @@ fn pack_minimal_v1(
         .metadata_profile
         .map(MetadataProfile::emit_manifest_checkpoints)
         .unwrap_or(options.file_manifest_checkpoints);
+    let inline_payload_path = matches!(
+        options.metadata_profile,
+        Some(MetadataProfile::ExtentIdentityInlinePath)
+    );
 
     let payload_identity_archive_id = if emit_payload_identity {
         Some(compute_file_identity_archive_id(&files))
@@ -401,6 +416,10 @@ fn pack_minimal_v1(
         if emit_payload_identity {
             let archive_identity = payload_identity_archive_id.clone();
             let path = file.rel_path.clone();
+            let name = Path::new(&path)
+                .file_name()
+                .map(|name| name.to_string_lossy().to_string())
+                .unwrap_or_else(|| path.clone());
             let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
             let payload_record = json!({
                 "schema": "crushr-payload-block-identity.v1",
@@ -408,17 +427,23 @@ fn pack_minimal_v1(
                 "file_id": block_id,
                 "block_id": block_id,
                 "block_index": 0,
+                "extent_index": 0,
                 "total_block_count": 1,
+                "total_extent_count": 1,
                 "full_file_size": raw.len() as u64,
                 "logical_offset": 0,
                 "payload_codec": ZSTD_CODEC,
                 "payload_length": compressed.len() as u64,
                 "logical_length": raw.len() as u64,
+                "extent_length": raw.len() as u64,
                 "block_scan_offset": block_scan_offset,
                 "content_identity": {
                     "payload_hash_blake3": to_hex(&payload_hash),
                     "raw_hash_blake3": to_hex(&raw_hash),
                 },
+                "name": inline_payload_path.then_some(name),
+                "path": inline_payload_path.then_some(path.clone()),
+                "path_digest_blake3": inline_payload_path.then_some(to_hex(&path_digest)),
             });
             payload_block_identity_records.push(payload_record.clone());
             write_experimental_metadata_block(&mut out, &payload_record, level)?;

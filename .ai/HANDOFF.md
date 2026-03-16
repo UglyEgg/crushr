@@ -8,7 +8,7 @@
 - **CRUSHR-FORMAT-10 is complete**: pruning variants and comparison harness are wired.
 - `crushr-pack` now supports `--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only>` (opt-in).
 - `crushr-lab-salvage run-format10-pruning-comparison --output <dir>` emits `format10_comparison_summary.{json,md}`.
-- **CRUSHR-FORMAT-11 is complete**: distributed extent-identity comparison harness is wired.
+- **CRUSHR-FORMAT-12 is complete**: inline per-extent path/name identity profile and comparison harness are wired (`run-format12-inline-path-comparison`).
 - `crushr-lab-salvage run-format11-extent-identity-comparison --output <dir>` emits `format11_comparison_summary.{json,md}` with recovery + archive-size metrics across `payload_only`, `payload_plus_manifest`, `full_current_experimental`, and `extent_identity_only`.
 
 ## Important behavior locks
@@ -68,7 +68,7 @@ After structural stability and metadata pruning decisions settle, revisit distri
 
 ## Immediate next packet expectation
 
-- FORMAT-12 should use FORMAT-10/11 evidence to classify metadata layers into:
+- FORMAT-13 should use FORMAT-12 evidence to choose between compact distributed-name follow-up vs keep/demote/prune lock for inline naming:
   - retain (material recovery gain)
   - demote (weak/conditional gain)
   - prune (no meaningful survivability or gain)
