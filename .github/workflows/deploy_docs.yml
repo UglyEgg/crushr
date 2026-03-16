@@ -36,7 +36,7 @@ jobs:
           python -m pip install -r docs/requirements.txt
 
       - name: Build site
-        run: mkdocs build --strict
+        run: zensical build
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
