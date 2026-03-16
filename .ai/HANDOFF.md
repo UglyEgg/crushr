@@ -1,3 +1,16 @@
+## Latest completed step: CRUSHR-FORMAT-14A-FIX2
+
+- Repaired FORMAT-14A dictionary-state shaping bug that incorrectly forced anonymous fallback for header+tail one-copy-loss scenarios.
+- Restored expected dual-copy one-loss recoverability signal (`successful_named_recovery_with_mirror_dictionary_loss` and primary-loss counterpart now non-zero for header+tail).
+- Refreshed artifacts: `FORMAT14A_RESULTS/format14a_dictionary_resilience_summary.{json,md}` and `FORMAT14A_RESULTS/format14a_dictionary_resilience_stress_summary.{json,md}`.
+
+## Latest completed step: CRUSHR-FORMAT-14A-FIX1
+
+- FORMAT-14A runner now emits one terminal outcome per scenario row and recognizes both legacy and verified classification labels.
+- Payload-identity dictionary variants now fail closed to anonymous when dictionary naming material is missing/conflicting.
+- Refreshed artifacts: `FORMAT14A_RESULTS/format14a_dictionary_resilience_summary.{json,md}` and `FORMAT14A_RESULTS/format14a_dictionary_resilience_stress_summary.{json,md}`.
+- Follow-up needed: investigate why mirror-loss named recovery for `extent_identity_path_dict_header_tail` remains zero.
+
 # HANDOFF
 
 ## Current focus

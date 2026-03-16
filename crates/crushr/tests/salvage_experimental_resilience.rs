@@ -925,3 +925,71 @@ fn format14a_dictionary_resilience_stress_comparison_writes_required_artifacts()
     assert!(grouped.contains_key("corruption_target"));
     assert!(grouped.contains_key("stress"));
 }
+
+#[test]
+fn format14a_dictionary_resilience_classification_and_fail_closed_semantics() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format14a-semantics");
+
+    run(Command::new(lab_bin)
+        .arg("run-format14a-dictionary-resilience-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format14a_dictionary_resilience_summary.json");
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+
+    let rows = summary["per_scenario_rows"].as_array().unwrap();
+    assert!(!rows.is_empty());
+
+    for row in rows {
+        let terminal_count = [
+            row["named_recovery"].as_bool().unwrap_or(false),
+            row["anonymous_full_recovery"].as_bool().unwrap_or(false),
+            row["partial_ordered_recovery"].as_bool().unwrap_or(false),
+            row["partial_unordered_recovery"].as_bool().unwrap_or(false),
+            row["orphan_evidence"].as_bool().unwrap_or(false),
+            row["no_verified_evidence"].as_bool().unwrap_or(false),
+        ]
+        .iter()
+        .filter(|b| **b)
+        .count();
+        assert_eq!(terminal_count, 1, "row must classify exactly once: {row}");
+    }
+
+    let by_variant = summary["by_variant"].as_object().unwrap();
+
+    let inline = &by_variant["extent_identity_inline_path"];
+    assert!(inline["named_recovery_count"].as_u64().unwrap_or(0) > 0);
+
+    let single = &by_variant["extent_identity_path_dict_single"];
+    assert_eq!(
+        single["successful_named_recovery_with_primary_dictionary_loss"]
+            .as_u64()
+            .unwrap_or(0),
+        0
+    );
+    assert!(
+        single["anonymous_fallback_with_primary_dictionary_loss"]
+            .as_u64()
+            .unwrap_or(0)
+            > 0
+    );
+
+    let header_tail = &by_variant["extent_identity_path_dict_header_tail"];
+    assert!(
+        header_tail["anonymous_fallback_with_both_dictionary_losses"]
+            .as_u64()
+            .unwrap_or(0)
+            > 0
+    );
+    let conflict_count = header_tail["dictionary_conflict_detected_count"]
+        .as_u64()
+        .unwrap_or(0);
+    let fail_closed_count = header_tail["conflict_fail_closed_count"]
+        .as_u64()
+        .unwrap_or(0);
+    assert!(conflict_count > 0);
+    assert_eq!(fail_closed_count, conflict_count);
+}

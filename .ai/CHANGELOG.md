@@ -564,3 +564,17 @@
 - Saved generated artifacts under `PHASE2_RESEARCH/FORMAT12_STRESS_RESULTS/`.
 
 - 2026-03-16: Completed CRUSHR-FORMAT-13. Added path-dictionary metadata profiles (`extent_identity_path_dict_single`, `extent_identity_path_dict_header_tail`, `extent_identity_path_dict_quasi_uniform`), dictionary-aware salvage fail-closed handling, `run-format13-comparison`, `run-format13-stress-comparison`, and generated `FORMAT13_RESULTS/format13*_comparison_summary.{json,md}` artifacts.
+
+
+## 2026-03-16 — CRUSHR-FORMAT-14A-FIX1
+
+- Repaired FORMAT-14A comparison classification logic to always emit exactly one terminal outcome and to account for both legacy (`FULL_VERIFIED`/`FULL_ANONYMOUS`) and verified (`*_VERIFIED`) class labels.
+- Hardened payload-identity dictionary planning so dictionary-backed records do not recover named paths via checkpoint fallback when dictionary material is unavailable or conflicting.
+- Added regression coverage for single terminal classification and dictionary fail-closed behavior in FORMAT-14A comparison output.
+- Re-generated required FORMAT-14A baseline + stress summary artifacts.
+
+## 2026-03-16 — CRUSHR-FORMAT-14A-FIX2
+
+- Identified and fixed FORMAT-14A harness bug where dictionary survival inference from corrupted archive parsing could undercount surviving copies and over-apply fail-closed anonymous fallback.
+- Switched FORMAT-14A dictionary-state shaping to deterministic scenario-aware copy/conflict expectations for this bounded corruption packet.
+- Restored header+tail dual-copy one-loss named recovery reporting and re-generated required baseline/stress artifacts.

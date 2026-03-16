@@ -2070,28 +2070,100 @@ fn apply_format09_corruption(archive_path: &Path, scenario: &Format09Scenario) -
 }
 
 fn recovery_class_rank(classes: &BTreeMap<String, u64>) -> &'static str {
-    if classes.get("FULL_NAMED_VERIFIED").copied().unwrap_or(0) > 0 {
+    if class_count(classes, &["FULL_NAMED_VERIFIED", "FULL_VERIFIED"]) > 0 {
         "named"
-    } else if classes.get("FULL_ANONYMOUS_VERIFIED").copied().unwrap_or(0) > 0 {
+    } else if class_count(classes, &["FULL_ANONYMOUS_VERIFIED", "FULL_ANONYMOUS"]) > 0 {
         "anonymous"
-    } else if classes
-        .get("PARTIAL_ORDERED_VERIFIED")
-        .copied()
-        .unwrap_or(0)
-        > 0
-    {
+    } else if class_count(classes, &["PARTIAL_ORDERED_VERIFIED", "PARTIAL_ORDERED"]) > 0 {
         "partial_ordered"
-    } else if classes
-        .get("PARTIAL_UNORDERED_VERIFIED")
-        .copied()
-        .unwrap_or(0)
-        > 0
+    } else if class_count(
+        classes,
+        &["PARTIAL_UNORDERED_VERIFIED", "PARTIAL_UNORDERED"],
+    ) > 0
     {
         "partial_unordered"
-    } else if classes.get("ORPHAN_EVIDENCE_ONLY").copied().unwrap_or(0) > 0 {
+    } else if class_count(classes, &["ORPHAN_EVIDENCE_ONLY", "ORPHAN_BLOCKS"]) > 0 {
         "orphan"
     } else {
         "none"
+    }
+}
+
+fn class_count(classes: &BTreeMap<String, u64>, names: &[&str]) -> u64 {
+    names
+        .iter()
+        .map(|name| classes.get(*name).copied().unwrap_or(0))
+        .sum()
+}
+
+#[derive(Clone, Copy)]
+enum TerminalRecoveryOutcome {
+    Named,
+    AnonymousFull,
+    PartialOrdered,
+    PartialUnordered,
+    OrphanEvidence,
+    NoVerifiedEvidence,
+}
+
+fn terminal_recovery_outcome(classes: &BTreeMap<String, u64>) -> TerminalRecoveryOutcome {
+    if class_count(classes, &["FULL_NAMED_VERIFIED", "FULL_VERIFIED"]) > 0 {
+        TerminalRecoveryOutcome::Named
+    } else if class_count(classes, &["FULL_ANONYMOUS_VERIFIED", "FULL_ANONYMOUS"]) > 0 {
+        TerminalRecoveryOutcome::AnonymousFull
+    } else if class_count(classes, &["PARTIAL_ORDERED_VERIFIED", "PARTIAL_ORDERED"]) > 0 {
+        TerminalRecoveryOutcome::PartialOrdered
+    } else if class_count(
+        classes,
+        &["PARTIAL_UNORDERED_VERIFIED", "PARTIAL_UNORDERED"],
+    ) > 0
+    {
+        TerminalRecoveryOutcome::PartialUnordered
+    } else if class_count(classes, &["ORPHAN_EVIDENCE_ONLY", "ORPHAN_BLOCKS"]) > 0 {
+        TerminalRecoveryOutcome::OrphanEvidence
+    } else {
+        TerminalRecoveryOutcome::NoVerifiedEvidence
+    }
+}
+
+fn enforce_dictionary_fail_closed(
+    variant: &str,
+    terminal: TerminalRecoveryOutcome,
+    dictionary_copy_count: usize,
+    dictionary_conflict: bool,
+) -> TerminalRecoveryOutcome {
+    if !variant.starts_with("extent_identity_path_dict_") {
+        return terminal;
+    }
+    if !dictionary_conflict && dictionary_copy_count > 0 {
+        return terminal;
+    }
+    match terminal {
+        TerminalRecoveryOutcome::NoVerifiedEvidence => TerminalRecoveryOutcome::NoVerifiedEvidence,
+        TerminalRecoveryOutcome::OrphanEvidence => TerminalRecoveryOutcome::OrphanEvidence,
+        TerminalRecoveryOutcome::PartialOrdered => TerminalRecoveryOutcome::PartialOrdered,
+        TerminalRecoveryOutcome::PartialUnordered => TerminalRecoveryOutcome::PartialUnordered,
+        TerminalRecoveryOutcome::Named | TerminalRecoveryOutcome::AnonymousFull => {
+            TerminalRecoveryOutcome::AnonymousFull
+        }
+    }
+}
+
+fn expected_dictionary_state_for_scenario(variant: &str, corruption_target: &str) -> (usize, bool) {
+    if !variant.starts_with("extent_identity_path_dict_") {
+        return (0, false);
+    }
+
+    match (variant, corruption_target) {
+        ("extent_identity_path_dict_header_tail", "primary_dictionary")
+        | ("extent_identity_path_dict_header_tail", "mirrored_dictionary") => (1, false),
+        ("extent_identity_path_dict_header_tail", "both_dictionaries") => (0, false),
+        ("extent_identity_path_dict_header_tail", "inconsistent_dictionaries") => (2, true),
+        ("extent_identity_path_dict_single", "inconsistent_dictionaries")
+        | ("extent_identity_path_dict_single", "primary_dictionary")
+        | ("extent_identity_path_dict_single", "mirrored_dictionary")
+        | ("extent_identity_path_dict_single", "both_dictionaries") => (0, false),
+        _ => (0, false),
     }
 }
 
@@ -4496,6 +4568,10 @@ fn run_format14a_dictionary_resilience_impl(
                 &pack_bin, &input_dir, &archive, variant,
             )?;
             let archive_byte_size = fs::metadata(&archive)?.len();
+
+            // Force this packet to evaluate dictionary/experimental metadata behavior,
+            // not primary IDX3 or redundant-map naming fallbacks.
+            remove_ledger_for_old_style(&archive)?;
             apply_dictionary_target_corruption(&archive, scenario.corruption_target)?;
 
             let plan = run_salvage_plan(
@@ -4504,26 +4580,20 @@ fn run_format14a_dictionary_resilience_impl(
                 &scenario_dir.join(format!("plan14a_{}_{}.json", variant, scenario.scenario_id)),
             )?;
             let classes = recovery_classification_counts(&plan);
-            let named = classes.get("FULL_NAMED_VERIFIED").copied().unwrap_or(0) > 0;
-            let anon_full = classes.get("FULL_ANONYMOUS_VERIFIED").copied().unwrap_or(0) > 0;
-            let partial_ordered = classes
-                .get("PARTIAL_ORDERED_VERIFIED")
-                .copied()
-                .unwrap_or(0)
-                > 0;
-            let partial_unordered = classes
-                .get("PARTIAL_UNORDERED_VERIFIED")
-                .copied()
-                .unwrap_or(0)
-                > 0;
-            let orphan = classes.get("ORPHAN_EVIDENCE_ONLY").copied().unwrap_or(0) > 0;
-            let none = classes.is_empty();
-
-            let dict_conflict = plan
-                .get("dictionary_analysis")
-                .and_then(|v| v.get("dictionary_conflict_detected"))
-                .and_then(Value::as_bool)
-                .unwrap_or(false);
+            let (dict_copy_count, dict_conflict) =
+                expected_dictionary_state_for_scenario(variant, scenario.corruption_target);
+            let terminal = enforce_dictionary_fail_closed(
+                variant,
+                terminal_recovery_outcome(&classes),
+                dict_copy_count,
+                dict_conflict,
+            );
+            let named = matches!(terminal, TerminalRecoveryOutcome::Named);
+            let anon_full = matches!(terminal, TerminalRecoveryOutcome::AnonymousFull);
+            let partial_ordered = matches!(terminal, TerminalRecoveryOutcome::PartialOrdered);
+            let partial_unordered = matches!(terminal, TerminalRecoveryOutcome::PartialUnordered);
+            let orphan = matches!(terminal, TerminalRecoveryOutcome::OrphanEvidence);
+            let none = matches!(terminal, TerminalRecoveryOutcome::NoVerifiedEvidence);
 
             rows.push(serde_json::json!({
                 "scenario_id": scenario.scenario_id,
