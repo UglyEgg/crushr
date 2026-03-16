@@ -545,3 +545,19 @@ Blast radius:
 - Blast radius:
   - Experimental writer/lab interfaces only; canonical extraction semantics are unchanged.
   - Existing format09 and earlier commands continue to run without behavior changes.
+
+## 2026-03-16 — CRUSHR-FORMAT-11 distributed extent identity profile surface
+
+- Decision:
+  - Add explicit experimental packer profile `--metadata-profile extent_identity_only`.
+  - Encode distributed per-extent structural identity using `crushr-payload-block-identity.v1` records with local fields (`file_id`, `block_index`/extent index, `total_block_count`, `logical_length` + `payload_length`, and `content_identity` digests).
+  - Do not include path/name in local extent identity records for this packet.
+  - Add `run-format11-extent-identity-comparison` as the bounded four-arm command (`payload_only`, `payload_plus_manifest`, `full_current_experimental`, `extent_identity_only`).
+- Alternatives:
+  1. Keep manifest-first approach and defer distributed identity.
+  2. Include names directly in local headers, conflating structure and path metadata.
+- Rationale:
+  - Tests structure-first anonymous recovery capability while minimizing global manifest dependency.
+  - Preserves strict semantics by requiring verified local identity and avoiding speculative naming.
+- Blast radius:
+  - Experimental writer/salvage/lab surfaces only; canonical extraction behavior remains unchanged.

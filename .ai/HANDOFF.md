@@ -6,9 +6,10 @@
 - **CRUSHR-FORMAT-08 is complete**: experimental metadata placement strategies now exist (`fixed_spread`, `hash_spread`, `golden_spread`) and the bounded placement comparison command is wired and covered.
 - **CRUSHR-FORMAT-09 is complete**: `run-format09-comparison` is now wired and emits survivability/gain evidence across metadata regimes, metadata targets, payload topologies, and placement strategies.
 - **CRUSHR-FORMAT-10 is complete**: pruning variants and comparison harness are wired.
-- `crushr-pack` now supports `--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental>` (opt-in).
-- `crushr-lab-salvage run-format10-pruning-comparison --output <dir>` emits `format10_comparison_summary.{json,md}` with recovery + archive-size metrics.
-- Next step is decisioning (FORMAT-11), not additional metadata expansion.
+- `crushr-pack` now supports `--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only>` (opt-in).
+- `crushr-lab-salvage run-format10-pruning-comparison --output <dir>` emits `format10_comparison_summary.{json,md}`.
+- **CRUSHR-FORMAT-11 is complete**: distributed extent-identity comparison harness is wired.
+- `crushr-lab-salvage run-format11-extent-identity-comparison --output <dir>` emits `format11_comparison_summary.{json,md}` with recovery + archive-size metrics across `payload_only`, `payload_plus_manifest`, `full_current_experimental`, and `extent_identity_only`.
 
 ## Important behavior locks
 
@@ -67,7 +68,7 @@ After structural stability and metadata pruning decisions settle, revisit distri
 
 ## Immediate next packet expectation
 
-- FORMAT-10 should use FORMAT-09 evidence to classify metadata layers into:
+- FORMAT-12 should use FORMAT-10/11 evidence to classify metadata layers into:
   - retain (material recovery gain)
   - demote (weak/conditional gain)
   - prune (no meaningful survivability or gain)

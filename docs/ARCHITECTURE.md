@@ -168,3 +168,11 @@ This split is internal-only and preserves existing command behavior and output c
 - `payload_plus_path`: payload-block identity + path checkpoints; removes file-manifest checkpoints.
 - `full_current_experimental`: payload-block identity + path checkpoints + file-manifest checkpoints (control arm).
 - Lab command `run-format10-pruning-comparison` evaluates recovery and archive-size overhead across all four variants and emits `format10_comparison_summary.{json,md}`.
+
+
+## Experimental distributed extent identity (CRUSHR-FORMAT-11)
+
+- Added opt-in metadata profile `extent_identity_only` to test structure-first recovery with distributed per-extent identity and minimal global manifest dependence.
+- Local extent identity records (serialized via `crushr-payload-block-identity.v1`) carry: `file_id`, `block_index` (extent order), `total_block_count`, `logical_length`/`payload_length`, and content digests (`payload_hash_blake3`, `raw_hash_blake3`).
+- For this packet, local extent identity intentionally omits filename/path fields; naming remains optional and separate.
+- Lab command `run-format11-extent-identity-comparison` evaluates `payload_only`, `payload_plus_manifest`, `full_current_experimental`, and `extent_identity_only`, emitting `format11_comparison_summary.{json,md}`.

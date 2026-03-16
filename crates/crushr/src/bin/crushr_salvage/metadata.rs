@@ -499,42 +499,69 @@ pub(super) fn verify_and_plan_payload_block_identity_records(
         ));
     }
 
-    let files = grouped
-        .into_iter()
-        .map(|(path, (_archive_id, size, total_blocks, mut extents))| {
-            extents.sort_by_key(|(idx, _)| *idx);
-            if extents.len() as u64 != total_blocks {
-                bail!("payload block identity missing required block coverage");
-            }
-            for (expected, (idx, _)) in extents.iter().enumerate() {
-                if *idx != expected as u64 {
-                    bail!("payload block identity block index gap");
-                }
-            }
-            Ok(RedundantMapFile {
-                path,
-                size,
-                extents: extents.into_iter().map(|(_, e)| e).collect(),
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
+    let mut plans = Vec::new();
+    for (path, (_archive_id, size, total_blocks, mut extents)) in grouped {
+        extents.sort_by_key(|(idx, _)| *idx);
 
-    let mut plans = verify_and_plan_redundant_map(files, block_verification)?;
-    let has_named_paths = plans
-        .iter()
-        .all(|p| !p.file_path.starts_with("anonymous_verified/"));
-    for plan in &mut plans {
-        plan.mapping_provenance = if has_named_paths {
-            PAYLOAD_BLOCK_IDENTITY_PATH
+        let mut seen = BTreeSet::new();
+        for (idx, _) in &extents {
+            if !seen.insert(*idx) {
+                bail!("payload block identity duplicate block index");
+            }
+        }
+
+        let has_index_gaps = extents
+            .iter()
+            .enumerate()
+            .any(|(expected, (idx, _))| *idx != expected as u64);
+        let is_complete = !has_index_gaps && extents.len() as u64 == total_blocks;
+
+        let file_extents = extents.into_iter().map(|(_, e)| e).collect::<Vec<_>>();
+        let required_block_ids = file_extents.iter().map(|e| e.block_id).collect::<Vec<_>>();
+
+        let (status, reason, mut failure_reasons) = if is_complete {
+            classify_file(&file_extents, &required_block_ids, block_verification)
         } else {
-            PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS
+            (
+                "UNSALVAGEABLE",
+                "payload_block_identity_missing_required_block_coverage",
+                vec!["payload_block_identity_missing_required_block_coverage"],
+            )
         };
-        plan.recovery_classification = if plan.file_path.starts_with("anonymous_verified/") {
-            "FULL_ANONYMOUS"
+
+        let mut recovery_classification = if path.starts_with("anonymous_verified/") {
+            "FULL_ANONYMOUS_VERIFIED"
         } else {
-            "FULL_VERIFIED"
+            "FULL_NAMED_VERIFIED"
         };
+
+        if !is_complete {
+            if has_index_gaps {
+                recovery_classification = "PARTIAL_UNORDERED_VERIFIED";
+                failure_reasons.push("payload_block_identity_index_gap");
+            } else {
+                recovery_classification = "PARTIAL_ORDERED_VERIFIED";
+            }
+        }
+
+        plans.push(FilePlan {
+            mapping_provenance: if path.starts_with("anonymous_verified/") {
+                PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS
+            } else {
+                PAYLOAD_BLOCK_IDENTITY_PATH
+            },
+            recovery_classification,
+            file_path: path,
+            status,
+            reason,
+            failure_reasons,
+            required_block_ids,
+            extents: file_extents,
+            file_size: size,
+        });
     }
+
+    plans.sort_by(|a, b| a.file_path.cmp(&b.file_path));
     Ok(plans)
 }
 
@@ -1323,5 +1350,128 @@ mod tests {
             classify_from_verified_graph(&p_no_blocks, &graph, None),
             "NO_VERIFIED_EVIDENCE"
         );
+    }
+
+    #[test]
+    fn payload_identity_groups_and_orders_by_block_index() {
+        let records = vec![
+            PayloadBlockIdentityRecord {
+                archive_identity: "aid".to_string(),
+                file_id: 7,
+                block_index: 1,
+                total_block_count: 2,
+                full_file_size: 12,
+                logical_offset: 6,
+                logical_length: 6,
+                payload_codec: 1,
+                payload_length: 6,
+                block_id: 2,
+                block_scan_offset: Some(20),
+                payload_hash_blake3: "p2".to_string(),
+                raw_hash_blake3: "r2".to_string(),
+            },
+            PayloadBlockIdentityRecord {
+                archive_identity: "aid".to_string(),
+                file_id: 7,
+                block_index: 0,
+                total_block_count: 2,
+                full_file_size: 12,
+                logical_offset: 0,
+                logical_length: 6,
+                payload_codec: 1,
+                payload_length: 6,
+                block_id: 1,
+                block_scan_offset: Some(10),
+                payload_hash_blake3: "p1".to_string(),
+                raw_hash_blake3: "r1".to_string(),
+            },
+        ];
+        let values = vec![
+            serde_json::json!({
+                "schema": "crushr-payload-block-identity.v1",
+                "block_id": 1,
+                "content_identity": {"payload_hash_blake3":"p1", "raw_hash_blake3":"r1"},
+            }),
+            serde_json::json!({
+                "schema": "crushr-payload-block-identity.v1",
+                "block_id": 2,
+                "content_identity": {"payload_hash_blake3":"p2", "raw_hash_blake3":"r2"},
+            }),
+        ];
+        let block_verification = BTreeMap::from([
+            (
+                1u32,
+                BlockVerification {
+                    content_verified: true,
+                    verified_raw_len: Some(6),
+                },
+            ),
+            (
+                2u32,
+                BlockVerification {
+                    content_verified: true,
+                    verified_raw_len: Some(12),
+                },
+            ),
+        ]);
+        let verified_offsets = BTreeSet::from([10u64, 20u64]);
+
+        let plans = verify_and_plan_payload_block_identity_records(
+            records,
+            &values,
+            &block_verification,
+            &verified_offsets,
+        )
+        .unwrap();
+
+        assert_eq!(plans.len(), 1);
+        let plan = &plans[0];
+        assert_eq!(plan.extents[0].block_id, 1);
+        assert_eq!(plan.extents[1].block_id, 2);
+    }
+
+    #[test]
+    fn payload_identity_missing_extent_yields_partial_ordered() {
+        let records = vec![PayloadBlockIdentityRecord {
+            archive_identity: "aid".to_string(),
+            file_id: 7,
+            block_index: 0,
+            total_block_count: 2,
+            full_file_size: 12,
+            logical_offset: 0,
+            logical_length: 6,
+            payload_codec: 1,
+            payload_length: 6,
+            block_id: 1,
+            block_scan_offset: Some(10),
+            payload_hash_blake3: "p1".to_string(),
+            raw_hash_blake3: "r1".to_string(),
+        }];
+        let values = vec![serde_json::json!({
+            "schema": "crushr-payload-block-identity.v1",
+            "block_id": 1,
+            "content_identity": {"payload_hash_blake3":"p1", "raw_hash_blake3":"r1"},
+        })];
+        let block_verification = BTreeMap::from([(
+            1u32,
+            BlockVerification {
+                content_verified: true,
+                verified_raw_len: Some(6),
+            },
+        )]);
+        let verified_offsets = BTreeSet::from([10u64]);
+
+        let plans = verify_and_plan_payload_block_identity_records(
+            records,
+            &values,
+            &block_verification,
+            &verified_offsets,
+        )
+        .unwrap();
+
+        assert_eq!(plans.len(), 1);
+        let plan = &plans[0];
+        assert_eq!(plan.status, "UNSALVAGEABLE");
+        assert_eq!(plan.recovery_classification, "PARTIAL_ORDERED_VERIFIED");
     }
 }
