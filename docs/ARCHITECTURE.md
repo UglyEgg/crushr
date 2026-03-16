@@ -139,3 +139,12 @@ Policy: unsafe paths hard-fail (no rewrite/strip/rename).
 Symlink policy in hardened mode: extraction rejects symlink entries (fail closed).
 
 CRUSHR-PLAN-LEGACY-01 boundary lock: all supported extraction surfaces (`crushr-extract`, root `crushr extract`, and API `extract_all`) delegate to the same authoritative strict extraction implementation.
+
+
+## CRUSHR-SCRUB-03 internal module boundaries
+
+To reduce layered patch breakage risk without changing semantics, salvage research binaries are internally segmented by responsibility:
+- `crushr-salvage`: `cli` (args), `discovery` (BLK3 scanning/verification), `metadata` (metadata decode + planning), `artifacts` (output/export helpers).
+- `crushr-lab-salvage`: `cli` (dispatch), `runner` (archive collection/salvage execution/summaries), `comparison` (scenario generation/corruption/comparison reports).
+
+This split is internal-only and preserves existing command behavior and output contracts.

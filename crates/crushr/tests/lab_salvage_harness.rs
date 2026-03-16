@@ -555,3 +555,27 @@ fn harness_reports_clear_error_when_salvage_bin_resolution_fails() {
     let stderr = run_harness_expect_fail(&mut cmd);
     assert!(stderr.contains("CRUSHR_SALVAGE_BIN points to missing/non-file path"));
 }
+
+#[test]
+fn harness_prefers_explicit_salvage_env_over_fallback_resolution() {
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let input_dir = td.path().join("archives");
+    fs::create_dir_all(&input_dir).unwrap();
+
+    build_archive(pack_bin, "src", "payload", &input_dir.join("sample.crushr"));
+
+    let mut cmd = Command::new(lab_bin);
+    cmd.arg(&input_dir)
+        .arg("--output")
+        .arg(td.path().join("experiment"))
+        .env("CRUSHR_SALVAGE_BIN", td.path().join("missing-salvage"))
+        .env(
+            "CARGO_BIN_EXE_crushr-salvage",
+            env!("CARGO_BIN_EXE_crushr-salvage"),
+        );
+
+    let stderr = run_harness_expect_fail(&mut cmd);
+    assert!(stderr.contains("CRUSHR_SALVAGE_BIN points to missing/non-file path"));
+}

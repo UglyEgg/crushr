@@ -46,6 +46,7 @@
 - [x] 3.15-f4 CRUSHR-FORMAT-05-f4 (restore runnable `cargo run` format05 comparison command by auto-building unresolved sibling salvage/pack binaries)
 - [x] 3.16 CRUSHR-SCRUB-02 (reject duplicate logical archive paths at pack time before archive emission)
 - [x] 3.16-f1 CRUSHR-SCRUB-02-f1 (stabilize duplicate-collision source ordering + expand collision-mode test coverage)
+- [x] 3.16-f2 CRUSHR-SCRUB-03 (modularize `crushr-salvage` + `crushr-lab-salvage` internals; preserve behavior + add regression coverage)
 - [ ] 3.17 CRUSHR-FORMAT-06 (verified file manifest checkpoints as the next recovery-graph layer)
   - build the file-truth layer on top of payload block identity
   - validate full named / full anonymous / partial ordered recovery rules
