@@ -1846,3 +1846,478 @@ pub(super) fn run_format07_comparison(comparison_dir: &Path, verbose: bool) -> R
     let _ = fs::remove_dir_all(&temp);
     Ok(())
 }
+
+#[derive(Debug, Clone)]
+struct Format09Scenario {
+    scenario_id: String,
+    dataset: &'static str,
+    metadata_regime: &'static str,
+    metadata_target: &'static str,
+    metadata_operation: &'static str,
+    payload_damage: &'static str,
+    seed: u64,
+}
+
+fn format09_scenarios() -> Vec<Format09Scenario> {
+    let datasets = ["smallfiles", "mixed", "largefiles"];
+    let regimes = [
+        "metadata_intact",
+        "metadata_destroyed",
+        "metadata_partial",
+        "metadata_conflicting",
+    ];
+    let targets = [
+        "index",
+        "manifest",
+        "path_checkpoint",
+        "tail_metadata",
+        "multiple_metadata_layers",
+        "index_manifest",
+    ];
+    let payload = [
+        "none",
+        "single_block_delete",
+        "sparse_delete",
+        "cluster_delete",
+        "block_reorder",
+        "duplicate_block_insert",
+    ];
+
+    let mut out = Vec::new();
+    let mut seed = 900u64;
+    for (i, p) in payload.iter().enumerate() {
+        for regime in regimes {
+            let target = targets[i % targets.len()];
+            let dataset = datasets[(i + (seed as usize % 3)) % datasets.len()];
+            out.push(Format09Scenario {
+                scenario_id: format!("{}_{}_{}_{}", regime, target, p, seed),
+                dataset,
+                metadata_regime: regime,
+                metadata_target: target,
+                metadata_operation: match regime {
+                    "metadata_intact" => "none",
+                    "metadata_destroyed" => "delete",
+                    "metadata_partial" => "truncate",
+                    "metadata_conflicting" => "overwrite",
+                    _ => "bitflip",
+                },
+                payload_damage: p,
+                seed,
+            });
+            seed += 1;
+        }
+    }
+    out
+}
+
+fn clobber_range(bytes: &mut [u8], start: usize, len: usize, mode: &str) {
+    let end = start.saturating_add(len).min(bytes.len());
+    if start >= end {
+        return;
+    }
+    match mode {
+        "delete" => {
+            for b in &mut bytes[start..end] {
+                *b = 0;
+            }
+        }
+        "truncate" => {
+            for (i, b) in bytes[start..end].iter_mut().enumerate() {
+                if i % 2 == 0 {
+                    *b = 0;
+                }
+            }
+        }
+        "bitflip" => {
+            for (i, b) in bytes[start..end].iter_mut().enumerate() {
+                *b ^= 0xA5 ^ ((i % 17) as u8);
+            }
+        }
+        _ => {
+            for (i, b) in bytes[start..end].iter_mut().enumerate() {
+                *b = 0x55u8.wrapping_add((i % 101) as u8);
+            }
+        }
+    }
+}
+
+fn corrupt_metadata_for_format09(bytes: &mut Vec<u8>, scenario: &Format09Scenario) -> Result<()> {
+    if scenario.metadata_regime == "metadata_intact" {
+        return Ok(());
+    }
+
+    let len = bytes.len();
+    let footer_offset = len.saturating_sub(FTR4_LEN);
+    let footer = Ftr4::read_from(std::io::Cursor::new(&bytes[footer_offset..]))?;
+    let blocks_end = footer.blocks_end_offset as usize;
+    let index_offset = footer.index_offset as usize;
+
+    match scenario.metadata_target {
+        "index" => clobber_range(bytes, index_offset, 96, scenario.metadata_operation),
+        "manifest" => {
+            for needle in [
+                b"crushr-file-manifest-checkpoint.v1".as_slice(),
+                b"file-manifest-checkpoint".as_slice(),
+            ] {
+                let mut pos = 0usize;
+                while let Some(hit) = bytes[pos..].windows(needle.len()).position(|w| w == needle) {
+                    let start = pos + hit;
+                    clobber_range(
+                        bytes,
+                        start.saturating_sub(8),
+                        64,
+                        scenario.metadata_operation,
+                    );
+                    pos = start + needle.len();
+                }
+            }
+        }
+        "path_checkpoint" => {
+            for needle in [
+                b"crushr-path-checkpoint.v1".as_slice(),
+                b"path-checkpoint".as_slice(),
+            ] {
+                let mut pos = 0usize;
+                while let Some(hit) = bytes[pos..].windows(needle.len()).position(|w| w == needle) {
+                    let start = pos + hit;
+                    clobber_range(
+                        bytes,
+                        start.saturating_sub(8),
+                        64,
+                        scenario.metadata_operation,
+                    );
+                    pos = start + needle.len();
+                }
+            }
+        }
+        "tail_metadata" => {
+            let start = blocks_end.min(len.saturating_sub(16));
+            clobber_range(
+                bytes,
+                start,
+                len.saturating_sub(start + FTR4_LEN),
+                scenario.metadata_operation,
+            );
+        }
+        "multiple_metadata_layers" | "index_manifest" => {
+            clobber_range(bytes, index_offset, 96, scenario.metadata_operation);
+            let start = blocks_end.min(len.saturating_sub(16));
+            clobber_range(
+                bytes,
+                start,
+                len.saturating_sub(start + FTR4_LEN),
+                scenario.metadata_operation,
+            );
+        }
+        _ => {}
+    }
+
+    if scenario.metadata_regime == "metadata_conflicting" {
+        let dup = bytes[blocks_end..len.saturating_sub(FTR4_LEN)].to_vec();
+        let insert_at = (blocks_end + 64).min(len.saturating_sub(FTR4_LEN));
+        bytes.splice(insert_at..insert_at, dup.into_iter().take(128));
+    }
+
+    Ok(())
+}
+
+fn corrupt_payload_for_format09(bytes: &mut Vec<u8>, scenario: &Format09Scenario) {
+    let len = bytes.len();
+    let data_start = 64usize.min(len);
+    let data_end = len.saturating_sub(FTR4_LEN + 128);
+    if data_start >= data_end {
+        return;
+    }
+    let span = data_end - data_start;
+    let block = (span / 16).max(64);
+    let start = data_start + ((scenario.seed as usize % 7) * block / 2).min(span.saturating_sub(1));
+
+    match scenario.payload_damage {
+        "none" => {}
+        "single_block_delete" => clobber_range(bytes, start, block, "delete"),
+        "sparse_delete" => {
+            for i in 0..4 {
+                clobber_range(bytes, start + i * (block / 2), block / 3, "delete");
+            }
+        }
+        "cluster_delete" => clobber_range(bytes, start, block * 3 / 2, "delete"),
+        "block_reorder" => {
+            let mid = (start + block).min(data_end.saturating_sub(block));
+            if mid > start && mid + block <= data_end {
+                let a = bytes[start..start + block].to_vec();
+                let b = bytes[mid..mid + block].to_vec();
+                bytes[start..start + block].copy_from_slice(&b);
+                bytes[mid..mid + block].copy_from_slice(&a);
+            }
+        }
+        "duplicate_block_insert" => {
+            let end = (start + block).min(data_end);
+            let dup = bytes[start..end].to_vec();
+            let insert_at = (end + block / 2).min(data_end);
+            bytes.splice(insert_at..insert_at, dup);
+        }
+        _ => {}
+    }
+}
+
+fn apply_format09_corruption(archive_path: &Path, scenario: &Format09Scenario) -> Result<()> {
+    let mut bytes = fs::read(archive_path)?;
+    corrupt_metadata_for_format09(&mut bytes, scenario)?;
+    corrupt_payload_for_format09(&mut bytes, scenario);
+    fs::write(archive_path, bytes)?;
+    Ok(())
+}
+
+fn recovery_class_rank(classes: &BTreeMap<String, u64>) -> &'static str {
+    if classes.get("FULL_NAMED_VERIFIED").copied().unwrap_or(0) > 0 {
+        "named"
+    } else if classes.get("FULL_ANONYMOUS_VERIFIED").copied().unwrap_or(0) > 0 {
+        "anonymous"
+    } else if classes
+        .get("PARTIAL_ORDERED_VERIFIED")
+        .copied()
+        .unwrap_or(0)
+        > 0
+    {
+        "partial_ordered"
+    } else if classes
+        .get("PARTIAL_UNORDERED_VERIFIED")
+        .copied()
+        .unwrap_or(0)
+        > 0
+    {
+        "partial_unordered"
+    } else if classes.get("ORPHAN_EVIDENCE_ONLY").copied().unwrap_or(0) > 0 {
+        "orphan"
+    } else {
+        "none"
+    }
+}
+
+pub(super) fn run_format09_comparison(comparison_dir: &Path, verbose: bool) -> Result<()> {
+    fs::create_dir_all(comparison_dir)?;
+    let temp =
+        std::env::temp_dir().join(format!("crushr-format09-comparison-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&temp);
+    fs::create_dir_all(&temp)?;
+
+    let salvage_bin = resolve_salvage_bin()?;
+    let pack_bin = resolve_pack_bin()?;
+    let strategies = [
+        FORMAT08_STRATEGY_FIXED,
+        FORMAT08_STRATEGY_HASH,
+        FORMAT08_STRATEGY_GOLDEN,
+    ];
+    let scenarios = format09_scenarios();
+    let mut rows = Vec::new();
+
+    for scenario in &scenarios {
+        let scenario_dir = temp.join(&scenario.scenario_id);
+        fs::create_dir_all(&scenario_dir)?;
+        let input_dir = scenario_dir.join("input");
+        write_dataset_fixture(&input_dir, scenario.dataset)?;
+
+        for strategy in strategies {
+            let archive = scenario_dir.join(format!("format09_{}.crushr", strategy));
+            build_archive_with_pack_format08(
+                &pack_bin,
+                &input_dir.join(scenario.dataset),
+                &archive,
+                strategy,
+            )?;
+            apply_format09_corruption(&archive, scenario)?;
+            let plan = run_salvage_plan(
+                &salvage_bin,
+                &archive,
+                &scenario_dir.join(format!("plan_{}_{}.json", strategy, scenario.scenario_id)),
+            )?;
+            let classes = recovery_classification_counts(&plan);
+            let manifest_survival =
+                metadata_node_count(&plan, "crushr-file-manifest-checkpoint.v1");
+            let path_survival = metadata_node_count(&plan, "crushr-path-checkpoint.v1");
+            let metadata_nodes = manifest_survival + path_survival;
+            if verbose {
+                eprintln!(
+                    "format09 {} {} => class={}",
+                    scenario.scenario_id,
+                    strategy,
+                    recovery_class_rank(&classes)
+                );
+            }
+            rows.push(serde_json::json!({
+                "strategy": strategy,
+                "scenario_id": scenario.scenario_id,
+                "dataset": scenario.dataset,
+                "metadata_regime": scenario.metadata_regime,
+                "metadata_target": scenario.metadata_target,
+                "metadata_operation": scenario.metadata_operation,
+                "payload_damage": scenario.payload_damage,
+                "named_recovery": classes.get("FULL_NAMED_VERIFIED").copied().unwrap_or(0) > 0,
+                "anonymous_full_recovery": classes.get("FULL_ANONYMOUS_VERIFIED").copied().unwrap_or(0) > 0,
+                "partial_ordered_recovery": classes.get("PARTIAL_ORDERED_VERIFIED").copied().unwrap_or(0) > 0,
+                "partial_unordered_recovery": classes.get("PARTIAL_UNORDERED_VERIFIED").copied().unwrap_or(0) > 0,
+                "orphan_evidence": classes.get("ORPHAN_EVIDENCE_ONLY").copied().unwrap_or(0) > 0,
+                "manifest_checkpoint_survival_count": manifest_survival,
+                "path_checkpoint_survival_count": path_survival,
+                "verified_metadata_node_count": metadata_nodes,
+                "recovery_class": recovery_class_rank(&classes),
+                "metadata_recovery_gain": "pending",
+            }));
+        }
+    }
+
+    let mut destroyed_baseline = BTreeMap::<(String, String, String), String>::new();
+    for row in &rows {
+        if row["metadata_regime"] == "metadata_destroyed" {
+            destroyed_baseline.insert(
+                (
+                    row["strategy"].as_str().unwrap_or("").to_string(),
+                    row["metadata_target"].as_str().unwrap_or("").to_string(),
+                    row["payload_damage"].as_str().unwrap_or("").to_string(),
+                ),
+                row["recovery_class"].as_str().unwrap_or("none").to_string(),
+            );
+        }
+    }
+
+    for row in &mut rows {
+        let key = (
+            row["strategy"].as_str().unwrap_or("").to_string(),
+            row["metadata_target"].as_str().unwrap_or("").to_string(),
+            row["payload_damage"].as_str().unwrap_or("").to_string(),
+        );
+        let current = row["recovery_class"].as_str().unwrap_or("none");
+        let gain = if row["metadata_regime"] == "metadata_destroyed" {
+            "baseline".to_string()
+        } else if let Some(base) = destroyed_baseline.get(&key) {
+            if base == current {
+                "unchanged".to_string()
+            } else {
+                format!("{}->{}", base, current)
+            }
+        } else {
+            "unknown".to_string()
+        };
+        row["metadata_recovery_gain"] = Value::String(gain);
+    }
+
+    let recovery_class_distribution = count_outcomes(
+        rows.iter()
+            .filter_map(|r| r.get("recovery_class").and_then(Value::as_str)),
+    );
+    let metadata_survival_stats = serde_json::json!({
+        "manifest_checkpoint_survival_count": rows.iter().map(|r| r["manifest_checkpoint_survival_count"].as_u64().unwrap_or(0)).sum::<u64>(),
+        "path_checkpoint_survival_count": rows.iter().map(|r| r["path_checkpoint_survival_count"].as_u64().unwrap_or(0)).sum::<u64>(),
+        "verified_metadata_node_count": rows.iter().map(|r| r["verified_metadata_node_count"].as_u64().unwrap_or(0)).sum::<u64>(),
+    });
+    let gain_distribution = count_outcomes(
+        rows.iter()
+            .filter_map(|r| r.get("metadata_recovery_gain").and_then(Value::as_str)),
+    );
+
+    let mut by_strategy = serde_json::Map::new();
+    for strategy in strategies {
+        let strategy_rows: Vec<Value> = rows
+            .iter()
+            .filter(|r| r["strategy"] == strategy)
+            .cloned()
+            .collect();
+        by_strategy.insert(strategy.to_string(), serde_json::json!({
+            "scenario_count": strategy_rows.len(),
+            "recovery_class_distribution": count_outcomes(strategy_rows.iter().filter_map(|r| r["recovery_class"].as_str())),
+            "metadata_survival": {
+                "manifest_checkpoint_survival_count": strategy_rows.iter().map(|r| r["manifest_checkpoint_survival_count"].as_u64().unwrap_or(0)).sum::<u64>(),
+                "path_checkpoint_survival_count": strategy_rows.iter().map(|r| r["path_checkpoint_survival_count"].as_u64().unwrap_or(0)).sum::<u64>(),
+                "verified_metadata_node_count": strategy_rows.iter().map(|r| r["verified_metadata_node_count"].as_u64().unwrap_or(0)).sum::<u64>(),
+            },
+            "metadata_recovery_gain_distribution": count_outcomes(strategy_rows.iter().filter_map(|r| r["metadata_recovery_gain"].as_str())),
+        }));
+    }
+
+    let summary = serde_json::json!({
+        "schema_version": "crushr-lab-salvage-format09-comparison.v1",
+        "tool": "crushr-lab-salvage",
+        "tool_version": env!("CARGO_PKG_VERSION"),
+        "verification_label": VERIFICATION_LABEL,
+        "scenario_count": rows.len(),
+        "metadata_regimes": ["metadata_intact", "metadata_destroyed", "metadata_partial", "metadata_conflicting"],
+        "recovery_class_distribution": recovery_class_distribution,
+        "metadata_survival_statistics": metadata_survival_stats,
+        "metadata_recovery_gain_distribution": gain_distribution,
+        "strategy_comparison": by_strategy,
+        "per_scenario_rows": rows,
+    });
+
+    fs::write(
+        comparison_dir.join("format09_comparison_summary.json"),
+        serde_json::to_string_pretty(&summary)?,
+    )?;
+
+    let mut md = String::new();
+    md.push_str("# Format-09 metadata survivability and necessity audit\n\n");
+    md.push_str(&format!(
+        "Scenarios: {}\n\n",
+        summary["scenario_count"].as_u64().unwrap_or(0)
+    ));
+    md.push_str("## Scenario table\n\n");
+    md.push_str("| strategy | scenario_id | metadata_regime | metadata_target | payload_damage | recovery_class | metadata_recovery_gain |\n");
+    md.push_str("|---|---|---|---|---|---|---|\n");
+    for row in summary["per_scenario_rows"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .take(80)
+    {
+        md.push_str(&format!(
+            "| {} | {} | {} | {} | {} | {} | {} |\n",
+            row["strategy"].as_str().unwrap_or(""),
+            row["scenario_id"].as_str().unwrap_or(""),
+            row["metadata_regime"].as_str().unwrap_or(""),
+            row["metadata_target"].as_str().unwrap_or(""),
+            row["payload_damage"].as_str().unwrap_or(""),
+            row["recovery_class"].as_str().unwrap_or(""),
+            row["metadata_recovery_gain"].as_str().unwrap_or(""),
+        ));
+    }
+    md.push_str("\n## Recovery class distribution\n\n");
+    for (k, v) in summary["recovery_class_distribution"]
+        .as_object()
+        .into_iter()
+        .flatten()
+    {
+        md.push_str(&format!("- {}: {}\n", k, v.as_u64().unwrap_or(0)));
+    }
+    md.push_str("\n## Metadata survival statistics\n\n");
+    for (k, v) in summary["metadata_survival_statistics"]
+        .as_object()
+        .into_iter()
+        .flatten()
+    {
+        md.push_str(&format!("- {}: {}\n", k, v.as_u64().unwrap_or(0)));
+    }
+    md.push_str("\n## Recovery gain attributable to metadata\n\n");
+    for (k, v) in summary["metadata_recovery_gain_distribution"]
+        .as_object()
+        .into_iter()
+        .flatten()
+    {
+        md.push_str(&format!("- {}: {}\n", k, v.as_u64().unwrap_or(0)));
+    }
+    md.push_str("\n## Strategy comparison\n\n");
+    for (k, v) in summary["strategy_comparison"]
+        .as_object()
+        .into_iter()
+        .flatten()
+    {
+        md.push_str(&format!(
+            "- {}: scenarios={}\n",
+            k,
+            v["scenario_count"].as_u64().unwrap_or(0)
+        ));
+    }
+
+    fs::write(comparison_dir.join("format09_comparison_summary.md"), md)?;
+
+    let _ = fs::remove_dir_all(&temp);
+    Ok(())
+}

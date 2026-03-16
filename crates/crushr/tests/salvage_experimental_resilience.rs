@@ -497,3 +497,61 @@ fn format07_comparison_command_still_dispatches_after_format08() {
     assert!(out_dir.join("format07_comparison_summary.json").exists());
     assert!(out_dir.join("format07_comparison_summary.md").exists());
 }
+
+#[test]
+fn format09_comparison_command_reports_required_fields() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format09");
+
+    run(Command::new(lab_bin)
+        .arg("run-format09-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format09_comparison_summary.json");
+    assert!(summary_path.exists());
+    assert!(out_dir.join("format09_comparison_summary.md").exists());
+
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    assert!(summary["scenario_count"].as_u64().unwrap_or(0) >= 24);
+    assert!(summary["metadata_survival_statistics"].is_object());
+    assert!(summary["metadata_recovery_gain_distribution"].is_object());
+
+    let rows = summary["per_scenario_rows"].as_array().unwrap();
+    assert!(!rows.is_empty());
+    let first = &rows[0];
+    assert!(first["strategy"].is_string());
+    assert!(first["scenario_id"].is_string());
+    assert!(first["metadata_regime"].is_string());
+    assert!(first["metadata_target"].is_string());
+    assert!(first["payload_damage"].is_string());
+    assert!(first["named_recovery"].is_boolean());
+    assert!(first["anonymous_full_recovery"].is_boolean());
+    assert!(first["partial_ordered_recovery"].is_boolean());
+    assert!(first["partial_unordered_recovery"].is_boolean());
+    assert!(first["orphan_evidence"].is_boolean());
+    assert!(first["manifest_checkpoint_survival_count"].is_u64());
+    assert!(first["path_checkpoint_survival_count"].is_u64());
+    assert!(first["verified_metadata_node_count"].is_u64());
+    assert!(first["metadata_recovery_gain"].is_string());
+}
+
+#[test]
+fn format09_comparison_command_is_not_treated_as_input_path() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let out = Command::new(lab_bin)
+        .arg("placeholder-input")
+        .arg("run-format09-comparison")
+        .arg("--output")
+        .arg("/tmp/nowhere")
+        .output()
+        .expect("run misplaced command");
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("unexpected argument")
+            || stderr.contains("unsupported argument")
+            || stderr.contains("usage:")
+    );
+}
