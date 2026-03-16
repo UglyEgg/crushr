@@ -528,3 +528,20 @@ Blast radius:
 - Blast radius:
   - Backlog/roadmap/status documents now represent dictionaries as a post-stabilization optimization track.
   - No change to the current canonical v1 contract or experimental recovery packets.
+
+
+## 2026-03-16 — CRUSHR-FORMAT-10 metadata pruning profile surface
+
+- Decision:
+  - Add explicit experimental packer profile surface `--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental>`.
+  - Keep default behavior unchanged unless profile is explicitly selected.
+  - Add `run-format10-pruning-comparison` as the bounded four-arm recovery/size audit command.
+- Alternatives:
+  1. Reuse old boolean flags only and infer pruning variants in lab code.
+  2. Add more than four profiles in the same packet.
+- Rationale:
+  - Explicit profile names make experiments reproducible and keep packet scope bounded to evidence-driven pruning.
+  - Single switch avoids ambiguous flag combinations and supports deterministic reporting.
+- Blast radius:
+  - Experimental writer/lab interfaces only; canonical extraction semantics are unchanged.
+  - Existing format09 and earlier commands continue to run without behavior changes.

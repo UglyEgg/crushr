@@ -5,7 +5,10 @@
 - **CRUSHR-FORMAT-07 is complete**: salvage now reasons over verified relationships (`block -> extent -> manifest -> path`) and emits explicit recovery classes.
 - **CRUSHR-FORMAT-08 is complete**: experimental metadata placement strategies now exist (`fixed_spread`, `hash_spread`, `golden_spread`) and the bounded placement comparison command is wired and covered.
 - **CRUSHR-FORMAT-09 is complete**: `run-format09-comparison` is now wired and emits survivability/gain evidence across metadata regimes, metadata targets, payload topologies, and placement strategies.
-- **CRUSHR-FORMAT-10 is next**: use FORMAT-09 evidence to decide metadata pruning/demotion/retention and potential redesign scope.
+- **CRUSHR-FORMAT-10 is complete**: pruning variants and comparison harness are wired.
+- `crushr-pack` now supports `--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental>` (opt-in).
+- `crushr-lab-salvage run-format10-pruning-comparison --output <dir>` emits `format10_comparison_summary.{json,md}` with recovery + archive-size metrics.
+- Next step is decisioning (FORMAT-11), not additional metadata expansion.
 
 ## Important behavior locks
 

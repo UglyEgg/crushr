@@ -33,7 +33,7 @@ Non-negotiable baseline:
 - Phase 2 execution matrix: complete and frozen.
 - Phase 2 normalization: complete and frozen.
 - Phase 2 comparison/ranking analysis: complete and frozen.
-- Current experimental direction after FORMAT-08: payload identity + file truth + graph reasoning are in place; the next packet is **CRUSHR-FORMAT-09**, which increases evaluation pressure via a curated corruption grid rather than changing the format again.
+- Current experimental direction after FORMAT-10: payload identity remains the primary recovery truth, and metadata layers are now under explicit pruning evaluation. FORMAT-10 adds a bounded four-variant comparison (`full_current_experimental`, `payload_only`, `payload_plus_manifest`, `payload_plus_path`) to test recovery impact vs archive-size overhead.
 
 Canonical Phase 2 workspace root remains `PHASE2_RESEARCH/`.
 
@@ -70,13 +70,11 @@ Recovery should degrade in reverse order:
   - `hash_spread`
   - `golden_spread`
 
-### FORMAT-09 next-step boundary
+### FORMAT-09 / FORMAT-10 active boundary
 
-- FORMAT-09 is an evaluation-harness packet, not a format-layout packet.
-- Purpose:
-  - apply a richer corruption grid
-  - stress truth-layer survivability and downgrade behavior
-  - determine whether weak duplicated metadata surfaces are actually worth their archive-size overhead
+- FORMAT-09 established metadata survivability evidence and showed near-zero verified checkpoint survival in the bounded matrix.
+- FORMAT-10 is a pruning experiment, not a canonical format change.
+- FORMAT-10 compares four metadata profiles and records both recovery outcomes and size overhead (`format10_comparison_summary.{json,md}`).
 - It must not weaken `crushr-extract` or redefine canonical extraction semantics.
 
 ## Near-term product-completeness track (planned, not active yet)
@@ -104,7 +102,7 @@ Dictionary work must obey the same integrity-first rules:
 
 ## Deferred-not-active research directions
 
-These remain explicitly deferred until FORMAT-09 evidence exists:
+These remain explicitly deferred until FORMAT-10 pruning evidence is reviewed and accepted:
 
 - deciding which duplicated metadata surfaces should be removed
 - larger placement-strategy bakeoffs beyond the three current strategy names

@@ -11,7 +11,7 @@ use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
 
 const ZSTD_CODEC: u32 = 1;
-const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--placement-strategy <fixed_spread|hash_spread|golden_spread>]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  -h, --help                                 print this help text";
+const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  -h, --help                                 print this help text";
 
 #[derive(Clone, Copy, Debug)]
 enum PlacementStrategy {
@@ -26,7 +26,16 @@ struct PackExperimentalOptions {
     file_identity_extents: bool,
     self_identifying_blocks: bool,
     file_manifest_checkpoints: bool,
+    metadata_profile: Option<MetadataProfile>,
     placement_strategy: Option<PlacementStrategy>,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum MetadataProfile {
+    PayloadOnly,
+    PayloadPlusManifest,
+    PayloadPlusPath,
+    FullCurrentExperimental,
 }
 
 impl PlacementStrategy {
@@ -45,6 +54,38 @@ impl PlacementStrategy {
             Self::Hash => "hash_spread",
             Self::Golden => "golden_spread",
         }
+    }
+}
+
+impl MetadataProfile {
+    fn parse(value: &str) -> Result<Self> {
+        match value {
+            "payload_only" => Ok(Self::PayloadOnly),
+            "payload_plus_manifest" => Ok(Self::PayloadPlusManifest),
+            "payload_plus_path" => Ok(Self::PayloadPlusPath),
+            "full_current_experimental" => Ok(Self::FullCurrentExperimental),
+            _ => bail!("unsupported metadata profile: {value}"),
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::PayloadOnly => "payload_only",
+            Self::PayloadPlusManifest => "payload_plus_manifest",
+            Self::PayloadPlusPath => "payload_plus_path",
+            Self::FullCurrentExperimental => "full_current_experimental",
+        }
+    }
+
+    fn emit_path_checkpoints(self) -> bool {
+        matches!(self, Self::PayloadPlusPath | Self::FullCurrentExperimental)
+    }
+
+    fn emit_manifest_checkpoints(self) -> bool {
+        matches!(
+            self,
+            Self::PayloadPlusManifest | Self::FullCurrentExperimental
+        )
     }
 }
 
@@ -93,6 +134,7 @@ fn run() -> Result<()> {
     let mut experimental_file_identity_extents = false;
     let mut experimental_self_identifying_blocks = false;
     let mut experimental_file_manifest_checkpoints = false;
+    let mut metadata_profile = None;
     let mut placement_strategy = None;
 
     let mut args = std::env::args().skip(1);
@@ -117,6 +159,8 @@ fn run() -> Result<()> {
             experimental_self_identifying_blocks = true;
         } else if arg == "--experimental-file-manifest-checkpoints" {
             experimental_file_manifest_checkpoints = true;
+        } else if arg == "--metadata-profile" {
+            metadata_profile = Some(MetadataProfile::parse(&args.next().context(USAGE)?)?);
         } else if arg == "--placement-strategy" {
             placement_strategy = Some(PlacementStrategy::parse(&args.next().context(USAGE)?)?);
         } else if arg.starts_with('-') {
@@ -130,10 +174,22 @@ fn run() -> Result<()> {
     if inputs.is_empty() {
         bail!(USAGE);
     }
-    if placement_strategy.is_some()
-        && !experimental_self_identifying_blocks
-        && !experimental_file_manifest_checkpoints
+    if metadata_profile.is_some()
+        && (experimental_self_identifying_blocks || experimental_file_manifest_checkpoints)
     {
+        bail!(
+            "--metadata-profile cannot be combined with --experimental-self-identifying-blocks or --experimental-file-manifest-checkpoints"
+        );
+    }
+
+    let emit_path_checkpoints = metadata_profile
+        .map(MetadataProfile::emit_path_checkpoints)
+        .unwrap_or(experimental_self_identifying_blocks);
+    let emit_manifest_checkpoints = metadata_profile
+        .map(MetadataProfile::emit_manifest_checkpoints)
+        .unwrap_or(experimental_file_manifest_checkpoints);
+
+    if placement_strategy.is_some() && !emit_path_checkpoints && !emit_manifest_checkpoints {
         bail!(
             "--placement-strategy requires --experimental-self-identifying-blocks and/or --experimental-file-manifest-checkpoints"
         );
@@ -148,6 +204,7 @@ fn run() -> Result<()> {
             file_identity_extents: experimental_file_identity_extents,
             self_identifying_blocks: experimental_self_identifying_blocks,
             file_manifest_checkpoints: experimental_file_manifest_checkpoints,
+            metadata_profile,
             placement_strategy,
         },
     )
@@ -180,7 +237,18 @@ fn pack_minimal_v1(
     } else {
         None
     };
-    let payload_identity_archive_id = if options.self_identifying_blocks {
+    let emit_payload_identity =
+        options.self_identifying_blocks || options.metadata_profile.is_some();
+    let emit_path_checkpoints = options
+        .metadata_profile
+        .map(MetadataProfile::emit_path_checkpoints)
+        .unwrap_or(options.self_identifying_blocks);
+    let emit_manifest_checkpoints = options
+        .metadata_profile
+        .map(MetadataProfile::emit_manifest_checkpoints)
+        .unwrap_or(options.file_manifest_checkpoints);
+
+    let payload_identity_archive_id = if emit_payload_identity {
         Some(compute_file_identity_archive_id(&files))
     } else {
         None
@@ -190,14 +258,14 @@ fn pack_minimal_v1(
     let placement_seed = compute_file_identity_archive_id(&files);
     let path_checkpoint_ordinals = options
         .placement_strategy
-        .filter(|_| options.self_identifying_blocks)
+        .filter(|_| emit_path_checkpoints)
         .map(|strategy| {
             scheduled_metadata_ordinals(strategy, "path_checkpoint", total_files, &placement_seed)
         })
         .unwrap_or_default();
     let manifest_checkpoint_ordinals = options
         .placement_strategy
-        .filter(|_| options.file_manifest_checkpoints)
+        .filter(|_| emit_manifest_checkpoints)
         .map(|strategy| {
             scheduled_metadata_ordinals(
                 strategy,
@@ -327,7 +395,7 @@ fn pack_minimal_v1(
             }
         }
 
-        if options.self_identifying_blocks {
+        if emit_payload_identity {
             let archive_identity = payload_identity_archive_id.clone();
             let path = file.rel_path.clone();
             let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
@@ -352,31 +420,33 @@ fn pack_minimal_v1(
             payload_block_identity_records.push(payload_record.clone());
             write_experimental_metadata_block(&mut out, &payload_record, level)?;
 
-            path_checkpoint_entries.push(json!({
-                "file_id": block_id,
-                "path": path,
-                "path_digest_blake3": to_hex(&path_digest),
-                "full_file_size": raw.len() as u64,
-                "total_block_count": 1,
-            }));
+            if emit_path_checkpoints {
+                path_checkpoint_entries.push(json!({
+                    "file_id": block_id,
+                    "path": path,
+                    "path_digest_blake3": to_hex(&path_digest),
+                    "full_file_size": raw.len() as u64,
+                    "total_block_count": 1,
+                }));
 
-            if should_emit_anchor(ordinal, total_files)
-                || path_checkpoint_ordinals.contains(&ordinal)
-            {
-                write_experimental_metadata_block(
-                    &mut out,
-                    &json!({
-                        "schema": "crushr-path-checkpoint.v1",
-                        "checkpoint_ordinal": ordinal as u64,
-                        "placement_strategy": options.placement_strategy.map(|s| s.as_str()),
-                        "entries": path_checkpoint_entries,
-                    }),
-                    level,
-                )?;
+                if should_emit_anchor(ordinal, total_files)
+                    || path_checkpoint_ordinals.contains(&ordinal)
+                {
+                    write_experimental_metadata_block(
+                        &mut out,
+                        &json!({
+                            "schema": "crushr-path-checkpoint.v1",
+                            "checkpoint_ordinal": ordinal as u64,
+                            "placement_strategy": options.placement_strategy.map(|s| s.as_str()),
+                            "entries": path_checkpoint_entries,
+                        }),
+                        level,
+                    )?;
+                }
             }
         }
 
-        if options.file_manifest_checkpoints {
+        if emit_manifest_checkpoints {
             let file_digest = to_hex(blake3::hash(&raw).as_bytes());
             let manifest_record = json!({
                 "schema": "crushr-file-manifest.v1",
@@ -459,7 +529,7 @@ fn pack_minimal_v1(
         )?;
     }
 
-    if options.self_identifying_blocks {
+    if emit_path_checkpoints {
         write_experimental_metadata_block(
             &mut out,
             &json!({
@@ -470,6 +540,9 @@ fn pack_minimal_v1(
             }),
             level,
         )?;
+    }
+
+    if emit_payload_identity {
         write_experimental_metadata_block(
             &mut out,
             &json!({
@@ -480,7 +553,7 @@ fn pack_minimal_v1(
         )?;
     }
 
-    if options.file_manifest_checkpoints {
+    if emit_manifest_checkpoints {
         write_experimental_metadata_block(
             &mut out,
             &json!({
@@ -498,11 +571,13 @@ fn pack_minimal_v1(
         entries: entries.clone(),
     });
     let redundant_file_map = json!({
-        "schema": if options.self_describing_extents || options.file_identity_extents || options.self_identifying_blocks || options.file_manifest_checkpoints { "crushr-redundant-file-map.experimental.v2" } else { "crushr-redundant-file-map.v1" },
+        "schema": if options.self_describing_extents || options.file_identity_extents || emit_payload_identity || emit_path_checkpoints || emit_manifest_checkpoints { "crushr-redundant-file-map.experimental.v2" } else { "crushr-redundant-file-map.v1" },
         "experimental_self_describing_extents": options.self_describing_extents,
         "experimental_file_identity_extents": options.file_identity_extents,
-        "experimental_self_identifying_blocks": options.self_identifying_blocks,
-        "experimental_file_manifest_checkpoints": options.file_manifest_checkpoints,
+        "experimental_self_identifying_blocks": emit_payload_identity,
+        "experimental_path_checkpoints": emit_path_checkpoints,
+        "experimental_file_manifest_checkpoints": emit_manifest_checkpoints,
+        "experimental_metadata_profile": options.metadata_profile.map(|profile| profile.as_str()),
         "metadata_placement_strategy": options.placement_strategy.map(|s| s.as_str()),
         "files": entries
             .iter()

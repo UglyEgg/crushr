@@ -56,7 +56,8 @@
   - test named -> anonymous and ordered -> unordered downgrade behavior
   - measure whether weak duplicated metadata surfaces should be retained or pruned
   - keep the packet format-neutral: evaluation harness/reporting only
-- [ ] 3.21 CRUSHR-FORMAT-10 (metadata pruning/redesign decision packet informed by FORMAT-09 evidence)
+- [x] 3.21 CRUSHR-FORMAT-10 (metadata pruning experiment + four-variant recovery/size comparison harness)
+- [ ] 3.22 CRUSHR-FORMAT-11 (metadata keep/prune decision lock from FORMAT-10 evidence)
 
 ## Security scrub track
 
