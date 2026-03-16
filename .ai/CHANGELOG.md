@@ -543,3 +543,8 @@
 - Added tests for format11 command dispatch/reporting, format10 non-regression, and payload-identity grouping/ordered-partial behavior.
 
 - 2026-03-16: Completed CRUSHR-FORMAT-12. Added `extent_identity_inline_path`, `extent_identity_distributed_names`, salvage inline-path verification fallback behavior, `run-format12-inline-path-comparison`, and generated `FORMAT12_RESULTS/format12_comparison_summary.{json,md}`.
+
+## 2026-03-16 — CRUSHR-FORMAT-12-STRESS
+- Added `run-format12-stress-comparison` command to `crushr-lab-salvage`.
+- Added deterministic stress datasets (`deep_paths`, `long_names`, `fragmentation_heavy`, `mixed_worst_case`) and generated stress summary outputs with overhead/path/extent metrics and evaluation answers.
+- Added regression tests for CLI/help wiring and stress summary schema fields.

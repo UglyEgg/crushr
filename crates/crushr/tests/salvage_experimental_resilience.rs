@@ -718,3 +718,60 @@ fn format10_comparison_command_still_dispatches_after_format11() {
     assert!(out_dir.join("format10_comparison_summary.json").exists());
     assert!(out_dir.join("format10_comparison_summary.md").exists());
 }
+
+#[test]
+fn format12_stress_comparison_command_reports_required_fields() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format12-stress");
+
+    run(Command::new(lab_bin)
+        .arg("run-format12-stress-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format12_stress_summary.json");
+    assert!(summary_path.exists());
+    assert!(out_dir.join("format12_stress_summary.md").exists());
+
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    let variants = summary["variants"].as_array().unwrap();
+    assert!(variants.iter().any(|v| v == "payload_only"));
+    assert!(variants.iter().any(|v| v == "extent_identity_only"));
+    assert!(variants.iter().any(|v| v == "extent_identity_inline_path"));
+    assert!(variants.iter().any(|v| v == "payload_plus_manifest"));
+
+    let rows = summary["rows"].as_array().unwrap();
+    assert!(!rows.is_empty());
+    let first = &rows[0];
+    assert!(first["archive_byte_size"].is_u64());
+    assert!(first["overhead_vs_payload_only"].is_i64());
+    assert!(first["overhead_vs_extent_identity_only"].is_i64());
+    assert!(first["average_path_length"].is_f64());
+    assert!(first["total_extent_count"].is_u64());
+    assert!(first["extents_per_file_distribution"].is_object());
+    assert!(first["bytes_added_per_character_of_path"].is_f64());
+    assert!(first["bytes_added_per_extent"].is_f64());
+
+    assert!(summary["evaluation"]["inline_path_expansion_gt_20_percent_any_dataset"].is_boolean());
+    assert!(summary["evaluation"]["inline_smaller_than_manifest_all_datasets"].is_boolean());
+}
+
+#[test]
+fn format12_stress_comparison_command_is_not_treated_as_input_path() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let out = Command::new(lab_bin)
+        .arg("placeholder-input")
+        .arg("run-format12-stress-comparison")
+        .arg("--output")
+        .arg("/tmp/nowhere")
+        .output()
+        .expect("run misplaced command");
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("unexpected argument")
+            || stderr.contains("unsupported argument")
+            || stderr.contains("usage:")
+    );
+}
