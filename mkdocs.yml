@@ -52,5 +52,5 @@ markdown_extensions:
 
 nav:
   - Welcome: index.md
-  - Format Evolution: format-evolution.md
   - Testing Harness: testing-harness.md
+  - Format Evolution: format-evolution.md

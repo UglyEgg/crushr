@@ -1,0 +1,407 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-FORMAT-12
+
+Title
+Measure inline per-extent naming vs manifest naming for recovery gain and size cost
+
+Role
+BUILDER
+
+Objective
+Implement and compare a bounded experimental archive variant that embeds file naming information directly into each verified extent-identity record, then measure whether this restores materially better named recovery without the size blow-up of a centralized manifest-heavy design.
+
+This packet exists because FORMAT-11 proved two things:
+
+- distributed extent identity is extremely cheap
+- distributed extent identity alone does not materially restore named recovery
+
+The next specific hypothesis to test is:
+
+Can embedding `name` / `path` into each local extent-identity record recover most of the naming benefit currently provided by manifest-bearing variants, while staying materially smaller than `payload_plus_manifest` and `full_current_experimental`?
+
+This is an experiment.
+It must not silently change default archive behavior.
+
+---------------------------------------------------------------------
+
+Read first
+
+1. AGENTS.md
+2. AI_BOOTSTRAP.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. .ai/INDEX.md
+6. .ai/STATUS.md
+7. .ai/PHASE_PLAN.md
+8. .ai/DECISION_LOG.md
+9. .ai/HANDOFF.md
+10. docs/ARCHITECTURE.md
+11. docs/SNAPSHOT_FORMAT.md
+12. docs/format-evolution.md
+13. docs/testing-harness.md
+14. FORMAT-10 results
+15. FORMAT-11 results
+16. crates/crushr/src/bin/crushr-pack.rs
+17. crates/crushr/src/bin/crushr-salvage.rs
+18. crates/crushr/src/bin/crushr-lab-salvage.rs
+
+---------------------------------------------------------------------
+
+Context
+
+FORMAT-10 showed:
+
+- `payload_plus_manifest` preserved named recovery substantially better than stripped-down variants
+- `full_current_experimental` preserved similar headline recovery but at very high size overhead
+- path-only weak metadata did not justify itself as implemented there
+
+FORMAT-11 showed:
+
+- `extent_identity_only` stayed almost as small as `payload_only`
+- `extent_identity_only` did not materially improve named recovery relative to `payload_only`
+- manifest-bearing variants still dominated on named recovery
+
+The unresolved architectural question is now narrow and concrete:
+
+Is the one valuable thing the manifest is buying us primarily just localizable naming truth?
+
+If so, can we regain that value by distributing naming with each extent-identity record instead of paying for a larger centralized metadata layer?
+
+This packet should answer that with evidence, not taste.
+
+---------------------------------------------------------------------
+
+Hard constraints
+
+- Do NOT weaken strict extraction semantics.
+- Do NOT introduce speculative reconstruction.
+- Do NOT guess filenames, paths, offsets, or ordering.
+- Do NOT silently change default archive behavior.
+- Keep this packet experimental and bounded.
+- Deterministic behavior is required.
+- Recovery may only use verified payload and verified local/distributed identity records.
+- Do NOT let this packet drift into full Unix metadata preservation.
+- This packet is about file naming/path truth only, not mode/uid/gid/mtime/xattrs/symlink policy.
+
+---------------------------------------------------------------------
+
+Required implementation scope
+
+1) Add a new experimental variant: inline local naming
+
+Implement a new archive variant:
+
+extent_identity_inline_path
+
+This variant must extend the verified per-extent identity/header record so that each extent carries enough local information to support:
+
+- file grouping
+- extent ordering
+- completeness reasoning where feasible
+- integrity verification linkage
+- local file naming/path recovery without a separate global manifest dependency
+
+Required local identity fields (or equivalent):
+- file_id
+- extent_index
+- total_extent_count or equivalent completeness signal
+- payload_length or extent_length
+- digest / verification linkage
+- logical file name or basename
+- logical path or canonical archive path
+
+The path/name fields may be encoded in whatever bounded internal format is cleanest, but the behavior must be explicit and documented.
+
+The goal is to test the most direct version of the hypothesis:
+full local naming repeated per extent.
+
+---------------------------------------------------------------------
+
+2) Optional compact comparison arm
+
+If implementation is clean and bounded, also add:
+
+extent_identity_distributed_names
+
+This optional variant should avoid embedding the full path into every extent.
+Instead, it may use:
+
+- local per-extent identity for structure (`file_id`, ordering, verification linkage)
+- a smaller distributed file-id -> path/name record repeated at controlled intervals or attached only to selected extents
+
+This arm is OPTIONAL.
+Do not add it if doing so endangers the required packet scope.
+
+Required new variant:
+- extent_identity_inline_path
+
+Optional new variant:
+- extent_identity_distributed_names
+
+---------------------------------------------------------------------
+
+3) Salvage support
+
+Extend salvage to recognize and use the new naming-bearing local identity records.
+
+Required salvage behavior for `extent_identity_inline_path`:
+- group extents by file_id
+- order grouped extents by extent_index
+- recover named files when verified local naming survives
+- recover anonymous files when structure survives but local naming does not
+- classify partial ordered recovery when some extents are missing but ordering survives
+- maintain existing strict verification rules
+
+Important:
+- named recovery may only occur when the path/name data used is verified and actually present
+- anonymous recovery remains valid fallback behavior
+- no guessed names
+- no guessed path reconstruction
+- no guessed missing extents
+
+This packet specifically tests whether distributed naming can replace manifest-driven naming for the bounded salvage experiment.
+
+---------------------------------------------------------------------
+
+4) Comparison workflow
+
+Add a new comparison command:
+
+run-format12-inline-path-comparison
+
+Required comparison arms:
+
+- payload_only
+- extent_identity_only
+- payload_plus_manifest
+- full_current_experimental
+- extent_identity_inline_path
+
+Optional:
+- extent_identity_distributed_names
+
+Required outputs:
+
+- format12_comparison_summary.json
+- format12_comparison_summary.md
+
+Required metrics per arm:
+
+Recovery metrics
+- named recovery count
+- anonymous full recovery count
+- partial ordered recovery count
+- partial unordered recovery count
+- orphan evidence count
+- no verified evidence count
+
+Size metrics
+- archive_byte_size
+- overhead_delta_vs_payload_only
+- overhead_delta_vs_extent_identity_only
+- overhead_delta_vs_payload_plus_manifest
+- recovery_per_kib_overhead for named recovery delta (or equivalent clearly documented efficiency metric)
+
+Grouped analysis
+- grouped breakdown by corruption target
+- grouped breakdown by dataset
+- grouped breakdown by path-length bucket if practical within the bounded corpus
+- direct named-recovery delta vs `payload_plus_manifest`
+- direct named-recovery delta vs `extent_identity_only`
+
+Key question:
+
+Does `extent_identity_inline_path` buy enough named recovery to justify its duplication cost, and is that cost materially lower than manifest-heavy designs?
+
+---------------------------------------------------------------------
+
+5) Targeted bounded corpus
+
+Use a bounded targeted corpus.
+Do NOT expand into another broad matrix.
+
+Required datasets:
+- smallfiles
+- mixed
+- largefiles
+
+Required corruption coverage:
+- header damage
+- index damage
+- payload damage
+- tail damage
+
+Required additional corpus characteristic:
+- include at least one dataset slice with short paths and one with longer/nested paths so repeated path duplication cost is visible
+- if existing fixtures do not surface this cleanly, add the minimum bounded fixture expansion necessary
+
+Target size:
+- roughly 24 to 48 scenarios per required variant
+- keep deterministic and storage-conscious
+
+This packet is about naming-value vs duplication cost, not exhaustive grid expansion.
+
+---------------------------------------------------------------------
+
+6) Size-discipline requirement
+
+Because crushr is still a compression format, size overhead is a first-class evaluation dimension even when not the only goal.
+
+The Markdown summary must include an explicit judgment section answering:
+
+- Is the new variant small enough to remain credible as a compression-oriented archive design?
+- Is its overhead closer to `extent_identity_only`, `payload_plus_manifest`, or `full_current_experimental`?
+- Does the named-recovery gain justify the byte cost?
+
+Do not bury this in raw tables.
+State it plainly.
+
+---------------------------------------------------------------------
+
+7) CLI INTEGRATION REQUIREMENT (CRITICAL)
+
+The new comparison command MUST be wired into the CLI and proven callable.
+
+Required integration points:
+- CLI command enum / parser registration
+- dispatch match arm
+- runtime invocation must work exactly as documented
+
+Before submission Builder must run:
+
+cargo run -p crushr --bin crushr-lab-salvage -- \
+  run-format12-inline-path-comparison --help
+
+and
+
+cargo run -p crushr --bin crushr-lab-salvage -- \
+  run-format12-inline-path-comparison --output "$(mktemp -d)"
+
+If the command is not recognized, the packet is incomplete.
+
+---------------------------------------------------------------------
+
+8) Tests
+
+Add focused tests covering at minimum:
+
+8.1 local naming identity generation
+- `extent_identity_inline_path` archives are generated deterministically
+- local identity records contain required structure and naming fields
+- encoding/decoding of name/path fields is deterministic
+
+8.2 salvage named recovery from local identity
+- salvage can recover a verified name/path from surviving local identity
+- salvage falls back to anonymous recovery when naming is absent/corrupt but structure survives
+
+8.3 grouping and ordering
+- salvage can still group extents by file_id
+- salvage can still order by extent_index
+- missing extents still yield partial ordered classification when appropriate
+
+8.4 comparison workflow correctness
+- `run-format12-inline-path-comparison` produces required JSON and Markdown outputs
+- required variant names appear in output
+
+8.5 archive size reporting
+- size metrics are present and deterministic
+- overhead deltas are correct relative to baselines
+
+8.6 path duplication visibility
+- at least one test demonstrates that repeated long paths measurably increase archive size relative to `extent_identity_only`
+
+8.7 CLI dispatch regression
+- `run-format12-inline-path-comparison` is recognized and not treated as an input path
+
+---------------------------------------------------------------------
+
+9) Documentation updates
+
+Update the minimum required docs so a fresh planner/reviewer can understand the result without archaeology:
+
+- `.ai/STATUS.md`
+- `.ai/PHASE_PLAN.md`
+- `.ai/DECISION_LOG.md` if any architectural decision is locked
+- `.ai/HANDOFF.md`
+- `PROJECT_STATE.md`
+- `docs/ARCHITECTURE.md`
+- `docs/SNAPSHOT_FORMAT.md`
+- brief note in `docs/format-evolution.md`
+
+Important:
+Do NOT prematurely lock keep/prune policy in this packet unless the results are overwhelmingly clear.
+This packet is evidence generation first.
+
+---------------------------------------------------------------------
+
+10) Non-goals
+
+This packet must NOT:
+
+- redesign canonical extraction
+- integrate salvage behavior into `crushr-extract`
+- add full Unix metadata preservation
+- solve deduplication
+- solve random access
+- redesign dictionary strategy
+- perform broad placement-strategy bakeoffs
+- silently replace manifest-bearing variants as the new default
+
+---------------------------------------------------------------------
+
+Required deliverables
+
+Code / behavior
+- experimental `extent_identity_inline_path` variant
+- salvage support for verified local naming recovery
+- CLI-registered `run-format12-inline-path-comparison`
+
+Artifacts
+- `format12_comparison_summary.json`
+- `format12_comparison_summary.md`
+
+Docs
+- minimum continuity/doc updates listed above
+
+Evidence quality
+- deterministic bounded corpus
+- clear named-recovery vs size-overhead judgment
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+This packet is acceptable only if all of the following are true:
+
+1. The new comparison command exists, is CLI-registered, and is runnable exactly as documented.
+2. `extent_identity_inline_path` is implemented and compared against the required control arms.
+3. The summary artifacts clearly report both recovery outcomes and size costs.
+4. The packet makes it possible to answer, with evidence, whether inline per-extent naming is a viable alternative to manifest-heavy naming.
+5. No strict extraction semantics changed.
+6. The packet remains bounded to naming/path truth rather than drifting into a broader metadata envelope.
+
+---------------------------------------------------------------------
+
+Submission notes for Builder
+
+When submitting, include:
+
+- the patch/diff
+- the exact commands run
+- the generated `format12_comparison_summary.json`
+- the generated `format12_comparison_summary.md`
+- a one-paragraph plain-English conclusion:
+  - did inline local naming buy meaningful named recovery?
+  - how expensive was it?
+  - is it still credible for a compression-oriented archive format?
+
+---------------------------------------------------------------------
+
+Planner note
+
+If `extent_identity_inline_path` materially improves named recovery but approaches manifest-heavy size overhead, the likely next step is not immediate adoption.
+The likely next step is a narrower compact naming experiment (`extent_identity_distributed_names`) or a keep/demote/prune decision packet.
+
+If it materially improves named recovery while staying much smaller than `payload_plus_manifest`, then FORMAT-13 should lock it as an active retained surface candidate.
