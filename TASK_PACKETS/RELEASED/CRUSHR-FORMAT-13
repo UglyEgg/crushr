@@ -1,0 +1,402 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-FORMAT-13
+
+Title
+Evaluate dictionary-encoded path identity with deterministic mirror placement
+
+Role
+BUILDER
+
+Objective
+Implement and compare dictionary-encoded path identity variants that replace repeated inline path strings with compact path references plus deterministically placed dictionary copies, then measure whether they preserve FORMAT-12 named recovery while materially reducing stress-case size overhead.
+
+This packet exists because:
+
+- FORMAT-12 proved that `extent_identity_inline_path` restores named recovery at far lower cost than manifest-heavy designs
+- FORMAT-12-STRESS proved that inline naming remains viable, but repeated path strings still impose measurable per-extent cost
+- the next bounded hypothesis is that a compact path dictionary plus deterministic mirror placement can preserve the recovery benefit while reducing size overhead further
+
+This packet is an evidence packet, not a final canonical lock unless results are overwhelmingly clear.
+
+---------------------------------------------------------------------
+
+Read first
+
+1. AGENTS.md
+2. AI_BOOTSTRAP.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. .ai/INDEX.md
+6. .ai/STATUS.md
+7. .ai/PHASE_PLAN.md
+8. .ai/DECISION_LOG.md
+9. .ai/HANDOFF.md
+10. docs/ARCHITECTURE.md
+11. docs/SNAPSHOT_FORMAT.md
+12. docs/format-evolution.md
+13. docs/testing-harness.md
+14. FORMAT-12 comparison summaries
+15. FORMAT-12-STRESS comparison summaries
+16. existing lab comparison command implementations
+17. existing archive variant implementation for `extent_identity_inline_path`
+
+---------------------------------------------------------------------
+
+Context
+
+Current result state:
+
+- `extent_identity_only` is now a legacy research variant
+- `extent_identity_inline_path` is the leading identity-layer candidate
+- manifest-bearing variants are structurally inferior on size
+- remaining inefficiency comes from repeating full path strings in every extent identity record
+
+FORMAT-12-STRESS showed:
+- named recovery parity remained intact under adversarial path/fragmentation pressure
+- inline path duplication still cost ~142 bytes per extent in the stress corpus
+- inline path remained far smaller than manifest-bearing designs, but there is a plausible further optimization
+
+This packet tests whether compact path references plus small mirrored dictionaries can preserve the same recovery behavior at lower byte cost.
+
+---------------------------------------------------------------------
+
+Hard constraints
+
+- Do NOT weaken strict extraction semantics.
+- Do NOT introduce guessed names or guessed paths.
+- Do NOT broaden into Unix metadata preservation.
+- Do NOT redesign the corruption harness.
+- Keep the experiment bounded to path/name identity encoding and dictionary placement.
+- Deterministic layout is required.
+- Recovery may only use verified extent identity and verified dictionary records that actually survive.
+- Anonymous recovery fallback must remain valid when dictionary records are lost.
+
+---------------------------------------------------------------------
+
+Required implementation scope
+
+1) Add dictionary-encoded path identity variants
+
+Implement a compact path-reference identity design where extents store a path reference instead of the full path string.
+
+Required core variant family:
+
+A. extent_identity_path_dict_single
+- one primary dictionary region only
+- written near the archive header
+
+B. extent_identity_path_dict_header_tail
+- one primary dictionary near header
+- one mirrored full dictionary near tail
+
+C. extent_identity_path_dict_quasi_uniform
+- one primary dictionary near header
+- one mirrored dictionary near tail
+- additional mirrored full dictionaries placed deterministically through the archive body using quasi-uniform spacing
+
+Do NOT skip any of the above three variants.
+
+Optional fourth comparison arm if implementation is clean:
+D. extent_identity_path_dict_seeded
+- deterministic pseudo-random placement from a fixed seed with spacing constraints
+
+This fourth arm is optional.
+Only include it if it does not endanger completion of A/B/C.
+
+---------------------------------------------------------------------
+
+2) Required dictionary format behavior
+
+Each dictionary entry must bind:
+
+- path_id
+- canonical archive path string
+
+Each extent identity record must bind at minimum:
+
+- file_id
+- extent_index
+- total_extent_count or equivalent completeness signal
+- digest / verification linkage
+- path_id
+
+The dictionary format must be explicitly documented.
+
+Path IDs must be deterministic for a given archive input ordering.
+Builder may use any bounded deterministic assignment strategy, but it must be stable and testable.
+
+---------------------------------------------------------------------
+
+3) Required mirror placement policy for quasi-uniform variant
+
+For `extent_identity_path_dict_quasi_uniform`, additional interior mirror positions must be distributed deterministically across usable archive body space.
+
+Required properties:
+- deterministic
+- non-clustered
+- not naive fixed-interval placement
+- not dependent on runtime nondeterminism
+
+Recommended implementation direction:
+- golden-ratio / irrational-spacing style placement
+or
+- equivalent deterministic low-clumping quasi-uniform sequence
+
+Required behavior:
+- enforce a minimum spacing constraint between mirror placements
+- avoid placing all mirrors too near the header or tail
+- document the placement rule in brief
+
+The exact formula is Builder’s choice, but it must satisfy the above properties.
+
+---------------------------------------------------------------------
+
+4) Salvage behavior
+
+Extend salvage to support dictionary-based naming recovery.
+
+Required behavior:
+- extents group and order by file identity as before
+- named recovery succeeds only when:
+  - the extent identity survives
+  - a verified dictionary copy survives
+  - the path_id resolves successfully
+- anonymous recovery remains valid fallback when dictionary copies are unavailable
+- no guessed path reconstruction
+- no guessed dictionary reconstruction
+- no speculative merge across inconsistent dictionary copies
+
+If multiple dictionary copies survive and disagree, fail closed for naming and fall back to anonymous recovery unless one copy is provably authoritative by verification rules.
+
+---------------------------------------------------------------------
+
+5) Required comparison sets
+
+Run comparisons on both:
+
+A. FORMAT-12 baseline corpus
+B. FORMAT-12-STRESS corpus
+
+Required comparison variants in both runs:
+
+- payload_only
+- extent_identity_inline_path
+- extent_identity_path_dict_single
+- extent_identity_path_dict_header_tail
+- extent_identity_path_dict_quasi_uniform
+- payload_plus_manifest
+
+Optional:
+- extent_identity_path_dict_seeded
+
+Do NOT include `extent_identity_only` except as a historical baseline if needed for metrics continuity.
+It is now a legacy research variant and should not be treated as an active leading candidate.
+
+---------------------------------------------------------------------
+
+6) Required commands
+
+Add CLI-registered commands:
+
+run-format13-comparison
+run-format13-stress-comparison
+
+Behavior:
+- build the required corpus/corpora
+- generate the required archive variants
+- run deterministic corruption scenarios
+- aggregate metrics
+- write summary artifacts
+
+Required verification commands before submission:
+
+cargo run -p crushr --bin crushr-lab-salvage -- \
+  run-format13-comparison --help
+
+cargo run -p crushr --bin crushr-lab-salvage -- \
+  run-format13-comparison --output "$(mktemp -d)"
+
+cargo run -p crushr --bin crushr-lab-salvage -- \
+  run-format13-stress-comparison --help
+
+cargo run -p crushr --bin crushr-lab-salvage -- \
+  run-format13-stress-comparison --output "$(mktemp -d)"
+
+If the commands are not recognized or the required outputs are not produced, the packet is incomplete.
+
+---------------------------------------------------------------------
+
+7) Required outputs
+
+Baseline run artifacts:
+- format13_comparison_summary.json
+- format13_comparison_summary.md
+
+Stress run artifacts:
+- format13_stress_comparison_summary.json
+- format13_stress_comparison_summary.md
+
+These artifacts must be saved and included in submission.
+
+---------------------------------------------------------------------
+
+8) Required metrics
+
+Per variant:
+- scenario_count
+- archive_byte_size
+- overhead_delta_vs_payload_only
+- overhead_delta_vs_extent_identity_inline_path
+- overhead_delta_vs_payload_plus_manifest
+- named_recovery_count
+- anonymous_full_recovery_count
+- partial_ordered_recovery_count
+- partial_unordered_recovery_count
+- orphan_evidence_count
+- no_verified_evidence_count
+- recovery_per_kib_overhead or equivalent documented efficiency metric
+
+Dictionary-specific required metrics:
+- dictionary_entry_count
+- dictionary_total_bytes
+- number_of_dictionary_copies
+- average_dictionary_copy_size
+- bytes_added_per_extent_vs_inline_path
+- bytes_added_per_path_character_vs_inline_path
+- successful_named_recovery_with_header_loss
+- successful_named_recovery_with_tail_loss
+- successful_named_recovery_with_index_loss
+
+Grouped breakdown required by:
+- corruption target
+- dataset
+- path-length bucket
+- extent-density bucket in stress run
+
+---------------------------------------------------------------------
+
+9) Required judgment section in Markdown summaries
+
+Each Markdown summary must explicitly answer:
+
+1. Does dictionary encoding reduce archive size relative to `extent_identity_inline_path`?
+2. Which placement strategy preserves named recovery best under header, index, and tail corruption?
+3. Is a single header dictionary too fragile?
+4. Is header+tail sufficient?
+5. Does quasi-uniform interior mirroring materially improve resilience?
+6. Which dictionary placement strategy is the best next-step candidate?
+7. Does the winning dictionary strategy surpass inline path strongly enough to justify replacing it as the lead candidate?
+
+Do not bury this in tables.
+State it plainly.
+
+---------------------------------------------------------------------
+
+10) Tests
+
+Add focused tests for at minimum:
+
+10.1 dictionary determinism
+- same input produces same path_id assignment and same dictionary bytes
+
+10.2 extent identity decoding
+- path_id decodes correctly through surviving dictionary copy
+
+10.3 single dictionary failure behavior
+- when only header dictionary exists and is destroyed, salvage falls back to anonymous recovery
+
+10.4 header+tail redundancy behavior
+- tail dictionary survives header loss and still enables named recovery
+
+10.5 quasi-uniform placement determinism
+- mirror placement is deterministic and respects spacing constraints
+
+10.6 conflict handling
+- inconsistent surviving dictionary copies do not produce guessed naming
+
+10.7 command output
+- required JSON and Markdown artifacts are written
+
+10.8 CLI dispatch
+- commands are registered and callable as documented
+
+---------------------------------------------------------------------
+
+11) Documentation updates
+
+Update the minimum continuity documents:
+
+- .ai/STATUS.md
+- .ai/PHASE_PLAN.md
+- .ai/HANDOFF.md
+- PROJECT_STATE.md
+- docs/ARCHITECTURE.md
+- docs/SNAPSHOT_FORMAT.md
+- docs/format-evolution.md
+
+Important:
+Do NOT claim the final winner is canonical unless the evidence is overwhelming.
+This packet is still comparative evidence generation.
+
+---------------------------------------------------------------------
+
+Non-goals
+
+This packet must NOT:
+- change extraction semantics
+- revisit full metadata envelope design
+- add probabilistic or guessed salvage
+- redesign compression behavior
+- introduce path compression codecs beyond dictionary indirection
+- broaden into a generic redundancy-placement framework beyond bounded dictionary mirror placement
+
+---------------------------------------------------------------------
+
+Required deliverables
+
+Code / behavior
+- dictionary-based archive variants A/B/C
+- salvage support for dictionary-based naming recovery
+- CLI-registered comparison commands
+
+Artifacts
+- format13_comparison_summary.json
+- format13_comparison_summary.md
+- format13_stress_comparison_summary.json
+- format13_stress_comparison_summary.md
+
+Docs
+- minimum continuity updates listed above
+
+Submission bundle
+- patch/diff
+- exact commands run
+- all four generated summary artifacts
+- short plain-English conclusion naming the best candidate and why
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+This packet is acceptable only if all of the following are true:
+
+1. Dictionary-based variants A/B/C are implemented and comparable.
+2. Both comparison commands exist, are CLI-registered, and runnable.
+3. Required summary artifacts are generated and saved.
+4. The results make it possible to compare:
+   - inline path duplication
+   - single dictionary placement
+   - header+tail dictionary placement
+   - quasi-uniform mirrored dictionary placement
+5. Recovery remains deterministic and fail-closed.
+6. The packet remains bounded to path identity encoding and dictionary placement strategy.
+
+---------------------------------------------------------------------
+
+Submission note for Builder
+
+This packet is not complete unless the commands are actually run and the summary artifacts are included.
+
+Do not submit implementation without evidence outputs.
