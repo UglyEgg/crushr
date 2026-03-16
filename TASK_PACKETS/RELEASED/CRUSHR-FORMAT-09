@@ -1,311 +1,265 @@
-TASK_PACKET
+# TASK_PACKET
+ID: CRUSHR-FORMAT-09
+Title: Metadata survivability and necessity audit
+Role: BUILDER
+Phase: Format research
+Depends-On: CRUSHR-FORMAT-08
 
-Packet ID
-CRUSHR-FORMAT-09
+## Objective
 
-Title
-Phase-9 corruption grid and survivability evaluation harness
+FORMAT-08 demonstrated that metadata placement strategies produced
+no measurable difference because metadata layers never survived the
+existing corruption scenarios.
 
-Objective
-Introduce a structured corruption matrix (“grid”) that exercises the crushr
-recovery model across multiple independent damage dimensions.
+FORMAT-09 expands the corruption harness to explicitly test
+metadata survivability and determine whether metadata layers
+actually contribute to recovery outcomes.
 
-This packet expands the salvage experiment framework and reporting model.
-It does not modify the archive format.
+This packet does NOT change the archive format.
 
-Scope
-- corruption grid specification
-- corruption operators
-- grid execution harness
-- enhanced classification reporting
-- CLI command
-- experiment outputs
-- test coverage
+It expands the corruption grid used by the lab harness.
 
-Out of Scope
-- archive format changes
-- metadata placement strategy (FORMAT-08)
-- compression algorithm changes
-- block structure changes
+---
 
--------------------------------------------------------------------------------
+## Deliverables
 
-BACKGROUND
+1. Implement a new harness command:
 
-Earlier phases evaluated corruption using coarse region failures:
+    run-format09-comparison
 
-- header damage
-- index damage
-- payload damage
-- tail truncation
+2. Generate expanded corruption scenarios targeting metadata layers.
 
-These tests validated the basic survivability architecture.
+3. Produce:
 
-However, FORMAT-07 introduced graph-aware recovery reasoning and finer
-recovery classes. The existing corruption suite is now too coarse to
-exercise the new reasoning capabilities.
+    format09_comparison_summary.json
+    format09_comparison_summary.md
 
-Phase-9 introduces a structured corruption grid to test how different
-“truth layers” and payload topologies interact during recovery.
+in the specified output directory.
 
--------------------------------------------------------------------------------
+---
 
-GRID MODEL
+## CLI Integration
 
-The corruption matrix is defined by four axes.
+The new command must be registered alongside the others:
 
-Axis A — Truth layer damage
+```bash
+crushr-lab-salvage run-format09-comparison --output <dir>
+```
 
-These scenarios simulate loss of specific metadata layers.
 
-A1 header corruption
-A2 index corruption
-A3 manifest corruption
-A4 path checkpoint corruption
-A5 manifest + path corruption
-A6 index + manifest corruption
+Builder must verify the command is wired into the CLI dispatch table.
 
-Axis B — Payload damage
+---
 
-These scenarios simulate block-level failures.
+## Scenario Design
 
-B0 none
-B1 single block deletion
-B2 sparse block deletion (every Nth block)
-B3 clustered block deletion
-B4 block reorder
-B5 block duplication
+FORMAT-09 introduces three axes.
 
-Axis C — Damage topology
+### Axis A — Metadata regime
 
-These scenarios describe spatial distribution of corruption.
+Scenarios must explicitly control metadata survivability.
 
-C1 single contiguous region
-C2 two independent regions
-C3 scattered corruption
-C4 region + metadata layer damage
+Values:
 
-Axis D — Dataset class
+metadata_intact
+metadata_destroyed
+metadata_partial
+metadata_conflicting
 
-Reuse existing datasets:
+Definitions:
 
-D1 smallfiles
-D2 mixed
-D3 largefiles
+metadata_intact
+    No direct corruption of metadata layers.
 
--------------------------------------------------------------------------------
+metadata_destroyed
+    All manifest/path metadata regions destroyed.
 
-SCENARIO GENERATION
+metadata_partial
+    One or more metadata fragments survive.
 
-The grid is not executed as a full combinatorial explosion.
+metadata_conflicting
+    Multiple inconsistent metadata fragments exist.
 
-Instead a curated matrix is defined.
+---
 
-Initial Phase-9 test set:
+### Axis B — Metadata damage targets
 
-target scenario count: ~48
+Targets include:
 
-Examples:
+index
+manifest
+path_checkpoint
+tail_metadata
+multiple_metadata_layers
 
-smallfiles_manifest_corruption_single_block
-smallfiles_manifest_corruption_sparse_blocks
-mixed_index_manifest_corruption_clustered
-largefiles_block_reorder_two_regions
-mixed_manifest_path_corruption_sparse
-largefiles_sparse_deletion_scattered
+Corruption operations:
 
-Scenarios must include a reproducible RNG seed.
+delete
+truncate
+bitflip
+overwrite
 
--------------------------------------------------------------------------------
+---
 
-NEW CORRUPTION OPERATORS
+### Axis C — Payload topology damage
 
-The harness must implement the following operators.
+Payload damage regimes:
 
-delete_random_block
-remove a verified payload block
+none
+single_block_delete
+sparse_delete
+cluster_delete
+block_reorder
+duplicate_block_insert
 
-delete_every_nth_block
-remove blocks at regular interval
+---
 
-delete_cluster
-remove contiguous block region
+## Scenario Matrix
 
-reorder_blocks
-shuffle block order in archive
+Each metadata regime must combine with multiple
+payload topologies.
 
-duplicate_block
-insert duplicate block payload
+Minimum recommended families:
 
-manifest_corruption
-damage manifest structure
+1. Metadata-only loss
 
-path_checkpoint_corruption
-damage path record surface
+   index destroyed
+   manifest destroyed
+   path checkpoints destroyed
+   index + manifest destroyed
 
-Operators must be deterministic when seeded.
+2. Metadata survives, payload damaged
 
--------------------------------------------------------------------------------
+   payload sparse deletion
+   payload clustered deletion
 
-RECOVERY CLASSIFICATION
+3. Partial metadata survival
 
-FORMAT-07 recovery classes remain authoritative:
+   single manifest fragment survives
+   single path checkpoint survives
 
-FULL_NAMED_VERIFIED
-FULL_ANONYMOUS_VERIFIED
-PARTIAL_ORDERED_VERIFIED
-PARTIAL_UNORDERED_VERIFIED
-ORPHAN_EVIDENCE_ONLY
-NO_VERIFIED_EVIDENCE
+4. Conflicting metadata remnants
 
-Phase-9 requires additional reporting fields:
+   two manifest fragments disagree
+   duplicate path checkpoints conflict
 
-recovered_file_count
-verified_block_count
-verified_component_count
-ordering_proven
-name_truth_proven
+Total scenarios should be between 24 and 40.
 
--------------------------------------------------------------------------------
+---
 
-NEW EXPERIMENT COMMAND
+## Metrics Collected
 
-CLI command
+For each scenario record:
 
-run-format09-grid
-
-Purpose
-
-Execute corruption grid and produce recovery statistics.
-
-Invocation example
-
-cargo run -p crushr --bin crushr-lab-salvage -- \
-  run-format09-grid \
-  --output /tmp/crushr_format09_grid
-
--------------------------------------------------------------------------------
-
-CLI INTEGRATION REQUIREMENT (CRITICAL)
-
-The command must be wired into the CLI dispatcher.
-
-Builder has previously implemented commands without registering them.
-
-Required integration points:
-
-command enum
-Command::RunFormat09Grid
-
-argument parser registration
-
-match dispatch in CLI handler
-
-help text entry
-
-Verification step (required):
-
-cargo run -p crushr --bin crushr-lab-salvage -- run-format09-grid --help
-
-If the command is not recognized the packet is incomplete.
-
--------------------------------------------------------------------------------
-
-OUTPUT ARTIFACTS
-
-The grid experiment must produce:
-
-1 JSON summary
-
-format09_grid_summary.json
-
-fields
-
+strategy
 scenario_id
-corruption_axes
-dataset
-recovery_class
-verified_block_count
-recovered_file_count
+metadata_regime
+metadata_target
+payload_damage
 
-2 Markdown report
+Recovery metrics:
 
-format09_grid_summary.md
+named_recovery
+anonymous_full_recovery
+partial_ordered_recovery
+partial_unordered_recovery
+orphan_evidence
 
-The report should include:
+Metadata survival metrics:
 
-scenario counts by recovery class
-dataset breakdown
-truth-layer survivability statistics
+manifest_checkpoint_survival_count
+path_checkpoint_survival_count
+verified_metadata_node_count
 
--------------------------------------------------------------------------------
+Additional metric:
 
-MANDATORY TESTS
+metadata_recovery_gain
 
-Unit tests
+Definition:
 
-test_delete_random_block
-test_sparse_block_deletion
-test_block_reorder_operator
-test_manifest_corruption_operator
+metadata_recovery_gain measures the change in recovery class
+when metadata fragments survive versus when they do not.
 
-Classification tests
+---
 
-test_partial_ordered_detection
-test_partial_unordered_detection
-test_full_named_detection
-test_orphan_evidence_detection
+## Output JSON Structure
 
-CLI test
+Example:
 
-cargo run -p crushr --bin crushr-lab-salvage -- run-format09-grid --help
+```json
 
-must succeed.
+{
+"strategy": "fixed_spread",
+"scenario_id": "metadata_partial_sparse_delete",
+"named_recovery": true,
+"partial_ordered_recovery": true,
+"orphan_evidence": false,
+"manifest_checkpoint_survival_count": 1,
+"path_checkpoint_survival_count": 0,
+"verified_metadata_node_count": 1,
+"metadata_recovery_gain": "partial->named"
+}
+```
 
-Integration test
 
-run-format09-grid must produce:
+---
 
-JSON output
-Markdown report
-non-empty scenario set
+## Markdown Report
 
--------------------------------------------------------------------------------
+The markdown summary must include:
 
-ACCEPTANCE CRITERIA
+1. Scenario table
+2. Recovery class distribution
+3. Metadata survival statistics
+4. Recovery gain attributable to metadata
+5. Strategy comparison
 
-1 project compiles without warnings
-2 corruption operators deterministic
-3 CLI command recognized
-4 grid executes ≥ 40 scenarios
-5 JSON summary generated
-6 Markdown report generated
-7 recovery classes populated
-8 existing salvage functionality unaffected
+---
 
--------------------------------------------------------------------------------
+## Acceptance Criteria
 
-EXPECTED OUTCOME
+Command runs successfully:
 
-Phase-9 will not necessarily increase recovery counts.
+```bash
+cargo run -p crushr --bin crushr-lab-salvage --
+run-format09-comparison
+--output /tmp/crushr_format09_cmp
+```
 
-Instead it will reveal:
+```
 
-- which truth layers survive most often
-- when recovery downgrades from named to anonymous
-- when ordered recovery becomes unordered
-- how metadata placement strategies perform
+outputs:
+mat09_comparison_summary.json
+format09_comparison_summary.md```
 
-These results inform future format design decisions.
+```
 
--------------------------------------------------------------------------------
+Scenario count ≥ 24.
 
-NOTES FOR BUILDER
+Metadata survival metrics are populated.
 
-Before submission verify the CLI command is wired correctly.
+---
 
-Run:
+## Explicit Non-Goals
 
-cargo run -p crushr --bin crushr-lab-salvage -- run-format09-grid --help
+This packet does NOT:
 
-If the command is not recognized the packet is incomplete.
+* modify the archive format
+* modify salvage reasoning logic
+* change payload block structure
+
+It only expands the corruption harness.
+
+---
+
+## Expected Outcome
+
+FORMAT-09 will determine:
+
+1. Whether metadata layers ever materially survive corruption.
+2. Whether metadata placement strategies matter under richer scenarios.
+3. Whether redundant metadata layers justify their archive size cost.
+
+Results from FORMAT-09 will guide future packets:
+
+CRUSHR-FORMAT-10 (metadata pruning or redesign).
