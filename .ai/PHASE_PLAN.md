@@ -39,37 +39,50 @@
 - [x] 3.12 CRUSHR-FORMAT-03-f1 (lab-salvage comparison dispatch/help repair)
 - [x] 3.13 CRUSHR-FORMAT-03-f2 (packer experimental writer/help contract repair)
 - [x] 3.14 CRUSHR-FORMAT-04 (experimental bootstrap-anchor + file-identity survivability hardening)
-- [x] 3.15 CRUSHR-FORMAT-05 (self-identifying payload blocks + repeated path checkpoints + bounded format05 comparison)
-- [x] 3.15-f1 CRUSHR-FORMAT-05-f1 (format05 comparison runner/packer flag-contract + packer-bin resolution hardening + regression coverage)
-- [x] 3.15-f2 CRUSHR-FORMAT-05-f2 (remove `crushr-pack --help` probe dependency from format05 comparison; enforce direct writer-flag contract + regression coverage)
-- [x] 3.15-f3 CRUSHR-FORMAT-05-f3 (convert format05 contract regressions to behavioral runner/packer shim checks; self-check contract mismatch guard)
-- [x] 3.15-f4 CRUSHR-FORMAT-05-f4 (restore runnable `cargo run` format05 comparison command by auto-building unresolved sibling salvage/pack binaries)
-- [x] 3.16 CRUSHR-SCRUB-02 (reject duplicate logical archive paths at pack time before archive emission)
-- [x] 3.16-f1 CRUSHR-SCRUB-02-f1 (stabilize duplicate-collision source ordering + expand collision-mode test coverage)
-- [x] 3.16-f2 CRUSHR-SCRUB-03 (modularize `crushr-salvage` + `crushr-lab-salvage` internals; preserve behavior + add regression coverage)
-- [x] 3.17 CRUSHR-FORMAT-06 (verified file manifest checkpoints as the next recovery-graph layer)
-  - build the file-truth layer on top of payload block identity
-  - validate full named / full anonymous / partial ordered recovery rules
-  - target header/index/tail cases that FORMAT-05 still leaves as orphan evidence
-  - keep the work experimental and opt-in only
-- [x] 3.17 CRUSHR-FORMAT-07 (graph-aware salvage reasoning + explicit recovery-class determination + format07 comparison command wiring)
-  - build verified relationship graph from surviving records (block->extent->manifest->path)
-  - classify recovery from connected verified evidence using ordered FORMAT-07 classes
-  - extend lab comparison harness with `run-format07-comparison` JSON/Markdown outputs and delta reporting
-- [ ] 3.18 Future: placement-strategy experiments (deferred)
-  - deterministic distributed-hash checkpoint placement
-  - deterministic low-discrepancy / golden-ratio placement
-  - only after recovery-graph layers stabilize enough for a meaningful bakeoff
-
+- [x] 3.15 CRUSHR-FORMAT-05 (self-identifying payload blocks + repeated path checkpoints)
+- [x] 3.15-f1 CRUSHR-FORMAT-05-f1
+- [x] 3.15-f2 CRUSHR-FORMAT-05-f2
+- [x] 3.15-f3 CRUSHR-FORMAT-05-f3
+- [x] 3.15-f4 CRUSHR-FORMAT-05-f4
+- [x] 3.16 CRUSHR-SCRUB-02 (duplicate logical path hard-fail before archive emission)
+- [x] 3.16-f1 CRUSHR-SCRUB-02-f1 (stable collision ordering + expanded coverage)
+- [x] 3.16-f2 CRUSHR-SCRUB-03 (salvage/lab-salvage internal modularization)
+- [x] 3.17 CRUSHR-FORMAT-06 (verified file manifest checkpoints / file-truth layer)
+- [x] 3.17-f1 CRUSHR-FORMAT-06-f1 (manifest-sourced plan synthesis + digest-aware classification + dispatch hardening)
+- [x] 3.18 CRUSHR-FORMAT-07 (graph-aware salvage reasoning + explicit recovery classes)
+- [x] 3.19 CRUSHR-FORMAT-08 (metadata placement strategy experiment: `fixed_spread`, `hash_spread`, `golden_spread`)
+- [ ] 3.20 CRUSHR-FORMAT-09 (curated corruption grid / survivability evaluation harness)
+  - stress truth-layer loss rather than only coarse region damage
+  - test named -> anonymous and ordered -> unordered downgrade behavior
+  - measure whether weak duplicated metadata surfaces should be retained or pruned
+  - keep the packet format-neutral: evaluation harness/reporting only
 
 ## Security scrub track
-- [x] CRUSHR-SCRUB-01 extraction confinement hardening (shared validator + canonical/legacy/API alignment + hostile tests)
-- [x] CRUSHR-PLAN-LEGACY-01 extraction authority boundary enforcement (canonical strict surface lock + legacy API/CLI extraction quarantine + regression tests)
-- [x] CRUSHR-PLAN-LEGACY-01-f1 post-review test clarity hardening (rename quarantine MVP test + add positive canonical `crushr-extract` roundtrip integration coverage)
-- [x] CRUSHR-PLAN-LEGACY-01-f2 preferred extraction authority alignment (root/API delegation to strict authoritative implementation + regression integration updates)
 
-- [x] CRUSHR-FORMAT-06-f1 — manifest-sourced plan synthesis + digest-aware classification + format06 classification deltas
+- [x] CRUSHR-SCRUB-01 extraction confinement hardening
+- [x] CRUSHR-PLAN-LEGACY-01 extraction authority boundary enforcement
+- [x] CRUSHR-PLAN-LEGACY-01-f1 post-review test clarity hardening
+- [x] CRUSHR-PLAN-LEGACY-01-f2 preferred extraction authority delegation
 
-- [x] 3.17-f1 CRUSHR-FORMAT-06-f1 dispatch regression fix (lock top-level `run-format06-comparison` dispatch behavior + subcommand-vs-path regression coverage + help discoverability assertion)
+## Phase 4 — Product-completeness track (planned)
 
-- [x] 3.18 CRUSHR-FORMAT-08 (metadata placement strategy experiment: fixed_spread/hash_spread/golden_spread + bounded format08 comparison)
+- [ ] 4.1 Unix metadata preservation envelope
+  - file type
+  - mode
+  - uid/gid
+  - optional uname/gname policy
+  - mtime policy
+  - symlink target
+  - xattrs
+- [ ] 4.2 Advanced Unix metadata decision
+  - ACLs
+  - capabilities
+  - device metadata
+  - SELinux labels
+  - hardlink identity
+
+## Phase 5 — Compression optimization track (planned)
+
+- [ ] 5.1 Revisit dictionary strategy after resilience/placement/grid results settle
+- [ ] 5.2 Compare archive-global vs clustered vs explicit dictionary-object approaches
+- [ ] 5.3 Keep dictionary dependencies verifiable and recovery-honest

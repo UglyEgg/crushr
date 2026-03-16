@@ -1,47 +1,3 @@
-## 2026-03-16 — CRUSHR-FORMAT-08 (metadata placement strategy survivability experiment)
-- Added `crushr-pack --placement-strategy <fixed_spread|hash_spread|golden_spread>` for experimental graph-supporting metadata checkpoints.
-- Added `run-format08-placement-comparison` in `crushr-lab-salvage` with required summary artifacts and grouped metadata survivability metrics.
-- Added determinism/differentiation/dispatch regression tests, including FORMAT-07 dispatch non-regression.
-
-## 2026-03-16 — CRUSHR-SCRUB-03 (salvage/lab-salvage internal modularization hardening)
-
-- Refactored `crushr-salvage` monolith into internal modules (`cli`, `discovery`, `metadata`, `artifacts`) while preserving existing command behavior and salvage plan/output semantics.
-- Refactored `crushr-lab-salvage` monolith into internal modules (`cli`, `runner`, `comparison`) with unchanged command surface and workflow behavior.
-- Added regression coverage asserting salvage binary resolution precedence (`CRUSHR_SALVAGE_BIN` remains authoritative when set) and retained deterministic/comparison workflow coverage.
-
-## 2026-03-15 — CRUSHR-FORMAT-05-f4 (`cargo run` format05 comparison command operability fix)
-
-- Updated `crushr-lab-salvage` binary resolution to auto-build unresolved sibling `crushr-salvage`/`crushr-pack` binaries before failing resolution, fixing the human-reported end-to-end command failure mode.
-- Re-verified the exact command `cargo run -p crushr --bin crushr-lab-salvage -- run-format05-comparison --output <dir>` now succeeds and emits both summary files.
-
-## 2026-03-15 — CRUSHR-SCRUB-02-f1 (deterministic duplicate-source ordering + expanded collision coverage)
-
-- Stabilized duplicate collision error source ordering by sorting collected file inputs by `(rel_path, abs_path)` and sorting per-collision source lists before rendering the error.
-- Expanded pack regression coverage to include walked-tree vs walked-tree collisions, three-way collisions, and explicit ordered-source assertions in the duplicate error surface.
-
-## 2026-03-15 — CRUSHR-SCRUB-02 (reject duplicate logical archive paths before archive emission)
-
-- Added pack-time duplicate logical-path rejection in `crushr-pack` before output file creation and any archive/index/ledger writes.
-- Centralized logical path normalization (`\` to `/`) and run duplicate detection on normalized final archive paths only.
-- Added focused regression tests for distinct-path success, basename collision hard-failure, normalization-only collision hard-failure, deterministic collision path error, and no partial archive output on collision.
-
-## 2026-03-15 — CRUSHR-FORMAT-05-f3 (behavioral self-check for runner/packer contract mismatch)
-
-- Replaced brittle source-text assertions in FORMAT-05 resilience tests with a behavioral runner test using a `CRUSHR_PACK_BIN` shim that intentionally fails on `--help` but accepts real pack invocations.
-- Added contract self-check in the shim to fail if FORMAT-05 archive builds do not include `--experimental-self-identifying-blocks`, ensuring runner/packer flag contract alignment through execution behavior.
-
-## 2026-03-15 — CRUSHR-FORMAT-05-f2 (remove brittle packer help probing from FORMAT-05 runner contract)
-
-- Removed `crushr-pack --help` capability probing from `crushr-lab-salvage` FORMAT-05 archive build path and switched to direct invocation of the canonical `--experimental-self-identifying-blocks` writer flag.
-- Updated FORMAT-05 resilience tests to assert there is no hidden help-surface dependency in runner code while preserving end-to-end comparison command coverage.
-- Re-verified workspace gates (`fmt`, `test`, `clippy`) and explicit `run-format05-comparison --output <tmpdir>` execution success.
-
-## 2026-03-15 — documentation alignment after FORMAT-05 and recovery-graph direction lock
-
-- Aligned active control docs on the current experimental direction: self-identifying payload blocks (FORMAT-05) are complete and FORMAT-06 file manifest checkpoints are the next active packet.
-- Recorded the locked architectural direction toward a content-addressed recovery graph and the inversion principle: payload-adjacent verified truth is preferred over centralized metadata authority for resilience work.
-- Moved pseudo-random / low-discrepancy checkpoint placement to deferred research backlog so current work stays focused on metadata-independent reconstruction.
-
 ## 2026-03-15 — CRUSHR-SALVAGE-07 harness hardening for deterministic discovery/resolution
 
 - Hardened `crushr-lab-salvage` salvage binary resolution to avoid bare PATH dependency by using deterministic resolution (explicit `CRUSHR_SALVAGE_BIN`, sibling executable near current binary, and Cargo test binary environment path).
@@ -560,55 +516,9 @@
 
 - 2026-03-15: CRUSHR-FORMAT-05 completed — added payload-level self-identifying block metadata and repeated verified path checkpoints, integrated deterministic payload-identity salvage fallback/provenance, and added bounded `run-format05-comparison` outputs.
 
-## 2026-03-15 — CRUSHR-FORMAT-05-f1 format05 comparison runner/packer contract repair
+## 2026-03-16 — documentation continuity realignment after FORMAT-07/08 + new product/optimization tracks
 
-- Hardened `crushr-lab-salvage` FORMAT-05 archive building path to use a single canonical flag constant (`--experimental-self-identifying-blocks`) and verify flag availability through `crushr-pack --help` before invoking writer mode.
-- Added local `cargo build -p crushr --bin crushr-pack` fallback in `resolve_pack_bin` for `cargo run --bin crushr-lab-salvage` flows where a sibling `crushr-pack` binary has not yet been built.
-- Added focused regression tests for pack help flag discoverability, writer acceptance/emission with FORMAT-05 flag, and static runner/packer flag-contract alignment.
-
-## 2026-03-15 — CRUSHR-SCRUB-01
-- Added shared extraction confinement utility and wired it into canonical, legacy, and API extraction paths.
-- Hardened extraction to reject unsafe archive paths (absolute, parent traversal, degenerate/prefix forms) with explicit deterministic errors.
-- Set hardened symlink behavior to fail closed and added hostile regression tests for traversal/absolute/normalization/symlink cases.
-
-
-## 2026-03-15 — CRUSHR-PLAN-LEGACY-01
-- Enforced extraction authority boundary: `crushr-extract` is the supported strict extraction surface.
-- Quarantined legacy extraction surfaces (`crushr extract`, `api::extract_all`) with explicit unsupported errors.
-- Added regression coverage for quarantined root CLI extraction modes and updated MVP roundtrip extraction to canonical `crushr-extract`.
-
-
-## 2026-03-15 — CRUSHR-PLAN-LEGACY-01-f1
-- Renamed MVP quarantine test to reflect root `crushr extract` quarantine semantics (no roundtrip implication).
-- Added positive integration test proving canonical `crushr-pack` -> `crushr-extract` roundtrip still succeeds with expected file contents.
-
-
-## 2026-03-15 — CRUSHR-PLAN-LEGACY-01-f2
-- Implemented preferred delegation solution: root `crushr extract` and API `extract_all` now call shared strict extraction implementation used by `crushr-extract`.
-- Replaced quarantine-only integration expectations with strict roundtrip integration coverage for root and canonical extraction entry points.
-
-
-## 2026-03-16 — CRUSHR-FORMAT-06
-- Added experimental file-manifest metadata emission (`crushr-file-manifest.v1`) and distributed checkpoint snapshots (`crushr-file-manifest-checkpoint.v1`) in `crushr-pack`.
-- Added salvage manifest parsing/application path and `recovery_classification` states for file plans.
-- Added `run-format06-comparison` with `format06_comparison_summary.json` and `format06_comparison_summary.md` outputs.
-
-
-## 2026-03-16 — CRUSHR-FORMAT-06-f1
-- Upgraded manifest handling from annotation-only to recovery-plan seeding when earlier mapping layers are empty.
-- Added digest-aware manifest completeness classification path (single-block verified case) using `file_digest` vs recovered raw-hash identity.
-- Expanded `format06_comparison_summary` with recovery-classification aggregates and deltas vs FORMAT-05; added regression coverage for format06 command output fields and manifest provenance/classification behavior.
-
-
-## 2026-03-16 — CRUSHR-FORMAT-06-f1 dispatch regression fix
-- Added lab harness regression asserting `--help` includes `run-format06-comparison` to keep the bounded dispatch/help surface discoverable.
-- Added regression that misplaced `run-format06-comparison` is not consumed as positional input-path mode and fails with explicit first-argument subcommand guidance.
-- Revalidated end-to-end `cargo run` command surfaces for both FORMAT-06 and FORMAT-05 comparison workflows including required summary artifact emission.
-
-## 2026-03-16 — Phase 3, Step 3.17 (CRUSHR-FORMAT-07 graph-aware salvage reasoning)
-
-- Reworked salvage recovery classification to use a verified relationship graph built from surviving payload block identity + manifest + path checkpoint evidence.
-- Replaced legacy coarse recovery labels with FORMAT-07 classes: `FULL_NAMED_VERIFIED`, `FULL_ANONYMOUS_VERIFIED`, `PARTIAL_ORDERED_VERIFIED`, `PARTIAL_UNORDERED_VERIFIED`, `ORPHAN_EVIDENCE_ONLY`, `NO_VERIFIED_EVIDENCE`.
-- Added graph/classification unit tests in salvage metadata (`graph_construction_basic`, full/partial/orphan class tests).
-- Added `run-format07-comparison` to `crushr-lab-salvage` CLI parser, mode enum, dispatch, help surface, and comparison summary writer.
-- Added harness/integration tests covering FORMAT-07 subcommand discoverability, positional-misparse regression, and summary field presence.
+- Realigned active control docs on current truth: FORMAT-07 and FORMAT-08 are complete, FORMAT-09 is the next evaluation packet, and older “next step = FORMAT-06 / deferred graph reasoning” wording is superseded.
+- Added explicit near-term product-completeness track for Unix metadata preservation (including xattrs and core Unix file-object metadata) so crushr can close the common tar-on-Unix criticism cleanly.
+- Added explicit post-stabilization optimization track for distributed dictionary experiments, with the reminder that dictionary work must obey the same verification/dependency discipline as the rest of the format.
+- Marked Phase-09 as the point where weak metadata layers can be judged and potentially pruned if they add archive size without enough survivability benefit.

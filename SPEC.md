@@ -55,6 +55,10 @@ Required invariants:
 - unique non-zero dictionary IDs
 - dictionary hash verification before use
 
+Current contract note:
+- DCT1 remains the canonical optional dictionary surface in v1.
+- Later distributed-dictionary experiments may extend experimental writer paths, but they do not silently redefine the current canonical v1 contract.
+
 ## IDX3
 
 Canonical file/block mapping index.
@@ -84,6 +88,22 @@ Required invariants:
 
 Extraction is strict-only: tools extract verified-safe files and refuse unsafe files deterministically.
 No recovery/salvage/reconstruction semantics are part of this format contract.
+
+## Metadata-preservation boundary
+
+The canonical v1 contract is still primarily a content/archive contract.
+A later bounded product-completeness track is expected to formalize a Unix metadata envelope rather than leaving crushr as “file bytes only”.
+
+Expected near-term Unix metadata envelope, once explicitly packetized:
+- file type
+- mode
+- uid/gid
+- optional uname/gname policy
+- mtime policy
+- symlink target
+- xattrs
+
+Until that packet lands, those broader Unix file-object guarantees are not yet part of the active canonical v1 contract.
 
 ## Append semantics
 

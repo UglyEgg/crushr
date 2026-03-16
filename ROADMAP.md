@@ -1,32 +1,30 @@
 # crushr Roadmap
 
-## Baseline Implementation (White-Paper Phase)
+## Baseline Implementation (white-paper phase)
 
-Current evaluation focuses on the baseline crushr format implementation.
+The baseline implementation and baseline comparative evidence are complete and frozen.
 
-Goals:
-
-- corruption behavior analysis
-- compression comparison vs common formats
+That baseline work established:
 - deterministic experimental methodology
-
-Future capabilities are intentionally deferred until after the baseline evaluation.
+- comparative corruption evidence
+- a credible foundation for later resilience experiments
 
 ---
 
-# Experimental Resilience Direction (active)
+# Experimental resilience direction (active)
 
-The active post-baseline research direction is now:
+The active post-baseline direction is now:
 
 - metadata-independent reconstruction
 - payload-adjacent file identity
 - file manifest truth
 - repeated path checkpoints
-- a gradual move toward a **content-addressed recovery graph**
+- graph-aware salvage reasoning
+- bounded metadata placement strategy experiments
 
 This direction is governed by the locked inversion principle:
 
-> prefer architectures where verified payload-adjacent structures carry reconstructive truth, and treat centralized metadata as an accelerator rather than the sole authority.
+> prefer architectures where verified payload-adjacent structures carry reconstructive truth, and treat centralized metadata as an accelerator rather than the sole authority
 
 Active near-term layering:
 
@@ -35,7 +33,7 @@ Active near-term layering:
 3. file manifest truth
 4. path truth
 
-Recovery should degrade in reverse order:
+Recovery degrades in reverse order:
 
 1. full named recovery
 2. full anonymous recovery
@@ -44,45 +42,78 @@ Recovery should degrade in reverse order:
 
 ---
 
-# Next Active Research Steps
+# Next active research steps
 
-## FORMAT-06 — File manifest checkpoints
+## FORMAT-09 — curated corruption grid / survivability evaluation harness
 
-Add verified file manifest checkpoints to complete the first practical file-truth layer above payload identity.
+The next active step is not another format rewrite.
 
-Intended benefits:
+It is a richer evaluation packet that should answer:
 
-- better completeness validation
-- stronger anonymous verified recovery
-- better header/index/tail resilience than payload identity alone
+- which truth layers survive most often?
+- when does recovery downgrade from named to anonymous?
+- when does ordered recovery become unordered?
+- which duplicated metadata surfaces are weak enough to prune?
 
-## Later — Graph-aware salvage reasoning
+This packet should stress:
+- truth-layer loss
+- metadata disagreement
+- block deletion / reorder
+- multi-region failures
+- downgrade behavior
 
-After payload identity + manifest truth stabilize, teach salvage to choose the best surviving verified recovery path across graph layers.
+## After FORMAT-09 — evidence-based pruning and retention
+
+After the richer grid exists, use evidence to decide:
+
+- which metadata surfaces should remain core
+- which should become optional experimental ballast
+- which should be removed because they add size without enough survivability gain
 
 ---
 
-# Deferred Research (not current priority)
+# Product-completeness track (planned)
 
-These remain interesting but deferred until the active recovery-graph direction matures:
+Once the current resilience-evaluation arc settles, crushr needs to close a very practical product gap on Unix-like systems.
 
-- deterministic distributed-hash checkpoint placement
-- deterministic low-discrepancy / golden-ratio checkpoint placement
-- larger placement-strategy bakeoffs
-- broader generalized graph-engine abstractions
+Planned bounded Unix metadata envelope:
+- file type
+- mode
+- uid/gid
+- optional uname/gname policy
+- mtime policy
+- symlink target
+- xattrs
 
-The current evidence says placement optimization is secondary to metadata-independent reconstruction.
+This is not the active packet, but it is a real planned product-completeness track.
 
 ---
 
-# Longer-Term Vision
+# Compression optimization track (later)
+
+After the resilience architecture, placement work, and pruning decisions settle, revisit compression efficiency.
+
+Planned future area:
+- distributed dictionaries
+
+Dictionary work should compare:
+- archive-global dictionary
+- clustered/per-region dictionaries
+- explicit dictionary-object approaches
+
+And must preserve crushr’s integrity-first rules:
+- explicit dictionary identity
+- verifiable block -> dictionary dependency
+- deterministic degradation when a dictionary is missing
+
+---
+
+# Longer-term vision
 
 The long-term direction for crushr is no longer just “a resilient archive container.”
-It is trending toward a **structured archive with a recoverable, content-addressed relationship graph**.
 
-Potential long-term capabilities once the current graph layers are proven:
-
-- stronger recoverable archives
-- true random-access extraction
-- content-aware deduplication
-- graceful degradation from named recovery -> anonymous recovery -> ordered partial recovery -> orphan evidence
+It is trending toward a structured archive with:
+- recoverable, content-addressed relationships
+- deterministic survivability evaluation
+- stronger Unix/archive product completeness
+- later compression optimization that does not weaken verification guarantees

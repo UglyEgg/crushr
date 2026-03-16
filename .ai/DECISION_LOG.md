@@ -486,136 +486,45 @@ Blast radius:
 - Blast radius:
   - Experimental writer/salvage/comparison flows only; no default format migration and no `crushr-extract` semantic changes.
 
-## 2026-03-15 — CRUSHR-ARCH-GRAPH-01: content-addressed recovery graph direction locked
+## 2026-03-16 — Unix metadata preservation is a product-completeness track, not a resilience detour
 
 - Status: Accepted
 - Decision:
-  - Adopt a long-term resilience direction where recovery truth is distributed across verified payload-adjacent structures rather than centralized archive metadata alone.
-  - Recovery graph layers are: payload truth -> extent/block identity truth -> file manifest truth -> path truth.
-  - Recovery degrades in reverse order: full named -> full anonymous -> partial ordered -> orphan evidence.
-- Alternatives:
-  1. Continue layering more centralized/redundant index structures around IDX3.
-  2. Treat placement strategy experiments as the primary path before metadata-independent reconstruction is mature.
+  - Add a future explicit product-completeness workstream for Unix file-object metadata preservation.
+  - The first bounded envelope should cover at least:
+    - file type
+    - mode
+    - uid/gid
+    - optional uname/gname policy
+    - mtime policy
+    - symlink target
+    - xattrs
+- Alternatives considered:
+  1. Keep crushr focused on content bytes only and defer Unix metadata indefinitely.
+  2. Attempt to implement every advanced Unix metadata surface at once.
 - Rationale:
-  - Experimental evidence shows centralized metadata remains the dominant failure point.
-  - File-identity metadata improved recovery where centralized/redundant metadata alone did not.
-  - The next coherent direction is to mature a content-addressed recovery graph incrementally rather than keep multiplying fragile index-style structures.
+  - On Unix-like systems, tar earns trust because it preserves the surrounding file object, not just file bytes.
+  - A bounded first envelope closes the most credible “tar does more” objection without dragging the project into an ACL/device-label abyss all at once.
 - Blast radius:
-  - Guides future experimental salvage/format packets.
-  - Does not change canonical v1 extraction semantics or the active on-disk production contract.
+  - Planning/roadmap/control docs now treat Unix metadata preservation as a real future product track.
+  - No immediate canonical extraction or wire-format change by this decision alone.
 
-## 2026-03-15 — CRUSHR-ARCH-INV-01: inversion principle for resilience work locked
+## 2026-03-16 — Distributed dictionary work is a later optimization track gated on structural stability
 
 - Status: Accepted
 - Decision:
-  - For resilience-oriented experimental work, prefer architectures where verified payload-adjacent structures carry reconstructive truth and centralized metadata acts as an accelerator rather than sole authority.
-  - Prefer block -> file / manifest reconstruction paths over file -> block dependence on a single authoritative index.
-  - Build recovery upward from verified surviving payload, not downward from fragile roots.
-- Alternatives:
-  1. Keep centralized metadata as the canonical truth for all recovery paths.
-  2. Treat inversion as an informal design intuition only.
+  - Reintroduce distributed dictionary experiments only after the current resilience architecture, metadata-layer pruning, and placement/grid evaluation stabilize.
+  - Dictionary work must follow the same integrity-first rules as other format features:
+    - explicit dictionary identity
+    - verifiable block -> dictionary dependency
+    - deterministic degradation when a required dictionary is missing
+    - no silent decode fallbacks that change truth
+- Alternatives considered:
+  1. Return to dictionary optimization immediately.
+  2. Treat dictionaries as a simple compression-only concern disconnected from recoverability.
 - Rationale:
-  - This principle is already supported by the experimental evidence and is useful immediately as a decision filter for packets.
-  - Locking it reduces future drift back toward fragile centralized-metadata designs.
+  - Compression tuning before structural stability would optimize an artifact whose supporting metadata story is still being validated.
+  - In crushr, dictionaries are not just compression aids; they become part of the verifiable dependency graph and therefore require deliberate timing.
 - Blast radius:
-  - Affects experimental format/recovery planning and review.
-  - No immediate wire-format or extraction-contract change by itself.
-
-## 2026-03-15 — CRUSHR-FORMAT-06 is the next active recovery-graph packet
-
-- Status: Accepted
-- Decision:
-  - The next active packet after FORMAT-05 is FORMAT-06: verified file manifest checkpoints as the next graph layer.
-  - Placement-strategy experiments (distributed-hash / low-discrepancy / golden-ratio) are deferred until payload identity + manifest truth are tested.
-- Alternatives:
-  1. Jump directly to checkpoint placement strategy bakeoffs.
-  2. Jump directly to a generic graph engine abstraction.
-- Rationale:
-  - Current evidence says the active bottleneck is still file truth/completeness under metadata loss, not checkpoint spacing optimization.
-  - FORMAT-06 is the smallest coherent next layer on top of FORMAT-05.
-- Blast radius:
-  - Planning/control docs and next-packet expectations only.
-  - No change to current experimental or canonical extraction behavior.
-
-## 2026-03-15 — CRUSHR-SCRUB-01 extraction confinement unification
-
-- Decision: all extraction surfaces must use a shared confined-path resolver and hard-fail on unsafe archive paths.
-- Decision: symlink extraction is disabled in hardened mode (fail closed) until a separately approved confined symlink model exists.
-- Alternatives considered: keep legacy permissive behavior; strip/normalize malicious paths; allow symlinks with best-effort checks.
-- Rationale: integrity-first semantics require deterministic fail-closed behavior and consistent safety across canonical, legacy, and API paths.
-- Blast radius: malicious archives that previously extracted now error deterministically; safe relative-path extraction is unchanged.
-
-
-## 2026-03-15 — CRUSHR-SCRUB-02 duplicate logical paths are hard pack-time failures
-
-- Decision
-  - `crushr-pack` must reject duplicate final logical archive paths before archive emission.
-  - Duplicate handling is fail-closed only: no auto-renaming, no last-writer-wins behavior.
-
-- Alternatives considered
-  1. Allow duplicates and keep last-writer-wins.
-  2. Auto-rename colliding paths during pack.
-  3. Fail pack deterministically before output write (chosen).
-
-- Rationale
-  - Integrity-first archives cannot safely encode ambiguous logical path ownership.
-  - Deterministic early rejection prevents silent corruption of archive semantics and prevents partial output side effects.
-
-- Blast radius
-  - `crushr-pack` input collection/validation and its regression tests.
-  - Documentation updates describing new duplicate-path hard failure behavior.
-
-
-## 2026-03-15 — CRUSHR-PLAN-LEGACY-01 extraction authority boundary enforcement
-
-- Decision: supported extraction semantics are authoritative only through `crushr-extract`; root `crushr extract` and `crates/crushr/src/api.rs::extract_all` are quarantined legacy surfaces with explicit unsupported errors.
-- Alternatives considered:
-  1. Keep legacy CLI/API extraction behavior while documenting `crushr-extract` as preferred.
-  2. Delegate root CLI/API extraction to strict implementation in this packet.
-  3. Quarantine legacy surfaces with explicit fail-closed errors (chosen for bounded packet scope).
-- Rationale: removes contract drift immediately and prevents users from silently receiving non-authoritative semantics on supported-looking surfaces.
-- Blast radius: root `crushr extract` and API `extract_all` calls now fail with explicit migration guidance; mvp/regression tests updated to use canonical `crushr-extract`.
-
-
-## 2026-03-15 — CRUSHR-PLAN-LEGACY-01-f1 test-boundary clarity follow-up
-
-- Decision: keep quarantine-behavior test naming explicit and preserve a positive canonical `crushr-extract` roundtrip integration test alongside quarantine tests.
-- Alternatives considered:
-  1. Keep only quarantine tests and rely on existing cross-crate canonical extraction tests.
-  2. Rename quarantine tests without adding a positive integration roundtrip in this crate.
-  3. Rename + add explicit `crushr-pack` -> `crushr-extract` roundtrip integration test in `crates/crushr/tests/mvp.rs` (chosen).
-- Rationale: hostile-review remediation is clearer and safer when the same integration suite proves both sides of the boundary (legacy surface quarantined, canonical surface works).
-- Blast radius: test-only changes; no runtime extraction semantics changed.
-
-
-## 2026-03-15 — CRUSHR-PLAN-LEGACY-01-f2 apply preferred delegation implementation
-
-- Decision: replace temporary quarantine behavior with preferred delegation so root CLI/API extraction surfaces execute the same strict implementation as `crushr-extract`.
-- Alternatives considered:
-  1. Keep quarantine-only boundary indefinitely.
-  2. Delegate only one compatibility surface (CLI or API).
-  3. Delegate both compatibility surfaces to shared strict implementation (chosen).
-- Rationale: preferred packet outcome requires supported extraction surfaces to converge on a single authoritative implementation rather than relying on unsupported stubs.
-- Blast radius: root/API extraction behavior changes from explicit unsupported errors back to supported strict extraction behavior; tests/docs updated accordingly.
-
-## 2026-03-16 — CRUSHR-FORMAT-07 recovery class semantics are graph-derived verified evidence classes
-
-- Decision:
-  - Salvage recovery classification now derives from a verified relationship graph (`block -> extent -> file_manifest -> path`) rather than flat per-plan heuristics.
-  - Recovery classes are now the ordered FORMAT-07 set: `FULL_NAMED_VERIFIED`, `FULL_ANONYMOUS_VERIFIED`, `PARTIAL_ORDERED_VERIFIED`, `PARTIAL_UNORDERED_VERIFIED`, `ORPHAN_EVIDENCE_ONLY`, `NO_VERIFIED_EVIDENCE`.
-- Alternatives considered:
-  1. Keep legacy `FULL_VERIFIED/FULL_ANONYMOUS/PARTIAL_* /ORPHAN_BLOCKS` labels and only add FORMAT-07 comparison command.
-  2. Add new classes without graph-backed derivation.
-  3. Graph-backed derivation + explicit class replacement (chosen).
-- Rationale:
-  - Packet objective requires verified-graph reasoning and explicit recovery class determination without archive-format layout changes.
-- Blast radius:
-  - `crushr-salvage` plan `file_plans[*].recovery_classification` values changed.
-  - Comparison summaries and tests now track FORMAT-07 class names.
-
-
-## 2026-03-16 — CRUSHR-FORMAT-08 metadata placement strategy names and scope are locked for bounded experiment
-- Decision: expose exactly `fixed_spread`, `hash_spread`, and `golden_spread` as the user-facing placement strategies for graph-supporting metadata checkpoint placement in experimental writer mode.
-- Alternatives considered: retain legacy anchor-only placement; expose generic low-discrepancy naming; apply to payload layout.
-- Rationale: packet goal is metadata survivability comparison while preserving payload identity semantics and strict extraction rules.
-- Blast radius: `crushr-pack` experimental flags, `crushr-lab-salvage` format08 comparison workflow, docs/state continuity files.
+  - Backlog/roadmap/status documents now represent dictionaries as a post-stabilization optimization track.
+  - No change to the current canonical v1 contract or experimental recovery packets.
