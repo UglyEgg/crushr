@@ -68,3 +68,8 @@
 ## Update: CRUSHR-FORMAT-05-f4 complete
 - `crushr-lab-salvage` now attempts `cargo build -p crushr --bin crushr-salvage` and `cargo build -p crushr --bin crushr-pack` into the sibling target dir before declaring those binaries unresolved.
 - This keeps the documented FORMAT-05 comparison command runnable via `cargo run` without requiring explicit `CRUSHR_SALVAGE_BIN`/`CRUSHR_PACK_BIN` wiring.
+
+## Update: CRUSHR-SCRUB-03 complete
+- `crushr-salvage` internals are now split by responsibility (`cli`, `discovery`, `metadata`, `artifacts`) to reduce layered-patch fragility while preserving behavior.
+- `crushr-lab-salvage` internals are now split by responsibility (`cli`, `runner`, `comparison`) with stable command surface and output compatibility.
+- Added regression coverage for salvage binary resolution precedence (`CRUSHR_SALVAGE_BIN` remains highest-priority explicit override).

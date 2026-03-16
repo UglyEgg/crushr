@@ -87,3 +87,9 @@ Recovery should degrade in reverse order:
 - Replaced quarantine behavior with preferred delegation behavior: root `crushr extract` now executes authoritative strict extraction for both all-entry and path-filtered modes.
 - API extraction (`extract_all`) now delegates to the same strict implementation instead of returning unsupported errors.
 - Added/updated integration tests proving root and canonical extraction surfaces both roundtrip correctly from canonical `crushr-pack` archives.
+
+
+## CRUSHR-SCRUB-03 closeout
+- Decomposed `crushr-salvage` into internal modules (`cli`, `discovery`, `metadata`, `artifacts`) with behavior preserved.
+- Decomposed `crushr-lab-salvage` into internal modules (`cli`, `runner`, `comparison`) with behavior preserved.
+- Added regression test coverage for salvage binary resolution precedence while preserving existing deterministic ordering/comparison workflow tests.

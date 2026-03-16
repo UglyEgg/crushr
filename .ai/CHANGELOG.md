@@ -1,3 +1,9 @@
+## 2026-03-16 — CRUSHR-SCRUB-03 (salvage/lab-salvage internal modularization hardening)
+
+- Refactored `crushr-salvage` monolith into internal modules (`cli`, `discovery`, `metadata`, `artifacts`) while preserving existing command behavior and salvage plan/output semantics.
+- Refactored `crushr-lab-salvage` monolith into internal modules (`cli`, `runner`, `comparison`) with unchanged command surface and workflow behavior.
+- Added regression coverage asserting salvage binary resolution precedence (`CRUSHR_SALVAGE_BIN` remains authoritative when set) and retained deterministic/comparison workflow coverage.
+
 ## 2026-03-15 — CRUSHR-FORMAT-05-f4 (`cargo run` format05 comparison command operability fix)
 
 - Updated `crushr-lab-salvage` binary resolution to auto-build unresolved sibling `crushr-salvage`/`crushr-pack` binaries before failing resolution, fixing the human-reported end-to-end command failure mode.
