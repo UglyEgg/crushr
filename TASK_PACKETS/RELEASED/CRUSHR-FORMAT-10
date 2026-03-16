@@ -1,0 +1,390 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-FORMAT-10
+
+Title
+Metadata pruning experiment to identify the minimal necessary archive truth surfaces
+
+Role
+BUILDER
+
+Objective
+Use the results of FORMAT-08 and FORMAT-09 to aggressively simplify the experimental archive design and determine which metadata layers, if any, are actually necessary for recovery.
+
+Current evidence shows:
+
+- metadata placement strategy produced no measurable recovery difference
+- metadata survival counts remained zero across the Phase-09 audit
+- recovery behavior is being driven primarily by self-identifying payload blocks plus salvage reasoning
+- current metadata layers appear to add archive size and complexity without measurable resilience gain
+
+This packet is an evidence-driven pruning experiment.
+
+The goal is not to add new metadata.
+The goal is to remove or demote metadata layers and measure whether recovery behavior changes.
+
+This remains experimental and opt-in.
+
+---------------------------------------------------------------------
+
+Read first
+
+1. AGENTS.md
+2. AI_BOOTSTRAP.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. .ai/INDEX.md
+6. .ai/STATUS.md
+7. .ai/PHASE_PLAN.md
+8. .ai/DECISION_LOG.md
+9. .ai/HANDOFF.md
+10. docs/ARCHITECTURE.md
+11. docs/SNAPSHOT_FORMAT.md
+12. FORMAT-05 results
+13. FORMAT-06 results
+14. FORMAT-07 results
+15. FORMAT-08 results
+16. FORMAT-09 results
+17. crates/crushr/src/bin/crushr-pack.rs
+18. crates/crushr/src/bin/crushr-salvage.rs
+19. crates/crushr/src/bin/crushr-lab-salvage.rs
+
+---------------------------------------------------------------------
+
+Context
+
+FORMAT-09 demonstrated:
+
+- manifest_checkpoint_survival_count = 0
+- path_checkpoint_survival_count = 0
+- verified_metadata_node_count = 0
+
+across all tested scenarios and strategies.
+
+This strongly suggests the current metadata layers are not participating in recovery under corruption.
+
+FORMAT-10 tests that conclusion directly by pruning metadata surfaces and comparing recovery outcomes.
+
+The key question:
+
+What is the minimal archive truth surface that preserves current recovery capability?
+
+---------------------------------------------------------------------
+
+Hard constraints
+
+- Do NOT weaken strict extraction semantics.
+- Do NOT introduce speculative reconstruction.
+- Do NOT guess filenames, offsets, or ordering.
+- Do NOT silently change default crushr behavior.
+- Keep this packet experimental and bounded.
+- Recovery may only proceed from fully verified content/metadata that still exists.
+- Deterministic behavior is required.
+
+---------------------------------------------------------------------
+
+Required implementation scope
+
+1) Define pruning variants
+
+Implement at minimum the following experimental variants:
+
+1. payload_only
+   - remove non-essential experimental metadata surfaces
+   - preserve only the minimal archive/container structures required to store and decode payload blocks
+   - retain self-identifying payload block truth
+
+2. payload_plus_manifest
+   - retain payload block truth
+   - retain file manifest layer only
+   - remove path checkpoints and other non-essential experimental metadata surfaces
+
+3. payload_plus_path
+   - retain payload block truth
+   - retain path checkpoint layer only
+   - remove file manifests and other non-essential experimental metadata surfaces
+
+4. full_current_experimental
+   - current experimental archive layout used as control arm
+
+These variant names must be user-facing in the comparison outputs exactly as written above unless a compelling repo-local naming rule already exists and is documented consistently.
+
+---------------------------------------------------------------------
+
+2) Scope of pruning
+
+This packet applies only to experimental metadata surfaces introduced during the resilience research path.
+
+Do NOT remove the minimal archive/container structures required for:
+- decoding
+- block scanning
+- payload verification
+- existing experimental payload identity behavior
+
+The question is not “can the archive exist with literally no structure.”
+The question is “which experimental metadata layers materially matter.”
+
+---------------------------------------------------------------------
+
+3) Writer support for pruning variants
+
+Add an explicit experimental way to generate the pruning variants for the lab harness.
+
+Acceptable approaches:
+- `crushr-pack --metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental>`
+- a lab-only experimental archive generation path using the same exact variant names
+- another explicit mechanism, provided the variant names remain stable and documented
+
+This must remain opt-in.
+It must NOT silently change default archive behavior.
+
+---------------------------------------------------------------------
+
+4) Salvage compatibility
+
+Salvage must continue to operate against all pruning variants.
+
+Required:
+- payload-only archives remain salvageable to the extent supported by payload block identity
+- manifest-containing variants may improve confidence/classification if manifests genuinely matter
+- path-containing variants may improve naming if path truth genuinely matters
+- no variant may bypass verification rules
+
+---------------------------------------------------------------------
+
+5) Bounded comparison workflow
+
+Add a comparison command:
+
+run-format10-pruning-comparison
+
+The command must compare at minimum:
+
+- full_current_experimental
+- payload_only
+- payload_plus_manifest
+- payload_plus_path
+
+Required outputs:
+
+- format10_comparison_summary.json
+- format10_comparison_summary.md
+
+Required metrics:
+
+- recovery outcome counts per variant
+- recovery classification counts per variant
+- named recovery count
+- anonymous full recovery count
+- partial ordered recovery count
+- partial unordered recovery count
+- orphan evidence count
+- no verified evidence count
+- archive size summary per variant
+- bytes overhead delta vs payload_only
+- recovery delta vs full_current_experimental
+- grouped breakdown by dataset and corruption target
+
+The key question:
+
+Can we remove metadata layers without losing recovery capability, and if so, how much archive overhead do we save?
+
+---------------------------------------------------------------------
+
+6) Archive size accounting
+
+Each variant must report archive size metrics.
+
+Required fields:
+- archive_byte_size
+- metadata_byte_estimate if feasible
+- overhead_delta_vs_payload_only
+
+The exact accounting method may be approximate if necessary, but it must be deterministic and clearly documented.
+
+This packet is not only about recovery.
+It is also about whether extra metadata earns its keep.
+
+---------------------------------------------------------------------
+
+7) CLI INTEGRATION REQUIREMENT (CRITICAL)
+
+The new comparison command MUST be wired into the CLI and proven callable.
+
+Builder has repeatedly implemented commands without registering them.
+
+Required integration points:
+- CLI command enum / parser registration
+- dispatch match arm
+- runtime invocation must work exactly as documented
+
+Before submission Builder must run:
+
+cargo run -p crushr --bin crushr-lab-salvage -- \
+  run-format10-pruning-comparison --help
+
+and
+
+cargo run -p crushr --bin crushr-lab-salvage -- \
+  run-format10-pruning-comparison --output "$(mktemp -d)"
+
+If the command is not recognized, the packet is incomplete.
+
+---------------------------------------------------------------------
+
+8) Targeted experimental corpus
+
+Use a bounded targeted corpus.
+
+Required coverage:
+- smallfiles
+- mixed
+- largefiles
+
+Required corruption coverage:
+- header damage
+- index damage
+- payload damage
+- tail damage
+
+Optional but recommended:
+- include a small subset of the stronger Phase-09 metadata-regime scenarios if easy to reuse cleanly
+
+Target size:
+- roughly 24 to 48 scenarios total per variant
+- keep bounded and deterministic
+
+---------------------------------------------------------------------
+
+9) Tests
+
+Add focused tests covering at minimum:
+
+9.1 variant generation
+- all four pruning variants can be generated deterministically
+
+9.2 salvage compatibility
+- payload_only archives are still salvage-analyzable
+- other variants are likewise analyzable
+
+9.3 comparison workflow correctness
+- run-format10-pruning-comparison produces required JSON and Markdown outputs
+- all four variant names appear in output
+
+9.4 archive size reporting
+- size metrics are present and deterministic
+
+9.5 CLI dispatch regression
+- run-format10-pruning-comparison is recognized and not treated as an input path
+
+9.6 non-regression
+- FORMAT-09 comparison command still dispatches correctly after this packet
+
+---------------------------------------------------------------------
+
+10) Documentation updates
+
+Update only directly relevant docs:
+
+- PROJECT_STATE.md
+- .ai/STATUS.md
+- .ai/PHASE_PLAN.md
+- .ai/HANDOFF.md
+- .ai/DECISION_LOG.md
+- docs/ARCHITECTURE.md
+- docs/SNAPSHOT_FORMAT.md
+- relevant schema/version docs if needed
+
+Documentation must include:
+- the four pruning variants
+- that FORMAT-10 is a metadata necessity audit
+- that current evidence motivated pruning due to zero measured metadata survivability
+- that this packet measures both recovery capability and size overhead
+
+Keep docs concise, factual, and aligned with the experimental boundary.
+
+---------------------------------------------------------------------
+
+Out of scope
+
+Do NOT implement in this packet:
+- new metadata placement strategies
+- new graph node types
+- dictionary redesign
+- speculative reconstruction
+- broad refactors unrelated to the pruning experiment
+
+---------------------------------------------------------------------
+
+Implementation guidance
+
+- Be ruthless but controlled.
+- payload_only is the anchor arm
+- full_current_experimental is the control arm
+- payload_plus_manifest tests whether manifests matter
+- payload_plus_path tests whether path truth matters
+- If full_current_experimental and payload_only are functionally identical in recovery results, that is not a failure. That is the finding.
+- Favor simple explicit variant handling over abstract frameworks.
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+This packet is complete only if:
+
+1) the four pruning variants exist and are selectable/generated:
+   - payload_only
+   - payload_plus_manifest
+   - payload_plus_path
+   - full_current_experimental
+
+2) the pruning comparison command is actually wired into the CLI and runs:
+   run-format10-pruning-comparison
+
+3) the comparison command produces:
+   - format10_comparison_summary.json
+   - format10_comparison_summary.md
+
+4) outputs include all four variants and required recovery + size metrics
+
+5) tests verify determinism, CLI registration, non-regression, and archive size accounting
+
+6) workspace gates pass
+
+---------------------------------------------------------------------
+
+Verification commands
+
+cargo fmt --all --check
+
+cargo test --workspace
+
+cargo clippy --workspace --all-targets -- -D warnings
+
+Additionally verify explicitly:
+
+cargo run -p crushr --bin crushr-lab-salvage -- \
+  run-format10-pruning-comparison --help
+
+cargo run -p crushr --bin crushr-lab-salvage -- \
+  run-format10-pruning-comparison --output "$(mktemp -d)"
+
+cargo run -p crushr --bin crushr-lab-salvage -- \
+  run-format09-comparison --output "$(mktemp -d)"
+
+---------------------------------------------------------------------
+
+Required response format
+
+Return:
+
+1) what changed
+2) files modified or added
+3) verification commands and outcomes
+4) remaining risks
+5) exact pruning variant definitions implemented
+6) exact working comparison command
+7) FORMAT-09 regression status
+8) key recovery + size findings
+9) completion status

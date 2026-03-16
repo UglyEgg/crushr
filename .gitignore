@@ -1,3 +1,4 @@
+# Project cruft
 *.tar.gz
 *.zip
 
@@ -7,3 +8,21 @@ target/
 PHASE2_RESEARCH/baselines/*
 PHASE2_RESEARCH/datasets/*
 PHASE2_RESEARCH/trials/raw
+
+# Python / MkDocs
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# MkDocs build output
+site/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
