@@ -77,6 +77,7 @@ Recovery should degrade in reverse order:
 - FORMAT-10 compares four metadata profiles and records both recovery outcomes and size overhead (`format10_comparison_summary.{json,md}`).
 - FORMAT-11 compares `payload_only`, `payload_plus_manifest`, `full_current_experimental`, and `extent_identity_only`, emitting `format11_comparison_summary.{json,md}` for distributed extent-identity evidence.
 - FORMAT-12 adds `extent_identity_inline_path` and `extent_identity_distributed_names`, and emits `format12_comparison_summary.{json,md}` with grouped recovery/size analysis including path-length duplication visibility.
+- FORMAT-12 stress comparison command (`run-format12-stress-comparison`) now emits `format12_stress_comparison_summary.{json,md}` over deterministic `deep_paths`, `long_names`, `fragmentation_heavy`, and `mixed_worst_case` datasets to measure worst-case inline path-duplication overhead.
 - It must not weaken `crushr-extract` or redefine canonical extraction semantics.
 
 ## Near-term product-completeness track (planned, not active yet)

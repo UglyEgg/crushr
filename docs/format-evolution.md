@@ -47,7 +47,8 @@ flowchart TD
     F --> G["FORMAT-09 metadata survivability audit"]
     G --> H["FORMAT-10 pruning / simplification direction"]
     H --> I["FORMAT-11 distributed extent identity"]
-    I --> J["FORMAT-12 inline naming experiment pending"]
+    I --> J["FORMAT-12 inline naming experiment"]
+    J --> K["FORMAT-12-STRESS worst-case duplication verification"]
 ```
 
 ## Phase-by-phase evolution
@@ -286,9 +287,9 @@ After FORMAT-11, the sharper question is:
 - if names and paths are the one thing metadata is still buying, can that truth be distributed locally instead of centralized?
 - how much duplication is too much before the format stops looking credible as a compression-oriented design?
 
-That is the purpose of the pending FORMAT-12 experiment.
+That was the purpose of FORMAT-12, and FORMAT-12-STRESS closes the remaining duplication-risk question with deterministic stress datasets.
 
-FORMAT-12 is expected to compare at least:
+FORMAT-12/12-STRESS compare at least:
 
 - `payload_only`
 - `extent_identity_only`
@@ -297,6 +298,8 @@ FORMAT-12 is expected to compare at least:
 - `extent_identity_inline_path`
 
 and answer whether embedding name/path truth into local extent identity buys enough named recovery to justify its byte cost.
+
+FORMAT-12-STRESS adds deterministic worst-case dataset families (`deep_paths`, `long_names`, `fragmentation_heavy`, `mixed_worst_case`) and records stress metrics including path lengths, extent density, and bytes added per extent/path-character in `format12_stress_comparison_summary.{json,md}`.
 
 If it does, that points toward a retained distributed naming surface.
 If it does not, that strengthens the case for pruning or demoting naming-heavy metadata rather than carrying it on principle.

@@ -2,7 +2,7 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-FORMAT-12 complete** (inline per-extent path/name identity experiment + comparison harness)
+Current Step: **CRUSHR-FORMAT-12-STRESS complete** (deterministic inline-naming stress comparison + artifacts)
 
 Immediate Next Step: **CRUSHR-FORMAT-13 follow-up packet** (decide compact distributed-name design vs keep/demote/prune from FORMAT-12 evidence; now informed by FORMAT-12 stress comparison)
 
@@ -22,7 +22,7 @@ Immediate Next Step: **CRUSHR-FORMAT-13 follow-up packet** (decide compact distr
 - FORMAT-10 now adds explicit metadata-pruning variants and emits `format10_comparison_summary.{json,md}` including recovery outcomes, classification counts, and archive-size overhead deltas versus `payload_only`.
 - FORMAT-11 adds `extent_identity_only` (distributed per-extent identity via payload-block identity records; no local path/name fields) and emits `format11_comparison_summary.{json,md}` with recovery/size deltas vs `payload_plus_manifest`.
 - FORMAT-12 adds `extent_identity_inline_path` (inline verified `name`/`path`/`path_digest` embedded in each payload identity record) and `extent_identity_distributed_names` (distributed checkpoint naming), and emits `format12_comparison_summary.{json,md}` for naming-gain vs size-cost evidence.
-- FORMAT-12 stress packet (`CRUSHR-FORMAT-12-STRESS`) adds `run-format12-stress-comparison` and emits `format12_stress_summary.{json,md}` over deterministic `deep_paths`, `long_names`, `fragmentation_heavy`, and `mixed_worst_case` datasets, including overhead/path/extent metrics and explicit evaluation answers.
+- FORMAT-12 stress packet (`CRUSHR-FORMAT-12-STRESS`) adds `run-format12-stress-comparison` and emits `format12_stress_comparison_summary.{json,md}` over deterministic `deep_paths`, `long_names`, `fragmentation_heavy`, and `mixed_worst_case` datasets, including overhead/path/extent metrics and explicit evaluation answers.
 
 ## Active constraints
 

@@ -26,6 +26,7 @@
 ## Phase 3 — Standalone Salvage Planning and Recovery-Graph Research (active)
 
 - [x] 3.x CRUSHR-FORMAT-12-STRESS (inline naming duplication stress harness + reporting)
+  - emits `PHASE2_RESEARCH/FORMAT12_STRESS_RESULTS/format12_stress_comparison_summary.{json,md}`
 
 - [x] 3.1 CRUSHR-SALVAGE-01 (plan-only)
 - [x] 3.2 CRUSHR-SALVAGE-02 (verified block analysis, still plan-only)

@@ -548,3 +548,10 @@
 - Added `run-format12-stress-comparison` command to `crushr-lab-salvage`.
 - Added deterministic stress datasets (`deep_paths`, `long_names`, `fragmentation_heavy`, `mixed_worst_case`) and generated stress summary outputs with overhead/path/extent metrics and evaluation answers.
 - Added regression tests for CLI/help wiring and stress summary schema fields.
+
+
+## 2026-03-16 — CRUSHR-FORMAT-12-STRESS (artifact/schema alignment)
+- Upgraded `run-format12-stress-comparison` to run deterministic corruption scenarios per stress dataset and aggregate required recovery + overhead metrics in `by_variant`, grouped breakdowns, and per-scenario rows.
+- Added required artifact filenames `format12_stress_comparison_summary.json` and `format12_stress_comparison_summary.md` (while retaining legacy compatibility copies).
+- Added deterministic fixture test coverage in `comparison.rs` plus stress visibility assertions in `salvage_experimental_resilience.rs` for path-length and extent-density stress guarantees.
+- Saved generated artifacts under `PHASE2_RESEARCH/FORMAT12_STRESS_RESULTS/`.

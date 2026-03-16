@@ -730,9 +730,11 @@ fn format12_stress_comparison_command_reports_required_fields() {
         .arg("--output")
         .arg(&out_dir));
 
-    let summary_path = out_dir.join("format12_stress_summary.json");
+    let summary_path = out_dir.join("format12_stress_comparison_summary.json");
     assert!(summary_path.exists());
-    assert!(out_dir.join("format12_stress_summary.md").exists());
+    assert!(out_dir
+        .join("format12_stress_comparison_summary.md")
+        .exists());
 
     let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
     let variants = summary["variants"].as_array().unwrap();
@@ -741,20 +743,54 @@ fn format12_stress_comparison_command_reports_required_fields() {
     assert!(variants.iter().any(|v| v == "extent_identity_inline_path"));
     assert!(variants.iter().any(|v| v == "payload_plus_manifest"));
 
-    let rows = summary["rows"].as_array().unwrap();
-    assert!(!rows.is_empty());
-    let first = &rows[0];
+    let by = summary["by_variant"].as_object().unwrap();
+    let first = &by["extent_identity_inline_path"];
+    assert!(first["scenario_count"].is_u64());
     assert!(first["archive_byte_size"].is_u64());
-    assert!(first["overhead_vs_payload_only"].is_i64());
-    assert!(first["overhead_vs_extent_identity_only"].is_i64());
+    assert!(first["overhead_delta_vs_payload_only"].is_i64());
+    assert!(first["overhead_delta_vs_extent_identity_only"].is_i64());
+    assert!(first["named_recovery_count"].is_i64() || first["named_recovery_count"].is_u64());
+    assert!(first["anonymous_full_recovery_count"].is_u64());
+    assert!(first["partial_ordered_recovery_count"].is_u64());
+    assert!(first["partial_unordered_recovery_count"].is_u64());
+    assert!(first["orphan_evidence_count"].is_u64());
+    assert!(first["no_verified_evidence_count"].is_u64());
+    assert!(first["recovery_per_kib_overhead"].is_f64());
     assert!(first["average_path_length"].is_f64());
+    assert!(first["max_path_length"].is_u64());
     assert!(first["total_extent_count"].is_u64());
-    assert!(first["extents_per_file_distribution"].is_object());
-    assert!(first["bytes_added_per_character_of_path"].is_f64());
-    assert!(first["bytes_added_per_extent"].is_f64());
+    assert!(first["average_extents_per_file"].is_f64());
+    assert!(first["max_extents_per_file"].is_u64());
+    assert!(first["bytes_added_per_extent_vs_extent_identity_only"].is_f64());
+    assert!(first["bytes_added_per_path_character_vs_extent_identity_only"].is_f64());
 
-    assert!(summary["evaluation"]["inline_path_expansion_gt_20_percent_any_dataset"].is_boolean());
-    assert!(summary["evaluation"]["inline_smaller_than_manifest_all_datasets"].is_boolean());
+    let grouped = summary["grouped_breakdown"].as_object().unwrap();
+    assert!(grouped.contains_key("dataset"));
+    assert!(grouped.contains_key("corruption_target"));
+    assert!(grouped.contains_key("path_length_bucket"));
+    assert!(grouped.contains_key("extent_density_bucket"));
+}
+
+#[test]
+fn format12_stress_datasets_exceed_normal_path_and_extent_visibility() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format12-stress-visibility");
+
+    run(Command::new(lab_bin)
+        .arg("run-format12-stress-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format12_stress_comparison_summary.json");
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    let by = summary["by_variant"].as_object().unwrap();
+
+    let inline = &by["extent_identity_inline_path"];
+    assert!(inline["average_path_length"].as_f64().unwrap_or(0.0) > 120.0);
+    assert!(inline["max_path_length"].as_u64().unwrap_or(0) >= 180);
+    assert!(inline["average_extents_per_file"].as_f64().unwrap_or(0.0) >= 8.0);
+    assert!(inline["max_extents_per_file"].as_u64().unwrap_or(0) >= 24);
 }
 
 #[test]
