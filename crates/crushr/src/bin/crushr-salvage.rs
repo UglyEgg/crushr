@@ -29,6 +29,7 @@ const FILE_IDENTITY_EXTENT_PATH: &str = "FILE_IDENTITY_EXTENT_PATH";
 const FILE_IDENTITY_EXTENT_PATH_ANONYMOUS: &str = "FILE_IDENTITY_EXTENT_PATH_ANONYMOUS";
 const PAYLOAD_BLOCK_IDENTITY_PATH: &str = "PAYLOAD_BLOCK_IDENTITY_PATH";
 const PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS: &str = "PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS";
+const FILE_MANIFEST_PATH: &str = "FILE_MANIFEST_PATH";
 
 // Internal responsibility split for safer iterative salvage changes.
 // cli => argument parsing, discovery => block scan/verification,
@@ -47,8 +48,9 @@ use cli::parse_cli_options;
 use discovery::{build_block_verification, classify_file, scan_blk3_candidates, to_hex};
 use metadata::{
     parse_checkpoint_extent_records, parse_experimental_metadata_records,
-    parse_file_identity_extent_records, parse_payload_block_identity_records,
-    parse_redundant_map_files, parse_self_describing_extent_records,
+    parse_file_identity_extent_records, parse_file_manifest_records,
+    parse_payload_block_identity_records, parse_redundant_map_files,
+    parse_self_describing_extent_records, verify_and_apply_manifest_expectations,
     verify_and_plan_experimental_records, verify_and_plan_file_identity_extent_records,
     verify_and_plan_payload_block_identity_records, verify_and_plan_redundant_map,
 };
@@ -215,6 +217,7 @@ struct BlockCandidate {
 #[derive(Debug, Serialize)]
 struct FilePlan {
     mapping_provenance: &'static str,
+    recovery_classification: &'static str,
     file_path: String,
     status: &'static str,
     reason: &'static str,
@@ -359,6 +362,7 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
                                 );
                                 file_plans.push(FilePlan {
                                     mapping_provenance: PRIMARY_INDEX_PATH,
+                                    recovery_classification: "FULL_VERIFIED",
                                     file_path: entry.path,
                                     status,
                                     reason,
@@ -432,6 +436,16 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
                                 if !checkpoint_plans.is_empty() {
                                     file_plans = checkpoint_plans;
                                 }
+                            }
+
+                            if let Ok(manifest_plans) = verify_and_apply_manifest_expectations(
+                                std::mem::take(&mut file_plans),
+                                parse_file_manifest_records(&experimental_values),
+                                &experimental_values,
+                                &block_verification,
+                                FILE_MANIFEST_PATH,
+                            ) {
+                                file_plans = manifest_plans;
                             }
 
                             if file_plans.is_empty() {
@@ -569,6 +583,16 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
             if !file_identity_plans.is_empty() {
                 file_plans = file_identity_plans;
             }
+        }
+
+        if let Ok(manifest_plans) = verify_and_apply_manifest_expectations(
+            std::mem::take(&mut file_plans),
+            parse_file_manifest_records(&experimental_values),
+            &experimental_values,
+            &synthesized_block_verification,
+            FILE_MANIFEST_PATH,
+        ) {
+            file_plans = manifest_plans;
         }
 
         if file_plans.is_empty() {

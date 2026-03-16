@@ -93,3 +93,9 @@ Recovery should degrade in reverse order:
 - Decomposed `crushr-salvage` into internal modules (`cli`, `discovery`, `metadata`, `artifacts`) with behavior preserved.
 - Decomposed `crushr-lab-salvage` into internal modules (`cli`, `runner`, `comparison`) with behavior preserved.
 - Added regression test coverage for salvage binary resolution precedence while preserving existing deterministic ordering/comparison workflow tests.
+
+
+## Update: CRUSHR-FORMAT-06-f1 complete
+- Manifest layer now synthesizes file plans when prior mapping stages are empty by joining manifest records with payload-block identity evidence, so FORMAT-06 contributes recoverable planning structure directly.
+- Manifest application now uses `file_digest` for verification in single-block completeness cases (digest must match recovered block raw hash for FULL_* classification).
+- FORMAT-06 comparison summary now aggregates and reports recovery-classification counts/deltas versus FORMAT-05.

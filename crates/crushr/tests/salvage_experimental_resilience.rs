@@ -26,6 +26,7 @@ fn build_archive(
     experimental: bool,
     file_identity: bool,
     self_identifying_blocks: bool,
+    file_manifest_checkpoints: bool,
 ) {
     let td = TempDir::new().unwrap();
     let input = td.path().join("input");
@@ -48,6 +49,9 @@ fn build_archive(
     }
     if self_identifying_blocks {
         cmd.arg("--experimental-self-identifying-blocks");
+    }
+    if file_manifest_checkpoints {
+        cmd.arg("--experimental-file-manifest-checkpoints");
     }
     run(&mut cmd);
 }
@@ -84,7 +88,7 @@ fn experimental_archive_uses_checkpoint_path_when_primary_and_ledger_are_unusabl
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive.crushr");
 
-    build_archive(pack_bin, &archive, true, false, false);
+    build_archive(pack_bin, &archive, true, false, false, false);
     rewrite_tail_without_ledger_and_with_corrupt_index(&archive);
 
     let plan = run_salvage(salvage_bin, &archive, &td.path().join("plan.json"));
@@ -150,7 +154,7 @@ fn file_identity_archive_uses_file_identity_path_when_primary_and_ledger_are_unu
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive-file-identity.crushr");
 
-    build_archive(pack_bin, &archive, false, true, false);
+    build_archive(pack_bin, &archive, false, true, false, false);
     rewrite_tail_without_ledger_and_with_corrupt_index(&archive);
 
     let plan = run_salvage(
@@ -173,7 +177,7 @@ fn file_identity_archive_recovers_via_bootstrap_scan_when_tail_is_truncated() {
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive-truncated-tail.crushr");
 
-    build_archive(pack_bin, &archive, false, true, false);
+    build_archive(pack_bin, &archive, false, true, false, false);
     let mut bytes = fs::read(&archive).unwrap();
     let new_len = bytes.len().saturating_sub(96);
     bytes.truncate(new_len);
@@ -201,7 +205,7 @@ fn format05_archive_recovers_via_payload_block_identity_when_index_is_unusable()
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive-format05.crushr");
 
-    build_archive(pack_bin, &archive, false, false, true);
+    build_archive(pack_bin, &archive, false, false, true, false);
     rewrite_tail_without_ledger_and_with_corrupt_index(&archive);
 
     let plan = run_salvage(salvage_bin, &archive, &td.path().join("plan-format05.json"));
@@ -235,6 +239,65 @@ fn format05_comparison_command_is_invokable() {
     assert!(summary["orphan_to_full_improvements_vs_old"].is_number());
     assert!(summary["no_evidence_to_partial_improvements_vs_old"].is_number());
     assert!(summary["no_evidence_to_full_improvements_vs_old"].is_number());
+}
+
+#[test]
+fn format06_archive_uses_manifest_path_when_primary_and_ledger_are_unusable() {
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let td = TempDir::new().unwrap();
+    let archive = td.path().join("archive-format06.crushr");
+
+    build_archive(pack_bin, &archive, false, false, true, true);
+    rewrite_tail_without_ledger_and_with_corrupt_index(&archive);
+
+    let plan = run_salvage(salvage_bin, &archive, &td.path().join("plan-format06.json"));
+    assert_eq!(plan["index_analysis"]["status"], "invalid");
+    assert_eq!(plan["summary"]["salvageable_files"], 1);
+    assert_eq!(
+        plan["file_plans"][0]["mapping_provenance"],
+        "FILE_MANIFEST_PATH"
+    );
+    assert_eq!(
+        plan["file_plans"][0]["recovery_classification"],
+        "FULL_VERIFIED"
+    );
+}
+
+#[test]
+fn format06_comparison_command_reports_recovery_classification_deltas() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format06");
+
+    run(Command::new(lab_bin)
+        .arg("run-format06-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format06_comparison_summary.json");
+    assert!(summary_path.exists());
+    assert!(out_dir.join("format06_comparison_summary.md").exists());
+
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    assert_eq!(summary["scenario_count"], 24);
+    assert!(summary["format05_recovery_classification_counts"].is_object());
+    assert!(summary["format06_recovery_classification_counts"].is_object());
+    assert!(
+        summary["recovery_classification_delta_vs_format05"]["full_verified_delta"].is_number()
+    );
+    assert!(
+        summary["recovery_classification_delta_vs_format05"]["full_anonymous_delta"].is_number()
+    );
+    assert!(
+        summary["recovery_classification_delta_vs_format05"]["partial_ordered_delta"].is_number()
+    );
+    assert!(
+        summary["recovery_classification_delta_vs_format05"]["partial_unordered_delta"].is_number()
+    );
+    assert!(
+        summary["recovery_classification_delta_vs_format05"]["orphan_blocks_delta"].is_number()
+    );
 }
 
 #[test]

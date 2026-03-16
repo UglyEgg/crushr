@@ -65,6 +65,7 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
         if first == "run-file-identity-comparison"
             || first == "run-format04-comparison"
             || first == "run-format05-comparison"
+            || first == "run-format06-comparison"
         {
             let mut output_dir = None;
             let mut verbose = false;
@@ -87,6 +88,10 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                     }
                 } else if first == "run-format05-comparison" {
                     Mode::RunFormat05Comparison {
+                        comparison_dir: output_dir.context(USAGE)?,
+                    }
+                } else if first == "run-format06-comparison" {
+                    Mode::RunFormat06Comparison {
                         comparison_dir: output_dir.context(USAGE)?,
                     }
                 } else {
@@ -150,7 +155,8 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                 | "run-experimental-resilience-comparison"
                 | "run-file-identity-comparison"
                 | "run-format04-comparison"
-                | "run-format05-comparison" => {
+                | "run-format05-comparison"
+                | "run-format06-comparison" => {
                     bail!("subcommand `{arg}` must be used as the first argument\n{USAGE}")
                 }
                 _ if arg.starts_with('-') => bail!("unsupported flag: {arg}"),

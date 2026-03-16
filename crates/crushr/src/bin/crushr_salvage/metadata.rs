@@ -529,6 +529,11 @@ pub(super) fn verify_and_plan_payload_block_identity_records(
         } else {
             PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS
         };
+        plan.recovery_classification = if plan.file_path.starts_with("anonymous_verified/") {
+            "FULL_ANONYMOUS"
+        } else {
+            "FULL_VERIFIED"
+        };
     }
     Ok(plans)
 }
@@ -691,7 +696,221 @@ pub(super) fn verify_and_plan_file_identity_extent_records(
         } else {
             FILE_IDENTITY_EXTENT_PATH_ANONYMOUS
         };
+        plan.recovery_classification = if plan.file_path.starts_with("anonymous_verified/") {
+            "FULL_ANONYMOUS"
+        } else {
+            "FULL_VERIFIED"
+        };
     }
+    Ok(plans)
+}
+
+#[derive(Debug)]
+pub(super) struct FileManifestRecord {
+    file_id: u32,
+    path: Option<String>,
+    file_size: u64,
+    expected_block_count: u64,
+    extent_count: u64,
+    file_digest: String,
+}
+
+pub(super) fn parse_file_manifest_records(values: &[Value]) -> Vec<FileManifestRecord> {
+    let mut out = Vec::new();
+    for value in values {
+        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-file-manifest.v1") {
+            continue;
+        }
+        let Some(file_id_u64) = value.get("file_id").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Ok(file_id) = u32::try_from(file_id_u64) else {
+            continue;
+        };
+        let file_size = value.get("file_size").and_then(|v| v.as_u64()).unwrap_or(0);
+        let expected_block_count = value
+            .get("expected_block_count")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        let extent_count = value
+            .get("extent_count")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        let file_digest = value
+            .get("file_digest")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        let path = value
+            .get("path")
+            .and_then(|v| v.as_str())
+            .map(|v| v.to_string());
+        out.push(FileManifestRecord {
+            file_id,
+            path,
+            file_size,
+            expected_block_count,
+            extent_count,
+            file_digest,
+        });
+    }
+    out
+}
+
+pub(super) fn verify_and_apply_manifest_expectations(
+    mut plans: Vec<FilePlan>,
+    manifests: Vec<FileManifestRecord>,
+    values: &[Value],
+    block_verification: &BTreeMap<u32, BlockVerification>,
+    mapping_provenance: &'static str,
+) -> Result<Vec<FilePlan>> {
+    let payload_path_map = parse_payload_block_path_checkpoints(values);
+    let mut manifest_by_path = BTreeMap::new();
+    let mut manifest_by_id = BTreeMap::new();
+    for m in manifests {
+        if m.expected_block_count == 0 || m.extent_count == 0 || m.file_digest.is_empty() {
+            continue;
+        }
+        if let Some(path) = m.path.clone() {
+            manifest_by_path.insert(path, m.file_id);
+        }
+        manifest_by_id.insert(m.file_id, m);
+    }
+
+    let mut block_raw_hash = BTreeMap::new();
+    for value in values {
+        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-payload-block-identity.v1")
+        {
+            continue;
+        }
+        let Some(block_id_u64) = value.get("block_id").and_then(|v| v.as_u64()) else {
+            continue;
+        };
+        let Ok(block_id) = u32::try_from(block_id_u64) else {
+            continue;
+        };
+        let Some(raw_hash) = value
+            .get("content_identity")
+            .and_then(|v| v.get("raw_hash_blake3"))
+            .and_then(|v| v.as_str())
+        else {
+            continue;
+        };
+        block_raw_hash.insert(block_id, raw_hash.to_string());
+    }
+
+    if plans.is_empty() {
+        let payload_records = parse_payload_block_identity_records(values);
+        let mut by_file_id: BTreeMap<u32, Vec<PayloadBlockIdentityRecord>> = BTreeMap::new();
+        for record in payload_records {
+            by_file_id.entry(record.file_id).or_default().push(record);
+        }
+
+        for (file_id, manifest) in &manifest_by_id {
+            let mut extents = by_file_id
+                .remove(file_id)
+                .unwrap_or_default()
+                .into_iter()
+                .map(|record| {
+                    (
+                        record.block_index,
+                        Extent {
+                            block_id: record.block_id,
+                            offset: record.logical_offset,
+                            len: record.logical_length,
+                        },
+                    )
+                })
+                .collect::<Vec<_>>();
+            extents.sort_by_key(|(idx, _)| *idx);
+            let extents = extents.into_iter().map(|(_, e)| e).collect::<Vec<_>>();
+            let required_block_ids = extents.iter().map(|e| e.block_id).collect::<Vec<_>>();
+            let (mut status, mut reason, mut failure_reasons) = if extents.is_empty() {
+                (
+                    "UNMAPPABLE",
+                    "manifest has no recoverable block identity extents",
+                    vec!["manifest_without_recoverable_extents"],
+                )
+            } else {
+                classify_file(&extents, &required_block_ids, block_verification)
+            };
+            if manifest.expected_block_count > required_block_ids.len() as u64 {
+                status = "UNSALVAGEABLE";
+                reason = "manifest expected blocks missing from recovered set";
+                failure_reasons.push("manifest_expected_blocks_missing");
+            }
+            plans.push(FilePlan {
+                mapping_provenance,
+                recovery_classification: if extents.is_empty() {
+                    "ORPHAN_BLOCKS"
+                } else if extents.windows(2).all(|w| w[0].offset <= w[1].offset) {
+                    "PARTIAL_ORDERED"
+                } else {
+                    "PARTIAL_UNORDERED"
+                },
+                file_path: manifest
+                    .path
+                    .clone()
+                    .or_else(|| payload_path_map.get(file_id).cloned())
+                    .unwrap_or_else(|| format!("anonymous_verified/file_{:08}.bin", file_id)),
+                status,
+                reason,
+                failure_reasons,
+                required_block_ids,
+                extents,
+                file_size: manifest.file_size,
+            });
+        }
+    }
+
+    for plan in &mut plans {
+        let manifest = manifest_by_path
+            .get(&plan.file_path)
+            .and_then(|id| manifest_by_id.get(id))
+            .or_else(|| {
+                if let Some(name) = plan.file_path.strip_prefix("anonymous_verified/file_") {
+                    let id = name.strip_suffix(".bin")?.parse::<u32>().ok()?;
+                    manifest_by_id.get(&id)
+                } else {
+                    None
+                }
+            });
+
+        if let Some(manifest) = manifest {
+            plan.mapping_provenance = mapping_provenance;
+            let digest_match = if plan.required_block_ids.len() == 1 {
+                block_raw_hash
+                    .get(&plan.required_block_ids[0])
+                    .map(|v| v == &manifest.file_digest)
+                    .unwrap_or(false)
+            } else {
+                false
+            };
+            if plan.file_size == manifest.file_size
+                && plan.required_block_ids.len() as u64 == manifest.expected_block_count
+                && digest_match
+            {
+                plan.recovery_classification = if plan.file_path.starts_with("anonymous_verified/")
+                {
+                    "FULL_ANONYMOUS"
+                } else {
+                    "FULL_VERIFIED"
+                };
+            } else if plan.extents.windows(2).all(|w| w[0].offset <= w[1].offset) {
+                if !digest_match {
+                    plan.failure_reasons.push("manifest_digest_not_verified");
+                }
+                plan.recovery_classification = "PARTIAL_ORDERED";
+            } else {
+                plan.recovery_classification = "PARTIAL_UNORDERED";
+            }
+        } else if plan.status == "UNMAPPABLE" {
+            plan.recovery_classification = "ORPHAN_BLOCKS";
+        } else if plan.status == "UNSALVAGEABLE" {
+            plan.recovery_classification = "PARTIAL_ORDERED";
+        }
+    }
+
     Ok(plans)
 }
 
@@ -724,6 +943,7 @@ pub(super) fn verify_and_plan_experimental_records(
     let mut plans = verify_and_plan_redundant_map(files, block_verification)?;
     for plan in &mut plans {
         plan.mapping_provenance = mapping_provenance;
+        plan.recovery_classification = "FULL_VERIFIED";
     }
     Ok(plans)
 }
@@ -806,6 +1026,7 @@ pub(super) fn verify_and_plan_redundant_map(
 
         plans.push(FilePlan {
             mapping_provenance: REDUNDANT_VERIFIED_MAP_PATH,
+            recovery_classification: "FULL_VERIFIED",
             file_path: file.path,
             status,
             reason,

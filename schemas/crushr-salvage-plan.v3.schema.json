@@ -301,7 +301,8 @@
           "reason",
           "failure_reasons",
           "required_block_ids",
-          "mapping_provenance"
+          "mapping_provenance",
+          "recovery_classification"
         ],
         "properties": {
           "file_path": {
@@ -339,8 +340,20 @@
               "REDUNDANT_VERIFIED_MAP_PATH",
               "CHECKPOINT_MAP_PATH",
               "SELF_DESCRIBING_EXTENT_PATH",
+              "FILE_MANIFEST_PATH",
               "FILE_IDENTITY_EXTENT_PATH",
-              "FILE_IDENTITY_EXTENT_PATH_ANONYMOUS"
+              "FILE_IDENTITY_EXTENT_PATH_ANONYMOUS",
+              "PAYLOAD_BLOCK_IDENTITY_PATH",
+              "PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS"
+            ]
+          },
+          "recovery_classification": {
+            "enum": [
+              "FULL_VERIFIED",
+              "FULL_ANONYMOUS",
+              "PARTIAL_ORDERED",
+              "PARTIAL_UNORDERED",
+              "ORPHAN_BLOCKS"
             ]
           }
         }
