@@ -555,3 +555,86 @@ fn format09_comparison_command_is_not_treated_as_input_path() {
             || stderr.contains("usage:")
     );
 }
+
+#[test]
+fn format10_pruning_comparison_command_reports_required_fields() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format10");
+
+    run(Command::new(lab_bin)
+        .arg("run-format10-pruning-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format10_comparison_summary.json");
+    assert!(summary_path.exists());
+    assert!(out_dir.join("format10_comparison_summary.md").exists());
+
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    let variants = summary["variants"].as_array().unwrap();
+    assert!(variants.iter().any(|v| v == "payload_only"));
+    assert!(variants.iter().any(|v| v == "payload_plus_manifest"));
+    assert!(variants.iter().any(|v| v == "payload_plus_path"));
+    assert!(variants.iter().any(|v| v == "full_current_experimental"));
+
+    let by = summary["by_variant"].as_object().unwrap();
+    for key in [
+        "payload_only",
+        "payload_plus_manifest",
+        "payload_plus_path",
+        "full_current_experimental",
+    ] {
+        let row = &by[key];
+        assert!(row["recovery_outcome_counts"].is_object());
+        assert!(row["recovery_classification_counts"].is_object());
+        assert!(row["named_recovery_count"].is_u64());
+        assert!(row["anonymous_full_recovery_count"].is_u64());
+        assert!(row["partial_ordered_recovery_count"].is_u64());
+        assert!(row["partial_unordered_recovery_count"].is_u64());
+        assert!(row["orphan_evidence_count"].is_u64());
+        assert!(row["no_verified_evidence_count"].is_u64());
+        assert!(row["archive_byte_size"].is_u64());
+        assert!(row["metadata_byte_estimate"].is_u64());
+        assert!(row["overhead_delta_vs_payload_only"].is_i64());
+        assert!(row["recovery_delta_vs_full_current_experimental"].is_object());
+    }
+
+    let grouped = summary["grouped_breakdown"].as_object().unwrap();
+    assert!(grouped.contains_key("dataset"));
+    assert!(grouped.contains_key("corruption_target"));
+}
+
+#[test]
+fn format10_pruning_comparison_command_is_not_treated_as_input_path() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let out = Command::new(lab_bin)
+        .arg("placeholder-input")
+        .arg("run-format10-pruning-comparison")
+        .arg("--output")
+        .arg("/tmp/nowhere")
+        .output()
+        .expect("run misplaced command");
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("unexpected argument")
+            || stderr.contains("unsupported argument")
+            || stderr.contains("usage:")
+    );
+}
+
+#[test]
+fn format09_comparison_command_still_dispatches_after_format10() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format09-regression");
+
+    run(Command::new(lab_bin)
+        .arg("run-format09-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    assert!(out_dir.join("format09_comparison_summary.json").exists());
+    assert!(out_dir.join("format09_comparison_summary.md").exists());
+}

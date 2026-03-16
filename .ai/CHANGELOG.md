@@ -1,3 +1,10 @@
+## 2026-03-16 — CRUSHR-FORMAT-10 (metadata pruning experiment + comparison harness)
+
+- Added opt-in packer metadata profile surface: `--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental>`.
+- Added `run-format10-pruning-comparison` command wiring and output artifacts: `format10_comparison_summary.json` and `format10_comparison_summary.md`.
+- Added archive-size accounting fields (`archive_byte_size`, deterministic `metadata_byte_estimate`, `overhead_delta_vs_payload_only`) and grouped breakdown by dataset/corruption target.
+- Added CLI/help/dispatch and comparison-output integration tests, including FORMAT-09 post-change dispatch regression coverage.
+
 ## 2026-03-16 — CRUSHR-FORMAT-09 (metadata survivability and necessity audit harness)
 
 - Added `crushr-lab-salvage run-format09-comparison --output <dir>` command wiring and dispatch.

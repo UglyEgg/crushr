@@ -1,5 +1,6 @@
 use super::*;
 use crate::runner::{resolve_pack_bin, resolve_salvage_bin};
+use crushr_format::blk3::read_blk3_header;
 
 pub(super) fn comparison_scenarios() -> Vec<ComparisonScenario> {
     let datasets = ["smallfiles", "mixed", "largefiles"];
@@ -2317,6 +2318,333 @@ pub(super) fn run_format09_comparison(comparison_dir: &Path, verbose: bool) -> R
     }
 
     fs::write(comparison_dir.join("format09_comparison_summary.md"), md)?;
+
+    let _ = fs::remove_dir_all(&temp);
+    Ok(())
+}
+
+#[derive(Clone, Copy)]
+enum Format10Variant {
+    PayloadOnly,
+    PayloadPlusManifest,
+    PayloadPlusPath,
+    FullCurrentExperimental,
+}
+
+impl Format10Variant {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::PayloadOnly => "payload_only",
+            Self::PayloadPlusManifest => "payload_plus_manifest",
+            Self::PayloadPlusPath => "payload_plus_path",
+            Self::FullCurrentExperimental => "full_current_experimental",
+        }
+    }
+
+    fn metadata_profile(self) -> &'static str {
+        self.as_str()
+    }
+}
+
+fn build_archive_with_pack_metadata_profile(
+    pack_bin: &Path,
+    input: &Path,
+    output: &Path,
+    variant: Format10Variant,
+) -> Result<()> {
+    let out = Command::new(pack_bin)
+        .arg(input)
+        .arg("-o")
+        .arg(output)
+        .arg("--level")
+        .arg("3")
+        .arg("--metadata-profile")
+        .arg(variant.metadata_profile())
+        .output()
+        .with_context(|| format!("run {:?}", pack_bin))?;
+    if !out.status.success() {
+        bail!(
+            "crushr-pack failed\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+    Ok(())
+}
+
+fn estimate_metadata_byte_size(archive_path: &Path) -> Result<u64> {
+    let bytes = fs::read(archive_path)?;
+    let mut offset = 0usize;
+    let mut total = 0u64;
+    while offset + BLK3_MAGIC.len() <= bytes.len() {
+        if bytes[offset..offset + 4] != BLK3_MAGIC {
+            offset += 1;
+            continue;
+        }
+        let header = match read_blk3_header(std::io::Cursor::new(&bytes[offset..])) {
+            Ok(h) => h,
+            Err(_) => {
+                offset += 1;
+                continue;
+            }
+        };
+        let block_len = header.header_len as usize + header.comp_len as usize;
+        if block_len == 0 || offset + block_len > bytes.len() {
+            offset += 1;
+            continue;
+        }
+        if header.flags.is_meta_frame() {
+            total = total.saturating_add(block_len as u64);
+        }
+        offset += block_len;
+    }
+    Ok(total)
+}
+
+pub(super) fn run_format10_pruning_comparison(comparison_dir: &Path, verbose: bool) -> Result<()> {
+    fs::create_dir_all(comparison_dir)?;
+    let temp = std::env::temp_dir().join(format!(
+        "crushr-format10-pruning-comparison-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&temp);
+    fs::create_dir_all(&temp)?;
+
+    let salvage_bin = resolve_salvage_bin()?;
+    let pack_bin = resolve_pack_bin()?;
+    let variants = [
+        Format10Variant::FullCurrentExperimental,
+        Format10Variant::PayloadOnly,
+        Format10Variant::PayloadPlusManifest,
+        Format10Variant::PayloadPlusPath,
+    ];
+    let scenarios = comparison_scenarios();
+    let mut rows = Vec::new();
+
+    for scenario in scenarios {
+        let scenario_dir = temp.join(&scenario.scenario_id);
+        fs::create_dir_all(&scenario_dir)?;
+        let input_dir = scenario_dir.join("input");
+        write_dataset_fixture(&input_dir, scenario.dataset)?;
+
+        for variant in variants {
+            let variant_name = variant.as_str();
+            let archive = scenario_dir.join(format!("format10_{}.crushr", variant_name));
+            build_archive_with_pack_metadata_profile(
+                &pack_bin,
+                &input_dir.join(scenario.dataset),
+                &archive,
+                variant,
+            )?;
+            let archive_byte_size = fs::metadata(&archive)?.len();
+            let metadata_byte_estimate = estimate_metadata_byte_size(&archive)?;
+            let variant_scenario = ComparisonScenario {
+                scenario_id: scenario.scenario_id.clone(),
+                dataset: scenario.dataset,
+                corruption_model: scenario.corruption_model,
+                corruption_target: scenario.corruption_target,
+                magnitude: scenario.magnitude,
+                seed: scenario.seed,
+                break_redundant_map: false,
+            };
+            corrupt_archive(&archive, &variant_scenario)?;
+            let plan = run_salvage_plan(
+                &salvage_bin,
+                &archive,
+                &scenario_dir.join(format!(
+                    "plan_{}_{}.json",
+                    variant_name, scenario.scenario_id
+                )),
+            )?;
+            let classes = recovery_classification_counts(&plan);
+            let outcome = outcome_from_plan(&plan);
+            if verbose {
+                eprintln!(
+                    "format10 {} {} => class={}",
+                    scenario.scenario_id,
+                    variant_name,
+                    recovery_class_rank(&classes)
+                );
+            }
+            rows.push(serde_json::json!({
+                "variant": variant_name,
+                "scenario_id": scenario.scenario_id,
+                "dataset": scenario.dataset,
+                "corruption_model": scenario.corruption_model,
+                "corruption_target": scenario.corruption_target,
+                "magnitude": scenario.magnitude,
+                "seed": scenario.seed,
+                "archive_byte_size": archive_byte_size,
+                "metadata_byte_estimate": metadata_byte_estimate,
+                "recovery_outcome": outcome.outcome,
+                "recovery_classification_counts": classes,
+                "named_recovery": classes.get("FULL_NAMED_VERIFIED").copied().unwrap_or(0) > 0,
+                "anonymous_full_recovery": classes.get("FULL_ANONYMOUS_VERIFIED").copied().unwrap_or(0) > 0,
+                "partial_ordered_recovery": classes.get("PARTIAL_ORDERED_VERIFIED").copied().unwrap_or(0) > 0,
+                "partial_unordered_recovery": classes.get("PARTIAL_UNORDERED_VERIFIED").copied().unwrap_or(0) > 0,
+                "orphan_evidence": classes.get("ORPHAN_EVIDENCE_ONLY").copied().unwrap_or(0) > 0,
+                "no_verified_evidence": classes.get("NO_VERIFIED_EVIDENCE").copied().unwrap_or(0) > 0,
+            }));
+        }
+    }
+
+    let payload_only_total_size: u64 = rows
+        .iter()
+        .filter(|r| r["variant"] == "payload_only")
+        .map(|r| r["archive_byte_size"].as_u64().unwrap_or(0))
+        .sum();
+
+    let full_outcomes = count_outcomes(
+        rows.iter()
+            .filter(|r| r["variant"] == "full_current_experimental")
+            .filter_map(|r| r["recovery_outcome"].as_str()),
+    );
+
+    let mut by_variant = serde_json::Map::new();
+    for variant in [
+        "full_current_experimental",
+        "payload_only",
+        "payload_plus_manifest",
+        "payload_plus_path",
+    ] {
+        let variant_rows: Vec<&Value> = rows.iter().filter(|r| r["variant"] == variant).collect();
+        let recovery_outcomes = count_outcomes(
+            variant_rows
+                .iter()
+                .filter_map(|r| r["recovery_outcome"].as_str()),
+        );
+        let classes = merge_classification_counts(
+            &variant_rows
+                .iter()
+                .map(|r| (*r).clone())
+                .collect::<Vec<Value>>(),
+            "recovery_classification_counts",
+        );
+        let archive_byte_size: u64 = variant_rows
+            .iter()
+            .map(|r| r["archive_byte_size"].as_u64().unwrap_or(0))
+            .sum();
+        let metadata_byte_estimate: u64 = variant_rows
+            .iter()
+            .map(|r| r["metadata_byte_estimate"].as_u64().unwrap_or(0))
+            .sum();
+        let overhead_delta_vs_payload_only =
+            archive_byte_size as i64 - payload_only_total_size as i64;
+
+        let baseline_full = full_outcomes
+            .get("FULL_FILE_SALVAGE_AVAILABLE")
+            .copied()
+            .unwrap_or(0) as i64;
+        let this_full = recovery_outcomes
+            .get("FULL_FILE_SALVAGE_AVAILABLE")
+            .copied()
+            .unwrap_or(0) as i64;
+
+        by_variant.insert(variant.to_string(), serde_json::json!({
+            "scenario_count": variant_rows.len(),
+            "recovery_outcome_counts": recovery_outcomes,
+            "recovery_classification_counts": classes,
+            "named_recovery_count": variant_rows.iter().filter(|r| r["named_recovery"].as_bool() == Some(true)).count(),
+            "anonymous_full_recovery_count": variant_rows.iter().filter(|r| r["anonymous_full_recovery"].as_bool() == Some(true)).count(),
+            "partial_ordered_recovery_count": variant_rows.iter().filter(|r| r["partial_ordered_recovery"].as_bool() == Some(true)).count(),
+            "partial_unordered_recovery_count": variant_rows.iter().filter(|r| r["partial_unordered_recovery"].as_bool() == Some(true)).count(),
+            "orphan_evidence_count": variant_rows.iter().filter(|r| r["orphan_evidence"].as_bool() == Some(true)).count(),
+            "no_verified_evidence_count": variant_rows.iter().filter(|r| r["no_verified_evidence"].as_bool() == Some(true)).count(),
+            "archive_byte_size": archive_byte_size,
+            "metadata_byte_estimate": metadata_byte_estimate,
+            "overhead_delta_vs_payload_only": overhead_delta_vs_payload_only,
+            "recovery_delta_vs_full_current_experimental": {
+                "full_file_salvage_available_delta": this_full - baseline_full,
+            }
+        }));
+    }
+
+    let mut grouped = serde_json::Map::new();
+    for group_field in ["dataset", "corruption_target"] {
+        let mut group_map = serde_json::Map::new();
+        let mut keys = std::collections::BTreeSet::new();
+        for row in &rows {
+            if let Some(k) = row[group_field].as_str() {
+                keys.insert(k.to_string());
+            }
+        }
+        for key in keys {
+            let mut variant_map = serde_json::Map::new();
+            for variant in [
+                "full_current_experimental",
+                "payload_only",
+                "payload_plus_manifest",
+                "payload_plus_path",
+            ] {
+                let g_rows: Vec<&Value> = rows
+                    .iter()
+                    .filter(|r| r["variant"] == variant && r[group_field] == key)
+                    .collect();
+                variant_map.insert(variant.to_string(), serde_json::json!({
+                    "scenario_count": g_rows.len(),
+                    "recovery_outcome_counts": count_outcomes(g_rows.iter().filter_map(|r| r["recovery_outcome"].as_str())),
+                    "named_recovery_count": g_rows.iter().filter(|r| r["named_recovery"].as_bool() == Some(true)).count(),
+                    "archive_byte_size": g_rows.iter().map(|r| r["archive_byte_size"].as_u64().unwrap_or(0)).sum::<u64>(),
+                    "metadata_byte_estimate": g_rows.iter().map(|r| r["metadata_byte_estimate"].as_u64().unwrap_or(0)).sum::<u64>(),
+                }));
+            }
+            group_map.insert(key, Value::Object(variant_map));
+        }
+        grouped.insert(group_field.to_string(), Value::Object(group_map));
+    }
+
+    let summary = serde_json::json!({
+        "schema_version": "crushr-lab-salvage-format10-pruning-comparison.v1",
+        "tool": "crushr-lab-salvage",
+        "tool_version": env!("CARGO_PKG_VERSION"),
+        "verification_label": VERIFICATION_LABEL,
+        "scenario_count": rows.len(),
+        "variants": ["full_current_experimental", "payload_only", "payload_plus_manifest", "payload_plus_path"],
+        "by_variant": by_variant,
+        "grouped_breakdown": grouped,
+        "per_scenario_rows": rows,
+    });
+
+    fs::write(
+        comparison_dir.join("format10_comparison_summary.json"),
+        serde_json::to_string_pretty(&summary)?,
+    )?;
+
+    let mut md = String::new();
+    md.push_str("# Format-10 metadata pruning comparison\n\n");
+    md.push_str(&format!(
+        "Scenarios: {}\n\n",
+        summary["scenario_count"].as_u64().unwrap_or(0)
+    ));
+    md.push_str("## Variant summary\n\n");
+    md.push_str("| variant | scenarios | named | anonymous_full | partial_ordered | partial_unordered | orphan | none | archive_byte_size | metadata_byte_estimate | overhead_vs_payload_only |\n");
+    md.push_str("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n");
+    for variant in [
+        "full_current_experimental",
+        "payload_only",
+        "payload_plus_manifest",
+        "payload_plus_path",
+    ] {
+        let row = &summary["by_variant"][variant];
+        md.push_str(&format!(
+            "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |\n",
+            variant,
+            row["scenario_count"].as_u64().unwrap_or(0),
+            row["named_recovery_count"].as_u64().unwrap_or(0),
+            row["anonymous_full_recovery_count"].as_u64().unwrap_or(0),
+            row["partial_ordered_recovery_count"].as_u64().unwrap_or(0),
+            row["partial_unordered_recovery_count"]
+                .as_u64()
+                .unwrap_or(0),
+            row["orphan_evidence_count"].as_u64().unwrap_or(0),
+            row["no_verified_evidence_count"].as_u64().unwrap_or(0),
+            row["archive_byte_size"].as_u64().unwrap_or(0),
+            row["metadata_byte_estimate"].as_u64().unwrap_or(0),
+            row["overhead_delta_vs_payload_only"].as_i64().unwrap_or(0),
+        ));
+    }
+
+    fs::write(comparison_dir.join("format10_comparison_summary.md"), md)?;
 
     let _ = fs::remove_dir_all(&temp);
     Ok(())

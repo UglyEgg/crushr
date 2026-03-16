@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-FORMAT-09 complete** (metadata survivability + necessity audit harness)
+Current Step: **CRUSHR-FORMAT-10 complete** (metadata pruning comparison harness + writer metadata profiles)
 
-Immediate Next Step: **CRUSHR-FORMAT-10** (metadata pruning/redesign decision packet informed by FORMAT-09 evidence)
+Immediate Next Step: **CRUSHR-FORMAT-11 decision packet** (interpret FORMAT-10 recovery/size deltas and lock keep/prune policy)
 
 ## Current truth
 
@@ -18,8 +18,8 @@ Immediate Next Step: **CRUSHR-FORMAT-10** (metadata pruning/redesign decision pa
 - The inversion principle remains active for resilience work: prefer verified payload-adjacent truth over centralized metadata authority.
 - FORMAT-06 and FORMAT-07 stabilized classification/confidence without changing headline recovery counts in the current bounded corpus.
 - FORMAT-08 now allows bounded comparison of metadata placement strategies (`fixed_spread`, `hash_spread`, `golden_spread`) for graph-supporting metadata checkpoints.
-- FORMAT-09 now adds an expanded corruption matrix (metadata regime × metadata target × payload topology) and emits `format09_comparison_summary.{json,md}` with survivability/gain metrics.
-- The next major decision point is metadata pruning/redesign scope in FORMAT-10 based on FORMAT-09 strategy deltas and survivability evidence.
+- FORMAT-09 added an expanded corruption matrix (metadata regime × metadata target × payload topology) and emitted `format09_comparison_summary.{json,md}` with survivability/gain metrics.
+- FORMAT-10 now adds explicit metadata-pruning variants and emits `format10_comparison_summary.{json,md}` including recovery outcomes, classification counts, and archive-size overhead deltas versus `payload_only`.
 
 ## Active constraints
 
@@ -45,8 +45,8 @@ Recovery should degrade in reverse order:
 ## Next actions
 
 1. Preserve strict extraction interfaces/semantics untouched.
-2. Use FORMAT-09 output to identify metadata layers that never survive and candidates that produce measurable recovery gains.
-3. Prepare FORMAT-10 proposals for metadata pruning/demotion/retention by strategy and damage regime.
+2. Use FORMAT-10 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
+3. Prepare FORMAT-11 decision packet to lock retained metadata surfaces and retire no-value layers.
 4. Keep Phase 2 corpus and frozen artifacts unchanged.
 5. Keep builder honest on CLI wiring; every new comparison command must be proven callable via the documented runtime command.
 

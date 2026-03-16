@@ -158,3 +158,13 @@ This split is internal-only and preserves existing command behavior and output c
 - `hash_spread`: deterministic pseudo-random schedule from stable archive seed material.
 - `golden_spread`: deterministic low-discrepancy schedule via golden-ratio stepping.
 - Phase-09 will stress these surfaces with a richer corruption grid; this packet remains bounded and opt-in.
+
+
+## Experimental metadata pruning profiles (CRUSHR-FORMAT-10)
+- Experimental writer mode now supports `--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental>`.
+- Scope is bounded to resilience-research metadata surfaces; canonical extraction semantics remain unchanged.
+- `payload_only`: keeps payload-block identity truth; removes path and manifest checkpoint layers.
+- `payload_plus_manifest`: payload-block identity + file-manifest checkpoints; removes path checkpoints.
+- `payload_plus_path`: payload-block identity + path checkpoints; removes file-manifest checkpoints.
+- `full_current_experimental`: payload-block identity + path checkpoints + file-manifest checkpoints (control arm).
+- Lab command `run-format10-pruning-comparison` evaluates recovery and archive-size overhead across all four variants and emits `format10_comparison_summary.{json,md}`.
