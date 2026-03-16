@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Current focus
-- CRUSHR-FORMAT-05, -f1, -f2, and -f3 are complete; FORMAT-05 comparison now has behavioral runner/packer contract checks and no `crushr-pack --help` dependency.
+- CRUSHR-FORMAT-05, -f1, -f2, -f3, and -f4 are complete; FORMAT-05 comparison now has behavioral runner/packer contract checks, no `crushr-pack --help` dependency, and `cargo run` operability via sibling salvage/pack auto-build fallback.
 - CRUSHR-SCRUB-02 and CRUSHR-SCRUB-02-f1 are complete: `crushr-pack` now rejects duplicate logical archive paths before archive emission with deterministic, stably ordered collision source errors.
 - The next active packet is **CRUSHR-FORMAT-06**: verified file manifest checkpoints as the next recovery-graph layer.
 
@@ -63,3 +63,8 @@
 ## Update: CRUSHR-PLAN-LEGACY-01-f2 complete
 - Preferred boundary implementation is now active: root `crushr extract` and API `extract_all` delegate to the same strict extraction implementation used by `crushr-extract`.
 - Extraction authority remains singular by implementation, not quarantine: supported surfaces now share strict semantics.
+
+
+## Update: CRUSHR-FORMAT-05-f4 complete
+- `crushr-lab-salvage` now attempts `cargo build -p crushr --bin crushr-salvage` and `cargo build -p crushr --bin crushr-pack` into the sibling target dir before declaring those binaries unresolved.
+- This keeps the documented FORMAT-05 comparison command runnable via `cargo run` without requiring explicit `CRUSHR_SALVAGE_BIN`/`CRUSHR_PACK_BIN` wiring.

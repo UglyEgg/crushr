@@ -749,6 +749,7 @@ fn resolve_salvage_bin() -> Result<PathBuf> {
     if let Ok(current_exe) = std::env::current_exe() {
         if let Some(exe_dir) = current_exe.parent() {
             let candidate = exe_dir.join(format!("crushr-salvage{}", std::env::consts::EXE_SUFFIX));
+            let _ = build_salvage_bin_with_cargo(&candidate);
             if candidate.is_file() {
                 return Ok(candidate);
             }
@@ -765,6 +766,25 @@ fn resolve_salvage_bin() -> Result<PathBuf> {
     bail!(
         "unable to resolve crushr-salvage binary; expected sibling executable near current binary or set CRUSHR_SALVAGE_BIN to an explicit path"
     );
+}
+
+fn build_salvage_bin_with_cargo(salvage_candidate: &Path) -> Result<()> {
+    let cargo_bin = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    let mut cmd = Command::new(&cargo_bin);
+    cmd.args(["build", "-p", "crushr", "--bin", "crushr-salvage"]);
+    if let Some(target_dir) = salvage_candidate.parent().and_then(Path::parent) {
+        cmd.arg("--target-dir").arg(target_dir);
+    }
+    let out = cmd.output().with_context(|| format!("run {cargo_bin}"))?;
+    if out.status.success() {
+        Ok(())
+    } else {
+        bail!(
+            "failed to build crushr-salvage with cargo\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        )
+    }
 }
 
 fn exported_artifact_counts(plan: &Value) -> (usize, usize, usize) {
@@ -1391,10 +1411,8 @@ fn resolve_pack_bin() -> Result<PathBuf> {
     if let Ok(current_exe) = std::env::current_exe() {
         if let Some(exe_dir) = current_exe.parent() {
             let candidate = exe_dir.join(format!("crushr-pack{}", std::env::consts::EXE_SUFFIX));
+            let _ = build_pack_bin_with_cargo(&candidate);
             if candidate.is_file() {
-                return Ok(candidate);
-            }
-            if build_pack_bin_with_cargo(&candidate).is_ok() && candidate.is_file() {
                 return Ok(candidate);
             }
         }

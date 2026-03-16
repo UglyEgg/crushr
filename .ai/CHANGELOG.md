@@ -1,3 +1,8 @@
+## 2026-03-15 — CRUSHR-FORMAT-05-f4 (`cargo run` format05 comparison command operability fix)
+
+- Updated `crushr-lab-salvage` binary resolution to auto-build unresolved sibling `crushr-salvage`/`crushr-pack` binaries before failing resolution, fixing the human-reported end-to-end command failure mode.
+- Re-verified the exact command `cargo run -p crushr --bin crushr-lab-salvage -- run-format05-comparison --output <dir>` now succeeds and emits both summary files.
+
 ## 2026-03-15 — CRUSHR-SCRUB-02-f1 (deterministic duplicate-source ordering + expanded collision coverage)
 
 - Stabilized duplicate collision error source ordering by sorting collected file inputs by `(rel_path, abs_path)` and sorting per-collision source lists before rendering the error.
