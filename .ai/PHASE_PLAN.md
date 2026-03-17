@@ -69,7 +69,7 @@ Exit criteria
 
 ---------------------------------------------------------------------
 
-[ ] PHASE 16 — Architecture Hardening and De-cruft
+[x] PHASE 16 — Architecture Hardening and De-cruft
 
 Goal
 

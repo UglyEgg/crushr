@@ -34,13 +34,13 @@ const FILE_MANIFEST_PATH: &str = "FILE_MANIFEST_PATH";
 // Internal responsibility split for safer iterative salvage changes.
 // cli => argument parsing, discovery => block scan/verification,
 // metadata => metadata decode + planning, artifacts => output/export helpers.
-#[path = "crushr_salvage/artifacts.rs"]
+#[path = "crushr_salvage/core/artifacts.rs"]
 mod artifacts;
-#[path = "crushr_salvage/cli.rs"]
+#[path = "crushr_salvage/core/cli.rs"]
 mod cli;
-#[path = "crushr_salvage/discovery.rs"]
+#[path = "crushr_salvage/core/discovery.rs"]
 mod discovery;
-#[path = "crushr_salvage/metadata.rs"]
+#[path = "crushr_salvage/core/metadata.rs"]
 mod metadata;
 
 use artifacts::{export_artifacts, write_json_output};
@@ -427,72 +427,11 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
                         }
 
                         if file_plans.is_empty() {
-                            let experimental_values = parse_experimental_metadata_records(
+                            file_plans = plan_from_experimental_metadata(
                                 &archive_bytes,
                                 &block_verification,
+                                &BTreeSet::new(),
                             );
-
-                            if let Ok(checkpoint_plans) = verify_and_plan_experimental_records(
-                                parse_checkpoint_extent_records(&experimental_values),
-                                &block_verification,
-                                CHECKPOINT_MAP_PATH,
-                            ) {
-                                if !checkpoint_plans.is_empty() {
-                                    file_plans = checkpoint_plans;
-                                }
-                            }
-
-                            if let Ok(manifest_plans) = verify_and_apply_manifest_expectations(
-                                std::mem::take(&mut file_plans),
-                                parse_file_manifest_records(&experimental_values),
-                                &experimental_values,
-                                &block_verification,
-                                FILE_MANIFEST_PATH,
-                            ) {
-                                file_plans = manifest_plans;
-                            }
-
-                            if file_plans.is_empty() {
-                                if let Ok(file_identity_plans) =
-                                    verify_and_plan_file_identity_extent_records(
-                                        parse_file_identity_extent_records(&experimental_values),
-                                        &experimental_values,
-                                        &block_verification,
-                                        &BTreeSet::new(),
-                                    )
-                                {
-                                    if !file_identity_plans.is_empty() {
-                                        file_plans = file_identity_plans;
-                                    }
-                                }
-                            }
-
-                            if file_plans.is_empty() {
-                                if let Ok(payload_identity_plans) =
-                                    verify_and_plan_payload_block_identity_records(
-                                        parse_payload_block_identity_records(&experimental_values),
-                                        &experimental_values,
-                                        &block_verification,
-                                        &BTreeSet::new(),
-                                    )
-                                {
-                                    if !payload_identity_plans.is_empty() {
-                                        file_plans = payload_identity_plans;
-                                    }
-                                }
-                            }
-
-                            if file_plans.is_empty() {
-                                if let Ok(extent_plans) = verify_and_plan_experimental_records(
-                                    parse_self_describing_extent_records(&experimental_values),
-                                    &block_verification,
-                                    SELF_DESCRIBING_EXTENT_PATH,
-                                ) {
-                                    if !extent_plans.is_empty() {
-                                        file_plans = extent_plans;
-                                    }
-                                }
-                            }
                         }
                     } else {
                         redundant_map_analysis = RedundantMapAnalysis {
@@ -578,39 +517,11 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
             }
         };
 
-        if let Ok(file_identity_plans) = verify_and_plan_file_identity_extent_records(
-            parse_file_identity_extent_records(&experimental_values),
-            &experimental_values,
+        file_plans = plan_from_experimental_metadata(
+            &archive_bytes,
             &synthesized_block_verification,
             &verified_candidate_offsets,
-        ) {
-            if !file_identity_plans.is_empty() {
-                file_plans = file_identity_plans;
-            }
-        }
-
-        if let Ok(manifest_plans) = verify_and_apply_manifest_expectations(
-            std::mem::take(&mut file_plans),
-            parse_file_manifest_records(&experimental_values),
-            &experimental_values,
-            &synthesized_block_verification,
-            FILE_MANIFEST_PATH,
-        ) {
-            file_plans = manifest_plans;
-        }
-
-        if file_plans.is_empty() {
-            if let Ok(payload_identity_plans) = verify_and_plan_payload_block_identity_records(
-                parse_payload_block_identity_records(&experimental_values),
-                &experimental_values,
-                &synthesized_block_verification,
-                &verified_candidate_offsets,
-            ) {
-                if !payload_identity_plans.is_empty() {
-                    file_plans = payload_identity_plans;
-                }
-            }
-        }
+        );
     }
 
     file_plans.sort_by(|a, b| a.file_path.cmp(&b.file_path));
@@ -678,6 +589,76 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
         },
         archive_bytes,
     ))
+}
+
+fn plan_from_experimental_metadata(
+    archive_bytes: &[u8],
+    block_verification: &BTreeMap<u32, BlockVerification>,
+    verified_candidate_offsets: &BTreeSet<u64>,
+) -> Vec<FilePlan> {
+    let experimental_values =
+        parse_experimental_metadata_records(archive_bytes, block_verification);
+    let mut file_plans = Vec::new();
+
+    if let Ok(checkpoint_plans) = verify_and_plan_experimental_records(
+        parse_checkpoint_extent_records(&experimental_values),
+        block_verification,
+        CHECKPOINT_MAP_PATH,
+    ) {
+        if !checkpoint_plans.is_empty() {
+            file_plans = checkpoint_plans;
+        }
+    }
+
+    if let Ok(manifest_plans) = verify_and_apply_manifest_expectations(
+        std::mem::take(&mut file_plans),
+        parse_file_manifest_records(&experimental_values),
+        &experimental_values,
+        block_verification,
+        FILE_MANIFEST_PATH,
+    ) {
+        file_plans = manifest_plans;
+    }
+
+    if file_plans.is_empty() {
+        if let Ok(file_identity_plans) = verify_and_plan_file_identity_extent_records(
+            parse_file_identity_extent_records(&experimental_values),
+            &experimental_values,
+            block_verification,
+            verified_candidate_offsets,
+        ) {
+            if !file_identity_plans.is_empty() {
+                file_plans = file_identity_plans;
+            }
+        }
+    }
+
+    if file_plans.is_empty() {
+        if let Ok(payload_identity_plans) = verify_and_plan_payload_block_identity_records(
+            parse_payload_block_identity_records(&experimental_values),
+            &experimental_values,
+            block_verification,
+            verified_candidate_offsets,
+        ) {
+            if !payload_identity_plans.is_empty() {
+                file_plans = payload_identity_plans;
+            }
+        }
+    }
+
+    if file_plans.is_empty() {
+        if let Ok(extent_plans) = verify_and_plan_experimental_records(
+            parse_self_describing_extent_records(&experimental_values),
+            block_verification,
+            SELF_DESCRIBING_EXTENT_PATH,
+        ) {
+            if !extent_plans.is_empty() {
+                file_plans = extent_plans;
+            }
+        }
+    }
+
+    file_plans
 }
 
 fn run() -> Result<()> {

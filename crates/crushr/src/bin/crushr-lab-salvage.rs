@@ -10,20 +10,13 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const USAGE: &str = "usage: crushr-lab-salvage <input_dir> --output <experiment_dir> [--export-fragments] [--limit <N>] [--verbose]\n       crushr-lab-salvage --resummarize <experiment_dir>\n       crushr-lab-salvage run-redundant-map-comparison --output <comparison_dir> [--verbose]\n       crushr-lab-salvage run-experimental-resilience-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-file-identity-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format04-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format05-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format06-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format07-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format08-placement-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format09-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format10-pruning-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format11-extent-identity-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format12-inline-path-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format12-stress-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format13-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format13-stress-comparison --output <comparison_dir> [--verbose]
-       crushr-lab-salvage run-format14a-dictionary-resilience-comparison --output <comparison_dir> [--verbose]
+
+Lab namespace note: this binary is the implementation behind `crushr lab ...` workflows and is intentionally research-only.
+
+	       crushr-lab-salvage run-format12-stress-comparison --output <comparison_dir> [--verbose]
+	       crushr-lab-salvage run-format13-comparison --output <comparison_dir> [--verbose]
+	       crushr-lab-salvage run-format13-stress-comparison --output <comparison_dir> [--verbose]
+	       crushr-lab-salvage run-format14a-dictionary-resilience-comparison --output <comparison_dir> [--verbose]
        crushr-lab-salvage run-format14a-dictionary-resilience-stress-comparison --output <comparison_dir> [--verbose]
        crushr-lab-salvage run-format15-comparison --output <comparison_dir> [--verbose]
        crushr-lab-salvage run-format15-stress-comparison --output <comparison_dir> [--verbose]";
@@ -505,11 +498,11 @@ struct OutcomeMetrics {
 // Internal responsibility split for safer lab workflow edits.
 // cli => command parsing/dispatch, runner => archive scanning + salvage execution + summaries,
 // comparison => scenario generation/corruption/comparison reporting.
-#[path = "crushr_lab_salvage/cli.rs"]
+#[path = "crushr_lab_salvage/lab/cli.rs"]
 mod cli;
-#[path = "crushr_lab_salvage/comparison.rs"]
+#[path = "crushr_lab_salvage/lab/comparison.rs"]
 mod comparison;
-#[path = "crushr_lab_salvage/runner.rs"]
+#[path = "crushr_lab_salvage/lab/runner.rs"]
 mod runner;
 
 use cli::parse_cli_options;
