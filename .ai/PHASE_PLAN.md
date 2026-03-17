@@ -98,3 +98,7 @@
 
 - [x] 3.25.1 CRUSHR-FORMAT-14A-FIX1 (repair dictionary-corruption classification/outcome reporting; rerun required FORMAT-14A artifacts)
 - [x] 3.25.2 CRUSHR-FORMAT-14A-FIX2 (restore header+tail dual-copy one-loss named recovery; rerun FORMAT-14A artifacts)
+
+- [x] CRUSHR-FORMAT-15 — Harden mirrored dictionary identity/generation semantics and add factored namespace dictionary with FORMAT-15 baseline/stress comparison commands + artifacts.
+
+- [x] CRUSHR-FORMAT-15-FIX1 — repair FORMAT-15 regression causing false-negative canonical-candidate judgments (restore scenario-authoritative fail-closed gating + v2 full-path dictionary parsing).

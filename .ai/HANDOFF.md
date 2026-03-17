@@ -96,3 +96,7 @@ After structural stability and metadata pruning decisions settle, revisit distri
 - Verify FORMAT-14A commands with:
   - `cargo run -p crushr --bin crushr-lab-salvage -- run-format14a-dictionary-resilience-comparison --help`
   - `cargo run -p crushr --bin crushr-lab-salvage -- run-format14a-dictionary-resilience-stress-comparison --help`
+
+- **CRUSHR-FORMAT-15 is complete**: added generation-aware mirrored dictionary headers, factored namespace dictionary variant `extent_identity_path_dict_factored_header_tail`, and `run-format15-comparison` / `run-format15-stress-comparison` outputs in `FORMAT15_RESULTS/`.
+
+- **CRUSHR-FORMAT-15-FIX1 is complete**: fixed FORMAT-15 regression where dictionary variants were forced anonymous due zeroed observed copy metrics and missing `crushr-path-dictionary-copy.v2` full-path body parsing. Re-ran and refreshed `FORMAT15_RESULTS/format15_{,stress_}comparison_summary.{json,md}`.

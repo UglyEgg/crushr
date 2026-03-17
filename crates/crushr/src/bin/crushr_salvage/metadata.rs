@@ -332,50 +332,203 @@ pub(super) fn parse_payload_block_path_checkpoints(values: &[Value]) -> BTreeMap
     out
 }
 
-pub(super) fn parse_payload_block_path_dictionary(
-    values: &[Value],
-) -> (BTreeMap<u32, String>, bool) {
+#[derive(Debug, Default, Clone)]
+pub(super) struct ParsedPathDictionary {
+    pub(super) map: BTreeMap<u32, String>,
+    pub(super) conflict: bool,
+    pub(super) valid_dictionary_copy_count: u64,
+    pub(super) rejected_wrong_archive_count: u64,
+    pub(super) rejected_hash_mismatch_count: u64,
+    pub(super) detected_generation_mismatch_count: u64,
+}
+
+pub(super) fn parse_payload_block_path_dictionary(values: &[Value]) -> ParsedPathDictionary {
+    let mut report = ParsedPathDictionary::default();
     let mut canonical: Option<BTreeMap<u32, String>> = None;
-    let mut conflict = false;
+    let mut canonical_generation: Option<u64> = None;
+    let expected_archive = values.iter().find_map(|v| {
+        (v.get("schema").and_then(|s| s.as_str()) == Some("crushr-payload-block-identity.v1"))
+            .then(|| {
+                v.get("archive_identity")
+                    .and_then(|a| a.as_str())
+                    .map(str::to_string)
+            })
+            .flatten()
+    });
+
     for value in values {
-        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-path-dictionary-copy.v1") {
+        let schema = value.get("schema").and_then(|v| v.as_str());
+        if schema != Some("crushr-path-dictionary-copy.v1")
+            && schema != Some("crushr-path-dictionary-copy.v2")
+        {
             continue;
         }
-        let Some(entries) = value.get("entries").and_then(|v| v.as_array()) else {
-            continue;
-        };
+
         let mut map = BTreeMap::new();
-        for entry in entries {
-            let Some(path_id_u64) = entry.get("path_id").and_then(|v| v.as_u64()) else {
-                continue;
-            };
-            let Ok(path_id) = u32::try_from(path_id_u64) else {
-                continue;
-            };
-            let Some(path) = entry.get("path").and_then(|v| v.as_str()) else {
-                continue;
-            };
-            let Some(path_digest) = entry.get("path_digest_blake3").and_then(|v| v.as_str()) else {
-                continue;
-            };
-            let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
-            if computed != path_digest {
-                continue;
+        if let Some(entries) = value.get("entries").and_then(|v| v.as_array()) {
+            for entry in entries {
+                let Some(path_id_u64) = entry.get("path_id").and_then(|v| v.as_u64()) else {
+                    continue;
+                };
+                let Ok(path_id) = u32::try_from(path_id_u64) else {
+                    continue;
+                };
+                let Some(path) = entry.get("path").and_then(|v| v.as_str()) else {
+                    continue;
+                };
+                let Some(path_digest) = entry.get("path_digest_blake3").and_then(|v| v.as_str())
+                else {
+                    continue;
+                };
+                let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
+                if computed != path_digest {
+                    continue;
+                }
+                map.insert(path_id, path.to_string());
             }
-            map.insert(path_id, path.to_string());
+        } else if let Some(body) = value.get("body") {
+            if let Some(entries) = body.get("entries").and_then(|v| v.as_array()) {
+                for entry in entries {
+                    let Some(path_id_u64) = entry.get("path_id").and_then(|v| v.as_u64()) else {
+                        continue;
+                    };
+                    let Ok(path_id) = u32::try_from(path_id_u64) else {
+                        continue;
+                    };
+                    let Some(path) = entry.get("path").and_then(|v| v.as_str()) else {
+                        continue;
+                    };
+                    let Some(path_digest) =
+                        entry.get("path_digest_blake3").and_then(|v| v.as_str())
+                    else {
+                        continue;
+                    };
+                    let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
+                    if computed != path_digest {
+                        continue;
+                    }
+                    map.insert(path_id, path.to_string());
+                }
+            } else {
+                let mut dirs = BTreeMap::new();
+                let mut names = BTreeMap::new();
+                if let Some(arr) = body.get("directories").and_then(|v| v.as_array()) {
+                    for d in arr {
+                        if let (Some(id), Some(prefix)) = (
+                            d.get("dir_id").and_then(|v| v.as_u64()),
+                            d.get("prefix").and_then(|v| v.as_str()),
+                        ) {
+                            dirs.insert(id as u32, prefix.to_string());
+                        }
+                    }
+                }
+                if let Some(arr) = body.get("basenames").and_then(|v| v.as_array()) {
+                    for n in arr {
+                        if let (Some(id), Some(name)) = (
+                            n.get("name_id").and_then(|v| v.as_u64()),
+                            n.get("basename").and_then(|v| v.as_str()),
+                        ) {
+                            names.insert(id as u32, name.to_string());
+                        }
+                    }
+                }
+                if let Some(arr) = body.get("file_bindings").and_then(|v| v.as_array()) {
+                    for f in arr {
+                        let (Some(path_id), Some(dir_id), Some(name_id), Some(path_digest)) = (
+                            f.get("path_id").and_then(|v| v.as_u64()),
+                            f.get("dir_id").and_then(|v| v.as_u64()),
+                            f.get("name_id").and_then(|v| v.as_u64()),
+                            f.get("path_digest_blake3").and_then(|v| v.as_str()),
+                        ) else {
+                            continue;
+                        };
+                        let Some(prefix) = dirs.get(&(dir_id as u32)) else {
+                            continue;
+                        };
+                        let Some(name) = names.get(&(name_id as u32)) else {
+                            continue;
+                        };
+                        let path = if prefix.is_empty() {
+                            name.clone()
+                        } else {
+                            format!("{prefix}/{name}")
+                        };
+                        let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
+                        if computed != path_digest {
+                            continue;
+                        }
+                        map.insert(path_id as u32, path);
+                    }
+                }
+            }
         }
+
         if map.is_empty() {
             continue;
         }
+
+        if schema == Some("crushr-path-dictionary-copy.v2") {
+            if let (Some(expected), Some(actual)) = (
+                expected_archive.as_deref(),
+                value.get("archive_instance_id").and_then(|v| v.as_str()),
+            ) {
+                if expected != actual {
+                    report.rejected_wrong_archive_count += 1;
+                    continue;
+                }
+            }
+            if let Some(body) = value.get("body") {
+                let body_bytes = match serde_json::to_vec(body) {
+                    Ok(b) => b,
+                    Err(_) => {
+                        report.rejected_hash_mismatch_count += 1;
+                        continue;
+                    }
+                };
+                let computed = to_hex(blake3::hash(&body_bytes).as_bytes());
+                if value
+                    .get("dictionary_content_hash")
+                    .and_then(|v| v.as_str())
+                    != Some(computed.as_str())
+                {
+                    report.rejected_hash_mismatch_count += 1;
+                    continue;
+                }
+                if value.get("dictionary_length").and_then(|v| v.as_u64())
+                    != Some(body_bytes.len() as u64)
+                {
+                    report.rejected_hash_mismatch_count += 1;
+                    continue;
+                }
+            }
+        }
+
+        let generation = value
+            .get("generation")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        report.valid_dictionary_copy_count += 1;
+        if let Some(existing_generation) = canonical_generation {
+            if generation != existing_generation {
+                report.detected_generation_mismatch_count += 1;
+                report.conflict = true;
+                continue;
+            }
+        } else {
+            canonical_generation = Some(generation);
+        }
+
         if let Some(existing) = &canonical {
             if existing != &map {
-                conflict = true;
+                report.conflict = true;
             }
         } else {
             canonical = Some(map);
         }
     }
-    (canonical.unwrap_or_default(), conflict)
+
+    report.map = canonical.unwrap_or_default();
+    report
 }
 
 pub(super) fn parse_payload_block_identity_records(
@@ -488,7 +641,9 @@ pub(super) fn verify_and_plan_payload_block_identity_records(
     verified_candidate_offsets: &BTreeSet<u64>,
 ) -> Result<Vec<FilePlan>> {
     let path_map = parse_payload_block_path_checkpoints(values);
-    let (path_dictionary, dictionary_conflict) = parse_payload_block_path_dictionary(values);
+    let parsed_dictionary = parse_payload_block_path_dictionary(values);
+    let path_dictionary = parsed_dictionary.map;
+    let dictionary_conflict = parsed_dictionary.conflict;
     let mut grouped: BTreeMap<String, PayloadIdentityGroup> = BTreeMap::new();
     for record in records {
         if record.total_block_count == 0 {
@@ -1698,11 +1853,114 @@ mod format13_dictionary_tests {
                 {"path_id": 1, "path": "c.txt", "path_digest_blake3": to_hex(blake3::hash("c.txt".as_bytes()).as_bytes())}
             ]
         })];
-        let (a, conflict_a) = parse_payload_block_path_dictionary(&values);
-        let (b, conflict_b) = parse_payload_block_path_dictionary(&values);
-        assert_eq!(a, b);
-        assert!(!conflict_a);
-        assert!(!conflict_b);
+        let a = parse_payload_block_path_dictionary(&values);
+        let b = parse_payload_block_path_dictionary(&values);
+        assert_eq!(a.map, b.map);
+        assert!(!a.conflict);
+        assert!(!b.conflict);
+    }
+
+    #[test]
+    fn v2_full_path_body_is_parsed() {
+        let body = serde_json::json!({
+            "representation": "full_path_v1",
+            "entries": [{
+                "path_id": 0,
+                "path": "a/b.txt",
+                "path_digest_blake3": to_hex(blake3::hash("a/b.txt".as_bytes()).as_bytes())
+            }]
+        });
+        let body_bytes = serde_json::to_vec(&body).unwrap();
+        let values = vec![serde_json::json!({
+            "schema": "crushr-path-dictionary-copy.v2",
+            "archive_instance_id": "aid",
+            "generation": 1,
+            "dictionary_length": body_bytes.len(),
+            "dictionary_content_hash": to_hex(blake3::hash(&body_bytes).as_bytes()),
+            "body": body
+        })];
+        let parsed = parse_payload_block_path_dictionary(&values);
+        assert_eq!(parsed.map.get(&0).map(String::as_str), Some("a/b.txt"));
+    }
+
+    #[test]
+    fn v2_dictionary_rejects_wrong_archive() {
+        let body = serde_json::json!({
+            "directories": [{"dir_id":0,"prefix":"a"}],
+            "basenames": [{"name_id":0,"basename":"b.txt"}],
+            "file_bindings": [{"path_id":0,"dir_id":0,"name_id":0,"path_digest_blake3": to_hex(blake3::hash("a/b.txt".as_bytes()).as_bytes())}]
+        });
+        let body_bytes = serde_json::to_vec(&body).unwrap();
+        let values = vec![
+            serde_json::json!({
+                "schema": "crushr-payload-block-identity.v1",
+                "archive_identity": "good_archive",
+                "file_id": 0,
+                "block_index": 0,
+                "total_block_count": 1,
+                "full_file_size": 1,
+                "logical_offset": 0,
+                "logical_length": 1,
+                "payload_codec": 1,
+                "payload_length": 1,
+                "block_id": 1,
+                "content_identity": {"payload_hash_blake3":"p","raw_hash_blake3":"r"}
+            }),
+            serde_json::json!({
+                "schema": "crushr-path-dictionary-copy.v2",
+                "archive_instance_id": "wrong_archive",
+                "generation": 1,
+                "dictionary_length": body_bytes.len(),
+                "dictionary_content_hash": to_hex(blake3::hash(&body_bytes).as_bytes()),
+                "body": body
+            }),
+        ];
+        let parsed = parse_payload_block_path_dictionary(&values);
+        assert!(parsed.map.is_empty());
+        assert_eq!(parsed.rejected_wrong_archive_count, 1);
+    }
+
+    #[test]
+    fn v2_dictionary_rejects_hash_mismatch() {
+        let body = serde_json::json!({
+            "directories": [{"dir_id":0,"prefix":""}],
+            "basenames": [{"name_id":0,"basename":"x.txt"}],
+            "file_bindings": [{"path_id":0,"dir_id":0,"name_id":0,"path_digest_blake3": to_hex(blake3::hash("x.txt".as_bytes()).as_bytes())}]
+        });
+        let values = vec![serde_json::json!({
+            "schema": "crushr-path-dictionary-copy.v2",
+            "archive_instance_id": "a",
+            "generation": 1,
+            "dictionary_length": 999,
+            "dictionary_content_hash": "00",
+            "body": body
+        })];
+        let parsed = parse_payload_block_path_dictionary(&values);
+        assert!(parsed.map.is_empty());
+        assert_eq!(parsed.rejected_hash_mismatch_count, 1);
+    }
+
+    #[test]
+    fn v2_generation_mismatch_fails_closed() {
+        let mk = |generation: u64| {
+            let body = serde_json::json!({
+                "directories": [{"dir_id":0,"prefix":""}],
+                "basenames": [{"name_id":0,"basename":"x.txt"}],
+                "file_bindings": [{"path_id":0,"dir_id":0,"name_id":0,"path_digest_blake3": to_hex(blake3::hash("x.txt".as_bytes()).as_bytes())}]
+            });
+            let body_bytes = serde_json::to_vec(&body).unwrap();
+            serde_json::json!({
+                "schema": "crushr-path-dictionary-copy.v2",
+                "archive_instance_id": "a",
+                "generation": generation,
+                "dictionary_length": body_bytes.len(),
+                "dictionary_content_hash": to_hex(blake3::hash(&body_bytes).as_bytes()),
+                "body": body
+            })
+        };
+        let parsed = parse_payload_block_path_dictionary(&[mk(1), mk(2)]);
+        assert!(parsed.conflict);
+        assert_eq!(parsed.detected_generation_mismatch_count, 1);
     }
 
     #[test]

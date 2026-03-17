@@ -321,6 +321,12 @@ For the mechanics behind these results, continue to [Testing Harness](testing-ha
 
 ## FORMAT-14A — dictionary-target resilience validation
 
+## FORMAT-15: generation-aware mirrored dictionaries + factored namespace
+
+- New candidate: `extent_identity_path_dict_factored_header_tail`.
+- Dictionary copies now carry generation/identity/hash metadata to distinguish stale/wrong/conflicting copies.
+- Namespace dictionary now supports factored storage (`directories`, `basenames`, `file_bindings`) to reduce repeated path-prefix overhead.
+
 FORMAT-14A extends the deterministic harness with dictionary-target corruption scenarios focused on dictionary-based identity variants.
 
 - Added targets: `primary_dictionary`, `mirrored_dictionary`, `both_dictionaries`, `inconsistent_dictionaries`.

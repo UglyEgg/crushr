@@ -11,7 +11,7 @@ use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
 
 const ZSTD_CODEC: u32 = 1;
-const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only|extent_identity_inline_path|extent_identity_distributed_names|extent_identity_path_dict_single|extent_identity_path_dict_header_tail|extent_identity_path_dict_quasi_uniform>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only | extent_identity_inline_path | extent_identity_distributed_names | extent_identity_path_dict_single | extent_identity_path_dict_header_tail | extent_identity_path_dict_quasi_uniform\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  -h, --help                                 print this help text";
+const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only|extent_identity_inline_path|extent_identity_distributed_names|extent_identity_path_dict_single|extent_identity_path_dict_header_tail|extent_identity_path_dict_quasi_uniform|extent_identity_path_dict_factored_header_tail>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only | extent_identity_inline_path | extent_identity_distributed_names | extent_identity_path_dict_single | extent_identity_path_dict_header_tail | extent_identity_path_dict_quasi_uniform | extent_identity_path_dict_factored_header_tail\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  -h, --help                                 print this help text";
 
 #[derive(Clone, Copy, Debug)]
 enum PlacementStrategy {
@@ -42,6 +42,7 @@ enum MetadataProfile {
     ExtentIdentityPathDictSingle,
     ExtentIdentityPathDictHeaderTail,
     ExtentIdentityPathDictQuasiUniform,
+    ExtentIdentityPathDictFactoredHeaderTail,
 }
 
 impl PlacementStrategy {
@@ -78,6 +79,9 @@ impl MetadataProfile {
             "extent_identity_path_dict_quasi_uniform" => {
                 Ok(Self::ExtentIdentityPathDictQuasiUniform)
             }
+            "extent_identity_path_dict_factored_header_tail" => {
+                Ok(Self::ExtentIdentityPathDictFactoredHeaderTail)
+            }
             _ => bail!("unsupported metadata profile: {value}"),
         }
     }
@@ -94,6 +98,9 @@ impl MetadataProfile {
             Self::ExtentIdentityPathDictSingle => "extent_identity_path_dict_single",
             Self::ExtentIdentityPathDictHeaderTail => "extent_identity_path_dict_header_tail",
             Self::ExtentIdentityPathDictQuasiUniform => "extent_identity_path_dict_quasi_uniform",
+            Self::ExtentIdentityPathDictFactoredHeaderTail => {
+                "extent_identity_path_dict_factored_header_tail"
+            }
         }
     }
 
@@ -119,6 +126,7 @@ impl MetadataProfile {
             Self::ExtentIdentityPathDictSingle
                 | Self::ExtentIdentityPathDictHeaderTail
                 | Self::ExtentIdentityPathDictQuasiUniform
+                | Self::ExtentIdentityPathDictFactoredHeaderTail
         )
     }
 }
@@ -294,28 +302,126 @@ fn pack_minimal_v1(
     for (idx, file) in files.iter().enumerate() {
         path_id_by_path.insert(file.rel_path.clone(), idx as u32);
     }
-    let path_dictionary_entries: Vec<_> = path_id_by_path
-        .iter()
-        .map(|(path, path_id)| {
-            json!({
-                "path_id": *path_id,
-                "path": path,
-                "path_digest_blake3": to_hex(blake3::hash(path.as_bytes()).as_bytes())
-            })
-        })
-        .collect();
-    let path_dictionary = json!({
-        "schema": "crushr-path-dictionary-copy.v1",
-        "copy_role": "primary",
-        "entry_count": path_dictionary_entries.len() as u64,
-        "entries": path_dictionary_entries,
-    });
 
     let payload_identity_archive_id = if emit_payload_identity {
         Some(compute_file_identity_archive_id(&files))
     } else {
         None
     };
+    let dictionary_archive_instance_id = payload_identity_archive_id
+        .clone()
+        .unwrap_or_else(|| compute_file_identity_archive_id(&files));
+    let dictionary_generation = 1u64;
+
+    let factored_dictionary = matches!(
+        options.metadata_profile,
+        Some(MetadataProfile::ExtentIdentityPathDictFactoredHeaderTail)
+    );
+
+    let path_dictionary_body = if factored_dictionary {
+        let mut dir_id_by_path = BTreeMap::<String, u32>::new();
+        let mut name_id_by_name = BTreeMap::<String, u32>::new();
+        let mut next_dir_id = 0u32;
+        let mut next_name_id = 0u32;
+        for path in path_id_by_path.keys() {
+            let path_obj = Path::new(path);
+            let dir = path_obj
+                .parent()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_default();
+            if !dir_id_by_path.contains_key(&dir) {
+                dir_id_by_path.insert(dir.clone(), next_dir_id);
+                next_dir_id += 1;
+            }
+            let name = path_obj
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| path.clone());
+            if !name_id_by_name.contains_key(&name) {
+                name_id_by_name.insert(name, next_name_id);
+                next_name_id += 1;
+            }
+        }
+
+        let directories: Vec<Value> = dir_id_by_path
+            .iter()
+            .map(|(dir, dir_id)| json!({"dir_id": *dir_id, "prefix": dir}))
+            .collect();
+        let basenames: Vec<Value> = name_id_by_name
+            .iter()
+            .map(|(name, name_id)| json!({"name_id": *name_id, "basename": name}))
+            .collect();
+        let file_bindings: Vec<Value> = path_id_by_path
+            .iter()
+            .map(|(path, path_id)| {
+                let path_obj = Path::new(path);
+                let dir = path_obj
+                    .parent()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                let name = path_obj
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| path.clone());
+                let dir_id = *dir_id_by_path.get(&dir).expect("dir id");
+                let name_id = *name_id_by_name.get(&name).expect("name id");
+                json!({
+                    "path_id": *path_id,
+                    "dir_id": dir_id,
+                    "name_id": name_id,
+                    "path_digest_blake3": to_hex(blake3::hash(path.as_bytes()).as_bytes())
+                })
+            })
+            .collect();
+
+        json!({
+            "representation": "factored_namespace_v1",
+            "entry_count": path_id_by_path.len() as u64,
+            "directory_count": directories.len() as u64,
+            "basename_count": basenames.len() as u64,
+            "directories": directories,
+            "basenames": basenames,
+            "file_bindings": file_bindings,
+        })
+    } else {
+        let entries: Vec<Value> = path_id_by_path
+            .iter()
+            .map(|(path, path_id)| {
+                json!({
+                    "path_id": *path_id,
+                    "path": path,
+                    "path_digest_blake3": to_hex(blake3::hash(path.as_bytes()).as_bytes())
+                })
+            })
+            .collect();
+        json!({
+            "representation": "full_path_v1",
+            "entry_count": entries.len() as u64,
+            "entries": entries,
+        })
+    };
+    let path_dictionary_body_bytes = serde_json::to_vec(&path_dictionary_body)?;
+    let dictionary_content_hash = to_hex(blake3::hash(&path_dictionary_body_bytes).as_bytes());
+    let dictionary_uuid = to_hex(
+        blake3::hash(
+            format!(
+                "{}:{}",
+                dictionary_archive_instance_id, dictionary_content_hash
+            )
+            .as_bytes(),
+        )
+        .as_bytes(),
+    );
+    let path_dictionary = json!({
+        "schema": "crushr-path-dictionary-copy.v2",
+        "copy_role": "primary",
+        "archive_instance_id": dictionary_archive_instance_id,
+        "dict_uuid": dictionary_uuid,
+        "generation": dictionary_generation,
+        "dictionary_length": path_dictionary_body_bytes.len() as u64,
+        "dictionary_content_hash": dictionary_content_hash,
+        "body": path_dictionary_body,
+    });
     let total_files = files.len();
     let checkpoint_stride = 2usize;
     let placement_seed = compute_file_identity_archive_id(&files);
@@ -598,6 +704,7 @@ fn pack_minimal_v1(
         options.metadata_profile,
         Some(MetadataProfile::ExtentIdentityPathDictHeaderTail)
             | Some(MetadataProfile::ExtentIdentityPathDictQuasiUniform)
+            | Some(MetadataProfile::ExtentIdentityPathDictFactoredHeaderTail)
     ) {
         let mut copy = path_dictionary.clone();
         copy["copy_role"] = Value::String("tail_mirror".to_string());

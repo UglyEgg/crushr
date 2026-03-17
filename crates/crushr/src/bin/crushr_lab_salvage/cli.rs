@@ -93,6 +93,8 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
             || first == "run-format13-stress-comparison"
             || first == "run-format14a-dictionary-resilience-comparison"
             || first == "run-format14a-dictionary-resilience-stress-comparison"
+            || first == "run-format15-comparison"
+            || first == "run-format15-stress-comparison"
         {
             let mut output_dir = None;
             let mut verbose = false;
@@ -173,6 +175,14 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                     Mode::RunFormat14aDictionaryResilienceStressComparison {
                         comparison_dir: output_dir.context(USAGE)?,
                     }
+                } else if first == "run-format15-comparison" {
+                    Mode::RunFormat15Comparison {
+                        comparison_dir: output_dir.context(USAGE)?,
+                    }
+                } else if first == "run-format15-stress-comparison" {
+                    Mode::RunFormat15StressComparison {
+                        comparison_dir: output_dir.context(USAGE)?,
+                    }
                 } else {
                     Mode::RunFileIdentityComparison {
                         comparison_dir: output_dir.context(USAGE)?,
@@ -246,7 +256,9 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
                 | "run-format13-comparison"
                 | "run-format14a-dictionary-resilience-comparison"
                 | "run-format14a-dictionary-resilience-stress-comparison"
-                | "run-format13-stress-comparison" => {
+                | "run-format13-stress-comparison"
+                | "run-format15-comparison"
+                | "run-format15-stress-comparison" => {
                     bail!("subcommand `{arg}` must be used as the first argument\n{USAGE}")
                 }
                 _ if arg.starts_with('-') => bail!("unsupported flag: {arg}"),
