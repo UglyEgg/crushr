@@ -1,336 +1,79 @@
-# Format Evolution
+# Format evolution
 
-crushr is moving quickly, so this page is intended as a living map rather than a frozen history.
+<div class="section-note"><strong>This page explains selection, not chronology.</strong> The point is not that time passed; the point is that multiple plausible design branches were tested and only a subset survived repeated corruption experiments.</div>
 
-The short version is:
+The story of crushr is not a straight line. It is a branching selection process in which multiple architectural ideas were tested under corruption and only a subset survived.
 
-> crushr started as an integrity-first archive format and is evolving into an **integrity-first, salvage-aware archive design** where the strongest durable truth lives as close to the payload as possible, and heavier metadata is kept only if the corruption harness proves it earns its keep.
+<div class="figure">
+  <img src="assets/diagrams/crushr_master_diagram_final.svg" alt="crushr selection and elimination diagram" />
+  <div class="caption">A better representation than a linear timeline: the current architecture emerged by eliminating weaker branches.</div>
+</div>
 
-This page exists to help readers understand how the format changed, what the harness proved, and why the current direction looks the way it does.
+## Milestone summary
 
-## The original assumption
+| Experiment | Main question | Outcome |
+|---|---|---|
+| FORMAT-05 | Can payload blocks become self-identifying enough to improve salvage? | Yes. This became the foundational architectural pivot. |
+| FORMAT-07 | Can salvage reason over verified relationships rather than flat metadata? | Yes. Recovery classification became more explicit and defensible. |
+| FORMAT-08 | Do metadata placement strategies materially change survivability? | No. Fixed, hash, and golden placement were effectively tied. |
+| FORMAT-09 / 10 | Do heavier metadata surfaces survive enough to justify their cost? | Largely no. Manifest-heavy paths remained expensive and less useful than hoped. |
+| FORMAT-11 | Is distributed extent identity sufficient on its own? | Structurally yes, but not enough for strong named recovery. |
+| FORMAT-12 | Can inline naming recover names without manifest-level overhead? | Yes, but repeated strings created measurable cost. |
+| FORMAT-13 | Can dictionary indirection retain recovery and reduce size? | Yes. Header+tail dictionary mirroring emerged as the best balance. |
+| FORMAT-14A | Does direct dictionary corruption validate the mirrored strategy? | Yes. Single dictionary was too fragile; header+tail behaved correctly. |
 
-The early design assumption was familiar to anyone who has worked with archives:
+## Older phase visuals
 
-```text
-archive integrity depends on metadata integrity
-metadata corruption causes recovery failure
-```
+### FORMAT-05 — the first architectural shift
 
-That assumption is reasonable because it describes how many traditional archive containers behave in practice.
+<div class="figure">
+  <img src="assets/diagrams/format05.png" alt="FORMAT-05 architectural shift" />
+  <div class="caption">The earliest pivot: truth moved toward the payload instead of remaining entirely metadata-centric.</div>
+</div>
 
-The original goal of crushr was therefore framed around **perfect integrity** in the conventional sense.
+### FORMAT-11 — structural recovery without strong naming
 
-## The turning point
+<div class="figure">
+  <img src="assets/diagrams/format11.png" alt="FORMAT-11 comparison" />
+  <div class="caption">FORMAT-11 proved distributed structural identity was cheap and useful, but not sufficient for strong named recovery on its own.</div>
+</div>
 
-Once the corruption harness was in place, the project stopped being driven only by theory.
+### FORMAT-12 — naming restored, overhead exposed
 
-Instead, crushr began evolving through repeated destructive tests:
+<div class="figure">
+  <img src="assets/diagrams/format12_named.png" alt="FORMAT-12 named recovery" />
+</div>
+<div class="figure">
+  <img src="assets/diagrams/format12_overhead.png" alt="FORMAT-12 overhead" />
+  <div class="caption">Inline naming was the bridge architecture: it restored names cheaply relative to manifests, but its duplication cost justified further optimization.</div>
+</div>
 
-1. build deterministic archive variants
-2. corrupt them in controlled ways
-3. measure what still survives
-4. keep what helps
-5. cut what does not
+### FORMAT-13 — dictionary indirection under stress
 
-That process changed the architecture.
+<div class="figure">
+  <img src="assets/diagrams/format13.png" alt="FORMAT-13 stress size" />
+  <div class="caption">The stress runs made the size hierarchy clear: dictionary indirection preserved the recovery model while materially reducing overhead.</div>
+</div>
 
-## Evolution timeline
+### FORMAT-14A — resilience under direct dictionary-target corruption
 
-```mermaid
-flowchart TD
-    A["Initial integrity-first archive idea"] --> B["Corruption harness introduced"]
-    B --> C["FORMAT-05 self-identifying payload blocks"]
-    C --> D["FORMAT-06 file manifests"]
-    D --> E["FORMAT-07 graph-aware salvage reasoning"]
-    E --> F["FORMAT-08 metadata placement comparison"]
-    F --> G["FORMAT-09 metadata survivability audit"]
-    G --> H["FORMAT-10 pruning / simplification direction"]
-    H --> I["FORMAT-11 distributed extent identity"]
-    I --> J["FORMAT-12 inline naming experiment"]
-    J --> K["FORMAT-12-STRESS worst-case duplication verification"]
-```
+<div class="figure">
+  <img src="assets/diagrams/format14a_resilience_corrected.png" alt="FORMAT-14A resilience" />
+  <div class="caption">The decisive result: header+tail dictionary mirroring preserved named recovery when one copy survived and fell back anonymously when both were unavailable.</div>
+</div>
 
-## Phase-by-phase evolution
 
-### Early phase — integrity-first container thinking
+### FORMAT-15 — refinement without promotion
 
-At the start, crushr looked more like a traditional archival design problem:
+FORMAT-15 explored two refinements to the winning mirrored-dictionary design:
 
-- protect metadata
-- duplicate metadata
-- make the container robust
-- recover files from preserved structural information
+- generation-aware dictionary identity
+- factored namespace dictionaries
 
-This phase was important because it established the baseline assumptions that the harness later challenged.
+The submitted results were clear enough to make a decision.
 
-### FORMAT-05 — self-identifying payload blocks
+On the baseline corpus, the factored variant preserved the same recovery behavior as `extent_identity_path_dict_header_tail` but increased archive size by 1,512 bytes.
 
-This was the major architectural shift.
+On the stress corpus, it again preserved the same recovery behavior but increased archive size by 50,988 bytes.
 
-Payload blocks gained enough local truth to be independently identified and verified.
-
-That meant recovery no longer had to start from a surviving index. Salvage could begin with the payload itself.
-
-**What changed conceptually**
-
-```text
-old model:
-metadata -> file structure -> payload
-
-new model:
-payload truth -> reconstruction -> metadata as supporting evidence
-```
-
-**What the harness showed**
-
-This phase produced the first major recovery improvement. It was the point where crushr stopped looking like “archive with better metadata” and started looking like “archive where the data can still explain itself after damage.”
-
-### FORMAT-06 — file manifests
-
-This phase added file-level truth so the system could better reason about:
-
-- file completeness
-- expected extent count
-- stronger recovery confidence
-
-**What changed conceptually**
-
-FORMAT-06 did not replace FORMAT-05. It layered file-level structure on top of block-level truth.
-
-**What the harness showed**
-
-FORMAT-06 improved confidence and verification detail more than it improved top-line recovery counts. That was still useful: not every phase needs to create dramatic jumps if it sharpens what the system can prove.
-
-### FORMAT-07 — graph-aware salvage reasoning
-
-This phase changed the reasoning model.
-
-Instead of flat metadata checks, salvage began reasoning over surviving verified relationships:
-
-- block belongs to extent
-- extent belongs to file
-- file links to name/path if that truth survives
-
-**What changed conceptually**
-
-Recovery classes became more explicit and defensible. The system could explain not just *what* was recovered, but *why that level of recovery was justified*.
-
-### FORMAT-08 — metadata placement comparison
-
-This phase tested three metadata placement strategies:
-
-- `fixed_spread`
-- `hash_spread`
-- `golden_spread`
-
-The expectation was that better placement might improve metadata survivability.
-
-**What the harness showed**
-
-All three strategies produced effectively identical results.
-
-That suggested placement was not the real issue.
-
-### FORMAT-09 — metadata survivability and necessity audit
-
-This phase asked the blunt question:
-
-> Do the extra metadata layers actually survive enough to matter?
-
-**What the harness showed**
-
-The answer was stark:
-
-- manifest checkpoint survival stayed at or near zero
-- path checkpoint survival stayed at or near zero
-- verified metadata node count stayed at or near zero
-
-This strongly suggested that the current metadata layers were not driving resilience.
-
-### FORMAT-10 — pruning and simplification direction
-
-FORMAT-10 turned the FORMAT-09 findings into an explicit design challenge.
-
-Instead of assuming every metadata surface deserved to remain because it seemed useful in theory, the project began comparing stripped-down variants against manifest-bearing and full experimental designs.
-
-**What changed conceptually**
-
-The design question shifted from:
-
-```text
-how do we protect more metadata?
-```
-
-to:
-
-```text
-which metadata surfaces are actually worth carrying at all?
-```
-
-**What the harness showed**
-
-FORMAT-10 reinforced a now-recurring pattern:
-
-- manifest-bearing variants still materially helped named recovery
-- broader experimental metadata caused very large size overhead
-- weak or partial metadata layers did not justify themselves just by existing
-
-That moved the project toward a more selective keep/demote/prune mindset.
-
-### FORMAT-11 — distributed extent identity
-
-FORMAT-11 tested a more radical hypothesis.
-
-Instead of relying on a larger centralized naming or manifest structure, the archive could carry stronger structural identity locally with each extent.
-
-The key experimental arm was:
-
-- `extent_identity_only`
-
-This variant was intentionally anonymous by design. It focused on distributed structural truth rather than human-meaningful naming.
-
-**What changed conceptually**
-
-FORMAT-11 asked whether the archive could keep the cheap survivability benefits of local identity without paying the size cost of manifest-heavy designs.
-
-It separated two questions that had been getting blurred together:
-
-- can the archive still prove what surviving extents belong together?
-- can it still recover user-meaningful file naming?
-
-Those are not the same requirement.
-
-**What the harness showed**
-
-FORMAT-11 produced a useful but limited result:
-
-- `extent_identity_only` stayed very close to `payload_only` on size
-- `extent_identity_only` did **not** materially improve named recovery over `payload_only`
-- manifest-bearing variants still dominated on named recovery
-- distributed extent identity looked cheap enough to remain interesting as a salvage aid, but not as a drop-in replacement for naming metadata
-
-In practical terms, FORMAT-11 showed that local structural identity is cheap, but anonymous structural identity alone does not buy back the naming benefits of manifests.
-
-## What the project learned
-
-The experiments so far point to a simple but important conclusion:
-
-```text
-traditional metadata is not the main resilience mechanism in crushr
-self-identifying payload truth is
-```
-
-That does **not** mean metadata is useless.
-
-It means metadata appears to be:
-
-- optional support
-- helpful for confidence and naming when it survives
-- not the primary source of recoverability
-
-It also means the term “metadata” needs to be treated more carefully.
-
-At this stage the project has to distinguish between:
-
-- **structural identity** needed to verify and group surviving data
-- **naming/path truth** needed for human-meaningful recovery
-- a broader **Unix metadata envelope** such as mode, uid, gid, mtime, xattrs, and related policy
-
-Those layers should not be treated as one undifferentiated blob.
-
-## Current direction
-
-The format is now moving toward a more minimal, evidence-driven architecture.
-
-The working model looks like this:
-
-```text
-minimal container framing
-+ self-identifying payload blocks
-+ salvage reasoning
-+ distributed structural identity where it proves worth
-+ only the naming/metadata surfaces that survive enough to justify their byte cost
-```
-
-This is a major refinement of the original mission.
-
-The original goal was perfect integrity.
-
-The newer, more realistic formulation is:
-
-> Preserve perfect integrity for whatever survives, and recover only what can still be proven.
-
-## Why this matters
-
-This direction is unusual for archive formats.
-
-Traditional archive design usually assumes that metadata must remain authoritative.
-
-crushr is increasingly exploring a different principle:
-
-> data should carry enough truth to survive structural failure.
-
-That is the core reason the project is interesting.
-
-At the same time, crushr is still a compression-oriented archive format, not merely a forensic container.
-
-That means size overhead remains a first-class design constraint. A recovery feature that inflates the archive enough to undermine the format’s compression credibility has to clear a much higher bar.
-
-## What comes next
-
-The next major question is no longer simply “how do we add more metadata?”
-
-After FORMAT-11, the sharper question is:
-
-- can distributed naming restore named recovery without the size blow-up of manifest-heavy variants?
-- if names and paths are the one thing metadata is still buying, can that truth be distributed locally instead of centralized?
-- how much duplication is too much before the format stops looking credible as a compression-oriented design?
-
-That was the purpose of FORMAT-12, and FORMAT-12-STRESS closes the remaining duplication-risk question with deterministic stress datasets.
-
-FORMAT-12/12-STRESS compare at least:
-
-- `payload_only`
-- `extent_identity_only`
-- `payload_plus_manifest`
-- `full_current_experimental`
-- `extent_identity_inline_path`
-- `extent_identity_path_dict_single`
-- `extent_identity_path_dict_header_tail`
-- `extent_identity_path_dict_quasi_uniform`
-
-and answer whether embedding name/path truth into local extent identity buys enough named recovery to justify its byte cost.
-
-FORMAT-12-STRESS adds deterministic worst-case dataset families (`deep_paths`, `long_names`, `fragmentation_heavy`, `mixed_worst_case`) and records stress metrics including path lengths, extent density, and bytes added per extent/path-character in `format12_stress_comparison_summary.{json,md}`.
-
-If it does, that points toward a retained distributed naming surface.
-If it does not, that strengthens the case for pruning or demoting naming-heavy metadata rather than carrying it on principle.
-
-## Reading this page later
-
-This page will need regular updates. The format is evolving quickly, and some current conclusions may be refined or overturned by later data.
-
-That is expected.
-
-The important thing is that crushr is not being shaped by attachment to earlier assumptions. It is being shaped by what survives the harness.
-
-## Read next
-
-For the mechanics behind these results, continue to [Testing Harness](testing-harness.md).
-
-## FORMAT-14A — dictionary-target resilience validation
-
-## FORMAT-15: generation-aware mirrored dictionaries + factored namespace
-
-- New candidate: `extent_identity_path_dict_factored_header_tail`.
-- Dictionary copies now carry generation/identity/hash metadata to distinguish stale/wrong/conflicting copies.
-- Namespace dictionary now supports factored storage (`directories`, `basenames`, `file_bindings`) to reduce repeated path-prefix overhead.
-
-FORMAT-14A extends the deterministic harness with dictionary-target corruption scenarios focused on dictionary-based identity variants.
-
-- Added targets: `primary_dictionary`, `mirrored_dictionary`, `both_dictionaries`, `inconsistent_dictionaries`.
-- Added commands: `run-format14a-dictionary-resilience-comparison` and `run-format14a-dictionary-resilience-stress-comparison`.
-- Required artifacts: `format14a_dictionary_resilience_summary.{json,md}` and `format14a_dictionary_resilience_stress_summary.{json,md}`.
-
-The packet is explicitly bounded to resilience/fail-closed behavior under dictionary corruption and does not include namespace-factorization or dictionary size redesign work.
+That makes FORMAT-15 a useful negative result. The optimization attempt did not beat the current winner, so the lead architecture remains the non-factored header+tail mirrored dictionary model.

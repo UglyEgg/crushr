@@ -12,24 +12,28 @@ This document defines where active truth lives.
 - `.ai/PHASE_PLAN.md` — active phase checklist
 - `.ai/DECISION_LOG.md` — resolved decisions
 
-## Active product/spec docs
+## Public product/spec docs
 
-- `SPEC.md` — canonical on-disk archive contract
-- `docs/ARCHITECTURE.md` — truthful crate/tool architecture boundary
-- `docs/SNAPSHOT_FORMAT.md` — canonical snapshot contract boundary
-- `docs/CONTRACTS/*` — policy contracts
-- `PHASE2_RESEARCH/` — canonical Phase 2 research/work-product workspace (not shipped runtime data)
-- `PHASE2_RESEARCH/methodology/*` — active Phase 2 methodology and lock docs
+The website-facing documentation lives only under `docs/`.
+
+Primary entry points:
+
+- `docs/index.md`
+- `docs/why-crushr.md`
+- `docs/whitepaper/index.md`
+- `docs/foundational_docs/index.md`
+
+## Internal contracts and project-control docs
+
+- `.ai/contracts/` — policy contracts, quality gates, and interface/reference contracts used for internal development and review
+- `.ai/` — continuity memory and project-control material
 
 ## Code and supporting dirs
 
-- `crates/` — Rust workspace crates
 - `schemas/` — versioned JSON schemas
-- `.ai/` — continuity memory (internal project control)
+- `docs/` — website only
+- `.ai/` — internal project control
 
-## Current phase direction
+## Documentation rule
 
-- Phase 1 complete
-- Phase 2 active
-- Next required milestone: Phase 2 pre-trial audit over `PHASE2_RESEARCH/` controls and outputs
-- Next packet after audit: Phase 2.2 cross-format comparison and normalized result mapping
+If a document is not part of the website, it must not live in `docs/`.

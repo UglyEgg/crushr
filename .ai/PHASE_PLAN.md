@@ -1,104 +1,253 @@
 # crushr Phase Plan
 
-## Phase 1 — Integrity Intelligence
+This document defines the high-level development phases for crushr after the
+format experiments (FORMAT-11 through FORMAT-14A) established the core archive
+architecture.
 
-- [x] 1.1 Corruption Propagation Graph
-- [x] 1.1 hardening closeout (CRUSHR-1.1-B)
-- [x] 1.2 Maximum Safe Extraction Formalization
-- [x] 1.3 Extraction Result Formalization
+The project is transitioning from experimental exploration to productization.
+Future work prioritizes architectural stability, documentation clarity, and
+bounded feature additions.
 
-## Phase 2 — Comparative Corruption Research
+---------------------------------------------------------------------
 
-- [x] 2.0-A Legacy recovery/salvage surface deletion
-- [x] 2.0-B Documentation/control cleanup and canonicalization
-- [x] 2.0-C Schema contract tightening and validator-backed tests
-- [x] 2.0-D Shared core report/classification centralization
-- [x] 2.1-A Controlled Corruption Matrix manifest/schema (CRUSHR-P2.1-A)
-- [x] 2.1-B Dataset fixture + archive build foundation (CRUSHR-P2.1-B)
-- [x] 2.1-C Deterministic corruption injection engine (CRUSHR-P2.1-C)
-- [x] 2.1-D Phase 2 execution runner + raw result capture + completeness auditing (CRUSHR-P2.1-D)
-- [x] 2.1 pre-trial reproducibility prep — deterministic baseline archive generation (CRUSHR-P2-PRETRIAL-DET-01)
-- [x] 2.1 pre-trial audit milestone (CRUSHR-P2-TRIAL-READY-01)
-- [x] 2.1 execution freeze + foundation + execution evidence (CRUSHR-P2-EXEC-01/02/03A/03B)
-- [x] 2.2 execution normalization + recovery accounting enrichment (CRUSHR-P2-EXEC-04/06A)
-- [x] 2.2 cross-format comparison (CRUSHR-P2-ANALYSIS-01)
+Current Architectural Identity
 
-## Phase 3 — Standalone Salvage Planning and Recovery-Graph Research (active)
+crushr is a salvage-oriented archive format built around:
 
-- [x] 3.x CRUSHR-FORMAT-12-STRESS (inline naming duplication stress harness + reporting)
-  - emits `PHASE2_RESEARCH/FORMAT12_STRESS_RESULTS/format12_stress_comparison_summary.{json,md}`
+- distributed extent identity
+- mirrored naming dictionaries
+- deterministic recovery classification
+- fail-closed naming semantics
+- anonymous fallback when naming proof is unavailable
 
-- [x] 3.1 CRUSHR-SALVAGE-01 (plan-only)
-- [x] 3.2 CRUSHR-SALVAGE-02 (verified block analysis, still plan-only)
-- [x] 3.3 CRUSHR-SALVAGE-03 (verified fragment export, research-only)
-- [x] 3.4 CRUSHR-SALVAGE-04 (deterministic salvage experiment harness, research-only)
-- [x] 3.5 CRUSHR-SALVAGE-05 (deterministic compact experiment summaries, research-only)
-- [x] 3.6 CRUSHR-SALVAGE-06 (deterministic grouped analysis views, research-only)
-- [x] 3.7 CRUSHR-SALVAGE-07 (harness hardening for deterministic local research execution)
-- [x] 3.8 CRUSHR-FORMAT-01 (redundant verified file-map metadata fallback)
-- [x] 3.9 CRUSHR-SALVAGE-08 (bounded redundant-map before/after comparison, research-only)
-- [x] 3.10 CRUSHR-FORMAT-02 (experimental self-describing extents + distributed checkpoints)
-- [x] 3.11 CRUSHR-FORMAT-03 (experimental file-identity anchored extents)
-- [x] 3.12 CRUSHR-FORMAT-03-f1 (lab-salvage comparison dispatch/help repair)
-- [x] 3.13 CRUSHR-FORMAT-03-f2 (packer experimental writer/help contract repair)
-- [x] 3.14 CRUSHR-FORMAT-04 (experimental bootstrap-anchor + file-identity survivability hardening)
-- [x] 3.15 CRUSHR-FORMAT-05 (self-identifying payload blocks + repeated path checkpoints)
-- [x] 3.15-f1 CRUSHR-FORMAT-05-f1
-- [x] 3.15-f2 CRUSHR-FORMAT-05-f2
-- [x] 3.15-f3 CRUSHR-FORMAT-05-f3
-- [x] 3.15-f4 CRUSHR-FORMAT-05-f4
-- [x] 3.16 CRUSHR-SCRUB-02 (duplicate logical path hard-fail before archive emission)
-- [x] 3.16-f1 CRUSHR-SCRUB-02-f1 (stable collision ordering + expanded coverage)
-- [x] 3.16-f2 CRUSHR-SCRUB-03 (salvage/lab-salvage internal modularization)
-- [x] 3.17 CRUSHR-FORMAT-06 (verified file manifest checkpoints / file-truth layer)
-- [x] 3.17-f1 CRUSHR-FORMAT-06-f1 (manifest-sourced plan synthesis + digest-aware classification + dispatch hardening)
-- [x] 3.18 CRUSHR-FORMAT-07 (graph-aware salvage reasoning + explicit recovery classes)
-- [x] 3.19 CRUSHR-FORMAT-08 (metadata placement strategy experiment: `fixed_spread`, `hash_spread`, `golden_spread`)
-- [x] 3.20 CRUSHR-FORMAT-09 (curated corruption grid / survivability evaluation harness)
-  - stress truth-layer loss rather than only coarse region damage
-  - test named -> anonymous and ordered -> unordered downgrade behavior
-  - measure whether weak duplicated metadata surfaces should be retained or pruned
-  - keep the packet format-neutral: evaluation harness/reporting only
-- [x] 3.21 CRUSHR-FORMAT-10 (metadata pruning experiment + four-variant recovery/size comparison harness)
-- [x] 3.22 CRUSHR-FORMAT-11 (distributed extent-identity experiment + FORMAT-11 comparison harness)
-- [x] 3.23 CRUSHR-FORMAT-12 (inline per-extent path/name identity + FORMAT-12 comparison harness and artifacts)
-- [x] 3.24 CRUSHR-FORMAT-13 (compact distributed-name follow-up evidence packet completed: path-dictionary variants + baseline/stress outputs)
-- [x] 3.25 CRUSHR-FORMAT-14A (dictionary-target corruption resilience comparison; single vs header+tail fail-closed behavior)
+The format prioritizes recoverability and deterministic verification over
+maximum compression ratio.
 
-## Security scrub track
+---------------------------------------------------------------------
 
-- [x] CRUSHR-SCRUB-01 extraction confinement hardening
-- [x] CRUSHR-PLAN-LEGACY-01 extraction authority boundary enforcement
-- [x] CRUSHR-PLAN-LEGACY-01-f1 post-review test clarity hardening
-- [x] CRUSHR-PLAN-LEGACY-01-f2 preferred extraction authority delegation
+[ - ] PHASE 15 — Dictionary Hardening and Namespace Factoring
 
-## Phase 4 — Product-completeness track (planned)
+Goal
 
-- [ ] 4.1 Unix metadata preservation envelope
-  - file type
-  - mode
-  - uid/gid
-  - optional uname/gname policy
-  - mtime policy
-  - symlink target
-  - xattrs
-- [ ] 4.2 Advanced Unix metadata decision
-  - ACLs
-  - capabilities
-  - device metadata
-  - SELinux labels
-  - hardlink identity
+Promote the mirrored dictionary architecture to the canonical format while
+improving robustness and dictionary efficiency.
 
-## Phase 5 — Compression optimization track (planned)
+Key work
 
-- [ ] 5.1 Revisit dictionary strategy after resilience/placement/grid results settle
-- [ ] 5.2 Compare archive-global vs clustered vs explicit dictionary-object approaches
-- [ ] 5.3 Keep dictionary dependencies verifiable and recovery-honest
+- generation-aware dictionary copy headers
+- mirrored dictionary validation rules
+- factored namespace dictionary
+  - directory prefix dictionary
+  - basename dictionary
+  - file binding table
+- new comparison harness runs
+- baseline + stress corpus validation
 
+Deliverables
 
+<<<<<<< HEAD
 - [x] 3.25.1 CRUSHR-FORMAT-14A-FIX1 (repair dictionary-corruption classification/outcome reporting; rerun required FORMAT-14A artifacts)
 - [x] 3.25.2 CRUSHR-FORMAT-14A-FIX2 (restore header+tail dual-copy one-loss named recovery; rerun FORMAT-14A artifacts)
 
 - [x] CRUSHR-FORMAT-15 — Harden mirrored dictionary identity/generation semantics and add factored namespace dictionary with FORMAT-15 baseline/stress comparison commands + artifacts.
 
 - [x] CRUSHR-FORMAT-15-FIX1 — repair FORMAT-15 regression causing false-negative canonical-candidate judgments (restore scenario-authoritative fail-closed gating + v2 full-path dictionary parsing).
+||||||| parent of 666f3c5 (massive documentation clean-up and re-org)
+- [x] 3.25.1 CRUSHR-FORMAT-14A-FIX1 (repair dictionary-corruption classification/outcome reporting; rerun required FORMAT-14A artifacts)
+- [x] 3.25.2 CRUSHR-FORMAT-14A-FIX2 (restore header+tail dual-copy one-loss named recovery; rerun FORMAT-14A artifacts)
+=======
+- FORMAT-15 comparison results
+- FORMAT-15 stress comparison results
+- updated SNAPSHOT_FORMAT.md
+- updated format-evolution.md
+
+Exit criteria
+
+- factored mirrored dictionary is confirmed smaller or equal to the existing
+  mirrored dictionary approach
+- recovery semantics remain deterministic and fail-closed
+
+---------------------------------------------------------------------
+
+[ ] PHASE 16 — Architecture Hardening and De-cruft
+
+Goal
+
+Convert the repository from an experimental lab environment into a clean,
+coherent product codebase.
+
+Key work
+
+- hostile architectural review
+- remove abandoned experimental variants
+- isolate research harness into `lab/`
+- consolidate salvage pipeline logic
+- simplify configuration and variant flags
+- align CLI surface with product behavior
+- documentation rewrite to reflect canonical architecture
+
+Deliverables
+
+- hostile review report
+- repository refactor patch
+- updated architecture documentation
+- clean module boundaries between runtime and lab code
+
+Exit criteria
+
+- canonical runtime code contains no experimental variant logic
+- research harness exists but is isolated from production paths
+- CLI surface matches documented product behavior
+
+---------------------------------------------------------------------
+
+[ ] PHASE 17 — Archive Envelope Completion
+
+Goal
+
+Complete the archive metadata envelope required for a production archive tool.
+
+Key work
+
+- file mode support
+- uid/gid support
+- mtime preservation
+- symbolic link handling
+- extended attribute support (xattrs)
+- archive identity and version policy
+- compatibility rules for future format revisions
+
+Constraints
+
+- metadata support must not weaken salvage guarantees
+- metadata must remain verifiable and deterministic
+
+Deliverables
+
+- metadata envelope implementation
+- documentation updates
+- compatibility rules
+
+Exit criteria
+
+- crushr can represent the common POSIX filesystem model
+- metadata integrity survives salvage operations
+
+---------------------------------------------------------------------
+
+[ ] PHASE 18 — Compression Intelligence
+
+Goal
+
+Improve compression efficiency while preserving recovery semantics.
+
+Key work
+
+- compression dictionary experimentation
+- corpus benchmarking
+- dictionary persistence strategies
+- interaction between compression dictionaries and extent identity
+- bounded compression improvements without destabilizing recovery
+
+Constraints
+
+- compression must not compromise deterministic recovery
+- compression metadata must remain verifiable
+
+Deliverables
+
+- compression comparison results
+- updated compression pipeline
+- documentation updates
+
+Exit criteria
+
+- measurable compression improvement over baseline
+- salvage behavior unchanged
+
+---------------------------------------------------------------------
+
+[ ] PHASE 19 — Verification and Tooling Excellence
+
+Goal
+
+Make verification and recovery tooling first-class capabilities.
+
+Key work
+
+- fsck improvements
+- recovery diagnostics
+- structured output formats
+- clearer salvage reporting
+- improved error explanations
+- enhanced archive introspection
+
+Deliverables
+
+- improved CLI tooling
+- richer fsck reports
+- improved info command output
+
+Exit criteria
+
+- operators can easily diagnose archive state
+- salvage outcomes are transparent and well explained
+
+---------------------------------------------------------------------
+
+[ ] PHASE 20 — CLI and Documentation Polish
+
+Goal
+
+Prepare crushr for public release by improving usability and documentation.
+
+Key work
+
+- CLI consistency review
+- man-page style help text
+- usage examples
+- README rewrite
+- tutorials and workflow documentation
+- archive format reference documentation
+
+Deliverables
+
+- polished CLI
+- improved documentation
+- examples and tutorials
+
+Exit criteria
+
+- new users can understand crushr from documentation alone
+- CLI commands are predictable and consistent
+
+---------------------------------------------------------------------
+
+[ ] PHASE 21 — Release Candidate
+
+Goal
+
+Produce the first release candidate of the crushr archive format and toolset.
+
+Key work
+
+- final hostile review
+- compatibility audit
+- reproducible build verification
+- packaging preparation
+- release documentation
+
+Deliverables
+
+- release candidate tag
+- reproducible builds
+- checksums and verification files
+- compatibility notes
+- roadmap for post-v1 improvements
+
+Exit criteria
+
+- archive format is stable
+- documentation is complete
+- tooling is production-ready
+>>>>>>> 666f3c5 (massive documentation clean-up and re-org)

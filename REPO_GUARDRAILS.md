@@ -25,10 +25,9 @@ If documents conflict, resolve with this order:
 4. `.ai/PHASE_PLAN.md`
 5. `PROJECT_STATE.md`
 6. `SPEC.md`
-7. `docs/ARCHITECTURE.md`
-8. `docs/SNAPSHOT_FORMAT.md`
-9. `docs/CONTRACTS/*`
-10. `PHASE2_RESEARCH/methodology/*`
+7. `docs/whitepaper/index.md`
+8. `docs/foundational_docs/index.md`
+9. `.ai/contracts/*`
 
 If conflict remains, stop and resolve explicitly.
 
@@ -43,19 +42,7 @@ AI contributors must not:
 
 A separate experimental executable `crushr-salvage` is allowed, but it must remain clearly outside canonical extraction semantics.
 
-## Required output discipline
+## Documentation rule
 
-Each implementation response must include:
-
-1. what changed
-2. files modified/deleted
-3. verification commands and outcomes
-4. remaining risks or blockers
-5. completion status
-
-## Current direction
-
-- Phase 1 complete.
-- Phase 2 execution, normalization, and comparison are complete and frozen.
-- Active implementation workstream: standalone deterministic salvage planning via `crushr-salvage`.
-- Canonical Phase 2 research workspace root: `PHASE2_RESEARCH/`.
+`docs/` is for the website only.
+Internal contracts and project-control docs belong under `.ai/` or the repo root.

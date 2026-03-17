@@ -1,5 +1,5 @@
 site_name: crushr
-site_description: Integrity-first archival and salvage-first compression format documentation
+site_description: Salvage-oriented archive format and technical documentation
 site_url: https://crushr.entropy.quest/
 repo_name: UglyEgg/crushr
 repo_url: https://github.com/UglyEgg/crushr
@@ -11,7 +11,6 @@ theme:
   logo: assets/logo.webp
   favicon: assets/favicon.png
   palette:
-    # Default to dark mode. Provide a toggle for light mode.
     - scheme: slate
       primary: custom
       accent: custom
@@ -33,12 +32,16 @@ theme:
     - navigation.tabs
     - navigation.tabs.sticky
     - content.code.copy
+    - content.action.edit
 
 extra_css:
   - assets/stylesheets/theme.css
 
 markdown_extensions:
   - admonition
+  - attr_list
+  - md_in_html
+  - tables
   - toc:
       permalink: true
   - pymdownx.superfences:
@@ -52,6 +55,18 @@ markdown_extensions:
 
 nav:
   - Welcome: index.md
-  - Testing Harness: testing-harness.md
-  - FORMAT-12 Breakthrough: research/format-12-inline-naming-breakthrough.md
-  - Format Evolution: format-evolution.md
+  - Why crushr: why-crushr.md
+  - Whitepaper:
+      - Executive summary: whitepaper/index.md
+      - Problem statement: whitepaper/problem-statement.md
+      - Format architecture: whitepaper/architecture.md
+      - Recovery and integrity model: whitepaper/recovery-model.md
+      - Experimental evaluation: whitepaper/evaluation.md
+      - Applicability and roadmap: whitepaper/applicability.md
+  - Format evolution: format-evolution.md
+  - Reference:
+      - Architecture boundary: ARCHITECTURE.md
+      - Snapshot format: SNAPSHOT_FORMAT.md
+      - Testing harness: testing-harness.md
+      - Foundational references: foundational_docs/index.md
+      - Reference map: appendix/reference-map.md

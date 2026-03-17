@@ -1,98 +1,70 @@
+<div class="hero">
+
 # crushr
 
-**crushr** is an experimental, integrity-first archive and compression format built around a different question than most file containers:
+<p class="lead"><strong>crushr is a salvage-oriented archival format built for the failure case, not merely the happy path.</strong> It addresses a narrow but serious systems question: when an archive is damaged, what can still be proven and recovered without guessing?</p>
 
-> When an archive is damaged, what can still be *proven* and *recovered*?
+<div class="pill-row">
+  <span class="pill">Distributed extent identity</span>
+  <span class="pill">Mirrored naming dictionaries</span>
+  <span class="pill">Fail-closed semantics</span>
+  <span class="pill">Deterministic corruption evidence</span>
+</div>
 
-Most archive formats assume the container remains structurally intact. If central metadata is corrupted, extraction tends to fail hard. crushr explores a different approach: the archive should degrade gracefully, and surviving data should remain recoverable whenever it can still be cryptographically verified.
+</div>
 
-## Who crushr is for
+<div class="paper-meta">
+  <div><strong>Format stance</strong>Integrity-first archive semantics with deterministic salvage classification.</div>
+  <div><strong>Architectural core</strong>Distributed extent identity plus mirrored naming dictionaries.</div>
+  <div><strong>Trust boundary</strong>Fail-closed naming with anonymous fallback when proof is unavailable.</div>
+  <div><strong>Selection method</strong>Deterministic corruption experiments, not speculative design preference.</div>
+</div>
 
-crushr is aimed at people who care more about **verifiable recovery** than convenience:
+<div class="figure">
+  <img src="assets/diagrams/crushr_master_diagram_final.svg" alt="crushr format evolution master diagram" />
+  <div class="caption">crushr’s architecture emerged through elimination. Several plausible branches were tested; only the branches that survived repeated corruption experiments remained in the mainline design.</div>
+</div>
 
-- storage and archival engineers
-- preservation and research workflows
-- DFIR / forensic practitioners
-- anyone experimenting with corruption-tolerant data packaging
+<div class="section-header">
+  <h2>What makes crushr materially different</h2>
+  <p>Most archive formats assume the container remains structurally intact. crushr assumes that real failure is uglier than that and treats post-damage reasoning as part of the design, not a separate apology after extraction breaks.</p>
+</div>
 
-It is **not** trying to replace ZIP or TAR for everyday use.
+<div class="card-grid">
+  <div class="card">
+    <h3>Distributed identity</h3>
+    <p>The strongest durable truth travels with the extents themselves rather than living only in a single central authority.</p>
+  </div>
+  <div class="card">
+    <h3>Mirrored naming dictionaries</h3>
+    <p>Names are recoverable when one verified mirror survives and are refused when the naming subsystem cannot be trusted.</p>
+  </div>
+  <div class="card">
+    <h3>Fail-closed semantics</h3>
+    <p>When naming proof disappears, crushr does not improvise. It preserves verified payload and downgrades honestly to anonymous recovery.</p>
+  </div>
+  <div class="card">
+    <h3>Evidence-backed design</h3>
+    <p>The current architecture was selected through deterministic corruption experiments rather than style preference or metadata folklore.</p>
+  </div>
+</div>
 
-## Core idea
+<div class="thesis">
+  <strong>The real claim.</strong> crushr is not trying to be a more decorative ZIP file. Its claim is that archive formats should preserve what can still be proven after damage and should clearly distinguish between structural truth, naming truth, and later metadata policy.
+</div>
 
-Traditional archive design looks like this:
+<div class="section-header">
+  <h2>Read the site in this order</h2>
+  <p>The front-door pages establish the purpose and the architectural claim. The whitepaper explains the argument. The foundational references supply the lower-level structures behind it.</p>
+</div>
 
-```text
-metadata defines structure
-payload is interpreted through metadata
-metadata loss means archive failure
-```
+<div class="page-links">
+  <a class="page-link" href="why-crushr.md"><strong>Why crushr</strong>Positioning, legitimacy, and where the format fits in the real archive landscape.</a>
+  <a class="page-link" href="whitepaper/index.md"><strong>Whitepaper</strong>A coherent technical narrative covering the problem, architecture, recovery model, and evaluation story.</a>
+  <a class="page-link" href="format-evolution.md"><strong>Format evolution</strong>The selection-and-elimination story that killed weaker branches and produced the current design.</a>
+  <a class="page-link" href="foundational_docs/index.md"><strong>Foundational references</strong>Lower-level format and recovery documents for implementation-facing readers.</a>
+</div>
 
-crushr is evolving toward this:
-
-```text
-payload blocks carry enough local truth to be identified and verified
-metadata improves naming, confidence, and convenience
-metadata is no longer the single point of truth
-```
-
-That inversion is the defining design principle of the project.
-
-## What makes crushr different
-
-### Salvage-first design
-
-crushr is designed with damaged archives in mind. Recovery is not treated as an afterthought.
-
-### Payload-level truth
-
-The strongest resilience signal in crushr comes from **self-identifying payload blocks**. This allows salvage tooling to recover verifiable data even when higher-level metadata is missing or corrupted.
-
-### Evidence-driven evolution
-
-crushr is being shaped by a corruption harness that repeatedly damages archives and measures what still survives. The format is being changed based on test evidence, not just theory.
-
-## Current architectural direction
-
-The project has converged on three major ideas:
-
-1. **Payload blocks should be independently identifiable and verifiable**
-2. **Recovery should be classified by what can still be proven**
-3. **Metadata should be treated as advisory unless experiments prove it is worth the cost**
-
-## Recovery model
-
-The salvage tool classifies recovery strength using explicit categories:
-
-- **Full named verified** — complete recovery with trusted name/path
-- **Full verified** — complete recovery without trusted naming
-- **Partial ordered verified** — partial data recovered in provable order
-- **Partial unordered verified** — partial data recovered but ordering cannot be proven
-- **Orphan evidence only** — verified fragments exist but cannot be reconstructed into a file
-- **No verified evidence** — nothing salvageable remains
-
-## Why this matters
-
-In traditional archives, small structural corruption can cause catastrophic failure. crushr is exploring whether that failure model is necessary.
-
-If the container is damaged but the surviving data can still prove what it is, then the archive can still be useful.
-
-## Project status
-
-crushr is active research software. The format, metadata model, and recovery strategy are still being refined. The strongest result so far is that **self-identifying payload blocks matter much more than traditional metadata duplication**.
-
-## Simple mental model
-
-```mermaid
-flowchart LR
-    A["Input files"] --> B["crushr-pack"]
-    B --> C["Archive"]
-    C --> D["crushr-verify"]
-    C --> E["crushr-extract"]
-    C --> F["crushr-salvage"]
-    F --> G["Recovery classes"]
-    G --> H["Provable recovered data"]
-```
-
-## Read next
-
-Continue to [Testing Harness](testing-harness.md) for a detailed explanation of how crushr is being evaluated under corruption and how the harness drives format design.
+<div class="section-note">
+  <strong>Current architectural identity.</strong> At this stage crushr is best described as a compression-oriented archive format with distributed extent identity, mirrored naming dictionaries, deterministic recovery classes, and a strict refusal to invent names when naming proof is unavailable.
+</div>

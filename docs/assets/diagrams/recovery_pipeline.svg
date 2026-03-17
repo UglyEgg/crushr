@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="420" viewBox="0 0 1180 420">
+<rect width="1180" height="420" fill="#0b1020"/>
+<rect x="26" y="26" width="1128" height="368" rx="24" fill="#111827" stroke="#334155" stroke-width="2"/>
+<text x="70" y="82" font-family="Inter,Segoe UI,Arial" font-size="30" font-weight="700" fill="#f8fafc">Recovery pipeline</text>
+<text x="70" y="112" font-family="Inter,Segoe UI,Arial" font-size="17" fill="#cbd5e1">Verification precedes naming. Naming is accepted only if the dictionary subsystem remains trustworthy.</text>
+
+<defs>
+ <marker id="arr" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+  <path d="M0,0 L0,6 L8,3 z" fill="#38bdf8"/>
+ </marker>
+ <marker id="arrg" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+  <path d="M0,0 L0,6 L8,3 z" fill="#22c55e"/>
+ </marker>
+ <marker id="arrd" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+  <path d="M0,0 L0,6 L8,3 z" fill="#f87171"/>
+ </marker>
+</defs>
+
+<rect x="70" y="180" rx="20" width="190" height="96" fill="#132033" stroke="#38bdf8" stroke-width="2.5"/>
+<text x="95" y="220" font-family="Inter,Segoe UI,Arial" font-size="20" font-weight="700" fill="#f8fafc">Scan archive</text>
+<text x="95" y="248" font-family="Inter,Segoe UI,Arial" font-size="15" fill="#cbd5e1">Locate extents and</text>
+<text x="95" y="269" font-family="Inter,Segoe UI,Arial" font-size="15" fill="#cbd5e1">candidate dictionaries</text>
+
+<rect x="340" y="180" rx="20" width="220" height="96" fill="#132033" stroke="#38bdf8" stroke-width="2.5"/>
+<text x="367" y="220" font-family="Inter,Segoe UI,Arial" font-size="20" font-weight="700" fill="#f8fafc">Verify extents</text>
+<text x="367" y="248" font-family="Inter,Segoe UI,Arial" font-size="15" fill="#cbd5e1">Hashes, ordering, file</text>
+<text x="367" y="269" font-family="Inter,Segoe UI,Arial" font-size="15" fill="#cbd5e1">grouping proof</text>
+
+<rect x="660" y="160" rx="20" width="220" height="136" fill="#132033" stroke="#38bdf8" stroke-width="2.5"/>
+<text x="690" y="198" font-family="Inter,Segoe UI,Arial" font-size="20" font-weight="700" fill="#f8fafc">Resolve naming</text>
+<text x="690" y="226" font-family="Inter,Segoe UI,Arial" font-size="15" fill="#cbd5e1">Use mirrored dictionaries</text>
+<text x="690" y="247" font-family="Inter,Segoe UI,Arial" font-size="15" fill="#cbd5e1">only if validation and</text>
+<text x="690" y="268" font-family="Inter,Segoe UI,Arial" font-size="15" fill="#cbd5e1">conflict policy permit</text>
+
+<rect x="970" y="100" rx="20" width="150" height="84" fill="#0f2f24" stroke="#22c55e" stroke-width="2.5"/>
+<text x="1005" y="132" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="700" fill="#f8fafc">Named</text>
+<text x="995" y="156" font-family="Inter,Segoe UI,Arial" font-size="15" fill="#d1fae5">Recovery</text>
+
+<rect x="970" y="236" rx="20" width="150" height="84" fill="#3a250b" stroke="#f59e0b" stroke-width="2.5"/>
+<text x="990" y="268" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="700" fill="#f8fafc">Anonymous</text>
+<text x="1005" y="292" font-family="Inter,Segoe UI,Arial" font-size="15" fill="#fef3c7">Recovery</text>
+
+<path d="M260 228 L340 228" stroke="#38bdf8" stroke-width="4" fill="none" marker-end="url(#arr)"/>
+<path d="M560 228 L660 228" stroke="#38bdf8" stroke-width="4" fill="none" marker-end="url(#arr)"/>
+<path d="M880 205 C920 205, 930 142, 970 142" stroke="#22c55e" stroke-width="4" fill="none" marker-end="url(#arrg)"/>
+<path d="M880 250 C920 250, 930 278, 970 278" stroke="#f59e0b" stroke-width="4" fill="none" marker-end="url(#arrd)"/>
+
+<text x="900" y="188" font-family="Inter,Segoe UI,Arial" font-size="14" fill="#a7f3d0">dictionary trusted</text>
+<text x="902" y="234" font-family="Inter,Segoe UI,Arial" font-size="14" fill="#fde68a">dictionary unavailable or rejected</text>
+</svg>

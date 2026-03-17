@@ -1,0 +1,194 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-HARDEN-02
+
+Title
+Repository de-cruft, canonical boundary refactor, and product polish
+
+Role
+BUILDER
+
+Objective
+Apply the cleanup actions identified by CRUSHR-HARDEN-01 to produce a coherent, production-ready codebase that clearly separates canonical runtime behavior from research harness infrastructure.
+
+This packet performs structural cleanup only.
+It does not introduce new format features.
+
+---------------------------------------------------------------------
+
+Read first
+
+1. CRUSHR-HARDEN-01 review report
+2. AGENTS.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. docs/ARCHITECTURE.md
+6. docs/SNAPSHOT_FORMAT.md
+7. docs/testing-harness.md
+
+---------------------------------------------------------------------
+
+Goals
+
+1. Remove architectural sediment.
+2. Isolate research harness code.
+3. Consolidate duplicated logic.
+4. Align CLI and documentation with the canonical design.
+5. Ensure runtime code reflects only the intended product behavior.
+
+---------------------------------------------------------------------
+
+Required work
+
+1) Canonical runtime boundary
+
+Create clear module separation:
+
+core/
+  archive_format
+  dictionary
+  extent_identity
+  extraction
+  salvage
+
+lab/
+  format_experiments
+  corruption_harness
+  comparison_runners
+
+Canonical extraction code must never depend on lab modules.
+
+---------------------------------------------------------------------
+
+2) Remove or demote experimental variants
+
+Variants that lost the format experiments must be:
+- removed from runtime selection
+- retained only in lab comparison code if still useful
+
+Examples likely affected:
+- manifest-centric archive variants
+- quasi-uniform dictionary placement
+- single-dictionary production paths
+
+---------------------------------------------------------------------
+
+3) Consolidate salvage logic
+
+Ensure there is a single implementation of:
+- extent verification
+- dictionary validation
+- dictionary conflict handling
+- recovery classification
+
+Remove duplicated paths created by earlier experiments.
+
+---------------------------------------------------------------------
+
+4) CLI surface cleanup
+
+Ensure the public CLI exposes only:
+- crushr pack
+- crushr unpack
+- crushr info
+- crushr fsck
+- crushr salvage
+
+Experimental commands must move under a lab namespace.
+
+Example:
+crushr lab run-formatXX-comparison
+
+---------------------------------------------------------------------
+
+5) Configuration simplification
+
+Remove configuration knobs that correspond to abandoned experiments.
+
+Runtime behavior should reflect the canonical architecture without requiring variant flags.
+
+---------------------------------------------------------------------
+
+6) Documentation rewrite
+
+Update:
+- README
+- ARCHITECTURE.md
+- SNAPSHOT_FORMAT.md
+- format-evolution.md
+
+to describe the canonical design:
+
+extent identity
++
+mirrored naming dictionaries
++
+fail-closed recovery
++
+anonymous fallback
+
+Research history should remain in format-evolution.md but not appear as product behavior.
+
+---------------------------------------------------------------------
+
+7) Code quality pass
+
+Address obvious structural issues:
+- dead modules
+- unused structs/enums
+- redundant feature flags
+- unreachable branches
+
+Ensure the code compiles cleanly with:
+
+cargo clippy --all-targets --all-features
+cargo fmt --check
+
+---------------------------------------------------------------------
+
+8) Test harness isolation
+
+Ensure the corruption harness and comparison runners live only under:
+
+lab/
+
+and do not pollute runtime modules.
+
+---------------------------------------------------------------------
+
+Deliverables
+
+Builder must submit:
+- patch/diff
+- list of removed modules
+- new module structure
+- updated CLI help output
+- updated documentation
+- confirmation that lab experiments still run
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+This packet is acceptable only if:
+1. Canonical runtime code is cleanly separated from lab research code.
+2. Dead experimental variants are removed or demoted.
+3. Salvage logic is centralized and unambiguous.
+4. CLI surface reflects the product, not the research harness.
+5. Documentation matches the actual architecture.
+6. The repository reads as a coherent application rather than an experiment collection.
+
+---------------------------------------------------------------------
+
+Outcome
+
+After CRUSHR-HARDEN-02 the repository should represent a coherent product:
+
+crushr
+  deterministic salvage-oriented archive format
+  mirrored naming dictionaries
+  distributed extent identity
+  fail-closed recovery model
+
+with the experimental harness preserved but clearly separated.

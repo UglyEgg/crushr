@@ -1,25 +1,53 @@
-/* SPDX-License-Identifier: MIT OR Apache-2.0 */
-/* Copyright (c) 2026 Richard Majewski - Varanid Works */
-
-/*
-Deep forest green branding.
-Keep this file limited to palette + minor header sizing.
-Avoid layout hacks.
-*/
 
 :root {
-  /* Slightly taller header to accommodate a larger logo mark. */
   --md-header-height: 4.25rem;
+  --cr-card-bg: color-mix(in srgb, var(--md-default-bg-color) 94%, white 6%);
+  --cr-border: color-mix(in srgb, var(--md-default-fg-color) 15%, transparent);
+  --cr-border-strong: color-mix(in srgb, var(--md-default-fg-color) 24%, transparent);
+  --cr-accent: #38bdf8;
+  --cr-accent-2: #22c55e;
+  --cr-muted: var(--md-default-fg-color--light);
 }
-
-/* Enlarge the logo mark without stretching the header text. */
+.md-typeset {
+  font-size: 0.83rem;
+  line-height: 1.72;
+}
+.md-typeset h1 { letter-spacing: -0.02em; font-weight: 780; }
+.md-typeset h2, .md-typeset h3 { letter-spacing: -0.01em; }
 .md-header__button.md-logo img,
-.md-header__button.md-logo svg {
-  height: 3.25rem;
-  width: auto;
+.md-header__button.md-logo svg { height: 3rem; width: auto; }
+.hero {
+  padding: 1rem 0 0.5rem;
 }
-
-/* Reduce visual noise in the tab bar. */
-.md-tabs {
-  background: var(--md-primary-fg-color);
+.hero h1 { margin-bottom: 0.35rem; }
+.hero p { max-width: 58rem; font-size: 1.06rem; color: var(--md-default-fg-color); }
+.lead {
+  max-width: 58rem;
+  font-size: 1.02rem;
 }
+.paper-meta, .thesis, .section-note {
+  border: 1px solid var(--cr-border);
+  background: var(--cr-card-bg);
+  border-radius: 18px;
+  padding: 1rem 1.15rem;
+  margin: 1rem 0 1.4rem;
+}
+.paper-meta { display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:0.8rem; }
+.paper-meta strong { display:block; font-size:0.8rem; text-transform:uppercase; letter-spacing:.06em; color:var(--cr-muted); margin-bottom:.25rem; }
+.thesis { border-left: 4px solid var(--cr-accent); }
+.section-note { border-left: 4px solid var(--cr-accent-2); }
+.card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; margin:1.2rem 0 1.8rem; }
+.card { border:1px solid var(--cr-border); border-radius:16px; padding:1rem 1rem 0.9rem; background:var(--cr-card-bg); }
+.card h3 { margin-top:0; margin-bottom:0.35rem; }
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:0.9rem; margin:1rem 0 1.6rem; }
+.kpi { border-left:4px solid var(--cr-accent); padding:0.8rem 1rem; background:var(--cr-card-bg); border-radius:12px; }
+.kpi strong { display:block; font-size:1.35rem; margin-bottom:0.2rem; }
+.figure { margin:1.5rem 0 1.7rem; }
+.figure img, .figure svg { width:100%; border-radius:18px; border:1px solid var(--cr-border-strong); background:#0b1220; }
+.figure.tight img, .figure.tight svg { background:transparent; }
+.caption { font-size:0.8rem; color:var(--cr-muted); margin-top:0.45rem; }
+.stat-table table, .wide-table table { width:100%; }
+.page-links { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1rem; margin:1rem 0 1.6rem; }
+.page-link { display:block; border:1px solid var(--cr-border); border-radius:16px; padding:1rem; background:var(--cr-card-bg); text-decoration:none; color:inherit; }
+.page-link strong { display:block; margin-bottom:0.35rem; }
+blockquote { border-left:4px solid var(--cr-accent); padding-left:1rem; color:var(--md-default-fg-color); }

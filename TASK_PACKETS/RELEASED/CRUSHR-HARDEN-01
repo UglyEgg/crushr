@@ -1,0 +1,209 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-HARDEN-01
+
+Title
+Hostile architecture review and repository drift audit
+
+Role
+REVIEW
+
+Objective
+Perform a hostile architectural review of the crushr repository to identify experimental sediment, architectural drift, duplicated logic, abandoned variants, lab/runtime boundary violations, and documentation inconsistencies now that the dictionary-mirrored extent-identity model has emerged as the canonical design.
+
+This packet produces analysis only.
+No code changes are permitted in this packet.
+
+---------------------------------------------------------------------
+
+Read first
+
+1. AGENTS.md
+2. AI_BOOTSTRAP.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. .ai/INDEX.md
+6. .ai/STATUS.md
+7. .ai/PHASE_PLAN.md
+8. .ai/DECISION_LOG.md
+9. .ai/HANDOFF.md
+10. docs/ARCHITECTURE.md
+11. docs/SNAPSHOT_FORMAT.md
+12. docs/testing-harness.md
+13. docs/format-evolution.md
+14. FORMAT-12 summaries
+15. FORMAT-13 summaries
+16. FORMAT-14A summaries
+
+---------------------------------------------------------------------
+
+Canonical architectural direction
+
+The review must evaluate the codebase against the now-established design model:
+
+extent_identity
++
+dictionary-based path resolution
++
+mirrored dictionary copies (header + tail)
++
+fail-closed naming semantics
++
+anonymous fallback when naming proof is unavailable
+
+Research variants should no longer influence canonical runtime logic.
+
+---------------------------------------------------------------------
+
+Review priorities
+
+1. architecture drift
+2. layered patch smell
+3. duplicated logic
+4. lab/runtime boundary violations
+5. dead experimental variants
+6. CLI and API surface incoherence
+7. documentation drift
+8. security and fail-closed correctness
+9. salvage pipeline correctness
+10. test harness isolation
+
+---------------------------------------------------------------------
+
+Required analysis sections
+
+1) Canonical vs experimental variants
+
+List every format or recovery variant still present in code and classify them as:
+- canonical candidate
+- research control
+- deprecated experiment
+- dead code
+
+Explicitly identify which ones should remain in lab comparison only.
+
+---------------------------------------------------------------------
+
+2) Runtime vs lab boundary violations
+
+Identify code where:
+- lab experiments leak into production code paths
+- canonical extraction logic depends on research scaffolding
+- CLI surfaces expose experimental variants unintentionally
+
+Flag any modules that should be moved into a lab namespace.
+
+---------------------------------------------------------------------
+
+3) Duplicate logic
+
+Identify duplicate implementations of:
+- extent verification
+- path resolution
+- dictionary loading
+- dictionary validation
+- salvage classification
+- corruption scenario generation
+
+Recommend consolidation points.
+
+---------------------------------------------------------------------
+
+4) Salvage pipeline correctness
+
+Verify the pipeline:
+
+scan -> extent verification -> dictionary resolution -> recovery classification
+
+Confirm:
+- classification always emits exactly one outcome
+- naming failure never prevents anonymous fallback when payload identity still verifies
+- conflict detection remains fail closed
+
+---------------------------------------------------------------------
+
+5) Dictionary subsystem audit
+
+Evaluate:
+- dictionary placement logic
+- mirror validation logic
+- conflict detection logic
+- hash verification
+- dictionary resolution path
+
+Flag any code inconsistent with mirrored-dictionary semantics.
+
+---------------------------------------------------------------------
+
+6) CLI and command surface
+
+Identify commands that are:
+- obsolete
+- research-only
+- misnamed
+- redundant
+
+Recommend canonical command grouping.
+
+---------------------------------------------------------------------
+
+7) Documentation drift
+
+Identify documentation that:
+- describes abandoned formats
+- implies manifest-centric architecture
+- conflicts with current salvage model
+- exposes internal research variants as product features
+
+---------------------------------------------------------------------
+
+8) Layered patch smell
+
+Identify code that shows signs of:
+- repeated patching without structural cleanup
+- nested conditional logic for abandoned experiments
+- variant switches that no longer matter
+
+These are prime targets for refactoring.
+
+---------------------------------------------------------------------
+
+9) Security and fail-closed guarantees
+
+Confirm that:
+- dictionary conflicts fail closed
+- corrupted dictionaries cannot silently produce names
+- incorrect archive identity cannot be accepted
+- salvage never fabricates filenames
+
+Flag any violations.
+
+---------------------------------------------------------------------
+
+Deliverables
+
+Reviewer must submit a report containing:
+
+1. BLOCKER issues
+2. IMPORTANT issues
+3. NICE_TO_HAVE issues
+
+Plus these structured sections:
+- canonical architecture alignment report
+- dead variant inventory
+- salvage pipeline audit
+- CLI surface audit
+- documentation drift report
+- recommended refactor targets
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+The packet is complete only when the report clearly identifies:
+- what code must be removed
+- what code must be moved to lab modules
+- what code must be consolidated
+- what CLI surfaces must change
+- what documentation must be rewritten

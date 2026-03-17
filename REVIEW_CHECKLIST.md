@@ -1,8 +1,8 @@
 # Review Checklist
 
 ## Architecture
-- Does the patch respect crate boundaries?
-- Does it preserve the FDD thesis?
+- Does the patch respect crate/tool boundaries?
+- Does it preserve the salvage-oriented, fail-closed thesis?
 - Does it introduce hidden coupling?
 
 ## Code quality
@@ -16,4 +16,4 @@
 
 ## Docs and contracts
 - were relevant docs updated?
-- does any code contradict `SPEC.md` or `docs/CONTRACTS/*`?
+- does any code contradict `SPEC.md`, the whitepaper/foundational docs, or `.ai/contracts/*`?

@@ -26,8 +26,8 @@ When multiple continuity documents exist, apply this order:
 3. `.ai/DECISION_LOG.md` (resolved decisions and non-negotiables)
 4. `.ai/PHASE_PLAN.md` (execution plan)
 5. `PROJECT_STATE.md` (concise current-state summary)
-6. `SPEC.md`, `docs/ARCHITECTURE.md`, `docs/SNAPSHOT_FORMAT.md` (active technical truth)
-7. `docs/CONTRACTS/*` and `PHASE2_RESEARCH/methodology/*` (supporting contracts and active research methodology)
+6. `SPEC.md`, `docs/whitepaper/index.md`, `docs/foundational_docs/index.md` (active technical/public truth)
+7. `.ai/contracts/*` (supporting contracts and review policy)
 8. `.ai/*` supplements (contextual only; never override policy)
 
 If any conflict is detected, stop and resolve explicitly.
@@ -315,7 +315,7 @@ Implementation agents (Codex/Context/etc.) are not design authorities.
 
 They must:
 
-- treat `SPEC.md`, `docs/CONTRACTS/*`, `.ai/STATUS.md`, and `.ai/DECISION_LOG.md` as canonical
+- treat `SPEC.md`, `.ai/contracts/*`, `.ai/STATUS.md`, and `.ai/DECISION_LOG.md` as canonical
 - work from a bounded task packet
 - avoid architectural changes unless the packet explicitly authorizes them
 - include tests with every meaningful code change

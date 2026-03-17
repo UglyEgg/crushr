@@ -1,11 +1,19 @@
 # Contributing
 
 Before contributing, read:
+
 - `AGENTS.md`
-- `docs/ARCHITECTURE.md`
-- `docs/CONTRACTS/README.md`
-- `PHASE2_RESEARCH/README.md`
-- `PHASE2_RESEARCH/methodology/PHASE2_LOCKS.md`
+- `docs/whitepaper/index.md`
+- `docs/foundational_docs/index.md`
 - `.ai/STATUS.md`
 
-All changes must preserve the integrity-first thesis and pass the quality gates defined in `docs/CONTRACTS/QUALITY_GATES.md`.
+If you are making changes that affect repository policy, salvage semantics, or review rules, also read:
+
+- `.ai/contracts/README.md`
+- `.ai/contracts/QUALITY_GATES.md`
+
+## Documentation boundary
+
+The `docs/` directory is reserved for the website and files that are actually published by the website.
+
+Internal contracts, planning notes, and project-control material belong under `.ai/` or the repo root as appropriate.
