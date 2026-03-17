@@ -1,0 +1,7 @@
+zensical==0.0.23
+
+# Zensical uses Python Markdown + extensions, but does not bundle all optional
+# extensions used by a given project. Install our configured extension set.
+Markdown==3.10.2
+pymdown-extensions==10.21
+Pygments==2.19.2
