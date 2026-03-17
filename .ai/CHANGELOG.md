@@ -578,3 +578,13 @@
 - Identified and fixed FORMAT-14A harness bug where dictionary survival inference from corrupted archive parsing could undercount surviving copies and over-apply fail-closed anonymous fallback.
 - Switched FORMAT-14A dictionary-state shaping to deterministic scenario-aware copy/conflict expectations for this bounded corruption packet.
 - Restored header+tail dual-copy one-loss named recovery reporting and re-generated required baseline/stress artifacts.
+
+## 2026-03-17 — CRUSHR-FORMAT-15
+- Added metadata profile `extent_identity_path_dict_factored_header_tail` with factored directory/basename/file-binding dictionary body and mirrored header+tail copy support.
+- Added dictionary copy self-identification/generation fields and validation (`archive_instance_id`, `dict_uuid`, `generation`, `dictionary_length`, `dictionary_content_hash`) plus fail-closed handling for generation mismatch/conflict.
+- Added `run-format15-comparison` and `run-format15-stress-comparison`, emitted `FORMAT15_RESULTS/format15_{,stress_}comparison_summary.{json,md}` with required recovery/dictionary/generation metrics and grouped breakdowns.
+
+## 2026-03-17 — CRUSHR-FORMAT-15-FIX1
+- Fixed FORMAT-15 comparison regression: `run_format15_impl` now uses scenario-authoritative expected dictionary copy/conflict state for fail-closed gating (matching FORMAT-14A semantics), rather than observed valid-copy metrics that could collapse to zero.
+- Fixed salvage parser regression for dictionary v2 full-path body representation by accepting `body.entries` in addition to factored `directories`/`basenames`/`file_bindings`.
+- Added regression test `v2_full_path_body_is_parsed` and refreshed FORMAT-15 baseline/stress artifacts after rerun.

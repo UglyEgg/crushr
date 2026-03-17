@@ -107,3 +107,6 @@ When `--metadata-profile` is one of `extent_identity_path_dict_single`, `extent_
 These fields are experimental and used only by salvage research workflows.
 
 `--metadata-profile extent_identity_distributed_names` keeps payload identities pathless but enables distributed `crushr-path-checkpoint.v1` naming checkpoints without manifest checkpoints, to compare naming recovery/overhead against inline repetition.
+
+
+- FORMAT-15 dictionary copies use self-identifying headers (`archive_instance_id`, `dict_uuid`, `generation`, `dictionary_length`, `dictionary_content_hash`) and may encode paths as factored namespace tables.

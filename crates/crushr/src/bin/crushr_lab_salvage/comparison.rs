@@ -2156,9 +2156,15 @@ fn expected_dictionary_state_for_scenario(variant: &str, corruption_target: &str
 
     match (variant, corruption_target) {
         ("extent_identity_path_dict_header_tail", "primary_dictionary")
-        | ("extent_identity_path_dict_header_tail", "mirrored_dictionary") => (1, false),
-        ("extent_identity_path_dict_header_tail", "both_dictionaries") => (0, false),
-        ("extent_identity_path_dict_header_tail", "inconsistent_dictionaries") => (2, true),
+        | ("extent_identity_path_dict_header_tail", "mirrored_dictionary")
+        | ("extent_identity_path_dict_factored_header_tail", "primary_dictionary")
+        | ("extent_identity_path_dict_factored_header_tail", "mirrored_dictionary") => (1, false),
+        ("extent_identity_path_dict_header_tail", "both_dictionaries")
+        | ("extent_identity_path_dict_factored_header_tail", "both_dictionaries") => (0, false),
+        ("extent_identity_path_dict_header_tail", "inconsistent_dictionaries")
+        | ("extent_identity_path_dict_factored_header_tail", "inconsistent_dictionaries") => {
+            (2, true)
+        }
         ("extent_identity_path_dict_single", "inconsistent_dictionaries")
         | ("extent_identity_path_dict_single", "primary_dictionary")
         | ("extent_identity_path_dict_single", "mirrored_dictionary")
@@ -3528,6 +3534,20 @@ fn rewrite_dictionary_block_as_inconsistent(
         first["path"] = Value::from(new_path.clone());
         first["path_digest_blake3"] =
             Value::from(to_hex_lower(blake3::hash(new_path.as_bytes()).as_bytes()));
+    } else if let Some(first) = mutated
+        .get_mut("body")
+        .and_then(|b| b.get_mut("file_bindings"))
+        .and_then(Value::as_array_mut)
+        .and_then(|entries| entries.first_mut())
+    {
+        first["path_digest_blake3"] = Value::from("00".repeat(32));
+    }
+
+    if let Some(body) = mutated.get("body") {
+        let raw_body = serde_json::to_vec(body)?;
+        mutated["dictionary_content_hash"] =
+            Value::from(to_hex_lower(blake3::hash(&raw_body).as_bytes()));
+        mutated["dictionary_length"] = Value::from(raw_body.len() as u64);
     }
 
     let raw = serde_json::to_vec(&mutated)?;
@@ -4148,7 +4168,9 @@ fn apply_dictionary_target_corruption(archive: &Path, target: &str) -> Result<()
     let dict_blocks: Vec<MetadataJsonBlock> = parse_metadata_json_blocks_with_offsets(archive)?
         .into_iter()
         .filter(|b| {
-            b.value.get("schema").and_then(Value::as_str) == Some("crushr-path-dictionary-copy.v1")
+            let schema = b.value.get("schema").and_then(Value::as_str);
+            schema == Some("crushr-path-dictionary-copy.v1")
+                || schema == Some("crushr-path-dictionary-copy.v2")
         })
         .collect();
 
@@ -4759,4 +4781,378 @@ pub(super) fn run_format14a_dictionary_resilience_stress_comparison(
     verbose: bool,
 ) -> Result<()> {
     run_format14a_dictionary_resilience_impl(comparison_dir, verbose, true)
+}
+
+fn format15_variants() -> [&'static str; 4] {
+    [
+        "extent_identity_inline_path",
+        "extent_identity_path_dict_header_tail",
+        "extent_identity_path_dict_factored_header_tail",
+        "payload_plus_manifest",
+    ]
+}
+
+fn compute_format15_dictionary_metrics(archive: &Path) -> Result<Value> {
+    let rows = parse_metadata_json_blocks(archive)?;
+    let mut dictionary_total_bytes = 0u64;
+    let mut directory_dictionary_bytes = 0u64;
+    let mut basename_dictionary_bytes = 0u64;
+    let mut file_binding_table_bytes = 0u64;
+    let mut entry_count = 0u64;
+    let mut valid_dictionary_copy_count = 0u64;
+    let mut rejected_wrong_archive_count = 0u64;
+    let mut rejected_hash_mismatch_count = 0u64;
+    let mut detected_generation_mismatch_count = 0u64;
+    let mut expected_archive_id: Option<String> = None;
+    let mut seen_generation: Option<u64> = None;
+
+    for row in &rows {
+        if row.get("schema").and_then(Value::as_str) == Some("crushr-payload-block-identity.v1")
+            && expected_archive_id.is_none()
+        {
+            expected_archive_id = row
+                .get("archive_identity")
+                .and_then(Value::as_str)
+                .map(str::to_string);
+        }
+
+        let schema = row.get("schema").and_then(Value::as_str);
+        if schema != Some("crushr-path-dictionary-copy.v1")
+            && schema != Some("crushr-path-dictionary-copy.v2")
+        {
+            continue;
+        }
+
+        dictionary_total_bytes += serde_json::to_vec(row)?.len() as u64;
+        if let Some(generation) = row.get("generation").and_then(Value::as_u64) {
+            if let Some(existing) = seen_generation {
+                if existing != generation {
+                    detected_generation_mismatch_count += 1;
+                }
+            } else {
+                seen_generation = Some(generation);
+            }
+        }
+
+        if schema == Some("crushr-path-dictionary-copy.v2") {
+            if let (Some(expected), Some(actual)) = (
+                expected_archive_id.as_deref(),
+                row.get("archive_instance_id").and_then(Value::as_str),
+            ) {
+                if expected != actual {
+                    rejected_wrong_archive_count += 1;
+                    continue;
+                }
+            }
+
+            if let Some(body) = row.get("body") {
+                let body_bytes = serde_json::to_vec(body)?;
+                let hash = to_hex_lower(blake3::hash(&body_bytes).as_bytes());
+                if row.get("dictionary_content_hash").and_then(Value::as_str) != Some(hash.as_str())
+                    || row.get("dictionary_length").and_then(Value::as_u64)
+                        != Some(body_bytes.len() as u64)
+                {
+                    rejected_hash_mismatch_count += 1;
+                    continue;
+                }
+
+                valid_dictionary_copy_count += 1;
+                if let Some(dirs) = body.get("directories").and_then(Value::as_array) {
+                    directory_dictionary_bytes += serde_json::to_vec(dirs)?.len() as u64;
+                }
+                if let Some(names) = body.get("basenames").and_then(Value::as_array) {
+                    basename_dictionary_bytes += serde_json::to_vec(names)?.len() as u64;
+                }
+                if let Some(files) = body.get("file_bindings").and_then(Value::as_array) {
+                    file_binding_table_bytes += serde_json::to_vec(files)?.len() as u64;
+                    entry_count = entry_count.max(files.len() as u64);
+                }
+            }
+        }
+    }
+
+    Ok(serde_json::json!({
+        "dictionary_total_bytes": dictionary_total_bytes,
+        "directory_dictionary_bytes": directory_dictionary_bytes,
+        "basename_dictionary_bytes": basename_dictionary_bytes,
+        "file_binding_table_bytes": file_binding_table_bytes,
+        "average_factored_entry_cost": if entry_count > 0 { dictionary_total_bytes as f64 / entry_count as f64 } else { 0.0 },
+        "valid_dictionary_copy_count": valid_dictionary_copy_count,
+        "rejected_wrong_archive_count": rejected_wrong_archive_count,
+        "rejected_hash_mismatch_count": rejected_hash_mismatch_count,
+        "detected_generation_mismatch_count": detected_generation_mismatch_count,
+    }))
+}
+
+fn run_format15_impl(comparison_dir: &Path, verbose: bool, stress: bool) -> Result<()> {
+    fs::create_dir_all(comparison_dir)?;
+    let temp = std::env::temp_dir().join(format!(
+        "crushr-format15-{}-comparison-{}",
+        if stress { "stress" } else { "baseline" },
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&temp);
+    fs::create_dir_all(&temp)?;
+
+    let salvage_bin = resolve_salvage_bin()?;
+    let pack_bin = resolve_pack_bin()?;
+    let variants = format15_variants();
+    let scenarios = format14a_dictionary_scenarios(stress);
+
+    let mut rows = Vec::new();
+
+    for scenario in scenarios {
+        let scenario_dir = temp.join(&scenario.scenario_id);
+        fs::create_dir_all(&scenario_dir)?;
+        let input_root = scenario_dir.join("input");
+        if stress {
+            write_dataset_fixture_format12_stress(&input_root, scenario.dataset)?;
+        } else {
+            write_dataset_fixture_format12(&input_root, scenario.dataset)?;
+        }
+        let input_dir = input_root.join(scenario.dataset);
+
+        for variant in variants {
+            let archive =
+                scenario_dir.join(format!("format15_{}_{}.crushr", scenario.dataset, variant));
+            build_archive_with_pack_metadata_profile_name(
+                &pack_bin, &input_dir, &archive, variant,
+            )?;
+            let dict_stats = compute_format15_dictionary_metrics(&archive)?;
+            // Keep FORMAT-15 comparable to FORMAT-14A dictionary-resilience semantics:
+            // evaluate dictionary-bearing paths, not primary IDX3/ledger naming fallback.
+            remove_ledger_for_old_style(&archive)?;
+            apply_dictionary_target_corruption(&archive, scenario.corruption_target)?;
+            let archive_byte_size = fs::metadata(&archive)?.len();
+            let stats = compute_stress_identity_stats(&archive, &input_dir)?;
+            let path_length_bucket =
+                if stats["average_path_length"].as_f64().unwrap_or(0.0) >= 180.0 {
+                    "very_long"
+                } else if stats["average_path_length"].as_f64().unwrap_or(0.0) >= 120.0 {
+                    "long"
+                } else {
+                    "normal"
+                };
+
+            let plan = run_salvage_plan(
+                &salvage_bin,
+                &archive,
+                &scenario_dir.join(format!("plan15_{}_{}.json", variant, scenario.scenario_id)),
+            )?;
+            let classes = recovery_classification_counts(&plan);
+            let terminal = terminal_recovery_outcome(&classes);
+            let (dictionary_copy_count, dict_conflict) =
+                expected_dictionary_state_for_scenario(variant, scenario.corruption_target);
+            let terminal = enforce_dictionary_fail_closed(
+                variant,
+                terminal,
+                dictionary_copy_count,
+                dict_conflict,
+            );
+            if verbose {
+                eprintln!("format15 {} {}", scenario.scenario_id, variant);
+            }
+
+            rows.push(serde_json::json!({
+                "scenario_id": scenario.scenario_id,
+                "dataset": scenario.dataset,
+                "corruption_target": scenario.corruption_target,
+                "variant": variant,
+                "stress": stress,
+                "archive_byte_size": archive_byte_size,
+                "path_length_bucket": path_length_bucket,
+                "named_recovery": matches!(terminal, TerminalRecoveryOutcome::Named),
+                "anonymous_full_recovery": matches!(terminal, TerminalRecoveryOutcome::AnonymousFull),
+                "partial_ordered_recovery": matches!(terminal, TerminalRecoveryOutcome::PartialOrdered),
+                "partial_unordered_recovery": matches!(terminal, TerminalRecoveryOutcome::PartialUnordered),
+                "orphan_evidence": matches!(terminal, TerminalRecoveryOutcome::OrphanEvidence),
+                "no_verified_evidence": matches!(terminal, TerminalRecoveryOutcome::NoVerifiedEvidence),
+                "conflict_fail_closed": dict_conflict && matches!(terminal, TerminalRecoveryOutcome::AnonymousFull),
+                "dictionary_total_bytes": dict_stats["dictionary_total_bytes"],
+                "directory_dictionary_bytes": dict_stats["directory_dictionary_bytes"],
+                "basename_dictionary_bytes": dict_stats["basename_dictionary_bytes"],
+                "file_binding_table_bytes": dict_stats["file_binding_table_bytes"],
+                "average_factored_entry_cost": dict_stats["average_factored_entry_cost"],
+                "valid_dictionary_copy_count": dict_stats["valid_dictionary_copy_count"],
+                "rejected_wrong_archive_count": dict_stats["rejected_wrong_archive_count"],
+                "rejected_hash_mismatch_count": dict_stats["rejected_hash_mismatch_count"],
+                "detected_generation_mismatch_count": dict_stats["detected_generation_mismatch_count"],
+            }));
+        }
+    }
+
+    let sum_size = |name: &str| -> u64 {
+        rows.iter()
+            .filter(|r| r["variant"] == name)
+            .map(|r| r["archive_byte_size"].as_u64().unwrap_or(0))
+            .sum()
+    };
+    let inline_size = sum_size("extent_identity_inline_path") as i64;
+    let header_tail_size = sum_size("extent_identity_path_dict_header_tail") as i64;
+    let manifest_size = sum_size("payload_plus_manifest") as i64;
+
+    let mut by_variant = serde_json::Map::new();
+    for variant in variants {
+        let vr: Vec<&Value> = rows.iter().filter(|r| r["variant"] == variant).collect();
+        let archive_byte_size: i64 = vr
+            .iter()
+            .map(|r| r["archive_byte_size"].as_u64().unwrap_or(0) as i64)
+            .sum();
+        let dict_total: u64 = vr
+            .iter()
+            .map(|r| r["dictionary_total_bytes"].as_u64().unwrap_or(0))
+            .sum();
+        by_variant.insert(variant.to_string(), serde_json::json!({
+            "scenario_count": vr.len(),
+            "archive_byte_size": archive_byte_size,
+            "overhead_delta_vs_extent_identity_inline_path": archive_byte_size - inline_size,
+            "overhead_delta_vs_extent_identity_path_dict_header_tail": archive_byte_size - header_tail_size,
+            "overhead_delta_vs_payload_plus_manifest": archive_byte_size - manifest_size,
+            "named_recovery_count": vr.iter().filter(|r| r["named_recovery"].as_bool()==Some(true)).count(),
+            "anonymous_full_recovery_count": vr.iter().filter(|r| r["anonymous_full_recovery"].as_bool()==Some(true)).count(),
+            "partial_ordered_recovery_count": vr.iter().filter(|r| r["partial_ordered_recovery"].as_bool()==Some(true)).count(),
+            "partial_unordered_recovery_count": vr.iter().filter(|r| r["partial_unordered_recovery"].as_bool()==Some(true)).count(),
+            "orphan_evidence_count": vr.iter().filter(|r| r["orphan_evidence"].as_bool()==Some(true)).count(),
+            "no_verified_evidence_count": vr.iter().filter(|r| r["no_verified_evidence"].as_bool()==Some(true)).count(),
+            "dictionary_total_bytes": dict_total,
+            "directory_dictionary_bytes": vr.iter().map(|r| r["directory_dictionary_bytes"].as_u64().unwrap_or(0)).sum::<u64>(),
+            "basename_dictionary_bytes": vr.iter().map(|r| r["basename_dictionary_bytes"].as_u64().unwrap_or(0)).sum::<u64>(),
+            "file_binding_table_bytes": vr.iter().map(|r| r["file_binding_table_bytes"].as_u64().unwrap_or(0)).sum::<u64>(),
+            "average_factored_entry_cost": mean_f64(&vr, "average_factored_entry_cost"),
+            "estimated_dictionary_savings_vs_non_factored_header_tail": header_tail_size - archive_byte_size,
+            "valid_dictionary_copy_count": vr.iter().map(|r| r["valid_dictionary_copy_count"].as_u64().unwrap_or(0)).sum::<u64>(),
+            "rejected_wrong_archive_count": vr.iter().map(|r| r["rejected_wrong_archive_count"].as_u64().unwrap_or(0)).sum::<u64>(),
+            "rejected_hash_mismatch_count": vr.iter().map(|r| r["rejected_hash_mismatch_count"].as_u64().unwrap_or(0)).sum::<u64>(),
+            "detected_generation_mismatch_count": vr.iter().map(|r| r["detected_generation_mismatch_count"].as_u64().unwrap_or(0)).sum::<u64>(),
+            "conflict_fail_closed_count": vr.iter().filter(|r| r["conflict_fail_closed"].as_bool()==Some(true)).count(),
+            "successful_named_recovery_with_one_copy_invalid": vr.iter().filter(|r| (r["corruption_target"]=="primary_dictionary" || r["corruption_target"]=="mirrored_dictionary") && r["named_recovery"].as_bool()==Some(true)).count(),
+            "anonymous_fallback_with_both_copies_invalid": vr.iter().filter(|r| r["corruption_target"]=="both_dictionaries" && r["anonymous_full_recovery"].as_bool()==Some(true)).count(),
+        }));
+    }
+
+    let mut grouped = serde_json::Map::new();
+    for field in [
+        "dataset",
+        "corruption_target",
+        "path_length_bucket",
+        "stress",
+    ] {
+        let mut map = serde_json::Map::new();
+        let mut keys = std::collections::BTreeSet::new();
+        for r in &rows {
+            if field == "stress" {
+                keys.insert(r["stress"].as_bool().unwrap_or(false).to_string());
+            } else if let Some(k) = r[field].as_str() {
+                keys.insert(k.to_string());
+            }
+        }
+        for key in keys {
+            let mut vm = serde_json::Map::new();
+            for variant in variants {
+                let filtered: Vec<&Value> = rows
+                    .iter()
+                    .filter(|r| {
+                        r["variant"] == variant
+                            && if field == "stress" {
+                                r["stress"].as_bool().unwrap_or(false).to_string() == key
+                            } else {
+                                r[field].as_str().unwrap_or_default() == key
+                            }
+                    })
+                    .collect();
+                vm.insert(variant.to_string(), serde_json::json!({
+                    "scenario_count": filtered.len(),
+                    "named_recovery_count": filtered.iter().filter(|r| r["named_recovery"].as_bool()==Some(true)).count(),
+                    "anonymous_full_recovery_count": filtered.iter().filter(|r| r["anonymous_full_recovery"].as_bool()==Some(true)).count(),
+                }));
+            }
+            map.insert(key, Value::Object(vm));
+        }
+        grouped.insert(field.to_string(), Value::Object(map));
+    }
+
+    let summary = serde_json::json!({
+        "schema_version": if stress {"crushr-lab-salvage-format15-stress.v1"} else {"crushr-lab-salvage-format15.v1"},
+        "scenario_count": rows.len(),
+        "variants": variants,
+        "by_variant": by_variant,
+        "grouped_breakdown": grouped,
+        "per_scenario_rows": rows,
+    });
+
+    let (json_name, md_name) = if stress {
+        (
+            "format15_stress_comparison_summary.json",
+            "format15_stress_comparison_summary.md",
+        )
+    } else {
+        (
+            "format15_comparison_summary.json",
+            "format15_comparison_summary.md",
+        )
+    };
+    fs::write(
+        comparison_dir.join(json_name),
+        serde_json::to_string_pretty(&summary)?,
+    )?;
+
+    let factored = &summary["by_variant"]["extent_identity_path_dict_factored_header_tail"];
+    let mut md = String::new();
+    md.push_str(if stress {
+        "# Format-15 stress comparison\n\n"
+    } else {
+        "# Format-15 comparison\n\n"
+    });
+    md.push_str("## Judgment\n\n");
+    md.push_str(&format!(
+        "1. Does namespace factoring materially reduce dictionary size? **{}**.\n",
+        if factored["estimated_dictionary_savings_vs_non_factored_header_tail"]
+            .as_i64()
+            .unwrap_or(0)
+            > 0
+        {
+            "Yes"
+        } else {
+            "No"
+        }
+    ));
+    md.push_str(&format!("2. Does the factored mirrored dictionary variant remain smaller than inline-path identity? **{}**.\n", if factored["overhead_delta_vs_extent_identity_inline_path"].as_i64().unwrap_or(0) < 0 {"Yes"} else {"No"}));
+    md.push_str(&format!(
+        "3. Does generation-aware identity improve dictionary conflict semantics? **{}**.\n",
+        if factored["detected_generation_mismatch_count"]
+            .as_u64()
+            .unwrap_or(0)
+            > 0
+        {
+            "Yes"
+        } else {
+            "No"
+        }
+    ));
+    md.push_str(&format!("4. Can one valid mirrored copy still preserve named recovery when the other is invalid? **{}**.\n", if factored["successful_named_recovery_with_one_copy_invalid"].as_u64().unwrap_or(0) > 0 {"Yes"} else {"No"}));
+    md.push_str(&format!("5. Does the factored mirrored dictionary variant now become the preferred canonical candidate? **{}**.\n", if factored["named_recovery_count"].as_u64().unwrap_or(0) > 0 {"Yes"} else {"No"}));
+    md.push_str(&format!(
+        "6. Is the added structural complexity justified by the measured size savings? **{}**.\n",
+        if factored["estimated_dictionary_savings_vs_non_factored_header_tail"]
+            .as_i64()
+            .unwrap_or(0)
+            > 0
+        {
+            "Yes"
+        } else {
+            "No"
+        }
+    ));
+    fs::write(comparison_dir.join(md_name), md)?;
+
+    let _ = fs::remove_dir_all(&temp);
+    Ok(())
+}
+
+pub(super) fn run_format15_comparison(comparison_dir: &Path, verbose: bool) -> Result<()> {
+    run_format15_impl(comparison_dir, verbose, false)
+}
+
+pub(super) fn run_format15_stress_comparison(comparison_dir: &Path, verbose: bool) -> Result<()> {
+    run_format15_impl(comparison_dir, verbose, true)
 }

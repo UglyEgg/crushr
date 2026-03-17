@@ -115,6 +115,15 @@ This phase directly tested whether metadata layers survive often enough to matte
 
 ### FORMAT-14A — dictionary-target corruption resilience
 
+## FORMAT-15 commands
+
+- `run-format15-comparison`
+- `run-format15-stress-comparison`
+
+Outputs:
+- `format15_comparison_summary.{json,md}`
+- `format15_stress_comparison_summary.{json,md}`
+
 This phase directly targets dictionary copy regions for dictionary-based naming variants and checks fail-closed behavior under dictionary loss/conflict.
 
 Corruption targets:

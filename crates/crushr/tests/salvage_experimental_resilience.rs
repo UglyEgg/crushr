@@ -993,3 +993,53 @@ fn format14a_dictionary_resilience_classification_and_fail_closed_semantics() {
     assert!(conflict_count > 0);
     assert_eq!(fail_closed_count, conflict_count);
 }
+
+#[test]
+fn format15_comparison_writes_required_artifacts() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format15");
+
+    run(Command::new(lab_bin)
+        .arg("run-format15-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format15_comparison_summary.json");
+    assert!(summary_path.exists());
+    assert!(out_dir.join("format15_comparison_summary.md").exists());
+
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    let row = &summary["by_variant"]["extent_identity_path_dict_factored_header_tail"];
+    assert!(row["dictionary_total_bytes"].is_u64());
+    assert!(row["directory_dictionary_bytes"].is_u64());
+    assert!(row["basename_dictionary_bytes"].is_u64());
+    assert!(row["file_binding_table_bytes"].is_u64());
+    assert!(row["valid_dictionary_copy_count"].is_u64());
+    assert!(row["rejected_hash_mismatch_count"].is_u64());
+}
+
+#[test]
+fn format15_stress_comparison_writes_required_artifacts() {
+    let lab_bin = Path::new(env!("CARGO_BIN_EXE_crushr-lab-salvage"));
+    let td = TempDir::new().unwrap();
+    let out_dir = td.path().join("comparison-format15-stress");
+
+    run(Command::new(lab_bin)
+        .arg("run-format15-stress-comparison")
+        .arg("--output")
+        .arg(&out_dir));
+
+    let summary_path = out_dir.join("format15_stress_comparison_summary.json");
+    assert!(summary_path.exists());
+    assert!(out_dir
+        .join("format15_stress_comparison_summary.md")
+        .exists());
+
+    let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
+    let grouped = summary["grouped_breakdown"].as_object().unwrap();
+    assert!(grouped.contains_key("dataset"));
+    assert!(grouped.contains_key("corruption_target"));
+    assert!(grouped.contains_key("path_length_bucket"));
+    assert!(grouped.contains_key("stress"));
+}
