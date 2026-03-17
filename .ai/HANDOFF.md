@@ -100,3 +100,9 @@ After structural stability and metadata pruning decisions settle, revisit distri
 - **CRUSHR-FORMAT-15 is complete**: added generation-aware mirrored dictionary headers, factored namespace dictionary variant `extent_identity_path_dict_factored_header_tail`, and `run-format15-comparison` / `run-format15-stress-comparison` outputs in `FORMAT15_RESULTS/`.
 
 - **CRUSHR-FORMAT-15-FIX1 is complete**: fixed FORMAT-15 regression where dictionary variants were forced anonymous due zeroed observed copy metrics and missing `crushr-path-dictionary-copy.v2` full-path body parsing. Re-ran and refreshed `FORMAT15_RESULTS/format15_{,stress_}comparison_summary.{json,md}`.
+
+
+## Latest completion
+- **CRUSHR-HARDEN-02 is complete**: moved runtime salvage internals into `crushr_salvage/core/`, moved lab harness internals into `crushr_lab_salvage/lab/`, and consolidated duplicated experimental-metadata salvage planning paths into `plan_from_experimental_metadata`.
+- Added missing docs required by hardening packet: `docs/ARCHITECTURE.md`, `docs/SNAPSHOT_FORMAT.md`, `docs/testing-harness.md`.
+- Updated `docs/format-evolution.md` to state research-history boundary explicitly.

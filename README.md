@@ -21,6 +21,9 @@ The public product and whitepaper documentation now lives under `docs/`.
 Start here:
 
 - `docs/index.md` — site landing page
+- `docs/ARCHITECTURE.md` — canonical runtime and lab boundary
+- `docs/SNAPSHOT_FORMAT.md` — salvage snapshot and classification guarantees
+- `docs/testing-harness.md` — runtime vs lab test execution
 - `docs/why-crushr.md` — positioning and legitimacy
 - `docs/whitepaper/index.md` — technical whitepaper
 - `docs/foundational_docs/index.md` — lower-level format references

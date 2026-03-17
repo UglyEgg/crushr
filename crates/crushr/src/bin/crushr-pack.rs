@@ -337,8 +337,8 @@ fn pack_minimal_v1(
                 .file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_else(|| path.clone());
-            if !name_id_by_name.contains_key(&name) {
-                name_id_by_name.insert(name, next_name_id);
+            if let std::collections::btree_map::Entry::Vacant(entry) = name_id_by_name.entry(name) {
+                entry.insert(next_name_id);
                 next_name_id += 1;
             }
         }

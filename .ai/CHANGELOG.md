@@ -588,3 +588,11 @@
 - Fixed FORMAT-15 comparison regression: `run_format15_impl` now uses scenario-authoritative expected dictionary copy/conflict state for fail-closed gating (matching FORMAT-14A semantics), rather than observed valid-copy metrics that could collapse to zero.
 - Fixed salvage parser regression for dictionary v2 full-path body representation by accepting `body.entries` in addition to factored `directories`/`basenames`/`file_bindings`.
 - Added regression test `v2_full_path_body_is_parsed` and refreshed FORMAT-15 baseline/stress artifacts after rerun.
+
+
+## 2026-03-17 — Phase 16, Step CRUSHR-HARDEN-02 (de-cruft + boundary cleanup)
+
+- Reorganized salvage runtime modules under `crushr_salvage/core/` and lab harness modules under `crushr_lab_salvage/lab/` to make runtime-vs-lab boundaries explicit.
+- Consolidated duplicated experimental metadata fallback planning in `crushr-salvage` into a single `plan_from_experimental_metadata` helper.
+- Added missing architecture/control docs: `docs/ARCHITECTURE.md`, `docs/SNAPSHOT_FORMAT.md`, and `docs/testing-harness.md`; updated `README.md` and `docs/format-evolution.md` for canonical boundary clarity.
+- Validation run: `cargo fmt --check`, `cargo clippy --all-targets --all-features` (warnings only), and `cargo test -p crushr --tests`.

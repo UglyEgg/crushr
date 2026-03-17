@@ -4068,46 +4068,6 @@ fn max_u64(rows: &[&Value], field: &str) -> u64 {
         .unwrap_or(0)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn tree_listing(root: &Path) -> Result<Vec<String>> {
-        let mut out = Vec::new();
-        let mut stack = vec![root.to_path_buf()];
-        while let Some(dir) = stack.pop() {
-            for e in fs::read_dir(&dir)? {
-                let e = e?;
-                let p = e.path();
-                if p.is_dir() {
-                    stack.push(p.clone());
-                }
-                let rel = p
-                    .strip_prefix(root)
-                    .unwrap_or(&p)
-                    .to_string_lossy()
-                    .to_string();
-                out.push(rel);
-            }
-        }
-        out.sort();
-        Ok(out)
-    }
-
-    #[test]
-    fn format12_stress_fixture_generation_is_deterministic() {
-        let td1 = tempfile::tempdir().unwrap();
-        let td2 = tempfile::tempdir().unwrap();
-
-        write_dataset_fixture_format12_stress(td1.path(), "mixed_worst_case").unwrap();
-        write_dataset_fixture_format12_stress(td2.path(), "mixed_worst_case").unwrap();
-
-        let a = tree_listing(&td1.path().join("mixed_worst_case")).unwrap();
-        let b = tree_listing(&td2.path().join("mixed_worst_case")).unwrap();
-        assert_eq!(a, b);
-    }
-}
-
 fn format13_variants() -> [&'static str; 6] {
     [
         "payload_only",
@@ -5155,4 +5115,44 @@ pub(super) fn run_format15_comparison(comparison_dir: &Path, verbose: bool) -> R
 
 pub(super) fn run_format15_stress_comparison(comparison_dir: &Path, verbose: bool) -> Result<()> {
     run_format15_impl(comparison_dir, verbose, true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tree_listing(root: &Path) -> Result<Vec<String>> {
+        let mut out = Vec::new();
+        let mut stack = vec![root.to_path_buf()];
+        while let Some(dir) = stack.pop() {
+            for e in fs::read_dir(&dir)? {
+                let e = e?;
+                let p = e.path();
+                if p.is_dir() {
+                    stack.push(p.clone());
+                }
+                let rel = p
+                    .strip_prefix(root)
+                    .unwrap_or(&p)
+                    .to_string_lossy()
+                    .to_string();
+                out.push(rel);
+            }
+        }
+        out.sort();
+        Ok(out)
+    }
+
+    #[test]
+    fn format12_stress_fixture_generation_is_deterministic() {
+        let td1 = tempfile::tempdir().unwrap();
+        let td2 = tempfile::tempdir().unwrap();
+
+        write_dataset_fixture_format12_stress(td1.path(), "mixed_worst_case").unwrap();
+        write_dataset_fixture_format12_stress(td2.path(), "mixed_worst_case").unwrap();
+
+        let a = tree_listing(&td1.path().join("mixed_worst_case")).unwrap();
+        let b = tree_listing(&td2.path().join("mixed_worst_case")).unwrap();
+        assert_eq!(a, b);
+    }
 }

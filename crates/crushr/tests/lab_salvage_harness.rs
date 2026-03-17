@@ -70,16 +70,6 @@ fn help_lists_supported_comparison_commands() {
 
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("run-experimental-resilience-comparison"));
-    assert!(stdout.contains("run-file-identity-comparison"));
-    assert!(stdout.contains("run-format04-comparison"));
-    assert!(stdout.contains("run-format05-comparison"));
-    assert!(stdout.contains("run-format06-comparison"));
-    assert!(stdout.contains("run-format07-comparison"));
-    assert!(stdout.contains("run-format08-placement-comparison"));
-    assert!(stdout.contains("run-format09-comparison"));
-    assert!(stdout.contains("run-format10-pruning-comparison"));
-    assert!(stdout.contains("run-format11-extent-identity-comparison"));
-    assert!(stdout.contains("run-format12-inline-path-comparison"));
     assert!(stdout.contains("run-format12-stress-comparison"));
     assert!(stdout.contains("run-format13-comparison"));
     assert!(stdout.contains("run-format13-stress-comparison"));
@@ -88,6 +78,10 @@ fn help_lists_supported_comparison_commands() {
     assert!(stdout.contains("run-format15-comparison"));
     assert!(stdout.contains("run-format15-stress-comparison"));
     assert!(stdout.contains("run-redundant-map-comparison"));
+
+    assert!(!stdout.contains("run-file-identity-comparison"));
+    assert!(!stdout.contains("run-format04-comparison"));
+    assert!(!stdout.contains("run-format05-comparison"));
 }
 
 #[test]

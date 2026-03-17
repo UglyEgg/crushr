@@ -4,6 +4,8 @@ This document records how the crushr format architecture emerged through **delib
 
 It is not a changelog. It is a **design evidence record**.
 
+The format variants described below are research history. They are not runtime feature toggles for canonical extraction behavior.
+
 Each phase documents:
 
 - the hypothesis under test  

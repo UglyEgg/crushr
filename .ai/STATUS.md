@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-FORMAT-15-FIX1 complete** (repair FORMAT-15 dictionary-resilience scoring/parsing regression so canonical-candidate judgment is no longer forced false)
+Current Step: **CRUSHR-HARDEN-02 complete** (de-cruft pass: runtime/lab module boundary clean-up, salvage planner consolidation, and architecture doc alignment)
 
-Immediate Next Step: **Policy lock follow-up** (review corrected FORMAT-15 FIX1 artifacts and decide canonical candidate policy)
+Immediate Next Step: **CRUSHR-HARDEN-03 planning** (finish CLI-surface minimization and retire legacy format comparison commands)
 
 ## Current truth
 
