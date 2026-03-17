@@ -1,79 +1,297 @@
-# Format evolution
+# Format Evolution and Decision Record
 
-<div class="section-note"><strong>This page explains selection, not chronology.</strong> The point is not that time passed; the point is that multiple plausible design branches were tested and only a subset survived repeated corruption experiments.</div>
+This document records how the crushr format architecture emerged through **deliberate experimentation and elimination**, not incremental feature accumulation.
 
-The story of crushr is not a straight line. It is a branching selection process in which multiple architectural ideas were tested under corruption and only a subset survived.
+It is not a changelog. It is a **design evidence record**.
 
-<div class="figure">
-  <img src="assets/diagrams/crushr_master_diagram_final.svg" alt="crushr selection and elimination diagram" />
-  <div class="caption">A better representation than a linear timeline: the current architecture emerged by eliminating weaker branches.</div>
-</div>
+Each phase documents:
 
-## Milestone summary
+- the hypothesis under test  
+- why it was plausible  
+- how it was evaluated  
+- what the results showed  
+- the resulting architectural decision  
 
-| Experiment | Main question | Outcome |
+---
+
+## Current Outcome (Summary)
+
+The current crushr architecture is defined by:
+
+- **Extent identity as primary truth**
+- **Mirrored dictionaries for naming**
+- **Fail-closed naming semantics**
+- **No central authority required for recovery**
+
+The following were rejected:
+
+- manifest-led designs  
+- metadata-heavy recovery strategies  
+- placement-based optimizations  
+- leadership-based dictionary systems (FORMAT-15)
+
+---
+
+## FORMAT-05 — Self-identifying blocks
+
+### Hypothesis  
+Embedding identity directly with payload blocks enables recovery without reliance on central metadata.
+
+### Why this seemed plausible  
+Traditional archive failures are dominated by metadata corruption. Moving identity closer to data may preserve recoverability.
+
+### Test  
+Compared:
+- payload-only recovery
+- metadata-indexed recovery
+- self-identifying block recovery
+
+Under deterministic corruption (truncation, overwrite, fragmentation).
+
+### Result  
+- Metadata-indexed recovery failed early under corruption  
+- Self-identifying blocks retained recoverable structure  
+- Overhead was acceptable relative to recovery gains  
+
+### Decision  
+**Promoted** — established the foundation for extent identity.
+
+---
+
+## FORMAT-07 — Metadata-heavy reinforcement
+
+### Hypothesis  
+Increasing metadata redundancy improves recovery reliability.
+
+### Why this seemed plausible  
+Redundant metadata is a common resilience strategy in archive formats.
+
+### Test  
+Introduced expanded metadata layers and duplication strategies.
+
+### Result  
+- Increased archive size significantly  
+- Did not improve recovery in proportion to cost  
+- Metadata remained a correlated failure domain  
+
+### Decision  
+**Rejected** — redundancy at the metadata layer does not solve structural fragility.
+
+---
+
+## FORMAT-08 — Placement optimization
+
+### Hypothesis  
+Strategic placement of metadata and payload improves survivability under corruption.
+
+### Why this seemed plausible  
+Physical layout can influence which regions are more likely to survive partial damage.
+
+### Test  
+Varied:
+- metadata placement strategies
+- payload clustering patterns
+
+### Result  
+- No consistent recovery advantage  
+- Outcomes were highly dependent on corruption pattern  
+- Added complexity without deterministic benefit  
+
+### Decision  
+**Rejected** — placement strategy is not a reliable recovery mechanism.
+
+---
+
+## FORMAT-09/10 — Incremental refinement phase
+
+### Hypothesis  
+Iterative tuning of prior designs may yield compound improvements.
+
+### Why this seemed plausible  
+Earlier phases established partial success; refinement might converge on optimal behavior.
+
+### Test  
+Multiple minor variations across:
+- metadata structure
+- block organization
+- recovery heuristics
+
+### Result  
+- No breakthrough improvement  
+- Confirmed that structural assumptions, not tuning, were the limiting factor  
+
+### Decision  
+**Neutral / transitional** — provided evidence that a structural shift was required.
+
+---
+
+## FORMAT-11 — Extent identity consolidation
+
+### Hypothesis  
+Treating extents as independently verifiable units will maximize recovery under corruption.
+
+### Why this seemed plausible  
+Earlier phases showed payload-adjacent identity outperformed metadata-centered designs.
+
+### Test  
+Implemented:
+- per-extent hashing (BLAKE3)
+- independent validation
+- removal of central dependency for payload reconstruction
+
+### Result  
+- High recovery rates under all corruption modes  
+- Payload integrity preserved even when metadata was lost  
+- Clear separation between structural truth and naming  
+
+### Decision  
+**Promoted (core architecture)** — extent identity becomes the primary invariant.
+
+---
+
+## FORMAT-12 — Inline naming
+
+### Hypothesis  
+Attaching naming data directly to extents enables named recovery without centralized metadata.
+
+### Why this seemed plausible  
+If identity works locally, naming might also survive when colocated with payload.
+
+### Test  
+Compared:
+- extent_identity_only  
+- extent_identity_inline_path  
+- manifest-based naming  
+
+Measured:
+- recovery rate  
+- name retention  
+- archive size overhead  
+
+### Result  
+- Named recovery matched manifest-based approaches  
+- Significant duplication cost for repeated paths  
+- Demonstrated feasibility of decentralized naming  
+
+### Decision  
+**Promoted (transitional)** — validated decentralized naming, but not efficient enough long-term.
+
+---
+
+## FORMAT-12-STRESS — Inline naming under scale
+
+### Hypothesis  
+Inline naming remains viable under large-scale workloads.
+
+### Test  
+Applied large datasets with high path repetition.
+
+### Result  
+- Path duplication caused measurable archive bloat  
+- Performance degraded under repeated string storage  
+
+### Decision  
+**Demoted** — naming must be decoupled from per-extent duplication.
+
+---
+
+## FORMAT-13 — Dictionary introduction
+
+### Hypothesis  
+Centralizing naming into a dictionary reduces duplication while preserving recovery.
+
+### Why this seemed plausible  
+Separating naming from extents may retain benefits while reducing overhead.
+
+### Test  
+Introduced dictionary structures mapping extents → paths.
+
+### Result  
+- Archive size improved significantly  
+- Naming restored efficiently  
+- Introduced new dependency risk (dictionary survival)
+
+### Decision  
+**Promoted with caution** — effective but introduces a recoverability dependency.
+
+---
+
+## FORMAT-14A — Mirrored dictionaries
+
+### Hypothesis  
+Replicating dictionaries removes the single-point-of-failure introduced in FORMAT-13.
+
+### Why this seemed plausible  
+Redundant but independent copies may allow naming recovery even when partially corrupted.
+
+### Test  
+- multiple dictionary copies  
+- no primary designation  
+- independent validation via checksums  
+
+### Result  
+- Naming preserved if any valid dictionary survives  
+- No coordination dependency required  
+- Balanced size vs recovery tradeoff  
+
+### Decision  
+**Promoted (final naming architecture)** — mirrored dictionaries adopted.
+
+---
+
+## FORMAT-15 — Factored dictionary leadership
+
+### Hypothesis  
+Introducing a “leader” dictionary reduces redundancy while preserving recovery.
+
+### Why this seemed plausible  
+Reducing duplication could improve efficiency without sacrificing correctness.
+
+### Test  
+- designated primary dictionary  
+- fallback handling for secondary structures  
+
+### Result  
+- Recovery degraded when leader was corrupted  
+- Naming collapsed despite surviving data  
+- No meaningful size advantage over mirrored model  
+
+### Decision  
+**Rejected** — leadership reintroduces a central point of failure.
+
+---
+
+## Branch Outcomes
+
+| Design branch | Status | Reason |
 |---|---|---|
-| FORMAT-05 | Can payload blocks become self-identifying enough to improve salvage? | Yes. This became the foundational architectural pivot. |
-| FORMAT-07 | Can salvage reason over verified relationships rather than flat metadata? | Yes. Recovery classification became more explicit and defensible. |
-| FORMAT-08 | Do metadata placement strategies materially change survivability? | No. Fixed, hash, and golden placement were effectively tied. |
-| FORMAT-09 / 10 | Do heavier metadata surfaces survive enough to justify their cost? | Largely no. Manifest-heavy paths remained expensive and less useful than hoped. |
-| FORMAT-11 | Is distributed extent identity sufficient on its own? | Structurally yes, but not enough for strong named recovery. |
-| FORMAT-12 | Can inline naming recover names without manifest-level overhead? | Yes, but repeated strings created measurable cost. |
-| FORMAT-13 | Can dictionary indirection retain recovery and reduce size? | Yes. Header+tail dictionary mirroring emerged as the best balance. |
-| FORMAT-14A | Does direct dictionary corruption validate the mirrored strategy? | Yes. Single dictionary was too fragile; header+tail behaved correctly. |
+| Metadata-heavy / manifest-led | Rejected | Fragile under corruption |
+| Placement optimization | Rejected | Non-deterministic benefit |
+| Extent identity | Promoted | Strong recovery invariant |
+| Inline naming | Transitional | Correct but inefficient |
+| Central dictionary | Partial success | Efficient but fragile |
+| Mirrored dictionaries | Promoted | Best resilience/size balance |
+| Dictionary leadership (FORMAT-15) | Rejected | Reintroduced failure point |
 
-## Older phase visuals
+---
 
-### FORMAT-05 — the first architectural shift
+## Remaining Open Questions
 
-<div class="figure">
-  <img src="assets/diagrams/format05.png" alt="FORMAT-05 architectural shift" />
-  <div class="caption">The earliest pivot: truth moved toward the payload instead of remaining entirely metadata-centric.</div>
-</div>
+The current architecture is stable, but not final. Active areas:
 
-### FORMAT-11 — structural recovery without strong naming
+- Compression strategy vs identity placement
+- Dictionary scaling limits under extreme datasets
+- Optimal tail-frame indexing for large archives
+- Benchmark-driven validation vs ZIP / 7z under corruption
 
-<div class="figure">
-  <img src="assets/diagrams/format11.png" alt="FORMAT-11 comparison" />
-  <div class="caption">FORMAT-11 proved distributed structural identity was cheap and useful, but not sufficient for strong named recovery on its own.</div>
-</div>
+---
 
-### FORMAT-12 — naming restored, overhead exposed
+## Key Takeaway
 
-<div class="figure">
-  <img src="assets/diagrams/format12_named.png" alt="FORMAT-12 named recovery" />
-</div>
-<div class="figure">
-  <img src="assets/diagrams/format12_overhead.png" alt="FORMAT-12 overhead" />
-  <div class="caption">Inline naming was the bridge architecture: it restored names cheaply relative to manifests, but its duplication cost justified further optimization.</div>
-</div>
+crushr’s architecture is not the result of incremental feature design.
 
-### FORMAT-13 — dictionary indirection under stress
+It is the result of repeatedly asking:
 
-<div class="figure">
-  <img src="assets/diagrams/format13.png" alt="FORMAT-13 stress size" />
-  <div class="caption">The stress runs made the size hierarchy clear: dictionary indirection preserved the recovery model while materially reducing overhead.</div>
-</div>
+> “What survives when the archive is broken?”
 
-### FORMAT-14A — resilience under direct dictionary-target corruption
-
-<div class="figure">
-  <img src="assets/diagrams/format14a_resilience_corrected.png" alt="FORMAT-14A resilience" />
-  <div class="caption">The decisive result: header+tail dictionary mirroring preserved named recovery when one copy survived and fell back anonymously when both were unavailable.</div>
-</div>
-
-
-### FORMAT-15 — refinement without promotion
-
-FORMAT-15 explored two refinements to the winning mirrored-dictionary design:
-
-- generation-aware dictionary identity
-- factored namespace dictionaries
-
-The submitted results were clear enough to make a decision.
-
-On the baseline corpus, the factored variant preserved the same recovery behavior as `extent_identity_path_dict_header_tail` but increased archive size by 1,512 bytes.
-
-On the stress corpus, it again preserved the same recovery behavior but increased archive size by 50,988 bytes.
-
-That makes FORMAT-15 a useful negative result. The optimization attempt did not beat the current winner, so the lead architecture remains the non-factored header+tail mirrored dictionary model.
+and removing every design that failed to answer that question correctly.

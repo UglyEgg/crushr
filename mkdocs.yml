@@ -33,6 +33,8 @@ theme:
     - navigation.tabs.sticky
     - content.code.copy
     - content.action.edit
+    - search.suggest
+    - search.highlight
 
 extra_css:
   - assets/stylesheets/theme.css
@@ -64,9 +66,9 @@ nav:
       - Experimental evaluation: whitepaper/evaluation.md
       - Applicability and roadmap: whitepaper/applicability.md
   - Format evolution: format-evolution.md
-  - Reference:
-      - Architecture boundary: ARCHITECTURE.md
-      - Snapshot format: SNAPSHOT_FORMAT.md
-      - Testing harness: testing-harness.md
-      - Foundational references: foundational_docs/index.md
-      - Reference map: appendix/reference-map.md
+  - Technical reference:
+      - Overview: reference/index.md
+      - Archive format boundary: reference/archive-format.md
+      - Extent identity: reference/extent-identity.md
+      - Dictionary system: reference/dictionary-system.md
+      - Salvage model: reference/salvage-model.md
