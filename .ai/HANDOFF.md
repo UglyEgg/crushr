@@ -16,6 +16,7 @@ Next focus:
 - Added helper builders in `crushr-pack` for self-describing extent, file-identity, payload-identity, checkpoint, and manifest record/snapshot JSON generation.
 - `emit_archive_from_layout` now consumes those helpers rather than constructing most experimental metadata records inline.
 - Added `build_redundant_file_map` and `write_tail_with_redundant_map` helpers so redundant-map JSON construction and tail assembly are no longer inline in emitter closeout.
+- Converted redundant-map closeout to typed structs (`RedundantFileMap*`) before ledger serialization to reduce untyped tail-closeout assembly surface.
 - Existing deterministic + experimental writer tests and representative archive-creation commands were rerun and passed.
 
 ## CRUSHR-HARDEN-03F handoff

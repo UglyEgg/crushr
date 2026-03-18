@@ -4,6 +4,7 @@ use crushr::index_codec::encode_index;
 use crushr_format::blk3::{write_blk3_header, Blk3Flags, Blk3Header};
 use crushr_format::ledger::LedgerBlob;
 use crushr_format::tailframe::assemble_tail_frame;
+use serde::Serialize;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
@@ -188,6 +189,33 @@ struct MetadataPlan {
 struct PackLayoutPlan {
     files: Vec<CanonicalFileModel>,
     metadata: MetadataPlan,
+}
+
+#[derive(Debug, Serialize)]
+struct RedundantFileMap {
+    schema: &'static str,
+    experimental_self_describing_extents: bool,
+    experimental_file_identity_extents: bool,
+    experimental_self_identifying_blocks: bool,
+    experimental_path_checkpoints: bool,
+    experimental_file_manifest_checkpoints: bool,
+    experimental_metadata_profile: Option<&'static str>,
+    metadata_placement_strategy: Option<&'static str>,
+    files: Vec<RedundantFileMapFile>,
+}
+
+#[derive(Debug, Serialize)]
+struct RedundantFileMapFile {
+    path: String,
+    size: u64,
+    extents: Vec<RedundantFileMapExtent>,
+}
+
+#[derive(Debug, Serialize)]
+struct RedundantFileMapExtent {
+    block_id: u32,
+    file_offset: u64,
+    len: u64,
 }
 
 fn main() {
@@ -887,7 +915,7 @@ fn write_tail_with_redundant_map(
         emit_path_checkpoints,
         emit_manifest_checkpoints,
     );
-    let ledger = LedgerBlob::from_value(&redundant_file_map)?;
+    let ledger = LedgerBlob::from_value(&serde_json::to_value(&redundant_file_map)?)?;
     let tail = assemble_tail_frame(blocks_end_offset, None, &idx3, Some(&ledger))?;
     out.write_all(&tail)?;
     Ok(())
@@ -899,37 +927,42 @@ fn build_redundant_file_map(
     emit_payload_identity: bool,
     emit_path_checkpoints: bool,
     emit_manifest_checkpoints: bool,
-) -> Value {
-    json!({
-        "schema": if options.self_describing_extents || options.file_identity_extents || emit_payload_identity || emit_path_checkpoints || emit_manifest_checkpoints { "crushr-redundant-file-map.experimental.v2" } else { "crushr-redundant-file-map.v1" },
-        "experimental_self_describing_extents": options.self_describing_extents,
-        "experimental_file_identity_extents": options.file_identity_extents,
-        "experimental_self_identifying_blocks": emit_payload_identity,
-        "experimental_path_checkpoints": emit_path_checkpoints,
-        "experimental_file_manifest_checkpoints": emit_manifest_checkpoints,
-        "experimental_metadata_profile": options.metadata_profile.map(|profile| profile.as_str()),
-        "metadata_placement_strategy": options.placement_strategy.map(|s| s.as_str()),
-        "files": entries
+) -> RedundantFileMap {
+    RedundantFileMap {
+        schema: if options.self_describing_extents
+            || options.file_identity_extents
+            || emit_payload_identity
+            || emit_path_checkpoints
+            || emit_manifest_checkpoints
+        {
+            "crushr-redundant-file-map.experimental.v2"
+        } else {
+            "crushr-redundant-file-map.v1"
+        },
+        experimental_self_describing_extents: options.self_describing_extents,
+        experimental_file_identity_extents: options.file_identity_extents,
+        experimental_self_identifying_blocks: emit_payload_identity,
+        experimental_path_checkpoints: emit_path_checkpoints,
+        experimental_file_manifest_checkpoints: emit_manifest_checkpoints,
+        experimental_metadata_profile: options.metadata_profile.map(|profile| profile.as_str()),
+        metadata_placement_strategy: options.placement_strategy.map(|s| s.as_str()),
+        files: entries
             .iter()
-            .map(|entry| {
-                json!({
-                    "path": entry.path,
-                    "size": entry.size,
-                    "extents": entry
-                        .extents
-                        .iter()
-                        .map(|extent| {
-                            json!({
-                                "block_id": extent.block_id,
-                                "file_offset": extent.offset,
-                                "len": extent.len,
-                            })
-                        })
-                        .collect::<Vec<_>>(),
-                })
+            .map(|entry| RedundantFileMapFile {
+                path: entry.path.clone(),
+                size: entry.size,
+                extents: entry
+                    .extents
+                    .iter()
+                    .map(|extent| RedundantFileMapExtent {
+                        block_id: extent.block_id,
+                        file_offset: extent.offset,
+                        len: extent.len,
+                    })
+                    .collect::<Vec<_>>(),
             })
             .collect::<Vec<_>>(),
-    })
+    }
 }
 
 fn build_dictionary_plan(

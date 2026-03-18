@@ -1,5 +1,6 @@
 ## 2026-03-18 — CRUSHR-HARDEN-03G follow-up
 - Completed redundant-file-map/tail closeout cleanup by extracting bounded helpers (`build_redundant_file_map`, `write_tail_with_redundant_map`) from `emit_archive_from_layout`.
+- Converted redundant map closeout payload to typed structs (`RedundantFileMap`, `RedundantFileMapFile`, `RedundantFileMapExtent`) before ledger serialization.
 - Confirmed there is no separate 03H step after this cleanup; continuity notes now point back to metadata-pruning evidence review.
 
 ## 2026-03-18 — CRUSHR-HARDEN-03G
