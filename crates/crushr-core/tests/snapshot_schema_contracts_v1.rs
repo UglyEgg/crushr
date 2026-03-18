@@ -102,25 +102,29 @@ fn crushr_info_json_validates_against_v1_schema() {
 }
 
 #[test]
-fn crushr_fsck_json_validates_against_v1_schema() {
+fn crushr_extract_verify_json_is_deterministic_and_strict() {
     ensure_bins_built();
-    let schema = load_schema("schemas/crushr-fsck.v1.schema.json");
 
-    let root = unique_dir("crushr-fsck-schema");
+    let root = unique_dir("crushr-extract-verify-schema");
     fs::create_dir_all(&root).unwrap();
 
     let src = root.join("single.txt");
-    fs::write(&src, b"hello fsck schema\n").unwrap();
+    fs::write(&src, b"hello extract verify schema\n").unwrap();
     let archive = root.join("single.crs");
     assert_ok(&run_bin(
         "crushr-pack",
         &[src.to_str().unwrap(), "-o", archive.to_str().unwrap()],
     ));
 
-    let out = run_bin("crushr-fsck", &[archive.to_str().unwrap(), "--json"]);
+    let out = run_bin(
+        "crushr-extract",
+        &["--verify", archive.to_str().unwrap(), "--json"],
+    );
     assert_ok(&out);
     let instance: Value = serde_json::from_slice(&out.stdout).unwrap();
-    validate_instance(&schema, &instance, "crushr-fsck");
+    assert_eq!(instance["verification_status"], "verified");
+    assert_eq!(instance["safe_for_strict_extraction"], true);
+    assert!(instance["refusal_reasons"].as_array().unwrap().is_empty());
 
     let _ = fs::remove_dir_all(&root);
 }

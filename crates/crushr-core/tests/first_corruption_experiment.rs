@@ -37,7 +37,7 @@ fn ensure_bins_built() {
                 "--bin",
                 "crushr-info",
                 "--bin",
-                "crushr-fsck",
+                "crushr-extract",
                 "-p",
                 "crushr-lab",
                 "--bin",
@@ -94,10 +94,13 @@ fn first_e2e_corruption_experiment_loop() {
     let clean_info_json: Value = serde_json::from_slice(&clean_info.stdout).unwrap();
     assert_eq!(clean_info_json["tool"], "crushr-info");
 
-    let clean_fsck = run_bin("crushr-fsck", &[clean_archive.to_str().unwrap(), "--json"]);
-    assert_ok(&clean_fsck);
-    let clean_fsck_json: Value = serde_json::from_slice(&clean_fsck.stdout).unwrap();
-    assert_eq!(clean_fsck_json["payload"]["verify"]["status"], "ok");
+    let clean_verify = run_bin(
+        "crushr-extract",
+        &["--verify", clean_archive.to_str().unwrap(), "--json"],
+    );
+    assert_ok(&clean_verify);
+    let clean_verify_json: Value = serde_json::from_slice(&clean_verify.stdout).unwrap();
+    assert_eq!(clean_verify_json["verification_status"], "verified");
 
     let corrupted_archive = root.join("corrupt.crs");
     let clean_len = fs::metadata(&clean_archive).unwrap().len();
@@ -127,11 +130,11 @@ fn first_e2e_corruption_experiment_loop() {
     assert_eq!(corruption_log["seed"], 1337);
     assert_eq!(corruption_log["touched_offsets"][0], clean_len - 1);
 
-    let corrupted_fsck = run_bin(
-        "crushr-fsck",
-        &[corrupted_archive.to_str().unwrap(), "--json"],
+    let corrupted_verify = run_bin(
+        "crushr-extract",
+        &["--verify", corrupted_archive.to_str().unwrap(), "--json"],
     );
-    assert!(!corrupted_fsck.status.success());
+    assert!(!corrupted_verify.status.success());
 
     let corrupted_info = run_bin(
         "crushr-info",

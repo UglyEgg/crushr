@@ -1,7 +1,13 @@
 use anyhow::{Context, Result};
 use crushr_core::extraction::ExtractionOutcomeKind;
+use crushr_core::{
+    io::{Len, ReadAt},
+    open::open_archive_v1,
+    verify::{scan_blocks_v1, verify_block_payloads_v1},
+};
 use serde::Serialize;
 use std::fmt;
+use std::fs::File;
 use std::path::PathBuf;
 
 #[path = "../strict_extract_impl.rs"]
@@ -23,13 +29,19 @@ impl RefusalExitPolicy {
     }
 }
 
-const USAGE: &str =
-    "usage: crushr-extract <archive> -o <out-dir> [--overwrite] [--refusal-exit <success|partial-failure>] [--json]";
+const USAGE: &str = "usage: crushr-extract <archive> -o <out-dir> [--overwrite] [--refusal-exit <success|partial-failure>] [--json]\n       crushr-extract --verify <archive> [--json]";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum CliMode {
+    Extract,
+    Verify,
+}
 
 #[derive(Debug)]
 struct CliOptions {
+    mode: CliMode,
     archive: PathBuf,
-    out_dir: PathBuf,
+    out_dir: Option<PathBuf>,
     overwrite: bool,
     refusal_exit: RefusalExitPolicy,
     json: bool,
@@ -39,6 +51,16 @@ struct CliOptions {
 struct ExtractionErrorReport {
     overall_status: &'static str,
     error: String,
+}
+
+#[derive(Debug, Serialize)]
+struct VerifyReport {
+    archive_path: String,
+    verification_status: &'static str,
+    safe_for_strict_extraction: bool,
+    refusal_reasons: Vec<String>,
+    verified_extent_count: usize,
+    failed_check_count: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -87,7 +109,26 @@ struct ClassifiedRun {
     report: crushr_core::extraction::ExtractionReport,
 }
 
+#[derive(Debug)]
+struct FileReader {
+    file: File,
+}
+
+impl ReadAt for FileReader {
+    fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize> {
+        use std::os::unix::fs::FileExt;
+        Ok(self.file.read_at(buf, offset)?)
+    }
+}
+
+impl Len for FileReader {
+    fn len(&self) -> Result<u64> {
+        Ok(self.file.metadata()?.len())
+    }
+}
+
 fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
+    let mut mode = CliMode::Extract;
     let mut archive = None;
     let mut out_dir = None;
     let mut overwrite = false;
@@ -106,6 +147,8 @@ fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
             overwrite = true;
         } else if arg == "--json" {
             json = true;
+        } else if arg == "--verify" {
+            mode = CliMode::Verify;
         } else if arg == "--refusal-exit" {
             let value = args
                 .next()
@@ -130,24 +173,55 @@ fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
         }
     }
 
-    Ok(CliOptions {
+    CliOptions {
+        mode,
         archive: archive
             .context(USAGE)
             .map_err(ExtractionClassifiedError::usage)?,
-        out_dir: out_dir
-            .context(USAGE)
-            .map_err(ExtractionClassifiedError::usage)?,
+        out_dir,
         overwrite,
         refusal_exit,
         json,
-    })
+    }
+    .validate()
 }
 
-fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
+impl CliOptions {
+    fn validate(self) -> Result<Self, ExtractionClassifiedError> {
+        match self.mode {
+            CliMode::Extract => {
+                if self.out_dir.is_none() {
+                    return Err(ExtractionClassifiedError::usage(anyhow::anyhow!(USAGE)));
+                }
+            }
+            CliMode::Verify => {
+                if self.out_dir.is_some() {
+                    return Err(ExtractionClassifiedError::usage(anyhow::anyhow!(
+                        "--verify cannot be combined with -o/--output"
+                    )));
+                }
+                if self.overwrite {
+                    return Err(ExtractionClassifiedError::usage(anyhow::anyhow!(
+                        "--verify cannot be combined with --overwrite"
+                    )));
+                }
+                if self.refusal_exit != RefusalExitPolicy::Success {
+                    return Err(ExtractionClassifiedError::usage(anyhow::anyhow!(
+                        "--verify cannot be combined with --refusal-exit"
+                    )));
+                }
+            }
+        }
+
+        Ok(self)
+    }
+}
+
+fn run_extract(opts: &CliOptions) -> Result<ClassifiedRun> {
     let strict =
         strict_extract_impl::run_strict_extract(&strict_extract_impl::StrictExtractOptions {
             archive: opts.archive.clone(),
-            out_dir: opts.out_dir.clone(),
+            out_dir: opts.out_dir.clone().expect("validated output dir"),
             overwrite: opts.overwrite,
             selected_paths: None,
         })?;
@@ -155,6 +229,37 @@ fn run(opts: &CliOptions) -> Result<ClassifiedRun> {
     Ok(ClassifiedRun {
         outcome_kind: strict.outcome_kind,
         report: strict.report,
+    })
+}
+
+fn run_verify(opts: &CliOptions) -> Result<VerifyReport> {
+    let reader = FileReader {
+        file: File::open(&opts.archive)
+            .with_context(|| format!("open {}", opts.archive.display()))?,
+    };
+
+    let opened = open_archive_v1(&reader)?;
+    let verified_extent_count =
+        scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset)?.len();
+    let corrupted_blocks = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
+
+    let refusal_reasons = if corrupted_blocks.is_empty() {
+        Vec::new()
+    } else {
+        vec![format!(
+            "payload_block_hash_mismatch: {:?}",
+            corrupted_blocks.into_iter().collect::<Vec<u32>>()
+        )]
+    };
+
+    let safe = refusal_reasons.is_empty();
+    Ok(VerifyReport {
+        archive_path: opts.archive.display().to_string(),
+        verification_status: if safe { "verified" } else { "refused" },
+        safe_for_strict_extraction: safe,
+        refusal_reasons,
+        verified_extent_count,
+        failed_check_count: if safe { 0 } else { 1 },
     })
 }
 
@@ -181,37 +286,72 @@ fn main() {
         }
     };
 
-    match run(&opts) {
-        Ok(classified) => {
-            if opts.json {
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(&classified.report)
-                        .expect("serialize extraction report")
-                );
+    match opts.mode {
+        CliMode::Extract => match run_extract(&opts) {
+            Ok(classified) => {
+                if opts.json {
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&classified.report)
+                            .expect("serialize extraction report")
+                    );
+                }
+                let code = exit_code_for_outcome(classified.outcome_kind, opts.refusal_exit);
+                std::process::exit(code);
             }
-            let code = exit_code_for_outcome(classified.outcome_kind, opts.refusal_exit);
-            std::process::exit(code);
-        }
-        Err(err) => {
-            let classified_err = ExtractionClassifiedError::structural(err);
-            eprintln!("{classified_err}");
-            let msg = classified_err.message();
-            let code = exit_code_for_error(classified_err.kind);
+            Err(err) => {
+                let classified_err = ExtractionClassifiedError::structural(err);
+                eprintln!("{classified_err}");
+                let msg = classified_err.message();
+                let code = exit_code_for_error(classified_err.kind);
 
-            if opts.json {
-                let json_err = ExtractionErrorReport {
-                    overall_status: "error",
-                    error: msg,
-                };
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(&json_err)
-                        .expect("serialize extraction error report")
-                );
+                if opts.json {
+                    let json_err = ExtractionErrorReport {
+                        overall_status: "error",
+                        error: msg,
+                    };
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json_err)
+                            .expect("serialize extraction error report")
+                    );
+                }
+                std::process::exit(code);
             }
-            std::process::exit(code);
-        }
+        },
+        CliMode::Verify => match run_verify(&opts) {
+            Ok(report) => {
+                if opts.json {
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&report).expect("serialize verify report")
+                    );
+                } else if report.safe_for_strict_extraction {
+                    println!(
+                        "verified: archive is safe for strict extraction ({})",
+                        report.archive_path
+                    );
+                } else {
+                    println!(
+                        "refused: archive is not safe for strict extraction ({})",
+                        report.archive_path
+                    );
+                    for reason in report.refusal_reasons {
+                        println!("- {reason}");
+                    }
+                }
+                std::process::exit(if report.safe_for_strict_extraction {
+                    0
+                } else {
+                    2
+                });
+            }
+            Err(err) => {
+                let classified_err = ExtractionClassifiedError::structural(err);
+                eprintln!("{classified_err}");
+                std::process::exit(exit_code_for_error(classified_err.kind));
+            }
+        },
     }
 }
 

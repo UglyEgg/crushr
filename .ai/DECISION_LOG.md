@@ -589,3 +589,21 @@ Blast radius:
 - Blast radius:
   - Affects experimental FORMAT-14A recommendation and next-step policy lock only.
   - No change to canonical `crushr-extract` semantics or default archive behavior.
+
+## 2026-03-17 — CRUSHR-TOOLING-VERIFY-01: retire public `crushr-fsck` surface and move strict verification to `crushr-extract --verify`
+
+- Status: Accepted
+- Decision:
+  - `crushr-fsck` is no longer a public-facing tool surface.
+  - Strict archive verification for canonical extraction moves to `crushr-extract --verify <archive>`.
+  - `crushr-salvage` remains the recovery-oriented analysis surface and is not merged into extract verification.
+  - Keep a temporary compatibility shim binary `crushr-fsck` that exits with a deterministic deprecation message and nonzero status.
+- Alternatives considered:
+  1. Keep `crushr-fsck` as a first-class public tool.
+  2. Merge verification and salvage behavior under one extract mode.
+- Rationale:
+  - Removes overlapping public tool identity and aligns strict verification with canonical extraction semantics.
+  - Preserves strict-vs-salvage boundary and avoids speculative recovery behavior in `crushr-extract`.
+- Blast radius:
+  - CLI invocation docs/help/tests must use `crushr-extract --verify` for strict verification flows.
+  - Legacy `crushr-fsck` JSON schema/snapshot internals remain only as transitional/internal artifacts and are no longer part of the public workflow.

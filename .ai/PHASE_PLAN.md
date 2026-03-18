@@ -250,4 +250,7 @@ Exit criteria
 - archive format is stable
 - documentation is complete
 - tooling is production-ready
->>>>>>> 666f3c5 (massive documentation clean-up and re-org)
+
+
+## Latest completion
+- **CRUSHR-TOOLING-VERIFY-01 is complete**: retired public `crushr-fsck` tool identity, implemented `crushr-extract --verify` for strict extraction safety verification, and updated docs/tests/help surfaces to use the new boundary.

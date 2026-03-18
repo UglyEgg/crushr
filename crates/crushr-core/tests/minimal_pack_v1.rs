@@ -133,11 +133,14 @@ fn pack_single_file_produces_readable_v1_archive() {
     let info_json: serde_json::Value = serde_json::from_slice(&info.stdout).unwrap();
     assert_eq!(info_json["tool"], "crushr-info");
 
-    let fsck = run_bin("crushr-fsck", &[archive.to_str().unwrap(), "--json"]);
-    assert_ok(&fsck);
-    let fsck_json: serde_json::Value = serde_json::from_slice(&fsck.stdout).unwrap();
-    assert_eq!(fsck_json["tool"], "crushr-fsck");
-    assert_eq!(fsck_json["payload"]["verify"]["status"], "ok");
+    let verify = run_bin(
+        "crushr-extract",
+        &["--verify", archive.to_str().unwrap(), "--json"],
+    );
+    assert_ok(&verify);
+    let verify_json: serde_json::Value = serde_json::from_slice(&verify.stdout).unwrap();
+    assert_eq!(verify_json["verification_status"], "verified");
+    assert_eq!(verify_json["safe_for_strict_extraction"], true);
 
     let bytes = fs::read(&archive).unwrap();
     let footer_start = bytes.len() - FTR4_LEN;
@@ -179,14 +182,17 @@ fn pack_directory_and_output_is_deterministic() {
     let info = run_bin("crushr-info", &[archive_a.to_str().unwrap(), "--json"]);
     assert_ok(&info);
 
-    let fsck = run_bin("crushr-fsck", &[archive_a.to_str().unwrap(), "--json"]);
-    assert_ok(&fsck);
+    let verify = run_bin(
+        "crushr-extract",
+        &["--verify", archive_a.to_str().unwrap(), "--json"],
+    );
+    assert_ok(&verify);
 
     let _ = fs::remove_dir_all(&root);
 }
 
 #[test]
-fn fsck_reports_corrupted_block_for_payload_byte_flip() {
+fn verify_refuses_corrupted_archive_for_payload_byte_flip() {
     ensure_bins_built();
 
     let root = unique_dir("crushr-pack-v1-corrupt-payload");
@@ -224,32 +230,26 @@ fn fsck_reports_corrupted_block_for_payload_byte_flip() {
     let corrupt_archive = root.join("single-corrupt.crs");
     fs::write(&corrupt_archive, bytes).unwrap();
 
-    let fsck = run_bin(
-        "crushr-fsck",
-        &[corrupt_archive.to_str().unwrap(), "--json"],
+    let verify = run_bin(
+        "crushr-extract",
+        &["--verify", corrupt_archive.to_str().unwrap(), "--json"],
     );
-    assert_ok(&fsck);
-    let fsck_json: serde_json::Value = serde_json::from_slice(&fsck.stdout).unwrap();
-    assert_eq!(fsck_json["tool"], "crushr-fsck");
-    assert_eq!(fsck_json["payload"]["verify"]["status"], "ok");
-    assert_eq!(
-        fsck_json["payload"]["blast_radius"]["impact"]["corrupted_blocks"],
-        serde_json::json!([0])
-    );
-    assert!(
-        fsck_json["payload"]["blast_radius"]["impact"]["affected_files"]
-            .as_array()
-            .unwrap()
-            .is_empty()
-    );
+    assert_err_code_2(&verify);
+    let verify_json: serde_json::Value = serde_json::from_slice(&verify.stdout).unwrap();
+    assert_eq!(verify_json["verification_status"], "refused");
+    assert_eq!(verify_json["safe_for_strict_extraction"], false);
+    assert!(verify_json["refusal_reasons"][0]
+        .as_str()
+        .unwrap()
+        .contains("payload_block_hash_mismatch"));
 
     // Deterministic for identical archive bytes + corruption input.
-    let fsck_again = run_bin(
-        "crushr-fsck",
-        &[corrupt_archive.to_str().unwrap(), "--json"],
+    let verify_again = run_bin(
+        "crushr-extract",
+        &["--verify", corrupt_archive.to_str().unwrap(), "--json"],
     );
-    assert_ok(&fsck_again);
-    assert_eq!(fsck.stdout, fsck_again.stdout);
+    assert_err_code_2(&verify_again);
+    assert_eq!(verify.stdout, verify_again.stdout);
 
     // Tail/footer corruption still fails structurally (exit code 2).
     let mut tail_corrupt = fs::read(&archive).unwrap();
@@ -258,11 +258,15 @@ fn fsck_reports_corrupted_block_for_payload_byte_flip() {
     let footer_corrupt_archive = root.join("single-footer-corrupt.crs");
     fs::write(&footer_corrupt_archive, tail_corrupt).unwrap();
 
-    let fsck_tail = run_bin(
-        "crushr-fsck",
-        &[footer_corrupt_archive.to_str().unwrap(), "--json"],
+    let verify_tail = run_bin(
+        "crushr-extract",
+        &[
+            "--verify",
+            footer_corrupt_archive.to_str().unwrap(),
+            "--json",
+        ],
     );
-    assert_eq!(fsck_tail.status.code(), Some(2));
+    assert_eq!(verify_tail.status.code(), Some(2));
 
     let _ = fs::remove_dir_all(&root);
 }
@@ -342,6 +346,44 @@ fn extract_single_file_roundtrip() {
     );
 
     let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn verify_output_is_strict_only_without_salvage_language() {
+    ensure_bins_built();
+
+    let root = unique_dir("crushr-extract-verify-strict-only");
+    fs::create_dir_all(&root).unwrap();
+    let input = root.join("single.txt");
+    fs::write(&input, b"strict verify language\n").unwrap();
+    let archive = root.join("single.crs");
+
+    assert_ok(&run_bin(
+        "crushr-pack",
+        &[input.to_str().unwrap(), "-o", archive.to_str().unwrap()],
+    ));
+
+    let verify = run_bin(
+        "crushr-extract",
+        &["--verify", archive.to_str().unwrap(), "--json"],
+    );
+    assert_ok(&verify);
+
+    let stdout = String::from_utf8(verify.stdout).unwrap();
+    assert!(!stdout.to_lowercase().contains("salvage"));
+    assert!(!stdout.to_lowercase().contains("recovery plan"));
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn retired_fsck_binary_exits_with_deprecation_guidance() {
+    ensure_bins_built();
+    let out = run_bin("crushr-fsck", &["/tmp/does-not-matter.crs", "--json"]);
+    assert_eq!(out.status.code(), Some(2));
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(stderr.contains("crushr-fsck is retired"));
+    assert!(stderr.contains("crushr-extract --verify"));
 }
 
 #[test]

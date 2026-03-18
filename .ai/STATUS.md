@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-HARDEN-02 complete** (de-cruft pass: runtime/lab module boundary clean-up, salvage planner consolidation, and architecture doc alignment)
+Current Step: **CRUSHR-TOOLING-VERIFY-01 complete** (retired public `crushr-fsck` surface, added strict `crushr-extract --verify`, and cleaned public tool-boundary docs/tests)
 
-Immediate Next Step: **CRUSHR-HARDEN-03 planning** (finish CLI-surface minimization and retire legacy format comparison commands)
+Immediate Next Step: **CRUSHR-HARDEN-03 planning** (continue CLI-surface minimization and remove remaining legacy/internal fsck snapshot sediment)
 
 ## Current truth
 
@@ -12,7 +12,7 @@ Immediate Next Step: **CRUSHR-HARDEN-03 planning** (finish CLI-surface minimizat
 - Phase 2 execution is complete and frozen.
 - Phase 2 normalization is complete and frozen.
 - Phase 2 comparison analysis is complete and frozen.
-- `crushr-extract` remains strict-only and unchanged as canonical extraction behavior.
+- `crushr-extract` remains strict-only as canonical extraction behavior, and now owns strict pre-extraction verification via `--verify`.
 - Current experimental evidence says payload-adjacent file identity is the first major recovery direction that materially improved outcomes.
 - The architectural direction remains locked toward a **content-addressed recovery graph**.
 - The inversion principle remains active for resilience work: prefer verified payload-adjacent truth over centralized metadata authority.
@@ -50,7 +50,7 @@ Recovery should degrade in reverse order:
 
 ## Next actions
 
-1. Preserve strict extraction interfaces/semantics untouched.
+1. Preserve strict extraction interfaces/semantics untouched (including `crushr-extract --verify` deterministic refusal behavior).
 2. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
 3. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
 4. Keep Phase 2 corpus and frozen artifacts unchanged.

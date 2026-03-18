@@ -596,3 +596,9 @@
 - Consolidated duplicated experimental metadata fallback planning in `crushr-salvage` into a single `plan_from_experimental_metadata` helper.
 - Added missing architecture/control docs: `docs/ARCHITECTURE.md`, `docs/SNAPSHOT_FORMAT.md`, and `docs/testing-harness.md`; updated `README.md` and `docs/format-evolution.md` for canonical boundary clarity.
 - Validation run: `cargo fmt --check`, `cargo clippy --all-targets --all-features` (warnings only), and `cargo test -p crushr --tests`.
+
+
+## 2026-03-17 — CRUSHR-TOOLING-VERIFY-01
+- Added strict verification mode `crushr-extract --verify <archive>` with deterministic success/refusal reporting (`verification_status`, `safe_for_strict_extraction`, refusal reasons, verified extent count, failed check count).
+- Retired public `crushr-fsck` behavior and replaced binary surface with a deterministic deprecation shim directing users to `crushr-extract --verify` and `crushr-salvage`.
+- Updated runtime/docs/contracts/tests to remove public `crushr-fsck` workflow references and enforce no-salvage leakage in `--verify` output.
