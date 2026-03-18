@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-HARDEN-03B complete** (salvage schema/implementation reconciliation for emitted classifications, provenance, and reason-code contract)
+Current Step: **CRUSHR-HARDEN-03D complete** (reader/verification boundary audit, strict verification alignment, and `crushr-extract --verify` hardening)
 
-Immediate Next Step: **CRUSHR-HARDEN-03C in progress** (schema-backed comparison artifacts for FORMAT-12/13/14A/15; remaining decomposition deferred to 03E)
+Immediate Next Step: **CRUSHR-HARDEN-03E in progress** (deeper typed decomposition in comparison/lab plumbing)
 
 ## Current truth
 
@@ -27,6 +27,10 @@ Immediate Next Step: **CRUSHR-HARDEN-03C in progress** (schema-backed comparison
 - FORMAT-14A adds direct dictionary-target corruption scenarios (`primary_dictionary`, `mirrored_dictionary`, `both_dictionaries`, `inconsistent_dictionaries`) and new commands `run-format14a-dictionary-resilience-comparison` / `run-format14a-dictionary-resilience-stress-comparison` with artifacts in `FORMAT14A_RESULTS/`.
 
 - CRUSHR-HARDEN-03B reconciled salvage-plan v3 output semantics: `mapping_provenance` + `recovery_classification` now emit schema-v3 enums, and reason-code arrays (`content_verification_reasons`, `failure_reasons`) are closed + schema-enforced.
+- CRUSHR-HARDEN-03D completed strict reader-boundary hardening:
+  - canonical verification now executes strict extraction semantics in a temporary sink via `crushr-extract --verify`, preventing permissive read-path leakage
+  - legacy reader best-effort behavior was tightened (`scan_blocks` footer-boundary mismatch and block raw-length mismatch now hard-fail)
+  - active public/control docs were aligned on the locked tool surface (`crushr-extract --verify`; `crushr-fsck` retired/deprecated shim only)
 
 ## Active constraints
 
@@ -52,11 +56,11 @@ Recovery should degrade in reverse order:
 
 ## Next actions
 
-1. Preserve strict extraction interfaces/semantics untouched (including `crushr-extract --verify` deterministic refusal behavior).
-2. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
-3. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
-4. Keep Phase 2 corpus and frozen artifacts unchanged.
-5. Keep builder honest on CLI wiring; every new comparison command must be proven callable via the documented runtime command.
+1. Preserve strict extraction interfaces/semantics untouched (including hardened `crushr-extract --verify` refusal behavior).
+2. Continue CRUSHR-HARDEN-03E typed decomposition for comparison/lab summary plumbing.
+3. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
+4. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
+5. Keep Phase 2 corpus and frozen artifacts unchanged.
 
 ## Near-term product-completeness track (not active yet)
 

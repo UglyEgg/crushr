@@ -241,7 +241,11 @@ fn verify_refuses_corrupted_archive_for_payload_byte_flip() {
     assert!(verify_json["refusal_reasons"][0]
         .as_str()
         .unwrap()
-        .contains("payload_block_hash_mismatch"));
+        .contains("corrupted_required_blocks"));
+    assert!(verify_json["refusal_reasons"][0]
+        .as_str()
+        .unwrap()
+        .contains("hello.txt"));
 
     // Deterministic for identical archive bytes + corruption input.
     let verify_again = run_bin(

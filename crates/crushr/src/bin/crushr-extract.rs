@@ -237,21 +237,27 @@ fn run_verify(opts: &CliOptions) -> Result<VerifyReport> {
         file: File::open(&opts.archive)
             .with_context(|| format!("open {}", opts.archive.display()))?,
     };
-
     let opened = open_archive_v1(&reader)?;
     let verified_extent_count =
         scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset)?.len();
-    let corrupted_blocks = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
+    let _ = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
 
-    let refusal_reasons = if corrupted_blocks.is_empty() {
-        Vec::new()
-    } else {
-        vec![format!(
-            "payload_block_hash_mismatch: {:?}",
-            corrupted_blocks.into_iter().collect::<Vec<u32>>()
-        )]
-    };
+    let verify_dir = create_verify_tempdir()?;
+    let strict =
+        strict_extract_impl::run_strict_extract(&strict_extract_impl::StrictExtractOptions {
+            archive: opts.archive.clone(),
+            out_dir: verify_dir.clone(),
+            overwrite: false,
+            selected_paths: None,
+        })?;
+    let _ = std::fs::remove_dir_all(&verify_dir);
 
+    let refusal_reasons = strict
+        .report
+        .refused_files
+        .iter()
+        .map(|entry| format!("corrupted_required_blocks: {}", entry.path))
+        .collect::<Vec<_>>();
     let safe = refusal_reasons.is_empty();
     Ok(VerifyReport {
         archive_path: opts.archive.display().to_string(),
@@ -259,8 +265,22 @@ fn run_verify(opts: &CliOptions) -> Result<VerifyReport> {
         safe_for_strict_extraction: safe,
         refusal_reasons,
         verified_extent_count,
-        failed_check_count: if safe { 0 } else { 1 },
+        failed_check_count: strict.report.refused_file_count,
     })
+}
+
+fn create_verify_tempdir() -> Result<PathBuf> {
+    let mut dir = std::env::temp_dir();
+    dir.push(format!(
+        "crushr-extract-verify-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .context("read current time")?
+            .as_nanos()
+    ));
+    std::fs::create_dir_all(&dir).with_context(|| format!("create {}", dir.display()))?;
+    Ok(dir)
 }
 
 fn exit_code_for_outcome(kind: ExtractionOutcomeKind, refusal_exit: RefusalExitPolicy) -> i32 {

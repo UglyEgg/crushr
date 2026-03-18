@@ -114,9 +114,9 @@ fn scan_blocks(f: &mut File, blocks_end_offset: u64) -> Result<Vec<BlockHeader>>
     }
 
     if pos != blocks_end_offset {
-        // Allow slight mismatch due to corruption, but keep best-effort.
-        // The caller may handle this separately; here we report a soft error.
-        // For now, just accept.
+        bail!(
+            "block scan length mismatch: scanned {pos} bytes but footer expects {blocks_end_offset}"
+        );
     }
     Ok(blocks)
 }
@@ -209,7 +209,11 @@ impl ArchiveReader {
         self.file.read_exact(&mut comp)?;
         let data = zstd::decode_all(&comp[..]).context("zstd decode")?;
         if data.len() as u64 != bh.raw_len {
-            // tolerate (best effort)
+            bail!(
+                "raw length mismatch for block {block_id}: decoded {} bytes but header declares {} bytes",
+                data.len(),
+                bh.raw_len
+            );
         }
         self.cache_put(block_id, data.clone());
         Ok(data)

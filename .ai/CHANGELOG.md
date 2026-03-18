@@ -615,3 +615,10 @@
 - Reconciled salvage emitted contract with `crushr-salvage-plan.v3`: `mapping_provenance` and `recovery_classification` now serialize from typed enums using schema-v3 vocabulary (`FULL_VERIFIED`, `FULL_ANONYMOUS`, `PARTIAL_ORDERED`, `PARTIAL_UNORDERED`, `ORPHAN_BLOCKS`).
 - Added typed reason-code emission at the salvage boundary for `block_candidates[].content_verification_reasons` and `file_plans[].failure_reasons` with schema-enforced closed enums.
 - Updated salvage schema/docs/tests and repaired affected test expectations to remove drift between implementation and documented contract semantics.
+
+## 2026-03-18 — CRUSHR-HARDEN-03D
+
+- Audited reader/open/parse boundaries and confirmed canonical extract path remains in `strict_extract_impl` (not the permissive legacy reader path).
+- Hardened `crushr-extract --verify` to execute strict extraction semantics in an isolated temporary output directory and emit deterministic refusal reasons tied to strict extraction refusal paths.
+- Tightened legacy reader permissive behavior (`scan_blocks` region mismatch and decoded raw-length mismatch now fail closed) to reduce boundary confusion.
+- Updated active boundary/control text (`PROJECT_STATE.md`, `.ai/STATUS.md`, `.ai/HANDOFF.md`, `.ai/PHASE_PLAN.md`) and stale CLI wording (`crushr-tui`) to reflect `crushr-extract --verify` as the public strict verification surface.

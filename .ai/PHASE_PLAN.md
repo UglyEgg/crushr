@@ -46,18 +46,10 @@ Key work
 Deliverables
 
 - [x] CRUSHR-HARDEN-03C — add schema-backed contracts for active FORMAT-12/13/14A/15 comparison artifacts and test coverage; defer broader decomposition to 03E.
-
-<<<<<<< HEAD
 - [x] 3.25.1 CRUSHR-FORMAT-14A-FIX1 (repair dictionary-corruption classification/outcome reporting; rerun required FORMAT-14A artifacts)
 - [x] 3.25.2 CRUSHR-FORMAT-14A-FIX2 (restore header+tail dual-copy one-loss named recovery; rerun FORMAT-14A artifacts)
-
 - [x] CRUSHR-FORMAT-15 — Harden mirrored dictionary identity/generation semantics and add factored namespace dictionary with FORMAT-15 baseline/stress comparison commands + artifacts.
-
 - [x] CRUSHR-FORMAT-15-FIX1 — repair FORMAT-15 regression causing false-negative canonical-candidate judgments (restore scenario-authoritative fail-closed gating + v2 full-path dictionary parsing).
-||||||| parent of 666f3c5 (massive documentation clean-up and re-org)
-- [x] 3.25.1 CRUSHR-FORMAT-14A-FIX1 (repair dictionary-corruption classification/outcome reporting; rerun required FORMAT-14A artifacts)
-- [x] 3.25.2 CRUSHR-FORMAT-14A-FIX2 (restore header+tail dual-copy one-loss named recovery; rerun FORMAT-14A artifacts)
-=======
 - FORMAT-15 comparison results
 - FORMAT-15 stress comparison results
 - updated SNAPSHOT_FORMAT.md
@@ -177,7 +169,7 @@ Make verification and recovery tooling first-class capabilities.
 
 Key work
 
-- fsck improvements
+- strict verification UX/reporting improvements (`crushr-extract --verify`)
 - recovery diagnostics
 - structured output formats
 - clearer salvage reporting
@@ -187,7 +179,7 @@ Key work
 Deliverables
 
 - improved CLI tooling
-- richer fsck reports
+- richer strict verification reports
 - improved info command output
 
 Exit criteria
@@ -255,7 +247,7 @@ Exit criteria
 
 
 ## Latest completion
-- **CRUSHR-TOOLING-VERIFY-01 is complete**: retired public `crushr-fsck` tool identity, implemented `crushr-extract --verify` for strict extraction safety verification, and updated docs/tests/help surfaces to use the new boundary.
+- **CRUSHR-HARDEN-03D is complete**: audited reader/open/parse boundary, aligned strict verification semantics under `crushr-extract --verify`, tightened permissive legacy reader checks, and refreshed active docs/help naming for the locked tool boundary.
 
 
 ## 2026-03-18 — CRUSHR-HARDEN-03B
@@ -263,3 +255,10 @@ Exit criteria
 - [x] Reconciled `crushr-salvage` emitted `mapping_provenance` and `recovery_classification` vocabularies with `schemas/crushr-salvage-plan.v3.schema.json`.
 - [x] Added typed enum boundaries in salvage output path for classification/provenance and typed reason-code emission for contract-level reason arrays.
 - [x] Added schema-conformance coverage for enum vocabulary parity and reason-code closure.
+
+## 2026-03-18 — CRUSHR-HARDEN-03D
+
+- [x] Audited reader/open/parse behavior and documented strict-vs-permissive boundary findings in control updates.
+- [x] Hardened `crushr-extract --verify` to run strict extraction semantics and emit deterministic refusal reasons from canonical refusal paths.
+- [x] Tightened permissive legacy reader checks that could blur strict boundary expectations.
+- [x] Updated active boundary docs and stale help strings to reduce public `fsck` naming drift.
