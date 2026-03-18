@@ -16,8 +16,8 @@ Exit code guidance:
 - `4` internal failure
 
 Tool normalization (current workspace baseline):
-- `crushr-info` and `crushr-fsck` return `2` for archive open failures and structural/parse/validation failures.
-- `crushr-info` and `crushr-fsck` return `1` for usage/flag/argument errors.
+- `crushr-info` and `crushr-extract --verify` return `2` for archive open failures and structural/parse/validation failures.
+- `crushr-info` and `crushr-extract --verify` return `1` for usage/flag/argument errors.
 - `crushr-extract` strict refusal behavior is policy-controlled via `--refusal-exit <success|partial-failure>`:
   - `success` (default): valid archive structure with one or more refused files exits `0`.
   - `partial-failure`: valid archive structure with one or more refused files exits `3`.

@@ -16,7 +16,7 @@ The runtime tools are:
 
 - `crushr-pack`
 - `crushr-info`
-- `crushr-fsck`
+- `crushr-extract --verify`
 - `crushr-extract`
 - `crushr-salvage`
 

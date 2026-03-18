@@ -447,13 +447,14 @@ mod tests {
     }
 
     #[test]
-    fn crushr_fsck_binary_emits_clean_json_for_synthetic_archive() {
+    fn crushr_extract_verify_emits_clean_json_for_synthetic_archive() {
         let bytes = build_archive_with_real_block(b"payload");
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path = std::env::temp_dir().join(format!("crushr-fsck-synth-valid-{unique}.crs"));
+        let path =
+            std::env::temp_dir().join(format!("crushr-extract-verify-synth-valid-{unique}.crs"));
         fs::write(&path, &bytes).unwrap();
 
         let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -469,8 +470,9 @@ mod tests {
                 "-p",
                 "crushr",
                 "--bin",
-                "crushr-fsck",
+                "crushr-extract",
                 "--",
+                "--verify",
                 path.to_str().unwrap(),
                 "--json",
             ])
@@ -487,20 +489,13 @@ mod tests {
         );
 
         let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-        assert_eq!(value["schema_version"], 1);
-        assert_eq!(value["tool"], "crushr-fsck");
-        assert_eq!(value["payload"]["verify"]["status"], "ok");
-        assert_eq!(
-            value["payload"]["blast_radius"]["impact"]["corrupted_blocks"]
-                .as_array()
-                .unwrap()
-                .len(),
-            0
-        );
+        assert_eq!(value["verification_status"], "verified");
+        assert_eq!(value["safe_for_strict_extraction"], true);
+        assert_eq!(value["failed_check_count"], 0);
     }
 
     #[test]
-    fn crushr_fsck_binary_fails_cleanly_for_corrupt_footer() {
+    fn crushr_extract_verify_fails_cleanly_for_corrupt_footer() {
         let mut bytes = build_archive_with_real_block(b"payload");
         let last = bytes.len() - 1;
         bytes[last] ^= 0x01;
@@ -509,7 +504,8 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path = std::env::temp_dir().join(format!("crushr-fsck-synth-ftr-{unique}.crs"));
+        let path =
+            std::env::temp_dir().join(format!("crushr-extract-verify-synth-ftr-{unique}.crs"));
         fs::write(&path, &bytes).unwrap();
 
         let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -525,8 +521,9 @@ mod tests {
                 "-p",
                 "crushr",
                 "--bin",
-                "crushr-fsck",
+                "crushr-extract",
                 "--",
+                "--verify",
                 path.to_str().unwrap(),
                 "--json",
             ])
@@ -540,7 +537,7 @@ mod tests {
     }
 
     #[test]
-    fn crushr_fsck_binary_fails_cleanly_for_corrupt_idx3_hash() {
+    fn crushr_extract_verify_fails_cleanly_for_corrupt_idx3_hash() {
         let mut bytes = build_archive_with_real_block(b"payload");
         let open = open_archive_v1(&MemReader {
             bytes: bytes.clone(),
@@ -553,7 +550,8 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path = std::env::temp_dir().join(format!("crushr-fsck-synth-idx-{unique}.crs"));
+        let path =
+            std::env::temp_dir().join(format!("crushr-extract-verify-synth-idx-{unique}.crs"));
         fs::write(&path, &bytes).unwrap();
 
         let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -569,8 +567,9 @@ mod tests {
                 "-p",
                 "crushr",
                 "--bin",
-                "crushr-fsck",
+                "crushr-extract",
                 "--",
+                "--verify",
                 path.to_str().unwrap(),
                 "--json",
             ])
@@ -624,7 +623,7 @@ mod tests {
     }
 
     #[test]
-    fn crushr_info_and_fsck_use_same_exit_code_for_missing_archive() {
+    fn crushr_info_and_extract_verify_use_same_exit_code_for_missing_archive() {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -652,7 +651,7 @@ mod tests {
             .output()
             .unwrap();
 
-        let fsck = Command::new("cargo")
+        let verify = Command::new("cargo")
             .current_dir(workspace_root)
             .args([
                 "run",
@@ -660,8 +659,9 @@ mod tests {
                 "-p",
                 "crushr",
                 "--bin",
-                "crushr-fsck",
+                "crushr-extract",
                 "--",
+                "--verify",
                 path.to_str().unwrap(),
                 "--json",
             ])
@@ -669,9 +669,9 @@ mod tests {
             .unwrap();
 
         assert_eq!(info.status.code(), Some(2));
-        assert_eq!(fsck.status.code(), Some(2));
+        assert_eq!(verify.status.code(), Some(2));
         assert!(info.stdout.is_empty());
-        assert!(fsck.stdout.is_empty());
+        assert!(verify.stdout.is_empty());
     }
 
     #[test]
