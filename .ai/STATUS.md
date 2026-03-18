@@ -4,7 +4,7 @@ Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
 Current Step: **CRUSHR-HARDEN-03B complete** (salvage schema/implementation reconciliation for emitted classifications, provenance, and reason-code contract)
 
-Immediate Next Step: **CRUSHR-HARDEN-03 follow-ups** (propagate recovered-class normalization to remaining lab summary surfaces and close residual legacy-label sediment)
+Immediate Next Step: **CRUSHR-HARDEN-03C in progress** (schema-backed comparison artifacts for FORMAT-12/13/14A/15; remaining decomposition deferred to 03E)
 
 ## Current truth
 
@@ -76,3 +76,7 @@ Once resilience and metadata pruning decisions settle, revisit distributed dicti
 - verifiable block -> dictionary dependency
 - deterministic degradation when a dictionary is missing
 - no silent decode fallback that changes truth
+
+
+- CRUSHR-HARDEN-03C introduced explicit schema files for active FORMAT-12/13/14A/15 comparison outputs and added schema-backed artifact checks in integration tests.
+- Remaining broader comparison-engine decomposition and deep typed-plumbing refactor is deferred to CRUSHR-HARDEN-03E.

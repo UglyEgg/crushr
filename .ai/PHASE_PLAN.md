@@ -45,6 +45,8 @@ Key work
 
 Deliverables
 
+- [x] CRUSHR-HARDEN-03C — add schema-backed contracts for active FORMAT-12/13/14A/15 comparison artifacts and test coverage; defer broader decomposition to 03E.
+
 <<<<<<< HEAD
 - [x] 3.25.1 CRUSHR-FORMAT-14A-FIX1 (repair dictionary-corruption classification/outcome reporting; rerun required FORMAT-14A artifacts)
 - [x] 3.25.2 CRUSHR-FORMAT-14A-FIX2 (restore header+tail dual-copy one-loss named recovery; rerun FORMAT-14A artifacts)

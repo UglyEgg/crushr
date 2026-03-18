@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crushr.dev/schemas/crushr-lab-salvage-format13-comparison.v1.schema.json",
+  "type": "object",
+  "required": ["schema_version", "scenario_count", "variants", "by_variant", "grouped_breakdown", "per_scenario_rows"],
+  "properties": {
+    "schema_version": { "const": "crushr-lab-salvage-format13-comparison.v1" },
+    "scenario_count": { "type": "integer", "minimum": 0 },
+    "variants": {
+      "type": "array",
+      "items": { "enum": ["payload_only", "extent_identity_inline_path", "extent_identity_path_dict_single", "extent_identity_path_dict_header_tail", "extent_identity_path_dict_quasi_uniform", "payload_plus_manifest"] }
+    },
+    "by_variant": { "type": "object" },
+    "grouped_breakdown": { "type": "object" },
+    "per_scenario_rows": { "type": "array", "items": { "type": "object" } }
+  },
+  "additionalProperties": true
+}

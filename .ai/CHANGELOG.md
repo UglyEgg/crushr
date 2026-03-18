@@ -1,3 +1,9 @@
+
+## 2026-03-18 — CRUSHR-HARDEN-03C
+- Added schema files for active FORMAT-12/13/14A/15 comparison summary artifacts (baseline + stress variants).
+- Added integration tests that execute active comparison commands and verify emitted summary artifacts satisfy schema-required fields and schema-version constants.
+- Documented that deeper typed decomposition of remaining untyped summary assembly is deferred to 03E.
+
 ## 2026-03-16 — CRUSHR-FORMAT-14A (dictionary-target corruption resilience comparison)
 
 - Added two new lab commands: `run-format14a-dictionary-resilience-comparison` and `run-format14a-dictionary-resilience-stress-comparison`.
