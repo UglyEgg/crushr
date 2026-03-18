@@ -241,6 +241,17 @@ Redundant but independent copies may allow naming recovery even when partially c
 
 ---
 
+
+Comparison artifact schemas for active families:
+- `schemas/crushr-lab-salvage-format12-inline-path-comparison.v1.schema.json`
+- `schemas/crushr-lab-salvage-format12-stress-comparison.v2.schema.json`
+- `schemas/crushr-lab-salvage-format13-comparison.v1.schema.json`
+- `schemas/crushr-lab-salvage-format13-stress-comparison.v1.schema.json`
+- `schemas/crushr-lab-salvage-format14a-dictionary-resilience.v1.schema.json`
+- `schemas/crushr-lab-salvage-format14a-dictionary-resilience-stress.v1.schema.json`
+- `schemas/crushr-lab-salvage-format15.v1.schema.json`
+- `schemas/crushr-lab-salvage-format15-stress.v1.schema.json`
+
 ## FORMAT-15 — Factored dictionary leadership
 
 ### Hypothesis  
