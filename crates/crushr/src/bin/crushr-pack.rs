@@ -4,6 +4,7 @@ use crushr::index_codec::encode_index;
 use crushr_format::blk3::{write_blk3_header, Blk3Flags, Blk3Header};
 use crushr_format::ledger::LedgerBlob;
 use crushr_format::tailframe::assemble_tail_frame;
+use serde::Serialize;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
@@ -152,6 +153,71 @@ struct InputFile {
     abs_path: PathBuf,
 }
 
+#[derive(Debug)]
+struct CanonicalFileModel {
+    file_id: u32,
+    rel_path: String,
+    raw: Vec<u8>,
+    compressed: Vec<u8>,
+    payload_hash: [u8; 32],
+    raw_hash: [u8; 32],
+}
+
+#[derive(Debug)]
+struct DictionaryPlan {
+    path_id_by_path: BTreeMap<String, u32>,
+    primary_copy: Option<Value>,
+    tail_copy_required: bool,
+    quasi_uniform_ordinals: BTreeSet<usize>,
+}
+
+#[derive(Debug)]
+struct MetadataPlan {
+    emit_payload_identity: bool,
+    emit_path_checkpoints: bool,
+    emit_manifest_checkpoints: bool,
+    use_path_dictionary: bool,
+    inline_payload_path: bool,
+    file_identity_archive_id: Option<String>,
+    payload_identity_archive_id: Option<String>,
+    path_checkpoint_ordinals: BTreeSet<usize>,
+    manifest_checkpoint_ordinals: BTreeSet<usize>,
+    dictionary: DictionaryPlan,
+}
+
+#[derive(Debug)]
+struct PackLayoutPlan {
+    files: Vec<CanonicalFileModel>,
+    metadata: MetadataPlan,
+}
+
+#[derive(Debug, Serialize)]
+struct RedundantFileMap {
+    schema: &'static str,
+    experimental_self_describing_extents: bool,
+    experimental_file_identity_extents: bool,
+    experimental_self_identifying_blocks: bool,
+    experimental_path_checkpoints: bool,
+    experimental_file_manifest_checkpoints: bool,
+    experimental_metadata_profile: Option<&'static str>,
+    metadata_placement_strategy: Option<&'static str>,
+    files: Vec<RedundantFileMapFile>,
+}
+
+#[derive(Debug, Serialize)]
+struct RedundantFileMapFile {
+    path: String,
+    size: u64,
+    extents: Vec<RedundantFileMapExtent>,
+}
+
+#[derive(Debug, Serialize)]
+struct RedundantFileMapExtent {
+    block_id: u32,
+    file_offset: u64,
+    len: u64,
+}
+
 fn main() {
     if let Err(err) = run() {
         eprintln!("{err:#}");
@@ -263,19 +329,19 @@ fn pack_minimal_v1(
         bail!("no input files to pack");
     }
     reject_duplicate_logical_paths(&files)?;
+    let layout = build_pack_layout_plan(files, level, options)?;
+    emit_archive_from_layout(layout, output, level, options)
+}
 
-    let mut out = File::create(output).with_context(|| format!("create {}", output.display()))?;
-    let mut entries = Vec::with_capacity(files.len());
-    let mut block_id: u32 = 0;
-
-    let mut experimental_records = Vec::new();
-    let mut file_identity_extent_records = Vec::new();
-    let mut file_identity_path_records = Vec::new();
-    let mut payload_block_identity_records = Vec::new();
-    let mut path_checkpoint_entries = Vec::new();
-    let mut file_manifest_records = Vec::new();
+fn build_pack_layout_plan(
+    files: Vec<InputFile>,
+    level: i32,
+    options: PackExperimentalOptions,
+) -> Result<PackLayoutPlan> {
+    let total_files = files.len();
+    let placement_seed = compute_file_identity_archive_id(&files);
     let file_identity_archive_id = if options.file_identity_extents {
-        Some(compute_file_identity_archive_id(&files))
+        Some(placement_seed.clone())
     } else {
         None
     };
@@ -303,21 +369,644 @@ fn pack_minimal_v1(
         path_id_by_path.insert(file.rel_path.clone(), idx as u32);
     }
 
-    let payload_identity_archive_id = if emit_payload_identity {
-        Some(compute_file_identity_archive_id(&files))
-    } else {
-        None
-    };
-    let dictionary_archive_instance_id = payload_identity_archive_id
-        .clone()
-        .unwrap_or_else(|| compute_file_identity_archive_id(&files));
-    let dictionary_generation = 1u64;
+    let payload_identity_archive_id = emit_payload_identity.then_some(placement_seed.clone());
+    let path_checkpoint_ordinals = options
+        .placement_strategy
+        .filter(|_| emit_path_checkpoints)
+        .map(|strategy| {
+            scheduled_metadata_ordinals(strategy, "path_checkpoint", total_files, &placement_seed)
+        })
+        .unwrap_or_default();
+    let manifest_checkpoint_ordinals = options
+        .placement_strategy
+        .filter(|_| emit_manifest_checkpoints)
+        .map(|strategy| {
+            scheduled_metadata_ordinals(
+                strategy,
+                "file_manifest_checkpoint",
+                total_files,
+                &placement_seed,
+            )
+        })
+        .unwrap_or_default();
 
-    let factored_dictionary = matches!(
+    let dictionary = build_dictionary_plan(
+        &files,
+        &path_id_by_path,
+        &placement_seed,
         options.metadata_profile,
+    )?;
+    let mut canonical_files = Vec::with_capacity(files.len());
+    for (idx, file) in files.into_iter().enumerate() {
+        let raw = std::fs::read(&file.abs_path)
+            .with_context(|| format!("read {}", file.abs_path.display()))?;
+        let compressed = compress_deterministic(&raw, level)
+            .with_context(|| format!("compress {}", file.abs_path.display()))?;
+        canonical_files.push(CanonicalFileModel {
+            file_id: idx as u32,
+            rel_path: file.rel_path,
+            payload_hash: *blake3::hash(&compressed).as_bytes(),
+            raw_hash: *blake3::hash(&raw).as_bytes(),
+            raw,
+            compressed,
+        });
+    }
+
+    Ok(PackLayoutPlan {
+        files: canonical_files,
+        metadata: MetadataPlan {
+            emit_payload_identity,
+            emit_path_checkpoints,
+            emit_manifest_checkpoints,
+            use_path_dictionary,
+            inline_payload_path,
+            file_identity_archive_id,
+            payload_identity_archive_id,
+            path_checkpoint_ordinals,
+            manifest_checkpoint_ordinals,
+            dictionary,
+        },
+    })
+}
+
+fn emit_archive_from_layout(
+    layout: PackLayoutPlan,
+    output: &Path,
+    level: i32,
+    options: PackExperimentalOptions,
+) -> Result<()> {
+    let total_files = layout.files.len();
+
+    let mut out = File::create(output).with_context(|| format!("create {}", output.display()))?;
+    let mut entries = Vec::with_capacity(total_files);
+
+    let mut experimental_records = Vec::new();
+    let mut file_identity_extent_records = Vec::new();
+    let mut file_identity_path_records = Vec::new();
+    let mut payload_block_identity_records = Vec::new();
+    let mut path_checkpoint_entries = Vec::new();
+    let mut file_manifest_records = Vec::new();
+    let emit_payload_identity = layout.metadata.emit_payload_identity;
+    let emit_path_checkpoints = layout.metadata.emit_path_checkpoints;
+    let emit_manifest_checkpoints = layout.metadata.emit_manifest_checkpoints;
+    let use_path_dictionary = layout.metadata.use_path_dictionary;
+    let inline_payload_path = layout.metadata.inline_payload_path;
+    let file_identity_archive_id = layout.metadata.file_identity_archive_id.clone();
+    let payload_identity_archive_id = layout.metadata.payload_identity_archive_id.clone();
+    let path_id_by_path = &layout.metadata.dictionary.path_id_by_path;
+    let quasi_uniform_ordinals = &layout.metadata.dictionary.quasi_uniform_ordinals;
+    let checkpoint_stride = 2usize;
+    if let Some(path_dictionary) = &layout.metadata.dictionary.primary_copy {
+        write_experimental_metadata_block(&mut out, path_dictionary, level)?;
+    }
+    for (ordinal, file) in layout.files.into_iter().enumerate() {
+        let block_scan_offset = out.stream_position()?;
+        let payload_hash = file.payload_hash;
+        let raw_hash = file.raw_hash;
+        let flags = Blk3Flags(Blk3Flags::HAS_PAYLOAD_HASH | Blk3Flags::HAS_RAW_HASH);
+        let header = Blk3Header {
+            header_len: (4 + 2 + 2 + 4 + 4 + 4 + 8 + 8 + 32 + 32) as u16,
+            flags,
+            codec: ZSTD_CODEC,
+            level,
+            dict_id: 0,
+            raw_len: file.raw.len() as u64,
+            comp_len: file.compressed.len() as u64,
+            payload_hash: Some(payload_hash),
+            raw_hash: Some(raw_hash),
+        };
+
+        write_blk3_header(&mut out, &header)?;
+        out.write_all(&file.compressed)?;
+
+        if options.self_describing_extents {
+            let record = build_self_describing_extent_record(&file);
+            experimental_records.push(record.clone());
+            write_experimental_metadata_block(
+                &mut out,
+                &wrap_self_describing_extent(&record),
+                level,
+            )?;
+
+            if (ordinal + 1) % checkpoint_stride == 0 {
+                write_experimental_metadata_block(
+                    &mut out,
+                    &build_checkpoint_map_snapshot(
+                        ((ordinal + 1) / checkpoint_stride) as u64,
+                        &experimental_records,
+                    ),
+                    level,
+                )?;
+            }
+        }
+
+        if options.file_identity_extents {
+            let path = file.rel_path.clone();
+            let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
+            file_identity_extent_records.push(build_file_identity_extent_record(
+                &file,
+                block_scan_offset,
+                &path_digest,
+            ));
+            file_identity_path_records.push(build_file_identity_path_record(
+                file.file_id,
+                &path,
+                &path_digest,
+            ));
+
+            write_experimental_metadata_block(
+                &mut out,
+                file_identity_extent_records
+                    .last()
+                    .context("missing file identity record")?,
+                level,
+            )?;
+            write_experimental_metadata_block(
+                &mut out,
+                &build_file_path_map_entry(file.file_id, &path, &path_digest),
+                level,
+            )?;
+            if should_emit_anchor(ordinal, total_files) {
+                write_experimental_metadata_block(
+                    &mut out,
+                    &build_bootstrap_anchor(
+                        ordinal as u64,
+                        file_identity_archive_id.clone(),
+                        file_identity_extent_records.len() as u64,
+                    ),
+                    level,
+                )?;
+            }
+        }
+
+        if emit_payload_identity {
+            let archive_identity = payload_identity_archive_id.clone();
+            let path = file.rel_path.clone();
+            let name = Path::new(&path)
+                .file_name()
+                .map(|name| name.to_string_lossy().to_string())
+                .unwrap_or_else(|| path.clone());
+            let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
+            let path_id = path_id_by_path.get(&path).copied();
+            let payload_record = build_payload_block_identity_record(
+                &file,
+                archive_identity,
+                block_scan_offset,
+                inline_payload_path.then_some(name),
+                inline_payload_path.then_some(path.clone()),
+                inline_payload_path.then_some(to_hex(&path_digest)),
+                use_path_dictionary.then_some(path_id).flatten(),
+            );
+            payload_block_identity_records.push(payload_record.clone());
+            write_experimental_metadata_block(&mut out, &payload_record, level)?;
+
+            if use_path_dictionary && quasi_uniform_ordinals.contains(&ordinal) {
+                let mut copy = layout
+                    .metadata
+                    .dictionary
+                    .primary_copy
+                    .clone()
+                    .context("missing primary dictionary copy for interior mirror")?;
+                copy["copy_role"] = Value::String("interior_mirror".to_string());
+                write_experimental_metadata_block(&mut out, &copy, level)?;
+            }
+
+            if emit_path_checkpoints {
+                path_checkpoint_entries.push(build_path_checkpoint_entry(
+                    file.file_id,
+                    &path,
+                    &path_digest,
+                    file.raw.len() as u64,
+                ));
+
+                if should_emit_anchor(ordinal, total_files)
+                    || layout.metadata.path_checkpoint_ordinals.contains(&ordinal)
+                {
+                    write_experimental_metadata_block(
+                        &mut out,
+                        &build_path_checkpoint_snapshot(
+                            ordinal as u64,
+                            options.placement_strategy,
+                            &path_checkpoint_entries,
+                        ),
+                        level,
+                    )?;
+                }
+            }
+        }
+
+        if emit_manifest_checkpoints {
+            let manifest_record = build_file_manifest_record(&file);
+            file_manifest_records.push(manifest_record.clone());
+            write_experimental_metadata_block(&mut out, &manifest_record, level)?;
+
+            if should_emit_anchor(ordinal, total_files)
+                || layout
+                    .metadata
+                    .manifest_checkpoint_ordinals
+                    .contains(&ordinal)
+            {
+                write_experimental_metadata_block(
+                    &mut out,
+                    &build_manifest_checkpoint_snapshot(
+                        ordinal as u64,
+                        options.placement_strategy,
+                        &file_manifest_records,
+                    ),
+                    level,
+                )?;
+            }
+        }
+
+        entries.push(Entry {
+            path: file.rel_path,
+            kind: EntryKind::Regular,
+            mode: 0,
+            mtime: 0,
+            size: file.raw.len() as u64,
+            extents: vec![Extent {
+                block_id: file.file_id,
+                offset: 0,
+                len: file.raw.len() as u64,
+            }],
+            link_target: None,
+            xattrs: Vec::new(),
+        });
+    }
+
+    if layout.metadata.dictionary.tail_copy_required {
+        let mut copy = layout
+            .metadata
+            .dictionary
+            .primary_copy
+            .clone()
+            .context("missing primary dictionary copy for tail mirror")?;
+        copy["copy_role"] = Value::String("tail_mirror".to_string());
+        write_experimental_metadata_block(&mut out, &copy, level)?;
+    }
+
+    if options.self_describing_extents {
+        write_experimental_metadata_block(
+            &mut out,
+            &build_checkpoint_map_snapshot(u64::MAX, &experimental_records),
+            level,
+        )?;
+    }
+
+    if options.file_identity_extents {
+        write_experimental_metadata_block(
+            &mut out,
+            &build_bootstrap_anchor(
+                u64::MAX,
+                file_identity_archive_id.clone(),
+                file_identity_extent_records.len() as u64,
+            ),
+            level,
+        )?;
+        write_experimental_metadata_block(
+            &mut out,
+            &json!({
+                "schema": "crushr-file-path-map.v1",
+                "records": file_identity_path_records,
+            }),
+            level,
+        )?;
+    }
+
+    if emit_path_checkpoints {
+        write_experimental_metadata_block(
+            &mut out,
+            &build_path_checkpoint_snapshot(
+                u64::MAX,
+                options.placement_strategy,
+                &path_checkpoint_entries,
+            ),
+            level,
+        )?;
+    }
+
+    if emit_payload_identity {
+        write_experimental_metadata_block(
+            &mut out,
+            &json!({
+                "schema": "crushr-payload-block-identity-summary.v1",
+                "records_emitted": payload_block_identity_records.len() as u64,
+            }),
+            level,
+        )?;
+    }
+
+    if emit_manifest_checkpoints {
+        write_experimental_metadata_block(
+            &mut out,
+            &build_manifest_checkpoint_snapshot(
+                u64::MAX,
+                options.placement_strategy,
+                &file_manifest_records,
+            ),
+            level,
+        )?;
+    }
+
+    let blocks_end_offset = out.stream_position()?;
+    write_tail_with_redundant_map(
+        &mut out,
+        blocks_end_offset,
+        &entries,
+        options,
+        emit_payload_identity,
+        emit_path_checkpoints,
+        emit_manifest_checkpoints,
+    )?;
+
+    Ok(())
+}
+
+fn build_self_describing_extent_record(file: &CanonicalFileModel) -> Value {
+    json!({
+        "file_id": file.file_id,
+        "path": file.rel_path,
+        "logical_offset": 0,
+        "logical_length": file.raw.len() as u64,
+        "full_file_size": file.raw.len() as u64,
+        "extent_ordinal": 0,
+        "block_id": file.file_id,
+        "content_identity": {
+            "payload_hash_blake3": to_hex(&file.payload_hash),
+            "raw_hash_blake3": to_hex(&file.raw_hash),
+        }
+    })
+}
+
+fn wrap_self_describing_extent(record: &Value) -> Value {
+    json!({
+        "schema": "crushr-self-describing-extent.v1",
+        "record": record,
+    })
+}
+
+fn build_checkpoint_map_snapshot(checkpoint_ordinal: u64, records: &[Value]) -> Value {
+    json!({
+        "schema": "crushr-checkpoint-map-snapshot.v1",
+        "checkpoint_ordinal": checkpoint_ordinal,
+        "records": records,
+    })
+}
+
+fn build_file_identity_extent_record(
+    file: &CanonicalFileModel,
+    block_scan_offset: u64,
+    path_digest: &[u8; 32],
+) -> Value {
+    json!({
+        "schema": "crushr-file-identity-extent.v1",
+        "file_id": file.file_id,
+        "logical_offset": 0,
+        "logical_length": file.raw.len() as u64,
+        "full_file_size": file.raw.len() as u64,
+        "extent_ordinal": 0,
+        "block_id": file.file_id,
+        "block_scan_offset": block_scan_offset,
+        "content_identity": {
+            "payload_hash_blake3": to_hex(&file.payload_hash),
+            "raw_hash_blake3": to_hex(&file.raw_hash),
+        },
+        "path_linkage": {
+            "path_digest_blake3": to_hex(path_digest),
+        }
+    })
+}
+
+fn build_file_identity_path_record(file_id: u32, path: &str, path_digest: &[u8; 32]) -> Value {
+    json!({
+        "file_id": file_id,
+        "path": path,
+        "path_digest_blake3": to_hex(path_digest),
+    })
+}
+
+fn build_file_path_map_entry(file_id: u32, path: &str, path_digest: &[u8; 32]) -> Value {
+    json!({
+        "schema": "crushr-file-path-map-entry.v1",
+        "file_id": file_id,
+        "path": path,
+        "path_digest_blake3": to_hex(path_digest),
+    })
+}
+
+fn build_bootstrap_anchor(
+    anchor_ordinal: u64,
+    archive_identity: Option<String>,
+    records_emitted: u64,
+) -> Value {
+    json!({
+        "schema": "crushr-bootstrap-anchor.v1",
+        "anchor_ordinal": anchor_ordinal,
+        "archive_identity": archive_identity,
+        "records_emitted": records_emitted,
+    })
+}
+
+fn build_payload_block_identity_record(
+    file: &CanonicalFileModel,
+    archive_identity: Option<String>,
+    block_scan_offset: u64,
+    inline_name: Option<String>,
+    inline_path: Option<String>,
+    inline_path_digest: Option<String>,
+    path_id: Option<u32>,
+) -> Value {
+    json!({
+        "schema": "crushr-payload-block-identity.v1",
+        "archive_identity": archive_identity,
+        "file_id": file.file_id,
+        "block_id": file.file_id,
+        "block_index": 0,
+        "extent_index": 0,
+        "total_block_count": 1,
+        "total_extent_count": 1,
+        "full_file_size": file.raw.len() as u64,
+        "logical_offset": 0,
+        "payload_codec": ZSTD_CODEC,
+        "payload_length": file.compressed.len() as u64,
+        "logical_length": file.raw.len() as u64,
+        "extent_length": file.raw.len() as u64,
+        "block_scan_offset": block_scan_offset,
+        "content_identity": {
+            "payload_hash_blake3": to_hex(&file.payload_hash),
+            "raw_hash_blake3": to_hex(&file.raw_hash),
+        },
+        "name": inline_name,
+        "path": inline_path,
+        "path_digest_blake3": inline_path_digest,
+        "path_id": path_id,
+    })
+}
+
+fn build_path_checkpoint_entry(
+    file_id: u32,
+    path: &str,
+    path_digest: &[u8; 32],
+    full_file_size: u64,
+) -> Value {
+    json!({
+        "file_id": file_id,
+        "path": path,
+        "path_digest_blake3": to_hex(path_digest),
+        "full_file_size": full_file_size,
+        "total_block_count": 1,
+    })
+}
+
+fn build_path_checkpoint_snapshot(
+    checkpoint_ordinal: u64,
+    placement_strategy: Option<PlacementStrategy>,
+    entries: &[Value],
+) -> Value {
+    json!({
+        "schema": "crushr-path-checkpoint.v1",
+        "checkpoint_ordinal": checkpoint_ordinal,
+        "placement_strategy": placement_strategy.map(|s| s.as_str()),
+        "entries": entries,
+    })
+}
+
+fn build_file_manifest_record(file: &CanonicalFileModel) -> Value {
+    json!({
+        "schema": "crushr-file-manifest.v1",
+        "file_id": file.file_id,
+        "path": file.rel_path,
+        "file_size": file.raw.len() as u64,
+        "expected_block_count": 1,
+        "extent_count": 1,
+        "file_digest": to_hex(blake3::hash(&file.raw).as_bytes()),
+    })
+}
+
+fn build_manifest_checkpoint_snapshot(
+    checkpoint_ordinal: u64,
+    placement_strategy: Option<PlacementStrategy>,
+    records: &[Value],
+) -> Value {
+    json!({
+        "schema": "crushr-file-manifest-checkpoint.v1",
+        "checkpoint_ordinal": checkpoint_ordinal,
+        "placement_strategy": placement_strategy.map(|s| s.as_str()),
+        "records": records,
+    })
+}
+
+fn write_tail_with_redundant_map(
+    out: &mut File,
+    blocks_end_offset: u64,
+    entries: &[Entry],
+    options: PackExperimentalOptions,
+    emit_payload_identity: bool,
+    emit_path_checkpoints: bool,
+    emit_manifest_checkpoints: bool,
+) -> Result<()> {
+    let idx3 = encode_index(&Index {
+        entries: entries.to_vec(),
+    });
+    let redundant_file_map = build_redundant_file_map(
+        entries,
+        options,
+        emit_payload_identity,
+        emit_path_checkpoints,
+        emit_manifest_checkpoints,
+    );
+    let ledger = LedgerBlob::from_value(&serde_json::to_value(&redundant_file_map)?)?;
+    let tail = assemble_tail_frame(blocks_end_offset, None, &idx3, Some(&ledger))?;
+    out.write_all(&tail)?;
+    Ok(())
+}
+
+fn build_redundant_file_map(
+    entries: &[Entry],
+    options: PackExperimentalOptions,
+    emit_payload_identity: bool,
+    emit_path_checkpoints: bool,
+    emit_manifest_checkpoints: bool,
+) -> RedundantFileMap {
+    RedundantFileMap {
+        schema: if options.self_describing_extents
+            || options.file_identity_extents
+            || emit_payload_identity
+            || emit_path_checkpoints
+            || emit_manifest_checkpoints
+        {
+            "crushr-redundant-file-map.experimental.v2"
+        } else {
+            "crushr-redundant-file-map.v1"
+        },
+        experimental_self_describing_extents: options.self_describing_extents,
+        experimental_file_identity_extents: options.file_identity_extents,
+        experimental_self_identifying_blocks: emit_payload_identity,
+        experimental_path_checkpoints: emit_path_checkpoints,
+        experimental_file_manifest_checkpoints: emit_manifest_checkpoints,
+        experimental_metadata_profile: options.metadata_profile.map(|profile| profile.as_str()),
+        metadata_placement_strategy: options.placement_strategy.map(|s| s.as_str()),
+        files: entries
+            .iter()
+            .map(|entry| RedundantFileMapFile {
+                path: entry.path.clone(),
+                size: entry.size,
+                extents: entry
+                    .extents
+                    .iter()
+                    .map(|extent| RedundantFileMapExtent {
+                        block_id: extent.block_id,
+                        file_offset: extent.offset,
+                        len: extent.len,
+                    })
+                    .collect::<Vec<_>>(),
+            })
+            .collect::<Vec<_>>(),
+    }
+}
+
+fn build_dictionary_plan(
+    files: &[InputFile],
+    path_id_by_path: &BTreeMap<String, u32>,
+    placement_seed: &str,
+    metadata_profile: Option<MetadataProfile>,
+) -> Result<DictionaryPlan> {
+    let use_path_dictionary = metadata_profile
+        .map(MetadataProfile::uses_path_dictionary)
+        .unwrap_or(false);
+    let tail_copy_required = matches!(
+        metadata_profile,
+        Some(MetadataProfile::ExtentIdentityPathDictHeaderTail)
+            | Some(MetadataProfile::ExtentIdentityPathDictQuasiUniform)
+            | Some(MetadataProfile::ExtentIdentityPathDictFactoredHeaderTail)
+    );
+    let quasi_uniform_ordinals = if matches!(
+        metadata_profile,
+        Some(MetadataProfile::ExtentIdentityPathDictQuasiUniform)
+    ) {
+        scheduled_metadata_ordinals(
+            PlacementStrategy::Golden,
+            "path_dictionary",
+            files.len(),
+            placement_seed,
+        )
+    } else {
+        BTreeSet::new()
+    };
+    if !use_path_dictionary {
+        return Ok(DictionaryPlan {
+            path_id_by_path: path_id_by_path.clone(),
+            primary_copy: None,
+            tail_copy_required: false,
+            quasi_uniform_ordinals,
+        });
+    }
+    let dictionary_archive_instance_id = placement_seed.to_string();
+    let dictionary_generation = 1u64;
+    let factored_dictionary = matches!(
+        metadata_profile,
         Some(MetadataProfile::ExtentIdentityPathDictFactoredHeaderTail)
     );
-
     let path_dictionary_body = if factored_dictionary {
         let mut dir_id_by_path = BTreeMap::<String, u32>::new();
         let mut name_id_by_name = BTreeMap::<String, u32>::new();
@@ -342,7 +1031,6 @@ fn pack_minimal_v1(
                 next_name_id += 1;
             }
         }
-
         let directories: Vec<Value> = dir_id_by_path
             .iter()
             .map(|(dir, dir_id)| json!({"dir_id": *dir_id, "prefix": dir}))
@@ -373,7 +1061,6 @@ fn pack_minimal_v1(
                 })
             })
             .collect();
-
         json!({
             "representation": "factored_namespace_v1",
             "entry_count": path_id_by_path.len() as u64,
@@ -412,414 +1099,21 @@ fn pack_minimal_v1(
         )
         .as_bytes(),
     );
-    let path_dictionary = json!({
-        "schema": "crushr-path-dictionary-copy.v2",
-        "copy_role": "primary",
-        "archive_instance_id": dictionary_archive_instance_id,
-        "dict_uuid": dictionary_uuid,
-        "generation": dictionary_generation,
-        "dictionary_length": path_dictionary_body_bytes.len() as u64,
-        "dictionary_content_hash": dictionary_content_hash,
-        "body": path_dictionary_body,
-    });
-    let total_files = files.len();
-    let checkpoint_stride = 2usize;
-    let placement_seed = compute_file_identity_archive_id(&files);
-    let path_checkpoint_ordinals = options
-        .placement_strategy
-        .filter(|_| emit_path_checkpoints)
-        .map(|strategy| {
-            scheduled_metadata_ordinals(strategy, "path_checkpoint", total_files, &placement_seed)
-        })
-        .unwrap_or_default();
-    let quasi_uniform_ordinals = if matches!(
-        options.metadata_profile,
-        Some(MetadataProfile::ExtentIdentityPathDictQuasiUniform)
-    ) {
-        scheduled_metadata_ordinals(
-            PlacementStrategy::Golden,
-            "path_dictionary",
-            total_files,
-            &placement_seed,
-        )
-    } else {
-        BTreeSet::new()
-    };
-
-    if use_path_dictionary {
-        write_experimental_metadata_block(&mut out, &path_dictionary, level)?;
-    }
-    let manifest_checkpoint_ordinals = options
-        .placement_strategy
-        .filter(|_| emit_manifest_checkpoints)
-        .map(|strategy| {
-            scheduled_metadata_ordinals(
-                strategy,
-                "file_manifest_checkpoint",
-                total_files,
-                &placement_seed,
-            )
-        })
-        .unwrap_or_default();
-    for (ordinal, file) in files.into_iter().enumerate() {
-        let raw = std::fs::read(&file.abs_path)
-            .with_context(|| format!("read {}", file.abs_path.display()))?;
-        let compressed = compress_deterministic(&raw, level)
-            .with_context(|| format!("compress {}", file.abs_path.display()))?;
-
-        let block_scan_offset = out.stream_position()?;
-
-        let payload_hash = *blake3::hash(&compressed).as_bytes();
-        let raw_hash = *blake3::hash(&raw).as_bytes();
-        let flags = Blk3Flags(Blk3Flags::HAS_PAYLOAD_HASH | Blk3Flags::HAS_RAW_HASH);
-        let header = Blk3Header {
-            header_len: (4 + 2 + 2 + 4 + 4 + 4 + 8 + 8 + 32 + 32) as u16,
-            flags,
-            codec: ZSTD_CODEC,
-            level,
-            dict_id: 0,
-            raw_len: raw.len() as u64,
-            comp_len: compressed.len() as u64,
-            payload_hash: Some(payload_hash),
-            raw_hash: Some(raw_hash),
-        };
-
-        write_blk3_header(&mut out, &header)?;
-        out.write_all(&compressed)?;
-
-        if options.self_describing_extents {
-            let record = json!({
-                "file_id": block_id,
-                "path": file.rel_path,
-                "logical_offset": 0,
-                "logical_length": raw.len() as u64,
-                "full_file_size": raw.len() as u64,
-                "extent_ordinal": 0,
-                "block_id": block_id,
-                "content_identity": {
-                    "payload_hash_blake3": to_hex(&payload_hash),
-                    "raw_hash_blake3": to_hex(&raw_hash),
-                }
-            });
-            experimental_records.push(record.clone());
-            write_experimental_metadata_block(
-                &mut out,
-                &json!({
-                    "schema": "crushr-self-describing-extent.v1",
-                    "record": record,
-                }),
-                level,
-            )?;
-
-            if (ordinal + 1) % checkpoint_stride == 0 {
-                write_experimental_metadata_block(
-                    &mut out,
-                    &json!({
-                        "schema": "crushr-checkpoint-map-snapshot.v1",
-                        "checkpoint_ordinal": ((ordinal + 1) / checkpoint_stride) as u64,
-                        "records": experimental_records,
-                    }),
-                    level,
-                )?;
-            }
-        }
-
-        if options.file_identity_extents {
-            let path = file.rel_path.clone();
-            let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
-            file_identity_extent_records.push(json!({
-                "schema": "crushr-file-identity-extent.v1",
-                "file_id": block_id,
-                "logical_offset": 0,
-                "logical_length": raw.len() as u64,
-                "full_file_size": raw.len() as u64,
-                "extent_ordinal": 0,
-                "block_id": block_id,
-                "block_scan_offset": block_scan_offset,
-                "content_identity": {
-                    "payload_hash_blake3": to_hex(&payload_hash),
-                    "raw_hash_blake3": to_hex(&raw_hash),
-                },
-                "path_linkage": {
-                    "path_digest_blake3": to_hex(&path_digest),
-                }
-            }));
-            file_identity_path_records.push(json!({
-                "file_id": block_id,
-                "path": path.clone(),
-                "path_digest_blake3": to_hex(&path_digest),
-            }));
-
-            write_experimental_metadata_block(
-                &mut out,
-                file_identity_extent_records
-                    .last()
-                    .context("missing file identity record")?,
-                level,
-            )?;
-            write_experimental_metadata_block(
-                &mut out,
-                &json!({
-                    "schema": "crushr-file-path-map-entry.v1",
-                    "file_id": block_id,
-                    "path": path,
-                    "path_digest_blake3": to_hex(&path_digest),
-                }),
-                level,
-            )?;
-            if should_emit_anchor(ordinal, total_files) {
-                write_experimental_metadata_block(
-                    &mut out,
-                    &json!({
-                        "schema": "crushr-bootstrap-anchor.v1",
-                        "anchor_ordinal": ordinal as u64,
-                        "archive_identity": file_identity_archive_id,
-                        "records_emitted": file_identity_extent_records.len() as u64,
-                    }),
-                    level,
-                )?;
-            }
-        }
-
-        if emit_payload_identity {
-            let archive_identity = payload_identity_archive_id.clone();
-            let path = file.rel_path.clone();
-            let name = Path::new(&path)
-                .file_name()
-                .map(|name| name.to_string_lossy().to_string())
-                .unwrap_or_else(|| path.clone());
-            let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
-            let path_id = path_id_by_path.get(&path).copied();
-            let payload_record = json!({
-                "schema": "crushr-payload-block-identity.v1",
-                "archive_identity": archive_identity,
-                "file_id": block_id,
-                "block_id": block_id,
-                "block_index": 0,
-                "extent_index": 0,
-                "total_block_count": 1,
-                "total_extent_count": 1,
-                "full_file_size": raw.len() as u64,
-                "logical_offset": 0,
-                "payload_codec": ZSTD_CODEC,
-                "payload_length": compressed.len() as u64,
-                "logical_length": raw.len() as u64,
-                "extent_length": raw.len() as u64,
-                "block_scan_offset": block_scan_offset,
-                "content_identity": {
-                    "payload_hash_blake3": to_hex(&payload_hash),
-                    "raw_hash_blake3": to_hex(&raw_hash),
-                },
-                "name": inline_payload_path.then_some(name),
-                "path": inline_payload_path.then_some(path.clone()),
-                "path_digest_blake3": inline_payload_path.then_some(to_hex(&path_digest)),
-                "path_id": if use_path_dictionary { path_id } else { None },
-            });
-            payload_block_identity_records.push(payload_record.clone());
-            write_experimental_metadata_block(&mut out, &payload_record, level)?;
-
-            if use_path_dictionary && quasi_uniform_ordinals.contains(&ordinal) {
-                let mut copy = path_dictionary.clone();
-                copy["copy_role"] = Value::String("interior_mirror".to_string());
-                write_experimental_metadata_block(&mut out, &copy, level)?;
-            }
-
-            if emit_path_checkpoints {
-                path_checkpoint_entries.push(json!({
-                    "file_id": block_id,
-                    "path": path,
-                    "path_digest_blake3": to_hex(&path_digest),
-                    "full_file_size": raw.len() as u64,
-                    "total_block_count": 1,
-                }));
-
-                if should_emit_anchor(ordinal, total_files)
-                    || path_checkpoint_ordinals.contains(&ordinal)
-                {
-                    write_experimental_metadata_block(
-                        &mut out,
-                        &json!({
-                            "schema": "crushr-path-checkpoint.v1",
-                            "checkpoint_ordinal": ordinal as u64,
-                            "placement_strategy": options.placement_strategy.map(|s| s.as_str()),
-                            "entries": path_checkpoint_entries,
-                        }),
-                        level,
-                    )?;
-                }
-            }
-        }
-
-        if emit_manifest_checkpoints {
-            let file_digest = to_hex(blake3::hash(&raw).as_bytes());
-            let manifest_record = json!({
-                "schema": "crushr-file-manifest.v1",
-                "file_id": block_id,
-                "path": file.rel_path,
-                "file_size": raw.len() as u64,
-                "expected_block_count": 1,
-                "extent_count": 1,
-                "file_digest": file_digest,
-            });
-            file_manifest_records.push(manifest_record.clone());
-            write_experimental_metadata_block(&mut out, &manifest_record, level)?;
-
-            if should_emit_anchor(ordinal, total_files)
-                || manifest_checkpoint_ordinals.contains(&ordinal)
-            {
-                write_experimental_metadata_block(
-                    &mut out,
-                    &json!({
-                        "schema": "crushr-file-manifest-checkpoint.v1",
-                        "checkpoint_ordinal": ordinal as u64,
-                        "placement_strategy": options.placement_strategy.map(|s| s.as_str()),
-                        "records": file_manifest_records,
-                    }),
-                    level,
-                )?;
-            }
-        }
-
-        entries.push(Entry {
-            path: file.rel_path,
-            kind: EntryKind::Regular,
-            mode: 0,
-            mtime: 0,
-            size: raw.len() as u64,
-            extents: vec![Extent {
-                block_id,
-                offset: 0,
-                len: raw.len() as u64,
-            }],
-            link_target: None,
-            xattrs: Vec::new(),
-        });
-
-        block_id = block_id
-            .checked_add(1)
-            .context("too many files for minimal packer")?;
-    }
-
-    if matches!(
-        options.metadata_profile,
-        Some(MetadataProfile::ExtentIdentityPathDictHeaderTail)
-            | Some(MetadataProfile::ExtentIdentityPathDictQuasiUniform)
-            | Some(MetadataProfile::ExtentIdentityPathDictFactoredHeaderTail)
-    ) {
-        let mut copy = path_dictionary.clone();
-        copy["copy_role"] = Value::String("tail_mirror".to_string());
-        write_experimental_metadata_block(&mut out, &copy, level)?;
-    }
-
-    if options.self_describing_extents {
-        write_experimental_metadata_block(
-            &mut out,
-            &json!({
-                "schema": "crushr-checkpoint-map-snapshot.v1",
-                "checkpoint_ordinal": u64::MAX,
-                "records": experimental_records,
-            }),
-            level,
-        )?;
-    }
-
-    if options.file_identity_extents {
-        write_experimental_metadata_block(
-            &mut out,
-            &json!({
-                "schema": "crushr-bootstrap-anchor.v1",
-                "anchor_ordinal": u64::MAX,
-                "archive_identity": file_identity_archive_id,
-                "records_emitted": file_identity_extent_records.len() as u64,
-            }),
-            level,
-        )?;
-        write_experimental_metadata_block(
-            &mut out,
-            &json!({
-                "schema": "crushr-file-path-map.v1",
-                "records": file_identity_path_records,
-            }),
-            level,
-        )?;
-    }
-
-    if emit_path_checkpoints {
-        write_experimental_metadata_block(
-            &mut out,
-            &json!({
-                "schema": "crushr-path-checkpoint.v1",
-                "checkpoint_ordinal": u64::MAX,
-                "placement_strategy": options.placement_strategy.map(|s| s.as_str()),
-                "entries": path_checkpoint_entries,
-            }),
-            level,
-        )?;
-    }
-
-    if emit_payload_identity {
-        write_experimental_metadata_block(
-            &mut out,
-            &json!({
-                "schema": "crushr-payload-block-identity-summary.v1",
-                "records_emitted": payload_block_identity_records.len() as u64,
-            }),
-            level,
-        )?;
-    }
-
-    if emit_manifest_checkpoints {
-        write_experimental_metadata_block(
-            &mut out,
-            &json!({
-                "schema": "crushr-file-manifest-checkpoint.v1",
-                "checkpoint_ordinal": u64::MAX,
-                "placement_strategy": options.placement_strategy.map(|s| s.as_str()),
-                "records": file_manifest_records,
-            }),
-            level,
-        )?;
-    }
-
-    let blocks_end_offset = out.stream_position()?;
-    let idx3 = encode_index(&Index {
-        entries: entries.clone(),
-    });
-    let redundant_file_map = json!({
-        "schema": if options.self_describing_extents || options.file_identity_extents || emit_payload_identity || emit_path_checkpoints || emit_manifest_checkpoints { "crushr-redundant-file-map.experimental.v2" } else { "crushr-redundant-file-map.v1" },
-        "experimental_self_describing_extents": options.self_describing_extents,
-        "experimental_file_identity_extents": options.file_identity_extents,
-        "experimental_self_identifying_blocks": emit_payload_identity,
-        "experimental_path_checkpoints": emit_path_checkpoints,
-        "experimental_file_manifest_checkpoints": emit_manifest_checkpoints,
-        "experimental_metadata_profile": options.metadata_profile.map(|profile| profile.as_str()),
-        "metadata_placement_strategy": options.placement_strategy.map(|s| s.as_str()),
-        "files": entries
-            .iter()
-            .map(|entry| {
-                json!({
-                    "path": entry.path,
-                    "size": entry.size,
-                    "extents": entry
-                        .extents
-                        .iter()
-                        .map(|extent| {
-                            json!({
-                                "block_id": extent.block_id,
-                                "file_offset": extent.offset,
-                                "len": extent.len,
-                            })
-                        })
-                        .collect::<Vec<_>>(),
-                })
-            })
-            .collect::<Vec<_>>(),
-    });
-    let ledger = LedgerBlob::from_value(&redundant_file_map)?;
-    let tail = assemble_tail_frame(blocks_end_offset, None, &idx3, Some(&ledger))?;
-    out.write_all(&tail)?;
-
-    Ok(())
+    Ok(DictionaryPlan {
+        path_id_by_path: path_id_by_path.clone(),
+        primary_copy: Some(json!({
+            "schema": "crushr-path-dictionary-copy.v2",
+            "copy_role": "primary",
+            "archive_instance_id": dictionary_archive_instance_id,
+            "dict_uuid": dictionary_uuid,
+            "generation": dictionary_generation,
+            "dictionary_length": path_dictionary_body_bytes.len() as u64,
+            "dictionary_content_hash": dictionary_content_hash,
+            "body": path_dictionary_body,
+        })),
+        tail_copy_required,
+        quasi_uniform_ordinals,
+    })
 }
 
 fn to_hex(bytes: &[u8; 32]) -> String {

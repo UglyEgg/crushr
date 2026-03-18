@@ -1,3 +1,17 @@
+## 2026-03-18 — CRUSHR-HARDEN-03G follow-up
+- Completed redundant-file-map/tail closeout cleanup by extracting bounded helpers (`build_redundant_file_map`, `write_tail_with_redundant_map`) from `emit_archive_from_layout`.
+- Converted redundant map closeout payload to typed structs (`RedundantFileMap`, `RedundantFileMapFile`, `RedundantFileMapExtent`) before ledger serialization.
+- Confirmed there is no separate 03H step after this cleanup; continuity notes now point back to metadata-pruning evidence review.
+
+## 2026-03-18 — CRUSHR-HARDEN-03G
+- Extracted pack experimental metadata JSON construction out of the main emission loop into bounded helper builders (`build_*record` / `build_*snapshot`), reducing cross-concern coupling while preserving output semantics.
+- Kept pack pipeline staging from 03F intact and reran deterministic/canonical/experimental regression checks.
+
+## 2026-03-18 — CRUSHR-HARDEN-03F
+- Refactored `crushr-pack` into explicit pipeline stages by introducing typed planning surfaces (`PackLayoutPlan`, `MetadataPlan`, `DictionaryPlan`) and splitting orchestration into `build_pack_layout_plan` and `emit_archive_from_layout`.
+- Isolated dictionary/auxiliary construction into `build_dictionary_plan` so path-dictionary body/copy planning is no longer interleaved directly with low-level block emission.
+- Preserved canonical + experimental writer behavior while adding focused regressions for metadata-profile determinism and redundant-map profile recording.
+
 ## 2026-03-18 — CRUSHR-HARDEN-03E
 - Decomposed the `crushr-lab-salvage` comparison engine from a single multi-thousand-line file into responsibility-based modules: `lab/comparison/common.rs`, `experimental.rs`, `format06_to12.rs`, `format13_to15.rs`, with `lab/comparison/mod.rs` as orchestration surface.
 - Kept top-level comparison command dispatch stable by updating `crushr-lab-salvage` module path to `lab/comparison/mod.rs` and preserving existing run-command entry points.

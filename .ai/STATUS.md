@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-HARDEN-03E complete** (comparison engine decomposition and module boundary cleanup)
+Current Step: **CRUSHR-HARDEN-03G complete** (pack metadata-record helper extraction and emission-loop coupling reduction)
 
-Immediate Next Step: **CRUSHR-HARDEN-03F planned** (visibility cleanup + deeper typed helper extraction for format09/10 internal utilities)
+Immediate Next Step: **metadata-pruning evidence review** (use FORMAT-10/11/12/13/14A results to lock keep/prune boundaries)
 
 ## Current truth
 
@@ -32,6 +32,12 @@ Immediate Next Step: **CRUSHR-HARDEN-03F planned** (visibility cleanup + deeper 
   - legacy reader best-effort behavior was tightened (`scan_blocks` footer-boundary mismatch and block raw-length mismatch now hard-fail)
   - active public/control docs were aligned on the locked tool surface (`crushr-extract --verify`; `crushr-fsck` retired/deprecated shim only)
 - CRUSHR-HARDEN-03E decomposed `crushr-lab-salvage` comparison engine into responsibility modules under `lab/comparison/` (`common`, `experimental`, `format06_to12`, `format13_to15`) with top-level command dispatch preserved through `comparison/mod.rs` and stable command wiring.
+- CRUSHR-HARDEN-03F decomposed `crushr-pack` around explicit pipeline stages (`collect_files`/duplicate rejection, `build_pack_layout_plan`, `build_dictionary_plan`, `emit_archive_from_layout`) and separated layout planning from low-level byte emission.
+- CRUSHR-HARDEN-03F isolated dictionary construction into a bounded builder stage (`DictionaryPlan`) and kept experimental profile toggles in a typed `MetadataPlan` surface consumed by the emitter.
+- CRUSHR-HARDEN-03F added focused writer regressions for metadata-profile determinism and redundant-map profile recording while preserving existing canonical/experimental pack behavior.
+- CRUSHR-HARDEN-03G extracted experimental metadata JSON construction into dedicated helper builders (`build_*record` / `build_*snapshot` helpers), reducing in-loop JSON assembly coupling inside `emit_archive_from_layout` while preserving semantics.
+- CRUSHR-HARDEN-03G follow-up completed redundant-file-map/tail closeout extraction into bounded helpers (`build_redundant_file_map`, `write_tail_with_redundant_map`).
+- CRUSHR-HARDEN-03G follow-up also typed the redundant-file-map closeout model (`RedundantFileMap`, `RedundantFileMapFile`, `RedundantFileMapExtent`) so tail ledger assembly no longer builds that structure via ad-hoc `serde_json::Value`.
 - Rendering and emission remain separated from salvage metric derivation paths for typed summary commands (redundant/externalized grouped comparisons), and schema-backed comparison artifact checks remain active.
 
 
@@ -60,10 +66,9 @@ Recovery should degrade in reverse order:
 ## Next actions
 
 1. Preserve strict extraction interfaces/semantics untouched (including hardened `crushr-extract --verify` refusal behavior).
-2. Execute CRUSHR-HARDEN-03F to tighten helper visibility and continue replacing remaining untyped internal helper payloads where practical.
-3. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
-4. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
-5. Keep Phase 2 corpus and frozen artifacts unchanged.
+2. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
+3. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
+4. Keep Phase 2 corpus and frozen artifacts unchanged.
 
 ## Near-term product-completeness track (not active yet)
 
@@ -86,4 +91,4 @@ Once resilience and metadata pruning decisions settle, revisit distributed dicti
 
 
 - CRUSHR-HARDEN-03C introduced explicit schema files for active FORMAT-12/13/14A/15 comparison outputs and added schema-backed artifact checks in integration tests.
-- CRUSHR-HARDEN-03E completed module decomposition; follow-up 03F is limited to visibility tightening and selective typed-helper uplift.
+- CRUSHR-HARDEN-03G cleanup now covers both metadata-record builders and redundant-map/tail closeout helpers; no dedicated 03H cleanup step remains.
