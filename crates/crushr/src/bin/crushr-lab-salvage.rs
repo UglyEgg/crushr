@@ -500,7 +500,7 @@ struct OutcomeMetrics {
 // comparison => scenario generation/corruption/comparison reporting.
 #[path = "crushr_lab_salvage/lab/cli.rs"]
 mod cli;
-#[path = "crushr_lab_salvage/lab/comparison.rs"]
+#[path = "crushr_lab_salvage/lab/comparison/mod.rs"]
 mod comparison;
 #[path = "crushr_lab_salvage/lab/runner.rs"]
 mod runner;

@@ -1,3 +1,8 @@
+## 2026-03-18 — CRUSHR-HARDEN-03E
+- Decomposed the `crushr-lab-salvage` comparison engine from a single multi-thousand-line file into responsibility-based modules: `lab/comparison/common.rs`, `experimental.rs`, `format06_to12.rs`, `format13_to15.rs`, with `lab/comparison/mod.rs` as orchestration surface.
+- Kept top-level comparison command dispatch stable by updating `crushr-lab-salvage` module path to `lab/comparison/mod.rs` and preserving existing run-command entry points.
+- Revalidated comparison outputs using schema-backed tests and representative comparison command execution to preserve output semantics while improving maintainability.
+
 
 ## 2026-03-18 — CRUSHR-HARDEN-03C
 - Added schema files for active FORMAT-12/13/14A/15 comparison summary artifacts (baseline + stress variants).

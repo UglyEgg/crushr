@@ -46,6 +46,7 @@ Key work
 Deliverables
 
 - [x] CRUSHR-HARDEN-03C — add schema-backed contracts for active FORMAT-12/13/14A/15 comparison artifacts and test coverage; defer broader decomposition to 03E.
+- [x] CRUSHR-HARDEN-03E — decompose `crushr-lab-salvage` comparison engine into bounded modules (`common`, `experimental`, `format06_to12`, `format13_to15`) while keeping comparison command semantics stable and schema-backed checks passing.
 - [x] 3.25.1 CRUSHR-FORMAT-14A-FIX1 (repair dictionary-corruption classification/outcome reporting; rerun required FORMAT-14A artifacts)
 - [x] 3.25.2 CRUSHR-FORMAT-14A-FIX2 (restore header+tail dual-copy one-loss named recovery; rerun FORMAT-14A artifacts)
 - [x] CRUSHR-FORMAT-15 — Harden mirrored dictionary identity/generation semantics and add factored namespace dictionary with FORMAT-15 baseline/stress comparison commands + artifacts.

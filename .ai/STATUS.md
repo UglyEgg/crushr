@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-HARDEN-03D complete** (reader/verification boundary audit, strict verification alignment, and `crushr-extract --verify` hardening)
+Current Step: **CRUSHR-HARDEN-03E complete** (comparison engine decomposition and module boundary cleanup)
 
-Immediate Next Step: **CRUSHR-HARDEN-03E in progress** (deeper typed decomposition in comparison/lab plumbing)
+Immediate Next Step: **CRUSHR-HARDEN-03F planned** (visibility cleanup + deeper typed helper extraction for format09/10 internal utilities)
 
 ## Current truth
 
@@ -31,6 +31,9 @@ Immediate Next Step: **CRUSHR-HARDEN-03E in progress** (deeper typed decompositi
   - canonical verification now executes strict extraction semantics in a temporary sink via `crushr-extract --verify`, preventing permissive read-path leakage
   - legacy reader best-effort behavior was tightened (`scan_blocks` footer-boundary mismatch and block raw-length mismatch now hard-fail)
   - active public/control docs were aligned on the locked tool surface (`crushr-extract --verify`; `crushr-fsck` retired/deprecated shim only)
+- CRUSHR-HARDEN-03E decomposed `crushr-lab-salvage` comparison engine into responsibility modules under `lab/comparison/` (`common`, `experimental`, `format06_to12`, `format13_to15`) with top-level command dispatch preserved through `comparison/mod.rs` and stable command wiring.
+- Rendering and emission remain separated from salvage metric derivation paths for typed summary commands (redundant/externalized grouped comparisons), and schema-backed comparison artifact checks remain active.
+
 
 ## Active constraints
 
@@ -57,7 +60,7 @@ Recovery should degrade in reverse order:
 ## Next actions
 
 1. Preserve strict extraction interfaces/semantics untouched (including hardened `crushr-extract --verify` refusal behavior).
-2. Continue CRUSHR-HARDEN-03E typed decomposition for comparison/lab summary plumbing.
+2. Execute CRUSHR-HARDEN-03F to tighten helper visibility and continue replacing remaining untyped internal helper payloads where practical.
 3. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
 4. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
 5. Keep Phase 2 corpus and frozen artifacts unchanged.
@@ -83,4 +86,4 @@ Once resilience and metadata pruning decisions settle, revisit distributed dicti
 
 
 - CRUSHR-HARDEN-03C introduced explicit schema files for active FORMAT-12/13/14A/15 comparison outputs and added schema-backed artifact checks in integration tests.
-- Remaining broader comparison-engine decomposition and deep typed-plumbing refactor is deferred to CRUSHR-HARDEN-03E.
+- CRUSHR-HARDEN-03E completed module decomposition; follow-up 03F is limited to visibility tightening and selective typed-helper uplift.
