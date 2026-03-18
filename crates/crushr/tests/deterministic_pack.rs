@@ -1,5 +1,8 @@
 use crushr::index_codec::decode_index;
-use crushr_format::ftr4::{Ftr4, FTR4_LEN};
+use crushr_format::{
+    ftr4::{Ftr4, FTR4_LEN},
+    tailframe::parse_tail_frame,
+};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -258,6 +261,68 @@ fn crushr_pack_rejects_normalized_path_collisions() {
         !archive.exists(),
         "archive should not be created on duplicate"
     );
+}
+
+#[test]
+fn crushr_pack_metadata_profile_runs_remain_byte_identical() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(input.join("nested")).unwrap();
+    fs::write(input.join("nested/a.txt"), b"aaa").unwrap();
+    fs::write(input.join("nested/b.txt"), b"bbb").unwrap();
+
+    let one = td.path().join("one.crs");
+    let two = td.path().join("two.crs");
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    run(Command::new(bin).args([
+        input.to_str().unwrap(),
+        "-o",
+        one.to_str().unwrap(),
+        "--level",
+        "3",
+        "--metadata-profile",
+        "extent_identity_path_dict_header_tail",
+    ]));
+    run(Command::new(bin).args([
+        input.to_str().unwrap(),
+        "-o",
+        two.to_str().unwrap(),
+        "--level",
+        "3",
+        "--metadata-profile",
+        "extent_identity_path_dict_header_tail",
+    ]));
+
+    assert_eq!(fs::read(one).unwrap(), fs::read(two).unwrap());
+}
+
+#[test]
+fn crushr_pack_payload_only_profile_records_profile_in_redundant_map() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    fs::write(input.join("payload.txt"), b"payload").unwrap();
+    let archive = td.path().join("archive.crs");
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+
+    run(Command::new(pack_bin).args([
+        input.to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+        "--metadata-profile",
+        "payload_only",
+    ]));
+    let bytes = fs::read(archive).unwrap();
+    let footer_off = bytes.len() - FTR4_LEN;
+    let footer = Ftr4::read_from(&bytes[footer_off..]).unwrap();
+    let tail = parse_tail_frame(&bytes[footer.blocks_end_offset as usize..]).unwrap();
+    let map_bytes = tail
+        .ldg1
+        .expect("tail should include redundant map ledger")
+        .json;
+    let map: serde_json::Value = serde_json::from_slice(&map_bytes).expect("parse ledger json");
+    assert_eq!(map["schema"], "crushr-redundant-file-map.experimental.v2");
+    assert_eq!(map["experimental_metadata_profile"], "payload_only");
 }
 
 #[test]
