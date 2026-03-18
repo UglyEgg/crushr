@@ -2,9 +2,9 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-TOOLING-VERIFY-01 complete** (retired public `crushr-fsck` surface, added strict `crushr-extract --verify`, and cleaned public tool-boundary docs/tests)
+Current Step: **CRUSHR-HARDEN-03B complete** (salvage schema/implementation reconciliation for emitted classifications, provenance, and reason-code contract)
 
-Immediate Next Step: **CRUSHR-HARDEN-03 planning** (continue CLI-surface minimization and remove remaining legacy/internal fsck snapshot sediment)
+Immediate Next Step: **CRUSHR-HARDEN-03 follow-ups** (propagate recovered-class normalization to remaining lab summary surfaces and close residual legacy-label sediment)
 
 ## Current truth
 
@@ -25,6 +25,8 @@ Immediate Next Step: **CRUSHR-HARDEN-03 planning** (continue CLI-surface minimiz
 - FORMAT-12 stress packet (`CRUSHR-FORMAT-12-STRESS`) adds `run-format12-stress-comparison` and emits `format12_stress_comparison_summary.{json,md}` over deterministic `deep_paths`, `long_names`, `fragmentation_heavy`, and `mixed_worst_case` datasets, including overhead/path/extent metrics and explicit evaluation answers.
 - FORMAT-13 adds `extent_identity_path_dict_single`, `extent_identity_path_dict_header_tail`, and `extent_identity_path_dict_quasi_uniform`, plus `run-format13-comparison` and `run-format13-stress-comparison` with artifacts `format13_comparison_summary.{json,md}` and `format13_stress_comparison_summary.{json,md}`.
 - FORMAT-14A adds direct dictionary-target corruption scenarios (`primary_dictionary`, `mirrored_dictionary`, `both_dictionaries`, `inconsistent_dictionaries`) and new commands `run-format14a-dictionary-resilience-comparison` / `run-format14a-dictionary-resilience-stress-comparison` with artifacts in `FORMAT14A_RESULTS/`.
+
+- CRUSHR-HARDEN-03B reconciled salvage-plan v3 output semantics: `mapping_provenance` + `recovery_classification` now emit schema-v3 enums, and reason-code arrays (`content_verification_reasons`, `failure_reasons`) are closed + schema-enforced.
 
 ## Active constraints
 

@@ -260,7 +260,7 @@ fn format06_archive_uses_manifest_path_when_primary_and_ledger_are_unusable() {
     );
     assert_eq!(
         plan["file_plans"][0]["recovery_classification"],
-        "FULL_NAMED_VERIFIED"
+        "FULL_VERIFIED"
     );
 }
 

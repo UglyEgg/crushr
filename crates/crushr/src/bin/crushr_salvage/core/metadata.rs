@@ -776,30 +776,30 @@ pub(super) fn verify_and_plan_payload_block_identity_records(
             (
                 "UNSALVAGEABLE",
                 "payload_block_identity_missing_required_block_coverage",
-                vec!["payload_block_identity_missing_required_block_coverage"],
+                vec![ReasonCode::PayloadBlockIdentityMissingRequiredBlockCoverage],
             )
         };
 
         let mut recovery_classification = if path.starts_with("anonymous_verified/") {
-            "FULL_ANONYMOUS_VERIFIED"
+            RecoveryClassification::FullAnonymous
         } else {
-            "FULL_NAMED_VERIFIED"
+            RecoveryClassification::FullVerified
         };
 
         if !is_complete {
             if has_index_gaps {
-                recovery_classification = "PARTIAL_UNORDERED_VERIFIED";
-                failure_reasons.push("payload_block_identity_index_gap");
+                recovery_classification = RecoveryClassification::PartialUnordered;
+                failure_reasons.push(ReasonCode::PayloadBlockIdentityIndexGap);
             } else {
-                recovery_classification = "PARTIAL_ORDERED_VERIFIED";
+                recovery_classification = RecoveryClassification::PartialOrdered;
             }
         }
 
         plans.push(FilePlan {
             mapping_provenance: if path.starts_with("anonymous_verified/") {
-                PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS
+                MappingProvenance::PayloadBlockIdentityPathAnonymous
             } else {
-                PAYLOAD_BLOCK_IDENTITY_PATH
+                MappingProvenance::PayloadBlockIdentityPath
             },
             recovery_classification,
             file_path: path,
@@ -970,14 +970,14 @@ pub(super) fn verify_and_plan_file_identity_extent_records(
         .all(|p| !p.file_path.starts_with("anonymous_verified/"));
     for plan in &mut plans {
         plan.mapping_provenance = if has_named_paths {
-            FILE_IDENTITY_EXTENT_PATH
+            MappingProvenance::FileIdentityExtentPath
         } else {
-            FILE_IDENTITY_EXTENT_PATH_ANONYMOUS
+            MappingProvenance::FileIdentityExtentPathAnonymous
         };
         plan.recovery_classification = if plan.file_path.starts_with("anonymous_verified/") {
-            "FULL_ANONYMOUS"
+            RecoveryClassification::FullAnonymous
         } else {
-            "FULL_VERIFIED"
+            RecoveryClassification::FullVerified
         };
     }
     Ok(plans)
@@ -1061,15 +1061,15 @@ fn classify_from_verified_graph(
     plan: &FilePlan,
     graph: &VerifiedRelationshipGraph,
     manifest_file_id: Option<u32>,
-) -> &'static str {
+) -> RecoveryClassification {
     let block_count = plan.required_block_ids.len() as u64;
     let ordering_from_extents = plan.extents.windows(2).all(|w| w[0].offset <= w[1].offset);
 
     let Some(file_id) = manifest_file_id else {
         return if block_count > 0 {
-            "ORPHAN_EVIDENCE_ONLY"
+            RecoveryClassification::OrphanBlocks
         } else {
-            "NO_VERIFIED_EVIDENCE"
+            RecoveryClassification::OrphanBlocks
         };
     };
 
@@ -1091,15 +1091,15 @@ fn classify_from_verified_graph(
             .is_some_and(|ordinals| !ordinals.is_empty());
 
     if has_manifest && block_count == expected_count && has_path {
-        "FULL_NAMED_VERIFIED"
+        RecoveryClassification::FullVerified
     } else if has_manifest && block_count == expected_count {
-        "FULL_ANONYMOUS_VERIFIED"
+        RecoveryClassification::FullAnonymous
     } else if block_count > 0 && ordering_known {
-        "PARTIAL_ORDERED_VERIFIED"
+        RecoveryClassification::PartialOrdered
     } else if block_count > 0 {
-        "PARTIAL_UNORDERED_VERIFIED"
+        RecoveryClassification::PartialUnordered
     } else {
-        "ORPHAN_EVIDENCE_ONLY"
+        RecoveryClassification::OrphanBlocks
     }
 }
 
@@ -1150,7 +1150,7 @@ pub(super) fn verify_and_apply_manifest_expectations(
     manifests: Vec<FileManifestRecord>,
     values: &[Value],
     block_verification: &BTreeMap<u32, BlockVerification>,
-    mapping_provenance: &'static str,
+    mapping_provenance: MappingProvenance,
 ) -> Result<Vec<FilePlan>> {
     let payload_path_map = parse_payload_block_path_checkpoints(values);
     let mut manifest_by_path = BTreeMap::new();
@@ -1218,7 +1218,7 @@ pub(super) fn verify_and_apply_manifest_expectations(
                 (
                     "UNMAPPABLE",
                     "manifest has no recoverable block identity extents",
-                    vec!["manifest_without_recoverable_extents"],
+                    vec![ReasonCode::ManifestWithoutRecoverableExtents],
                 )
             } else {
                 classify_file(&extents, &required_block_ids, block_verification)
@@ -1226,11 +1226,11 @@ pub(super) fn verify_and_apply_manifest_expectations(
             if manifest.expected_block_count > required_block_ids.len() as u64 {
                 status = "UNSALVAGEABLE";
                 reason = "manifest expected blocks missing from recovered set";
-                failure_reasons.push("manifest_expected_blocks_missing");
+                failure_reasons.push(ReasonCode::ManifestExpectedBlocksMissing);
             }
             plans.push(FilePlan {
                 mapping_provenance,
-                recovery_classification: "ORPHAN_EVIDENCE_ONLY",
+                recovery_classification: RecoveryClassification::OrphanBlocks,
                 file_path: manifest
                     .path
                     .clone()
@@ -1273,12 +1273,13 @@ pub(super) fn verify_and_apply_manifest_expectations(
                 && plan.required_block_ids.len() as u64 == manifest.expected_block_count
                 && !digest_match
             {
-                plan.failure_reasons.push("manifest_digest_not_verified");
+                plan.failure_reasons
+                    .push(ReasonCode::ManifestDigestNotVerified);
             }
             plan.recovery_classification =
                 classify_from_verified_graph(plan, &verified_graph, Some(manifest.file_id));
         } else if plan.status == "UNMAPPABLE" {
-            plan.recovery_classification = "ORPHAN_EVIDENCE_ONLY";
+            plan.recovery_classification = RecoveryClassification::OrphanBlocks;
         } else if plan.status == "UNSALVAGEABLE" {
             plan.recovery_classification =
                 classify_from_verified_graph(plan, &verified_graph, None);
@@ -1291,7 +1292,7 @@ pub(super) fn verify_and_apply_manifest_expectations(
 pub(super) fn verify_and_plan_experimental_records(
     records: Vec<ExperimentalExtentRecord>,
     block_verification: &BTreeMap<u32, BlockVerification>,
-    mapping_provenance: &'static str,
+    mapping_provenance: MappingProvenance,
 ) -> Result<Vec<FilePlan>> {
     let mut grouped: BTreeMap<String, (u64, Vec<Extent>)> = BTreeMap::new();
     for record in records {
@@ -1317,7 +1318,7 @@ pub(super) fn verify_and_plan_experimental_records(
     let mut plans = verify_and_plan_redundant_map(files, block_verification)?;
     for plan in &mut plans {
         plan.mapping_provenance = mapping_provenance;
-        plan.recovery_classification = "FULL_NAMED_VERIFIED";
+        plan.recovery_classification = RecoveryClassification::FullVerified;
     }
     Ok(plans)
 }
@@ -1399,8 +1400,8 @@ pub(super) fn verify_and_plan_redundant_map(
             classify_file(&file.extents, &required_block_ids, block_verification);
 
         plans.push(FilePlan {
-            mapping_provenance: REDUNDANT_VERIFIED_MAP_PATH,
-            recovery_classification: "FULL_NAMED_VERIFIED",
+            mapping_provenance: MappingProvenance::RedundantVerifiedMapPath,
+            recovery_classification: RecoveryClassification::FullVerified,
             file_path: file.path,
             status,
             reason,
@@ -1432,8 +1433,8 @@ mod tests {
 
     fn plan(blocks: Vec<u32>, extents: Vec<Extent>) -> FilePlan {
         FilePlan {
-            mapping_provenance: FILE_MANIFEST_PATH,
-            recovery_classification: "ORPHAN_EVIDENCE_ONLY",
+            mapping_provenance: MappingProvenance::FileManifestPath,
+            recovery_classification: RecoveryClassification::OrphanBlocks,
             file_path: "named/a.txt".to_string(),
             status: "SALVAGEABLE",
             reason: "ok",
@@ -1502,7 +1503,7 @@ mod tests {
         );
         assert_eq!(
             classify_from_verified_graph(&p, &graph, Some(1)),
-            "FULL_NAMED_VERIFIED"
+            RecoveryClassification::FullVerified
         );
     }
 
@@ -1524,7 +1525,7 @@ mod tests {
         );
         assert_eq!(
             classify_from_verified_graph(&p, &graph, Some(1)),
-            "FULL_ANONYMOUS_VERIFIED"
+            RecoveryClassification::FullAnonymous
         );
     }
 
@@ -1553,7 +1554,7 @@ mod tests {
         );
         assert_eq!(
             classify_from_verified_graph(&p, &graph, Some(1)),
-            "PARTIAL_ORDERED_VERIFIED"
+            RecoveryClassification::PartialOrdered
         );
     }
 
@@ -1581,7 +1582,7 @@ mod tests {
         );
         assert_eq!(
             classify_from_verified_graph(&p, &graph, Some(1)),
-            "PARTIAL_UNORDERED_VERIFIED"
+            RecoveryClassification::PartialUnordered
         );
     }
 
@@ -1598,12 +1599,12 @@ mod tests {
         );
         assert_eq!(
             classify_from_verified_graph(&p, &graph, None),
-            "ORPHAN_EVIDENCE_ONLY"
+            RecoveryClassification::OrphanBlocks
         );
         let p_no_blocks = plan(Vec::new(), Vec::new());
         assert_eq!(
             classify_from_verified_graph(&p_no_blocks, &graph, None),
-            "NO_VERIFIED_EVIDENCE"
+            RecoveryClassification::OrphanBlocks
         );
     }
 
@@ -1739,7 +1740,10 @@ mod tests {
         assert_eq!(plans.len(), 1);
         let plan = &plans[0];
         assert_eq!(plan.status, "UNSALVAGEABLE");
-        assert_eq!(plan.recovery_classification, "PARTIAL_ORDERED_VERIFIED");
+        assert_eq!(
+            plan.recovery_classification,
+            RecoveryClassification::PartialOrdered
+        );
     }
 
     #[test]
@@ -1788,7 +1792,10 @@ mod tests {
 
         assert_eq!(plans.len(), 1);
         assert_eq!(plans[0].file_path, path);
-        assert_eq!(plans[0].recovery_classification, "FULL_NAMED_VERIFIED");
+        assert_eq!(
+            plans[0].recovery_classification,
+            RecoveryClassification::FullVerified
+        );
     }
 
     #[test]
@@ -1836,7 +1843,10 @@ mod tests {
 
         assert_eq!(plans.len(), 1);
         assert!(plans[0].file_path.starts_with("anonymous_verified/"));
-        assert_eq!(plans[0].recovery_classification, "FULL_ANONYMOUS_VERIFIED");
+        assert_eq!(
+            plans[0].recovery_classification,
+            RecoveryClassification::FullAnonymous
+        );
     }
 }
 
@@ -2021,7 +2031,10 @@ mod format13_dictionary_tests {
         .unwrap();
 
         assert!(plans[0].file_path.starts_with("anonymous_verified/"));
-        assert_eq!(plans[0].recovery_classification, "FULL_ANONYMOUS_VERIFIED");
+        assert_eq!(
+            plans[0].recovery_classification,
+            RecoveryClassification::FullAnonymous
+        );
     }
 
     #[test]
@@ -2080,6 +2093,9 @@ mod format13_dictionary_tests {
             &verified_offsets,
         )
         .unwrap();
-        assert_eq!(plans[0].recovery_classification, "FULL_ANONYMOUS_VERIFIED");
+        assert_eq!(
+            plans[0].recovery_classification,
+            RecoveryClassification::FullAnonymous
+        );
     }
 }

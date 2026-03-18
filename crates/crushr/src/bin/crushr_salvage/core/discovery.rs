@@ -25,7 +25,7 @@ pub(super) fn scan_blk3_candidates(
                 decompression_status: "not_attempted",
                 raw_hash_status: "not_attempted",
                 content_verification_status: "not_content_verified",
-                content_verification_reasons: vec!["header_invalid"],
+                content_verification_reasons: vec![ReasonCode::HeaderInvalid],
                 usable_for_indexed_planning: false,
                 verified_raw_len: None,
             };
@@ -122,30 +122,30 @@ pub(super) fn scan_blk3_candidates(
                             candidate.payload_bounds_status = "out_of_bounds";
                         }
 
-                        let mut reasons = BTreeSet::new();
+                        let mut reasons: BTreeSet<ReasonCode> = BTreeSet::new();
                         if candidate.payload_bounds_status != "in_bounds" {
-                            reasons.insert("payload_out_of_bounds");
+                            reasons.insert(ReasonCode::PayloadOutOfBounds);
                         }
                         if candidate.payload_hash_status == "mismatch" {
-                            reasons.insert("payload_hash_mismatch");
+                            reasons.insert(ReasonCode::PayloadHashMismatch);
                         }
                         if matches!(
                             candidate.dictionary_dependency_status,
                             "missing" | "invalid" | "unresolved"
                         ) {
-                            reasons.insert("dictionary_dependency_unsatisfied");
+                            reasons.insert(ReasonCode::DictionaryDependencyUnsatisfied);
                         }
                         if candidate.decompression_status != "success" {
-                            reasons.insert("decompression_not_successful");
+                            reasons.insert(ReasonCode::DecompressionNotSuccessful);
                         }
                         if candidate.raw_hash_status == "mismatch" {
-                            reasons.insert("raw_hash_mismatch");
+                            reasons.insert(ReasonCode::RawHashMismatch);
                         }
 
                         if reasons.is_empty() {
                             candidate.content_verification_status = "content_verified";
                             candidate.content_verification_reasons =
-                                vec!["all_required_checks_passed"];
+                                vec![ReasonCode::AllRequiredChecksPassed];
                         } else {
                             candidate.content_verification_reasons = reasons.into_iter().collect();
                         }
@@ -155,11 +155,11 @@ pub(super) fn scan_blk3_candidates(
                     }
                 } else {
                     candidate.header_reason = "header_out_of_bounds";
-                    candidate.content_verification_reasons = vec!["header_out_of_bounds"];
+                    candidate.content_verification_reasons = vec![ReasonCode::HeaderOutOfBounds];
                 }
             } else {
                 candidate.header_reason = "header_prefix_out_of_bounds";
-                candidate.content_verification_reasons = vec!["header_prefix_out_of_bounds"];
+                candidate.content_verification_reasons = vec![ReasonCode::HeaderPrefixOutOfBounds];
             }
 
             candidates.push(candidate);
@@ -211,12 +211,12 @@ pub(super) fn classify_file(
     extents: &[Extent],
     required_block_ids: &[u32],
     block_verification: &BTreeMap<u32, BlockVerification>,
-) -> (&'static str, &'static str, Vec<&'static str>) {
+) -> (&'static str, &'static str, Vec<ReasonCode>) {
     if required_block_ids.is_empty() {
         return (
             "UNSALVAGEABLE",
             "no_required_blocks",
-            vec!["no_required_blocks"],
+            vec![ReasonCode::NoRequiredBlocks],
         );
     }
 
@@ -226,13 +226,13 @@ pub(super) fn classify_file(
         let state = match block_verification.get(block_id) {
             Some(v) => v,
             None => {
-                failure_reasons.insert("required_block_unmapped");
+                failure_reasons.insert(ReasonCode::RequiredBlockUnmapped);
                 continue;
             }
         };
 
         if !state.content_verified {
-            failure_reasons.insert("required_block_not_content_verified");
+            failure_reasons.insert(ReasonCode::RequiredBlockNotContentVerified);
         }
     }
 
@@ -241,7 +241,7 @@ pub(super) fn classify_file(
             if let Some(raw_len) = state.verified_raw_len {
                 let end = extent.offset.saturating_add(extent.len);
                 if end > raw_len {
-                    failure_reasons.insert("required_extent_out_of_bounds");
+                    failure_reasons.insert(ReasonCode::RequiredExtentOutOfBounds);
                 }
             }
         }
@@ -255,6 +255,6 @@ pub(super) fn classify_file(
         )
     } else {
         let reasons = failure_reasons.into_iter().collect::<Vec<_>>();
-        ("UNSALVAGEABLE", reasons[0], reasons)
+        ("UNSALVAGEABLE", reasons[0].as_str(), reasons)
     }
 }

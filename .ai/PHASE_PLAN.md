@@ -254,3 +254,10 @@ Exit criteria
 
 ## Latest completion
 - **CRUSHR-TOOLING-VERIFY-01 is complete**: retired public `crushr-fsck` tool identity, implemented `crushr-extract --verify` for strict extraction safety verification, and updated docs/tests/help surfaces to use the new boundary.
+
+
+## 2026-03-18 — CRUSHR-HARDEN-03B
+
+- [x] Reconciled `crushr-salvage` emitted `mapping_provenance` and `recovery_classification` vocabularies with `schemas/crushr-salvage-plan.v3.schema.json`.
+- [x] Added typed enum boundaries in salvage output path for classification/provenance and typed reason-code emission for contract-level reason arrays.
+- [x] Added schema-conformance coverage for enum vocabulary parity and reason-code closure.
