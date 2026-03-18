@@ -10,6 +10,8 @@ use std::fmt;
 use std::fs::File;
 use std::path::PathBuf;
 
+#[path = "../extraction_path.rs"]
+mod extraction_path;
 #[path = "../strict_extract_impl.rs"]
 mod strict_extract_impl;
 

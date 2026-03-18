@@ -8,8 +8,15 @@ Current boundary update (2026-03-18):
 - `crushr-extract --verify` now runs strict extraction semantics in an isolated temp output path to ensure strict-verify alignment.
 
 Next focus:
-- CRUSHR-HARDEN-03G is complete end-to-end: metadata-record builders and redundant-map/tail closeout helpers are now extracted.
+- CRUSHR-HARDEN-03A is complete: API/public/internal/lab boundaries are now explicitly classified and accidental public extraction-path exposure was removed.
 - Continue with metadata-pruning evidence review using active FORMAT-10/11/12/13/14A outputs.
+
+
+## CRUSHR-HARDEN-03A handoff
+- Removed accidental `crushr::extraction_path` library exposure; path-confinement helpers remain internal implementation detail.
+- Added compile-level visibility guard in `crates/crushr/src/lib.rs` (`compile_fail` doctest) to prevent re-expansion of that internal API surface.
+- Updated boundary docs (`README`, crate-level docs in `crushr`, `crushr-core`, `crushr-format`) to explicitly classify stable product surfaces vs bounded internal crates/modules vs experimental/lab workflows.
+- Verified representative product workflow (`crushr-pack` + `crushr-extract --verify`) and full workspace test suite after boundary tightening.
 
 
 ## CRUSHR-HARDEN-03G handoff

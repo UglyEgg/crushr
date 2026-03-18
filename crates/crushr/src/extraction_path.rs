@@ -90,6 +90,7 @@ fn lexical_abs(path: &Path) -> Result<PathBuf> {
 }
 
 #[cfg(unix)]
+#[allow(dead_code)]
 pub fn validate_symlink_target(link_target: &str) -> Result<()> {
     let target = Path::new(link_target);
     if link_target.is_empty() {

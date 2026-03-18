@@ -49,6 +49,7 @@ Deliverables
 - [x] CRUSHR-HARDEN-03E — decompose `crushr-lab-salvage` comparison engine into bounded modules (`common`, `experimental`, `format06_to12`, `format13_to15`) while keeping comparison command semantics stable and schema-backed checks passing.
 - [x] CRUSHR-HARDEN-03F — decompose `crushr-pack` into explicit layout/emission stages, isolate dictionary planning, and tighten canonical vs experimental writer boundary without changing archive semantics.
 - [x] CRUSHR-HARDEN-03G — extract experimental metadata-record JSON construction into helper builders to reduce emission-loop coupling while preserving deterministic writer semantics.
+- [x] CRUSHR-HARDEN-03A — finalize API boundary truth by removing accidental public module exposure, tightening visibility, and aligning runtime/library/lab boundary docs with supported surfaces.
 - [x] 3.25.1 CRUSHR-FORMAT-14A-FIX1 (repair dictionary-corruption classification/outcome reporting; rerun required FORMAT-14A artifacts)
 - [x] 3.25.2 CRUSHR-FORMAT-14A-FIX2 (restore header+tail dual-copy one-loss named recovery; rerun FORMAT-14A artifacts)
 - [x] CRUSHR-FORMAT-15 — Harden mirrored dictionary identity/generation semantics and add factored namespace dictionary with FORMAT-15 baseline/stress comparison commands + artifacts.
