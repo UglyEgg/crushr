@@ -1,3 +1,9 @@
+## 2026-03-18 — CRUSHR-HARDEN-03A
+- Finalized API-boundary truth by removing accidental public `crushr::extraction_path` exposure and keeping confinement helpers internal-only.
+- Added a compile-level visibility guard in `crates/crushr/src/lib.rs` via a `compile_fail` doctest to prevent unsupported API resurfacing.
+- Updated README and crate-level docs to classify stable product surfaces, bounded internal surfaces, and experimental/lab-only surfaces explicitly.
+- Adjusted snapshot synthetic archive helper to emit a minimal valid IDX3 payload for strict-verify compatibility and preserved verify/info regression coverage.
+
 ## 2026-03-18 — CRUSHR-HARDEN-03G follow-up
 - Completed redundant-file-map/tail closeout cleanup by extracting bounded helpers (`build_redundant_file_map`, `write_tail_with_redundant_map`) from `emit_archive_from_layout`.
 - Converted redundant map closeout payload to typed structs (`RedundantFileMap`, `RedundantFileMapFile`, `RedundantFileMapExtent`) before ledger serialization.

@@ -5,6 +5,9 @@
 //!
 //! Filesystem integration, directory walking, xattrs, caching, and concurrency live in the
 //! `crushr` crate.
+//!
+//! Boundary note: this crate is a bounded implementation crate for workspace tools,
+//! not a stability-promised external SDK.
 
 pub mod io;
 pub mod open;

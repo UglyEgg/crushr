@@ -49,3 +49,14 @@ The canonical tool boundary remains:
 
 `crushr-extract` remains strict and deterministic.
 `crushr-fsck` is retained only as a temporary deprecated compatibility shim that directs to `crushr-extract --verify`.
+
+## API boundary truth (CRUSHR-HARDEN-03A)
+
+Current boundary classes:
+
+- **Stable product surface:** CLI behavior and machine-readable outputs of `crushr-pack`, `crushr-info`, `crushr-extract --verify`, `crushr-extract`, and bounded experimental `crushr-salvage`.
+- **Bounded internal surface:** workspace Rust crates/modules used to implement the tools (`crushr`, `crushr-core`, `crushr-format`, `crushr-cli-common`).
+- **Experimental/lab-only surface:** `crushr-lab` and `crushr-lab-salvage` workflows, schemas, and FORMAT comparison commands.
+- **Removed accidental exposure:** `crushr::extraction_path` is no longer exposed as a public library module; confinement logic remains internal implementation detail.
+
+Treat these boundaries as canonical unless explicitly revised by a future packet/decision.

@@ -6,6 +6,10 @@
 //! - structural validation helpers
 //!
 //! It intentionally does **not** perform filesystem IO, directory walking, or CLI/TUI concerns.
+//!
+//! Boundary note: `crushr-format` is used as a core implementation boundary inside
+//! this workspace; external stability promises are defined by product/tool contracts,
+//! not by exposing all module internals as a public platform API.
 
 pub mod blk3;
 pub mod dct1;

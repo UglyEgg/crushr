@@ -1,5 +1,5 @@
+use crate::extraction_path::resolve_confined_path;
 use anyhow::{bail, Context, Result};
-use crushr::extraction_path::resolve_confined_path;
 use crushr::format::{Entry, EntryKind};
 use crushr::index_codec::decode_index;
 use crushr_core::{

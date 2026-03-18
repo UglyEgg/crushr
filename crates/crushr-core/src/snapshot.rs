@@ -310,7 +310,9 @@ mod tests {
         blocks.extend_from_slice(payload);
 
         let blocks_end_offset = blocks.len() as u64;
-        let tail = assemble_tail_frame(blocks_end_offset, None, b"IDX33D", None).unwrap();
+        // Minimal valid IDX3 payload: magic + zero entry count.
+        let tail =
+            assemble_tail_frame(blocks_end_offset, None, b"IDX3\x00\x00\x00\x00", None).unwrap();
         blocks.extend_from_slice(&tail);
         blocks
     }
@@ -443,7 +445,7 @@ mod tests {
         let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
         assert_eq!(value["schema_version"], 1);
         assert_eq!(value["tool"], "crushr-info");
-        assert_eq!(value["payload"]["summary"]["raw_idx3_len"], 6);
+        assert_eq!(value["payload"]["summary"]["raw_idx3_len"], 8);
     }
 
     #[test]

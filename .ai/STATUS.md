@@ -2,7 +2,7 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-HARDEN-03G complete** (pack metadata-record helper extraction and emission-loop coupling reduction)
+Current Step: **CRUSHR-HARDEN-03A complete** (API boundary truth + visibility cleanup across runtime/library/docs)
 
 Immediate Next Step: **metadata-pruning evidence review** (use FORMAT-10/11/12/13/14A results to lock keep/prune boundaries)
 
@@ -38,6 +38,11 @@ Immediate Next Step: **metadata-pruning evidence review** (use FORMAT-10/11/12/1
 - CRUSHR-HARDEN-03G extracted experimental metadata JSON construction into dedicated helper builders (`build_*record` / `build_*snapshot` helpers), reducing in-loop JSON assembly coupling inside `emit_archive_from_layout` while preserving semantics.
 - CRUSHR-HARDEN-03G follow-up completed redundant-file-map/tail closeout extraction into bounded helpers (`build_redundant_file_map`, `write_tail_with_redundant_map`).
 - CRUSHR-HARDEN-03G follow-up also typed the redundant-file-map closeout model (`RedundantFileMap`, `RedundantFileMapFile`, `RedundantFileMapExtent`) so tail ledger assembly no longer builds that structure via ad-hoc `serde_json::Value`.
+- CRUSHR-HARDEN-03A finalized API-boundary truth for the current hardened runtime:
+  - removed accidental public `crushr::extraction_path` exposure and kept confinement helpers internal-only
+  - added compile-level visibility guard via `compile_fail` doctest in `crushr/src/lib.rs`
+  - updated README/crate docs to classify stable product vs bounded internal vs experimental/lab surfaces
+  - retained explicit stable-facing library surfaces (`crushr::format`, `crushr::index_codec`) used by tool binaries/tests.
 - Rendering and emission remain separated from salvage metric derivation paths for typed summary commands (redundant/externalized grouped comparisons), and schema-backed comparison artifact checks remain active.
 
 
@@ -69,6 +74,7 @@ Recovery should degrade in reverse order:
 2. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
 3. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
 4. Keep Phase 2 corpus and frozen artifacts unchanged.
+5. Treat the newly documented public/internal/lab boundary classes as canonical unless explicitly revised by a future decision/packet.
 
 ## Near-term product-completeness track (not active yet)
 
