@@ -6,10 +6,12 @@ Current boundary update (2026-03-18):
 - `crushr-salvage` remains recovery-oriented and separate from canonical extraction verification.
 - Reader-boundary hardening tightened legacy permissive behavior: block-region mismatch and decoded raw-length mismatch in `read.rs` now fail closed.
 - `crushr-extract --verify` now runs strict extraction semantics in an isolated temp output path to ensure strict-verify alignment.
+- `crushr-core` now exposes a canonical typed verification model (`VerificationModel`) and `crushr-extract --verify` output is derived from that model.
+- Carried-forward salvage metadata classification clippy failure (`if_same_then_else` in verified-graph classification) has been removed.
 
 Next focus:
-- CRUSHR-HARDEN-03A is complete: API/public/internal/lab boundaries are now explicitly classified and accidental public extraction-path exposure was removed.
-- Continue with metadata-pruning evidence review using active FORMAT-10/11/12/13/14A outputs.
+- Complete CRUSHR-HARDEN-03G typed metadata conversion in remaining pack/salvage builder paths (remove dynamic `Value` as intermediate truth in active core metadata builders).
+- Continue metadata-pruning evidence review using active FORMAT-10/11/12/13/14A outputs once hardening packet is fully closed.
 
 
 ## CRUSHR-HARDEN-03A handoff

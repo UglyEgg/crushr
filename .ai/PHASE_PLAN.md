@@ -50,6 +50,7 @@ Deliverables
 - [x] CRUSHR-HARDEN-03F — decompose `crushr-pack` into explicit layout/emission stages, isolate dictionary planning, and tighten canonical vs experimental writer boundary without changing archive semantics.
 - [x] CRUSHR-HARDEN-03G — extract experimental metadata-record JSON construction into helper builders to reduce emission-loop coupling while preserving deterministic writer semantics.
 - [x] CRUSHR-HARDEN-03A — finalize API boundary truth by removing accidental public module exposure, tightening visibility, and aligning runtime/library/lab boundary docs with supported surfaces.
+- [~] CRUSHR-HARDEN-03G — canonical verification model + typed metadata completion + salvage classification lint cleanup (in progress; canonical verify model + lint fix landed, remaining typed metadata conversion follow-up tracked in STATUS).
 - [x] 3.25.1 CRUSHR-FORMAT-14A-FIX1 (repair dictionary-corruption classification/outcome reporting; rerun required FORMAT-14A artifacts)
 - [x] 3.25.2 CRUSHR-FORMAT-14A-FIX2 (restore header+tail dual-copy one-loss named recovery; rerun FORMAT-14A artifacts)
 - [x] CRUSHR-FORMAT-15 — Harden mirrored dictionary identity/generation semantics and add factored namespace dictionary with FORMAT-15 baseline/stress comparison commands + artifacts.

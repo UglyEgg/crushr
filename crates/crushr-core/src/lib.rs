@@ -16,4 +16,5 @@ pub mod snapshot;
 
 pub mod extraction;
 pub mod impact;
+pub mod verification_model;
 pub mod verify;

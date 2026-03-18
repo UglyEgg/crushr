@@ -2,7 +2,7 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-HARDEN-03A complete** (API boundary truth + visibility cleanup across runtime/library/docs)
+Current Step: **CRUSHR-HARDEN-03G in progress** (canonical verification model + typed metadata boundary tightening + salvage lint cleanup)
 
 Immediate Next Step: **metadata-pruning evidence review** (use FORMAT-10/11/12/13/14A results to lock keep/prune boundaries)
 
@@ -44,6 +44,8 @@ Immediate Next Step: **metadata-pruning evidence review** (use FORMAT-10/11/12/1
   - updated README/crate docs to classify stable product vs bounded internal vs experimental/lab surfaces
   - retained explicit stable-facing library surfaces (`crushr::format`, `crushr::index_codec`) used by tool binaries/tests.
 - Rendering and emission remain separated from salvage metric derivation paths for typed summary commands (redundant/externalized grouped comparisons), and schema-backed comparison artifact checks remain active.
+- CRUSHR-HARDEN-03G follow-on hardening added a canonical typed verification model (`VerificationModel`) in `crushr-core`; `crushr-extract --verify` now derives output/report fields from that model instead of assembling verify truth directly from raw extraction internals.
+- CRUSHR-HARDEN-03G carry-forward salvage classification lint (`if_same_then_else`) in verified-graph classification was removed by collapsing redundant branching to a single deterministic orphan classification return path.
 
 
 ## Active constraints
@@ -70,11 +72,11 @@ Recovery should degrade in reverse order:
 
 ## Next actions
 
-1. Preserve strict extraction interfaces/semantics untouched (including hardened `crushr-extract --verify` refusal behavior).
-2. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
-3. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
-4. Keep Phase 2 corpus and frozen artifacts unchanged.
-5. Treat the newly documented public/internal/lab boundary classes as canonical unless explicitly revised by a future decision/packet.
+1. Finish CRUSHR-HARDEN-03G typed metadata conversion for remaining pack/salvage builder paths that still rely on dynamic JSON construction.
+2. Preserve strict extraction interfaces/semantics untouched (including hardened `crushr-extract --verify` refusal behavior).
+3. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
+4. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
+5. Keep Phase 2 corpus and frozen artifacts unchanged.
 
 ## Near-term product-completeness track (not active yet)
 
