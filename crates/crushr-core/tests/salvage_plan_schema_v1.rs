@@ -511,3 +511,81 @@ fn export_ordering_is_deterministic_across_runs() {
 
     let _ = fs::remove_dir_all(&root);
 }
+
+#[test]
+fn salvage_schema_enums_cover_emitted_vocabulary() {
+    let schema_path = workspace_root().join("schemas/crushr-salvage-plan.v3.schema.json");
+    let schema: Value = serde_json::from_slice(&fs::read(schema_path).unwrap()).unwrap();
+
+    let file_plan_props = &schema["properties"]["file_plans"]["items"]["properties"];
+    let mapping = file_plan_props["mapping_provenance"]["enum"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(Value::as_str)
+        .collect::<std::collections::BTreeSet<_>>();
+    let recovery = file_plan_props["recovery_classification"]["enum"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(Value::as_str)
+        .collect::<std::collections::BTreeSet<_>>();
+    let failure_reasons = file_plan_props["failure_reasons"]["items"]["enum"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(Value::as_str)
+        .collect::<std::collections::BTreeSet<_>>();
+
+    let candidate_reasons = schema["properties"]["block_candidates"]["items"]["properties"]
+        ["content_verification_reasons"]["items"]["enum"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(Value::as_str)
+        .collect::<std::collections::BTreeSet<_>>();
+
+    let expected_mapping = std::collections::BTreeSet::from([
+        "PRIMARY_INDEX_PATH",
+        "REDUNDANT_VERIFIED_MAP_PATH",
+        "CHECKPOINT_MAP_PATH",
+        "SELF_DESCRIBING_EXTENT_PATH",
+        "FILE_MANIFEST_PATH",
+        "FILE_IDENTITY_EXTENT_PATH",
+        "FILE_IDENTITY_EXTENT_PATH_ANONYMOUS",
+        "PAYLOAD_BLOCK_IDENTITY_PATH",
+        "PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS",
+    ]);
+    let expected_recovery = std::collections::BTreeSet::from([
+        "FULL_VERIFIED",
+        "FULL_ANONYMOUS",
+        "PARTIAL_ORDERED",
+        "PARTIAL_UNORDERED",
+        "ORPHAN_BLOCKS",
+    ]);
+    let expected_reasons = std::collections::BTreeSet::from([
+        "all_required_checks_passed",
+        "decompression_not_successful",
+        "dictionary_dependency_unsatisfied",
+        "header_invalid",
+        "header_out_of_bounds",
+        "header_prefix_out_of_bounds",
+        "manifest_digest_not_verified",
+        "manifest_expected_blocks_missing",
+        "manifest_without_recoverable_extents",
+        "no_required_blocks",
+        "payload_block_identity_index_gap",
+        "payload_block_identity_missing_required_block_coverage",
+        "payload_hash_mismatch",
+        "payload_out_of_bounds",
+        "raw_hash_mismatch",
+        "required_block_not_content_verified",
+        "required_block_unmapped",
+        "required_extent_out_of_bounds",
+    ]);
+
+    assert_eq!(mapping, expected_mapping);
+    assert_eq!(recovery, expected_recovery);
+    assert_eq!(failure_reasons, expected_reasons);
+    assert_eq!(candidate_reasons, expected_reasons);
+}

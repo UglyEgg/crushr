@@ -47,3 +47,8 @@ Result:
 - files emitted as anonymous blocks
 
 This is correct behavior.
+
+
+## Schema contract
+
+Machine-readable salvage output is defined by `schemas/crushr-salvage-plan.v3.schema.json`. Classification and provenance values are closed vocabularies and must match schema enums exactly.

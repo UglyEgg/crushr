@@ -607,3 +607,21 @@ Blast radius:
 - Blast radius:
   - CLI invocation docs/help/tests must use `crushr-extract --verify` for strict verification flows.
   - Legacy `crushr-fsck` JSON schema/snapshot internals remain only as transitional/internal artifacts and are no longer part of the public workflow.
+
+
+## 2026-03-18 — CRUSHR-HARDEN-03B salvage contract reconciliation direction
+
+- Decision:
+  - Choose **Option B** (schema is correct, implementation drifted) for salvage-plan contract repair.
+  - Keep schema contract version at `crushr-salvage-plan.v3` and align implementation to existing v3 vocabulary instead of introducing a new version.
+  - Enforce typed output-boundary enums for mapping provenance, recovery classification, and contract reason codes.
+- Alternatives considered:
+  1. Option A: keep implementation labels (`*_VERIFIED`, `ORPHAN_EVIDENCE_ONLY`) and rewrite schema/docs to match drift.
+  2. Option C: create v4 solely to preserve both contradictory vocabularies.
+- Rationale:
+  - v3 already defines the active public salvage-plan vocabulary; restoring code to v3 avoids mixed-version ambiguity and repairs trust in emitted artifacts quickly.
+  - Typed enum emission at the output boundary prevents silent string drift regressions.
+- Blast radius:
+  - `crushr-salvage` JSON output labels changed to v3 canonical enums where drift existed.
+  - Tests/docs/lab expectations referencing legacy labels were updated where they consumed salvage-plan contract values.
+  - No changes to canonical strict extraction semantics (`crushr-extract`).

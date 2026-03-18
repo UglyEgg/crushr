@@ -274,7 +274,26 @@
             "type": "array",
             "items": {
               "type": "string",
-              "minLength": 1
+              "enum": [
+                "all_required_checks_passed",
+                "decompression_not_successful",
+                "dictionary_dependency_unsatisfied",
+                "header_invalid",
+                "header_out_of_bounds",
+                "header_prefix_out_of_bounds",
+                "manifest_digest_not_verified",
+                "manifest_expected_blocks_missing",
+                "manifest_without_recoverable_extents",
+                "no_required_blocks",
+                "payload_block_identity_index_gap",
+                "payload_block_identity_missing_required_block_coverage",
+                "payload_hash_mismatch",
+                "payload_out_of_bounds",
+                "raw_hash_mismatch",
+                "required_block_not_content_verified",
+                "required_block_unmapped",
+                "required_extent_out_of_bounds"
+              ]
             }
           },
           "usable_for_indexed_planning": {
@@ -324,7 +343,26 @@
             "type": "array",
             "items": {
               "type": "string",
-              "minLength": 1
+              "enum": [
+                "all_required_checks_passed",
+                "decompression_not_successful",
+                "dictionary_dependency_unsatisfied",
+                "header_invalid",
+                "header_out_of_bounds",
+                "header_prefix_out_of_bounds",
+                "manifest_digest_not_verified",
+                "manifest_expected_blocks_missing",
+                "manifest_without_recoverable_extents",
+                "no_required_blocks",
+                "payload_block_identity_index_gap",
+                "payload_block_identity_missing_required_block_coverage",
+                "payload_hash_mismatch",
+                "payload_out_of_bounds",
+                "raw_hash_mismatch",
+                "required_block_not_content_verified",
+                "required_block_unmapped",
+                "required_extent_out_of_bounds"
+              ]
             }
           },
           "required_block_ids": {

@@ -10,7 +10,7 @@ use crushr_format::{
     ftr4::{Ftr4, FTR4_LEN},
     tailframe::parse_tail_frame,
 };
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -21,15 +21,99 @@ use std::path::{Path, PathBuf};
 const USAGE: &str =
     "usage: crushr-salvage <archive> [--json-out <path>] [--export-fragments <dir>]";
 const RESEARCH_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
-const PRIMARY_INDEX_PATH: &str = "PRIMARY_INDEX_PATH";
-const REDUNDANT_VERIFIED_MAP_PATH: &str = "REDUNDANT_VERIFIED_MAP_PATH";
-const CHECKPOINT_MAP_PATH: &str = "CHECKPOINT_MAP_PATH";
-const SELF_DESCRIBING_EXTENT_PATH: &str = "SELF_DESCRIBING_EXTENT_PATH";
-const FILE_IDENTITY_EXTENT_PATH: &str = "FILE_IDENTITY_EXTENT_PATH";
-const FILE_IDENTITY_EXTENT_PATH_ANONYMOUS: &str = "FILE_IDENTITY_EXTENT_PATH_ANONYMOUS";
-const PAYLOAD_BLOCK_IDENTITY_PATH: &str = "PAYLOAD_BLOCK_IDENTITY_PATH";
-const PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS: &str = "PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS";
-const FILE_MANIFEST_PATH: &str = "FILE_MANIFEST_PATH";
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
+enum MappingProvenance {
+    #[serde(rename = "PRIMARY_INDEX_PATH")]
+    PrimaryIndexPath,
+    #[serde(rename = "REDUNDANT_VERIFIED_MAP_PATH")]
+    RedundantVerifiedMapPath,
+    #[serde(rename = "CHECKPOINT_MAP_PATH")]
+    CheckpointMapPath,
+    #[serde(rename = "SELF_DESCRIBING_EXTENT_PATH")]
+    SelfDescribingExtentPath,
+    #[serde(rename = "FILE_MANIFEST_PATH")]
+    FileManifestPath,
+    #[serde(rename = "FILE_IDENTITY_EXTENT_PATH")]
+    FileIdentityExtentPath,
+    #[serde(rename = "FILE_IDENTITY_EXTENT_PATH_ANONYMOUS")]
+    FileIdentityExtentPathAnonymous,
+    #[serde(rename = "PAYLOAD_BLOCK_IDENTITY_PATH")]
+    PayloadBlockIdentityPath,
+    #[serde(rename = "PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS")]
+    PayloadBlockIdentityPathAnonymous,
+}
+
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
+enum RecoveryClassification {
+    #[serde(rename = "FULL_VERIFIED")]
+    FullVerified,
+    #[serde(rename = "FULL_ANONYMOUS")]
+    FullAnonymous,
+    #[serde(rename = "PARTIAL_ORDERED")]
+    PartialOrdered,
+    #[serde(rename = "PARTIAL_UNORDERED")]
+    PartialUnordered,
+    #[serde(rename = "ORPHAN_BLOCKS")]
+    OrphanBlocks,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum ReasonCode {
+    AllRequiredChecksPassed,
+    DecompressionNotSuccessful,
+    DictionaryDependencyUnsatisfied,
+    HeaderInvalid,
+    HeaderOutOfBounds,
+    HeaderPrefixOutOfBounds,
+    ManifestDigestNotVerified,
+    ManifestExpectedBlocksMissing,
+    ManifestWithoutRecoverableExtents,
+    NoRequiredBlocks,
+    PayloadBlockIdentityIndexGap,
+    PayloadBlockIdentityMissingRequiredBlockCoverage,
+    PayloadHashMismatch,
+    PayloadOutOfBounds,
+    RawHashMismatch,
+    RequiredBlockNotContentVerified,
+    RequiredBlockUnmapped,
+    RequiredExtentOutOfBounds,
+}
+
+impl ReasonCode {
+    fn as_str(self) -> &'static str {
+        match self {
+            ReasonCode::AllRequiredChecksPassed => "all_required_checks_passed",
+            ReasonCode::DecompressionNotSuccessful => "decompression_not_successful",
+            ReasonCode::DictionaryDependencyUnsatisfied => "dictionary_dependency_unsatisfied",
+            ReasonCode::HeaderInvalid => "header_invalid",
+            ReasonCode::HeaderOutOfBounds => "header_out_of_bounds",
+            ReasonCode::HeaderPrefixOutOfBounds => "header_prefix_out_of_bounds",
+            ReasonCode::ManifestDigestNotVerified => "manifest_digest_not_verified",
+            ReasonCode::ManifestExpectedBlocksMissing => "manifest_expected_blocks_missing",
+            ReasonCode::ManifestWithoutRecoverableExtents => "manifest_without_recoverable_extents",
+            ReasonCode::NoRequiredBlocks => "no_required_blocks",
+            ReasonCode::PayloadBlockIdentityIndexGap => "payload_block_identity_index_gap",
+            ReasonCode::PayloadBlockIdentityMissingRequiredBlockCoverage => {
+                "payload_block_identity_missing_required_block_coverage"
+            }
+            ReasonCode::PayloadHashMismatch => "payload_hash_mismatch",
+            ReasonCode::PayloadOutOfBounds => "payload_out_of_bounds",
+            ReasonCode::RawHashMismatch => "raw_hash_mismatch",
+            ReasonCode::RequiredBlockNotContentVerified => "required_block_not_content_verified",
+            ReasonCode::RequiredBlockUnmapped => "required_block_unmapped",
+            ReasonCode::RequiredExtentOutOfBounds => "required_extent_out_of_bounds",
+        }
+    }
+}
+
+impl Serialize for ReasonCode {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
 
 // Internal responsibility split for safer iterative salvage changes.
 // cli => argument parsing, discovery => block scan/verification,
@@ -213,19 +297,19 @@ struct BlockCandidate {
     decompression_status: &'static str,
     raw_hash_status: &'static str,
     content_verification_status: &'static str,
-    content_verification_reasons: Vec<&'static str>,
+    content_verification_reasons: Vec<ReasonCode>,
     usable_for_indexed_planning: bool,
     verified_raw_len: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]
 struct FilePlan {
-    mapping_provenance: &'static str,
-    recovery_classification: &'static str,
+    mapping_provenance: MappingProvenance,
+    recovery_classification: RecoveryClassification,
     file_path: String,
     status: &'static str,
     reason: &'static str,
-    failure_reasons: Vec<&'static str>,
+    failure_reasons: Vec<ReasonCode>,
     required_block_ids: Vec<u32>,
     #[serde(skip_serializing)]
     extents: Vec<Extent>,
@@ -365,8 +449,8 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
                                     &block_verification,
                                 );
                                 file_plans.push(FilePlan {
-                                    mapping_provenance: PRIMARY_INDEX_PATH,
-                                    recovery_classification: "FULL_VERIFIED",
+                                    mapping_provenance: MappingProvenance::PrimaryIndexPath,
+                                    recovery_classification: RecoveryClassification::FullVerified,
                                     file_path: entry.path,
                                     status,
                                     reason,
@@ -603,7 +687,7 @@ fn plan_from_experimental_metadata(
     if let Ok(checkpoint_plans) = verify_and_plan_experimental_records(
         parse_checkpoint_extent_records(&experimental_values),
         block_verification,
-        CHECKPOINT_MAP_PATH,
+        MappingProvenance::CheckpointMapPath,
     ) {
         if !checkpoint_plans.is_empty() {
             file_plans = checkpoint_plans;
@@ -615,7 +699,7 @@ fn plan_from_experimental_metadata(
         parse_file_manifest_records(&experimental_values),
         &experimental_values,
         block_verification,
-        FILE_MANIFEST_PATH,
+        MappingProvenance::FileManifestPath,
     ) {
         file_plans = manifest_plans;
     }
@@ -650,7 +734,7 @@ fn plan_from_experimental_metadata(
         if let Ok(extent_plans) = verify_and_plan_experimental_records(
             parse_self_describing_extent_records(&experimental_values),
             block_verification,
-            SELF_DESCRIBING_EXTENT_PATH,
+            MappingProvenance::SelfDescribingExtentPath,
         ) {
             if !extent_plans.is_empty() {
                 file_plans = extent_plans;

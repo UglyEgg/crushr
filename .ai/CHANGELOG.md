@@ -602,3 +602,10 @@
 - Added strict verification mode `crushr-extract --verify <archive>` with deterministic success/refusal reporting (`verification_status`, `safe_for_strict_extraction`, refusal reasons, verified extent count, failed check count).
 - Retired public `crushr-fsck` behavior and replaced binary surface with a deterministic deprecation shim directing users to `crushr-extract --verify` and `crushr-salvage`.
 - Updated runtime/docs/contracts/tests to remove public `crushr-fsck` workflow references and enforce no-salvage leakage in `--verify` output.
+
+
+## 2026-03-18 — CRUSHR-HARDEN-03B
+
+- Reconciled salvage emitted contract with `crushr-salvage-plan.v3`: `mapping_provenance` and `recovery_classification` now serialize from typed enums using schema-v3 vocabulary (`FULL_VERIFIED`, `FULL_ANONYMOUS`, `PARTIAL_ORDERED`, `PARTIAL_UNORDERED`, `ORPHAN_BLOCKS`).
+- Added typed reason-code emission at the salvage boundary for `block_candidates[].content_verification_reasons` and `file_plans[].failure_reasons` with schema-enforced closed enums.
+- Updated salvage schema/docs/tests and repaired affected test expectations to remove drift between implementation and documented contract semantics.

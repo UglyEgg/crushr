@@ -2,6 +2,10 @@
 
 `crushr-salvage` emits deterministic JSON snapshots (plans) for damaged archives.
 
+## Schema contract
+
+Current emitted contract is `crushr-salvage-plan.v3` (`schemas/crushr-salvage-plan.v3.schema.json`).
+
 ## Pipeline
 
 `scan -> extent verification -> dictionary resolution -> recovery classification`
@@ -13,15 +17,28 @@
 - Naming failure does not block anonymous recovery when payload identity verifies.
 - Salvage never fabricates unverified filenames.
 
-## Classification families
+## file_plans enums
 
-Primary classes emitted by salvage planning:
+### mapping_provenance
 
-- `FULL_NAMED_VERIFIED`
-- `FULL_ANONYMOUS_VERIFIED`
-- `PARTIAL_ORDERED_VERIFIED`
-- `PARTIAL_UNORDERED_VERIFIED`
-- `ORPHAN_EVIDENCE_ONLY`
-- `NO_VERIFIED_EVIDENCE`
+- `PRIMARY_INDEX_PATH`
+- `REDUNDANT_VERIFIED_MAP_PATH`
+- `CHECKPOINT_MAP_PATH`
+- `SELF_DESCRIBING_EXTENT_PATH`
+- `FILE_MANIFEST_PATH`
+- `FILE_IDENTITY_EXTENT_PATH`
+- `FILE_IDENTITY_EXTENT_PATH_ANONYMOUS`
+- `PAYLOAD_BLOCK_IDENTITY_PATH`
+- `PAYLOAD_BLOCK_IDENTITY_PATH_ANONYMOUS`
 
-Historical/legacy labels may still appear in older artifacts and should be normalized during analysis.
+### recovery_classification
+
+- `FULL_VERIFIED`
+- `FULL_ANONYMOUS`
+- `PARTIAL_ORDERED`
+- `PARTIAL_UNORDERED`
+- `ORPHAN_BLOCKS`
+
+### reason-code vocabulary
+
+`content_verification_reasons` and `failure_reasons` share a closed reason-code set in v3 schema.
