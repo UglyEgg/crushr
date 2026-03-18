@@ -14,7 +14,7 @@ Non-negotiable baseline:
 
 - `crushr-pack` — archive creation
 - `crushr-info` — archive inspection/reporting
-- `crushr-fsck` — strict verification/corruption analysis
+- `crushr-extract --verify` — strict verification for canonical extraction safety
 - `crushr-extract` — strict verified extraction with deterministic refusal reporting
 - `crushr-lab` — controlled research harness
 - `crushr-salvage` — separate experimental salvage-planning executable (unverified research output only)

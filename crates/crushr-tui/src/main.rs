@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 
 fn usage() -> &'static str {
-    "Usage:\n  crushr-tui <archive>\n  crushr-tui --snapshot <crushr-info.json> [--fsck <crushr-fsck.json>]\n\nNotes:\n  Live mode opens the archive directly.\n  Snapshot mode loads JSON outputs from crushr-info/crushr-fsck.\n  This is currently a skeleton (UI not implemented yet).\n"
+    "Usage:\n  crushr-tui <archive>\n  crushr-tui --snapshot <crushr-info.json> [--verify <crushr-extract-verify.json>]\n\nNotes:\n  Live mode opens the archive directly.\n  Snapshot mode loads JSON outputs from crushr-info/crushr-extract --verify.\n  This is currently a skeleton (UI not implemented yet).\n"
 }
 
 fn main() -> Result<()> {
@@ -11,7 +11,7 @@ fn main() -> Result<()> {
     }
 
     let mut snapshot: Option<String> = None;
-    let mut fsck: Option<String> = None;
+    let mut verify: Option<String> = None;
     let mut archive: Option<String> = None;
 
     let mut i = 0;
@@ -24,12 +24,12 @@ fn main() -> Result<()> {
                 }
                 snapshot = Some(args[i].clone());
             }
-            "--fsck" => {
+            "--verify" => {
                 i += 1;
                 if i >= args.len() {
-                    bail!("--fsck requires a path\n\n{}", usage());
+                    bail!("--verify requires a path\n\n{}", usage());
                 }
-                fsck = Some(args[i].clone());
+                verify = Some(args[i].clone());
             }
             "-h" | "--help" => {
                 print!("{}", usage());
@@ -48,12 +48,12 @@ fn main() -> Result<()> {
         i += 1;
     }
 
-    match (snapshot, fsck, archive) {
-        (Some(info_json), fsck_json, None) => {
+    match (snapshot, verify, archive) {
+        (Some(info_json), verify_json, None) => {
             eprintln!("crushr-tui: snapshot mode requested");
             eprintln!("  info: {info_json}");
-            if let Some(p) = fsck_json {
-                eprintln!("  fsck: {p}");
+            if let Some(p) = verify_json {
+                eprintln!("  verify: {p}");
             }
             eprintln!("  (UI not implemented yet; snapshot schemas are documented in docs/SNAPSHOT_FORMAT.md)");
             Ok(())

@@ -20,6 +20,8 @@ The runtime tools are:
 - `crushr-extract`
 - `crushr-salvage`
 
+`crushr-fsck` is no longer a public runtime tool surface; the compatibility shim directs users to `crushr-extract --verify`.
+
 ## Lab modules
 
 Research and comparison code is isolated under lab-facing modules and binaries:

@@ -48,3 +48,4 @@ The canonical tool boundary remains:
 - `crushr-salvage` (experimental, separate from canonical extraction)
 
 `crushr-extract` remains strict and deterministic.
+`crushr-fsck` is retained only as a temporary deprecated compatibility shim that directs to `crushr-extract --verify`.
