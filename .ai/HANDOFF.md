@@ -8,11 +8,13 @@ Current boundary update (2026-03-18):
 - `crushr-extract --verify` now runs strict extraction semantics in an isolated temp output path to ensure strict-verify alignment.
 
 Next focus:
-- CRUSHR-HARDEN-03D is complete: strict verification alignment and reader-boundary tightening landed.
-- Continue CRUSHR-HARDEN-03E follow-up to convert remaining untyped comparison summary assembly into typed row/summary structs.
+- CRUSHR-HARDEN-03E is complete: comparison engine decomposition landed with bounded module files under `lab/comparison/`.
+- Continue CRUSHR-HARDEN-03F follow-up for helper visibility tightening and incremental typed-helper migration in format09/10 internals.
 
 
-## CRUSHR-HARDEN-03C handoff
+## CRUSHR-HARDEN-03E handoff
 - Active comparison summaries now have dedicated schema files under `schemas/` for FORMAT-12/13/14A/15 baseline + stress outputs.
 - Integration test `comparison_output_schemas.rs` runs active comparison commands and checks emitted artifacts against required schema fields/version constants.
-- Follow-up 03E should convert remaining untyped `serde_json::Value` summary assembly in `lab/comparison.rs` into typed row/summary structs.
+- Comparison engine is now split into `lab/comparison/mod.rs`, `common.rs`, `experimental.rs`, `format06_to12.rs`, and `format13_to15.rs`.
+- Command dispatch in `crushr-lab-salvage` is unchanged; import path now points to `comparison/mod.rs`.
+- Remaining concern: format09/10 helper internals still use permissive helper visibility and some untyped `Value` helper flow that should be tightened in follow-up 03F.
