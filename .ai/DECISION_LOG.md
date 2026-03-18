@@ -1,5 +1,20 @@
 # .ai/DECISION_LOG.md
 
+## 2026-03-18 — CRUSHR-HARDEN-03G canonical verify truth boundary
+
+- Decision:
+  - Introduce `crushr-core::verification_model::VerificationModel` as the canonical typed verification truth model for strict verification reporting.
+  - Require `crushr-extract --verify` output/report assembly to be derived from that model rather than from ad-hoc direct formatting of extraction internals.
+- Alternatives considered:
+  1. Keep direct `VerifyReport` assembly from `strict.report` in `crushr-extract`.
+  2. Build a verification model only in the CLI layer.
+- Rationale:
+  - Centralizing verification truth in `crushr-core` reduces output drift risk and keeps format/internal changes from leaking into reporting semantics.
+  - Core-level model construction allows deterministic tests on truth assembly independent of output rendering.
+- Blast radius:
+  - Affects strict verify report wiring in `crushr-extract`.
+  - No strict extraction behavior or public archive format contract changes.
+
 ## 2026-02-17 — Canonical continuity policy source
 
 - Decision: Use the prime scaffold `AGENTS.md` as canonical policy; preserve the original `crushr` `AGENTS.md` as legacy reference only.

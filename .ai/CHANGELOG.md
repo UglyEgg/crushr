@@ -1,3 +1,8 @@
+## 2026-03-18 — CRUSHR-HARDEN-03G (canonical verification + salvage lint cleanup, partial)
+- Added `crushr-core::verification_model` with a canonical typed verification truth model (`VerificationModel`, `VerifySummary`, `FileResolution`, `FailureDomains`) and deterministic model construction from strict extraction reports.
+- Updated `crushr-extract --verify` report assembly to consume the canonical verification model instead of constructing refusal/report truth directly from raw extraction internals.
+- Fixed carried-forward salvage metadata classification clippy error (`if_same_then_else`) in verified-graph classification by removing redundant branch duplication and keeping deterministic orphan fallback behavior.
+
 ## 2026-03-18 — CRUSHR-HARDEN-03A
 - Finalized API-boundary truth by removing accidental public `crushr::extraction_path` exposure and keeping confinement helpers internal-only.
 - Added a compile-level visibility guard in `crates/crushr/src/lib.rs` via a `compile_fail` doctest to prevent unsupported API resurfacing.

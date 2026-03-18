@@ -1066,11 +1066,7 @@ fn classify_from_verified_graph(
     let ordering_from_extents = plan.extents.windows(2).all(|w| w[0].offset <= w[1].offset);
 
     let Some(file_id) = manifest_file_id else {
-        return if block_count > 0 {
-            RecoveryClassification::OrphanBlocks
-        } else {
-            RecoveryClassification::OrphanBlocks
-        };
+        return RecoveryClassification::OrphanBlocks;
     };
 
     let has_manifest = graph.manifest_expected_count.contains_key(&file_id);
