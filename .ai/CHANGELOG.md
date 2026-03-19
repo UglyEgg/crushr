@@ -657,3 +657,15 @@
 - Hardened `crushr-extract --verify` to execute strict extraction semantics in an isolated temporary output directory and emit deterministic refusal reasons tied to strict extraction refusal paths.
 - Tightened legacy reader permissive behavior (`scan_blocks` region mismatch and decoded raw-length mismatch now fail closed) to reduce boundary confusion.
 - Updated active boundary/control text (`PROJECT_STATE.md`, `.ai/STATUS.md`, `.ai/HANDOFF.md`, `.ai/PHASE_PLAN.md`) and stale CLI wording (`crushr-tui`) to reflect `crushr-extract --verify` as the public strict verification surface.
+
+## 2026-03-19 — CRUSHR-HARDEN-03I-FIX1
+
+- Removed the remaining active salvage metadata `Vec<Value>` truth path in `crushr_salvage/core/metadata.rs` by introducing typed `ExperimentalMetadataRecord` parsing and typed metadata record structs for path/dictionary/payload/file-identity/manifest flows.
+- Replaced key-based bootstrap-anchor detection in `crushr-salvage` with typed variant checks.
+- Preserved fail-closed dictionary validation and reran focused salvage + deterministic pack + canonical verification-model tests.
+
+## 2026-03-19 — CRUSHR-HARDEN-03I-FIX2
+
+- Removed the final localized active-path `serde_json::Value` use from dictionary-copy-v2 metadata parsing (`PathDictionaryCopyV2RawRecord`) in `crushr_salvage/core/metadata.rs`.
+- Added deterministic raw-slice `body_raw_json` extraction helpers (`extract_top_level_field_raw_json` and JSON scanner helpers) so parity checks no longer require dynamic JSON carriers.
+- Added focused parity regression `v2_raw_body_hash_parity_is_preserved_without_value_carrier` and reran salvage/clippy/deterministic pack checks.

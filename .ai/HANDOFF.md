@@ -14,6 +14,13 @@ Next focus:
 - Complete CRUSHR-HARDEN-03G typed metadata conversion in remaining pack/salvage builder paths (remove dynamic `Value` as intermediate truth in active core metadata builders).
 - Continue metadata-pruning evidence review using active FORMAT-10/11/12/13/14A outputs once hardening packet is fully closed.
 
+CRUSHR-HARDEN-03I completion update (2026-03-19):
+- `crushr-pack` active experimental metadata builders are typed (`Serialize` structs/enums) across self-describing/checkpoint/file-identity/payload-identity/path-checkpoint/manifest/path-dictionary flows.
+- `crushr-salvage` active metadata path in `crushr_salvage/core/metadata.rs` now uses typed `ExperimentalMetadataRecord` variants (no active `Vec<Value>` metadata truth path).
+- salvage metadata classification/parser helpers for dictionary/path/payload/file-identity/manifest now consume typed records and preserve deterministic fail-closed behavior.
+- bootstrap-anchor availability checks were moved from key-based JSON lookups to typed metadata variant checks.
+- FIX2 follow-up: removed localized dictionary-copy-v2 `body: serde_json::Value` raw carrier; parser now captures `body_raw_json` via deterministic raw-slice extraction from the metadata block JSON bytes and preserves hash/length parity semantics.
+
 
 ## CRUSHR-HARDEN-03A handoff
 - Removed accidental `crushr::extraction_path` library exposure; path-confinement helpers remain internal implementation detail.

@@ -1,74 +1,322 @@
 use super::*;
 
+#[derive(Debug, serde::Deserialize)]
+struct RedundantMapLedger {
+    schema: String,
+    files: Vec<RedundantMapLedgerFile>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct RedundantMapLedgerFile {
+    path: String,
+    size: u64,
+    extents: Vec<RedundantMapLedgerExtent>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct RedundantMapLedgerExtent {
+    block_id: u32,
+    file_offset: u64,
+    len: u64,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct ExperimentalSchema {
+    schema: String,
+}
+
+#[derive(Debug, Clone)]
+pub(super) enum ExperimentalMetadataRecord {
+    SelfDescribingExtent(SelfDescribingExtentEnvelope),
+    CheckpointMapSnapshot(CheckpointMapSnapshot),
+    FilePathMap(FilePathMapRecord),
+    FilePathMapEntry(FilePathMapEntryRecord),
+    PathCheckpoint(PathCheckpointRecord),
+    PathDictionaryCopyV1(PathDictionaryCopyV1Record),
+    PathDictionaryCopyV2(PathDictionaryCopyV2Record),
+    PayloadBlockIdentity(PayloadBlockIdentityMetadataRecord),
+    FileIdentityExtent(FileIdentityExtentMetadataRecord),
+    FileManifest(FileManifestMetadataRecord),
+    BootstrapAnchor(BootstrapAnchorRecord),
+    Unknown,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(super) struct SelfDescribingExtentEnvelope {
+    record: ExtentRecord,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(super) struct CheckpointMapSnapshot {
+    records: Vec<ExtentRecord>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(super) struct ExtentRecord {
+    path: String,
+    full_file_size: u64,
+    block_id: u32,
+    logical_offset: u64,
+    logical_length: u64,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(super) struct FilePathMapRecord {
+    records: Vec<FilePathMapEntry>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(super) struct FilePathMapEntryRecord {
+    file_id: u32,
+    path: String,
+    path_digest_blake3: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct FilePathMapEntry {
+    file_id: u32,
+    path: String,
+    path_digest_blake3: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(super) struct PathCheckpointRecord {
+    entries: Vec<PathCheckpointEntry>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(super) struct PathCheckpointEntry {
+    file_id: u32,
+    path: String,
+    path_digest_blake3: String,
+    full_file_size: u64,
+    total_block_count: u64,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub(super) struct PathDictionaryEntry {
+    path_id: u32,
+    path: String,
+    path_digest_blake3: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub(super) struct PathDictionaryCopyV1Record {
+    entries: Vec<PathDictionaryEntry>,
+    #[serde(default)]
+    generation: u64,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub(super) struct PathDictionaryCopyV2Record {
+    #[serde(default)]
+    archive_instance_id: Option<String>,
+    #[serde(default)]
+    dictionary_content_hash: Option<String>,
+    #[serde(default)]
+    dictionary_length: Option<u64>,
+    #[serde(default)]
+    generation: u64,
+    body: PathDictionaryBody,
+    body_raw_json: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct PathDictionaryCopyV2RawRecord {
+    #[serde(default)]
+    archive_instance_id: Option<String>,
+    #[serde(default)]
+    dictionary_content_hash: Option<String>,
+    #[serde(default)]
+    dictionary_length: Option<u64>,
+    #[serde(default)]
+    generation: u64,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct PathDictionaryCopyV2BodyOnlyRecord {
+    body: PathDictionaryBody,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub(super) struct PathDictionaryBody {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    representation: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    entry_count: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    directory_count: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    basename_count: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    entries: Option<Vec<PathDictionaryEntry>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    directories: Option<Vec<PathDictionaryDirectory>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    basenames: Option<Vec<PathDictionaryBasename>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    file_bindings: Option<Vec<PathDictionaryFileBinding>>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+struct PathDictionaryBodyHashView<'a> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    representation: Option<&'a String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    entry_count: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    directory_count: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    basename_count: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    directories: Option<&'a Vec<PathDictionaryDirectory>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    basenames: Option<&'a Vec<PathDictionaryBasename>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    file_bindings: Option<&'a Vec<PathDictionaryFileBinding>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    entries: Option<&'a Vec<PathDictionaryEntry>>,
+}
+
+impl<'a> From<&'a PathDictionaryBody> for PathDictionaryBodyHashView<'a> {
+    fn from(body: &'a PathDictionaryBody) -> Self {
+        Self {
+            representation: body.representation.as_ref(),
+            entry_count: body.entry_count,
+            directory_count: body.directory_count,
+            basename_count: body.basename_count,
+            directories: body.directories.as_ref(),
+            basenames: body.basenames.as_ref(),
+            file_bindings: body.file_bindings.as_ref(),
+            entries: body.entries.as_ref(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub(super) struct PathDictionaryDirectory {
+    dir_id: u32,
+    prefix: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub(super) struct PathDictionaryBasename {
+    name_id: u32,
+    basename: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub(super) struct PathDictionaryFileBinding {
+    path_id: u32,
+    dir_id: u32,
+    name_id: u32,
+    path_digest_blake3: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(super) struct PayloadBlockIdentityContent {
+    payload_hash_blake3: String,
+    raw_hash_blake3: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(super) struct PayloadBlockIdentityMetadataRecord {
+    #[serde(default)]
+    archive_identity: Option<String>,
+    #[serde(default)]
+    file_id: Option<u32>,
+    #[serde(default)]
+    block_index: Option<u64>,
+    #[serde(default)]
+    total_block_count: Option<u64>,
+    #[serde(default)]
+    full_file_size: Option<u64>,
+    #[serde(default)]
+    logical_offset: Option<u64>,
+    #[serde(default)]
+    logical_length: Option<u64>,
+    #[serde(default)]
+    payload_codec: Option<u32>,
+    #[serde(default)]
+    payload_length: Option<u64>,
+    #[serde(default)]
+    block_id: Option<u32>,
+    block_scan_offset: Option<u64>,
+    #[serde(default)]
+    content_identity: Option<PayloadBlockIdentityContent>,
+    name: Option<String>,
+    path: Option<String>,
+    path_digest_blake3: Option<String>,
+    path_id: Option<u32>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(super) struct FileIdentityPathLinkage {
+    path_digest_blake3: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(super) struct FileIdentityExtentMetadataRecord {
+    #[serde(default)]
+    file_id: Option<u32>,
+    #[serde(default)]
+    full_file_size: Option<u64>,
+    #[serde(default)]
+    extent_ordinal: Option<u64>,
+    #[serde(default)]
+    block_id: Option<u32>,
+    #[serde(default)]
+    logical_offset: Option<u64>,
+    #[serde(default)]
+    logical_length: Option<u64>,
+    block_scan_offset: Option<u64>,
+    #[serde(default)]
+    path_linkage: Option<FileIdentityPathLinkage>,
+    #[serde(default)]
+    content_identity: Option<PayloadBlockIdentityContent>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(super) struct FileManifestMetadataRecord {
+    file_id: u32,
+    file_size: Option<u64>,
+    expected_block_count: Option<u64>,
+    extent_count: Option<u64>,
+    file_digest: Option<String>,
+    path: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(super) struct BootstrapAnchorRecord {
+    anchor_ordinal: u64,
+}
+
 pub(super) fn parse_redundant_map_files(ledger_json: &[u8]) -> Result<Vec<RedundantMapFile>> {
-    let value: Value = serde_json::from_slice(ledger_json).context("parse LDG1 JSON")?;
-    let obj = value
-        .as_object()
-        .context("redundant map ledger must be a JSON object")?;
-    let schema = obj
-        .get("schema")
-        .and_then(Value::as_str)
-        .context("redundant map ledger missing schema")?;
-    if schema != "crushr-redundant-file-map.v1"
-        && schema != "crushr-redundant-file-map.experimental.v2"
+    let ledger: RedundantMapLedger =
+        serde_json::from_slice(ledger_json).context("parse LDG1 JSON as redundant map")?;
+    if ledger.schema != "crushr-redundant-file-map.v1"
+        && ledger.schema != "crushr-redundant-file-map.experimental.v2"
     {
-        bail!("unsupported redundant map schema: {schema}");
+        bail!("unsupported redundant map schema: {}", ledger.schema);
     }
 
-    let files = obj
-        .get("files")
-        .and_then(Value::as_array)
-        .context("redundant map ledger missing files array")?;
-
-    let mut out = Vec::with_capacity(files.len());
-    for file in files {
-        let f = file
-            .as_object()
-            .context("redundant map file entry must be an object")?;
-        let path = f
-            .get("path")
-            .and_then(Value::as_str)
-            .context("redundant map file missing path")?
-            .to_string();
+    let mut out = Vec::with_capacity(ledger.files.len());
+    for file in ledger.files {
+        let path = file.path;
         if path.is_empty() {
             bail!("redundant map file path must be non-empty");
         }
-        let size = f
-            .get("size")
-            .and_then(Value::as_u64)
-            .context("redundant map file missing size")?;
-        let extents_value = f
-            .get("extents")
-            .and_then(Value::as_array)
-            .context("redundant map file missing extents array")?;
-        let mut extents = Vec::with_capacity(extents_value.len());
-        for ex in extents_value {
-            let e = ex
-                .as_object()
-                .context("redundant map extent entry must be an object")?;
-            let block_id = e
-                .get("block_id")
-                .and_then(Value::as_u64)
-                .context("redundant map extent missing block_id")?;
-            let offset = e
-                .get("file_offset")
-                .and_then(Value::as_u64)
-                .context("redundant map extent missing file_offset")?;
-            let len = e
-                .get("len")
-                .and_then(Value::as_u64)
-                .context("redundant map extent missing len")?;
-            let block_id =
-                u32::try_from(block_id).context("redundant map block_id out of range")?;
+        let mut extents = Vec::with_capacity(file.extents.len());
+        for extent in file.extents {
             extents.push(Extent {
-                block_id,
-                offset,
-                len,
+                block_id: extent.block_id,
+                offset: extent.file_offset,
+                len: extent.len,
             });
         }
         out.push(RedundantMapFile {
             path,
-            size,
+            size: file.size,
             extents,
         });
     }
@@ -79,7 +327,7 @@ pub(super) fn parse_redundant_map_files(ledger_json: &[u8]) -> Result<Vec<Redund
 pub(super) fn parse_experimental_metadata_records(
     archive_bytes: &[u8],
     block_verification: &BTreeMap<u32, BlockVerification>,
-) -> Vec<Value> {
+) -> Vec<ExperimentalMetadataRecord> {
     let mut records = Vec::new();
     let mut offset = 0usize;
     while offset + BLK3_MAGIC.len() <= archive_bytes.len() {
@@ -120,22 +368,16 @@ pub(super) fn parse_experimental_metadata_records(
                 offset += 1;
                 continue;
             }
-            if let Ok(value) = serde_json::from_slice::<Value>(&raw) {
-                if let Some(block_id_u64) = value
-                    .get("record")
-                    .and_then(|r| r.get("block_id"))
-                    .and_then(|v| v.as_u64())
-                {
-                    if let Ok(block_id) = u32::try_from(block_id_u64) {
-                        if let Some(v) = block_verification.get(&block_id) {
-                            if !v.content_verified {
-                                offset += 1;
-                                continue;
-                            }
+            if let Some(record) = parse_experimental_metadata_record(&raw) {
+                if let ExperimentalMetadataRecord::SelfDescribingExtent(envelope) = &record {
+                    if let Some(v) = block_verification.get(&envelope.record.block_id) {
+                        if !v.content_verified {
+                            offset += 1;
+                            continue;
                         }
                     }
                 }
-                records.push(value);
+                records.push(record);
             }
         }
         offset += 1;
@@ -143,85 +385,233 @@ pub(super) fn parse_experimental_metadata_records(
     records
 }
 
-pub(super) fn parse_self_describing_extent_records(
-    values: &[Value],
-) -> Vec<ExperimentalExtentRecord> {
-    let mut out = Vec::new();
-    for value in values {
-        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-self-describing-extent.v1")
-        {
+fn parse_experimental_metadata_record(raw: &[u8]) -> Option<ExperimentalMetadataRecord> {
+    let schema = serde_json::from_slice::<ExperimentalSchema>(raw)
+        .ok()?
+        .schema;
+    match schema.as_str() {
+        "crushr-self-describing-extent.v1" => serde_json::from_slice(raw)
+            .ok()
+            .map(ExperimentalMetadataRecord::SelfDescribingExtent),
+        "crushr-checkpoint-map-snapshot.v1" => serde_json::from_slice(raw)
+            .ok()
+            .map(ExperimentalMetadataRecord::CheckpointMapSnapshot),
+        "crushr-file-path-map.v1" => serde_json::from_slice(raw)
+            .ok()
+            .map(ExperimentalMetadataRecord::FilePathMap),
+        "crushr-file-path-map-entry.v1" => serde_json::from_slice(raw)
+            .ok()
+            .map(ExperimentalMetadataRecord::FilePathMapEntry),
+        "crushr-path-checkpoint.v1" => serde_json::from_slice(raw)
+            .ok()
+            .map(ExperimentalMetadataRecord::PathCheckpoint),
+        "crushr-path-dictionary-copy.v1" => serde_json::from_slice(raw)
+            .ok()
+            .map(ExperimentalMetadataRecord::PathDictionaryCopyV1),
+        "crushr-path-dictionary-copy.v2" => {
+            let raw_copy: PathDictionaryCopyV2RawRecord = serde_json::from_slice(raw).ok()?;
+            let body = serde_json::from_slice::<PathDictionaryCopyV2BodyOnlyRecord>(raw)
+                .ok()?
+                .body;
+            let body_raw_json = extract_top_level_field_raw_json(raw, "body")?;
+            Some(ExperimentalMetadataRecord::PathDictionaryCopyV2(
+                PathDictionaryCopyV2Record {
+                    archive_instance_id: raw_copy.archive_instance_id,
+                    dictionary_content_hash: raw_copy.dictionary_content_hash,
+                    dictionary_length: raw_copy.dictionary_length,
+                    generation: raw_copy.generation,
+                    body,
+                    body_raw_json,
+                },
+            ))
+        }
+        "crushr-payload-block-identity.v1" => serde_json::from_slice(raw)
+            .ok()
+            .map(ExperimentalMetadataRecord::PayloadBlockIdentity),
+        "crushr-file-identity-extent.v1" => serde_json::from_slice(raw)
+            .ok()
+            .map(ExperimentalMetadataRecord::FileIdentityExtent),
+        "crushr-file-manifest.v1" => serde_json::from_slice(raw)
+            .ok()
+            .map(ExperimentalMetadataRecord::FileManifest),
+        "crushr-bootstrap-anchor.v1" => serde_json::from_slice(raw)
+            .ok()
+            .map(ExperimentalMetadataRecord::BootstrapAnchor),
+        _ => Some(ExperimentalMetadataRecord::Unknown),
+    }
+}
+
+fn extract_top_level_field_raw_json(raw: &[u8], field: &str) -> Option<String> {
+    let mut i = skip_json_ws(raw, 0);
+    if *raw.get(i)? != b'{' {
+        return None;
+    }
+    i += 1;
+    loop {
+        i = skip_json_ws(raw, i);
+        if *raw.get(i)? == b'}' {
+            return None;
+        }
+        if *raw.get(i)? != b'"' {
+            return None;
+        }
+        let key_end = json_string_end(raw, i)?;
+        let key = serde_json::from_slice::<String>(&raw[i..key_end]).ok()?;
+        i = skip_json_ws(raw, key_end);
+        if *raw.get(i)? != b':' {
+            return None;
+        }
+        i = skip_json_ws(raw, i + 1);
+        let value_start = i;
+        let value_end = json_value_end(raw, value_start)?;
+        if key == field {
+            return std::str::from_utf8(&raw[value_start..value_end])
+                .ok()
+                .map(str::to_string);
+        }
+        i = skip_json_ws(raw, value_end);
+        match raw.get(i).copied()? {
+            b',' => i += 1,
+            b'}' => return None,
+            _ => return None,
+        }
+    }
+}
+
+fn skip_json_ws(raw: &[u8], mut i: usize) -> usize {
+    while i < raw.len() && raw[i].is_ascii_whitespace() {
+        i += 1;
+    }
+    i
+}
+
+fn json_string_end(raw: &[u8], start: usize) -> Option<usize> {
+    let mut i = start + 1;
+    while i < raw.len() {
+        match raw[i] {
+            b'\\' => i += 2,
+            b'"' => return Some(i + 1),
+            _ => i += 1,
+        }
+    }
+    None
+}
+
+fn json_value_end(raw: &[u8], start: usize) -> Option<usize> {
+    match *raw.get(start)? {
+        b'"' => json_string_end(raw, start),
+        b'{' | b'[' => json_compound_end(raw, start),
+        _ => {
+            let mut i = start;
+            while i < raw.len() {
+                if matches!(raw[i], b',' | b'}' | b']') || raw[i].is_ascii_whitespace() {
+                    break;
+                }
+                i += 1;
+            }
+            Some(i)
+        }
+    }
+}
+
+fn json_compound_end(raw: &[u8], start: usize) -> Option<usize> {
+    let mut i = start;
+    let mut object_depth = 0usize;
+    let mut array_depth = 0usize;
+    let mut in_string = false;
+    while i < raw.len() {
+        let b = raw[i];
+        if in_string {
+            if b == b'\\' {
+                i += 2;
+                continue;
+            }
+            if b == b'"' {
+                in_string = false;
+            }
+            i += 1;
             continue;
         }
-        let Some(record) = value.get("record") else {
-            continue;
-        };
-        let Some(path) = record.get("path").and_then(|v| v.as_str()) else {
-            continue;
-        };
-        let Some(size) = record.get("full_file_size").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Some(block_id_u64) = record.get("block_id").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Some(offset) = record.get("logical_offset").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Some(len) = record.get("logical_length").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Ok(block_id) = u32::try_from(block_id_u64) else {
+        match b {
+            b'"' => {
+                in_string = true;
+                i += 1;
+            }
+            b'{' => {
+                object_depth += 1;
+                i += 1;
+            }
+            b'}' => {
+                object_depth = object_depth.checked_sub(1)?;
+                i += 1;
+                if object_depth == 0 && array_depth == 0 {
+                    return Some(i);
+                }
+            }
+            b'[' => {
+                array_depth += 1;
+                i += 1;
+            }
+            b']' => {
+                array_depth = array_depth.checked_sub(1)?;
+                i += 1;
+                if object_depth == 0 && array_depth == 0 {
+                    return Some(i);
+                }
+            }
+            _ => i += 1,
+        }
+    }
+    None
+}
+
+pub(super) fn is_bootstrap_anchor_record(record: &ExperimentalMetadataRecord) -> bool {
+    match record {
+        ExperimentalMetadataRecord::BootstrapAnchor(anchor) => {
+            let _ = anchor.anchor_ordinal;
+            true
+        }
+        _ => false,
+    }
+}
+
+pub(super) fn parse_self_describing_extent_records(
+    records: &[ExperimentalMetadataRecord],
+) -> Vec<ExperimentalExtentRecord> {
+    let mut out = Vec::new();
+    for record in records {
+        let ExperimentalMetadataRecord::SelfDescribingExtent(envelope) = record else {
             continue;
         };
         out.push(ExperimentalExtentRecord {
-            path: path.to_string(),
-            size,
+            path: envelope.record.path.clone(),
+            size: envelope.record.full_file_size,
             extent: Extent {
-                block_id,
-                offset,
-                len,
+                block_id: envelope.record.block_id,
+                offset: envelope.record.logical_offset,
+                len: envelope.record.logical_length,
             },
         });
     }
     out
 }
 
-pub(super) fn parse_checkpoint_extent_records(values: &[Value]) -> Vec<ExperimentalExtentRecord> {
+pub(super) fn parse_checkpoint_extent_records(
+    records: &[ExperimentalMetadataRecord],
+) -> Vec<ExperimentalExtentRecord> {
     let mut out = Vec::new();
-    for value in values {
-        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-checkpoint-map-snapshot.v1")
-        {
-            continue;
-        }
-        let Some(records) = value.get("records").and_then(|v| v.as_array()) else {
+    for record in records {
+        let ExperimentalMetadataRecord::CheckpointMapSnapshot(snapshot) = record else {
             continue;
         };
-        for rec in records {
-            let Some(path) = rec.get("path").and_then(|v| v.as_str()) else {
-                continue;
-            };
-            let Some(size) = rec.get("full_file_size").and_then(|v| v.as_u64()) else {
-                continue;
-            };
-            let Some(block_id_u64) = rec.get("block_id").and_then(|v| v.as_u64()) else {
-                continue;
-            };
-            let Some(offset) = rec.get("logical_offset").and_then(|v| v.as_u64()) else {
-                continue;
-            };
-            let Some(len) = rec.get("logical_length").and_then(|v| v.as_u64()) else {
-                continue;
-            };
-            let Ok(block_id) = u32::try_from(block_id_u64) else {
-                continue;
-            };
+        for rec in &snapshot.records {
             out.push(ExperimentalExtentRecord {
-                path: path.to_string(),
-                size,
+                path: rec.path.clone(),
+                size: rec.full_file_size,
                 extent: Extent {
-                    block_id,
-                    offset,
-                    len,
+                    block_id: rec.block_id,
+                    offset: rec.logical_offset,
+                    len: rec.logical_length,
                 },
             });
         }
@@ -229,103 +619,50 @@ pub(super) fn parse_checkpoint_extent_records(values: &[Value]) -> Vec<Experimen
     out
 }
 
-pub(super) fn parse_file_identity_path_map(values: &[Value]) -> BTreeMap<u32, String> {
+pub(super) fn parse_file_identity_path_map(
+    records: &[ExperimentalMetadataRecord],
+) -> BTreeMap<u32, String> {
     let mut out = BTreeMap::new();
-    for value in values {
-        let schema = value.get("schema").and_then(|v| v.as_str());
-        if schema == Some("crushr-file-path-map.v1") {
-            let Some(records) = value.get("records").and_then(|v| v.as_array()) else {
-                continue;
-            };
-            for rec in records {
-                let Some(file_id_u64) = rec.get("file_id").and_then(|v| v.as_u64()) else {
-                    continue;
-                };
-                let Ok(file_id) = u32::try_from(file_id_u64) else {
-                    continue;
-                };
-                let Some(path) = rec.get("path").and_then(|v| v.as_str()) else {
-                    continue;
-                };
-                let Some(path_digest) = rec.get("path_digest_blake3").and_then(|v| v.as_str())
-                else {
-                    continue;
-                };
-                let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
-                if computed != path_digest {
-                    continue;
+    for record in records {
+        match record {
+            ExperimentalMetadataRecord::FilePathMap(map_record) => {
+                for rec in &map_record.records {
+                    let computed = to_hex(blake3::hash(rec.path.as_bytes()).as_bytes());
+                    if computed == rec.path_digest_blake3 {
+                        out.insert(rec.file_id, rec.path.clone());
+                    }
                 }
-                out.insert(file_id, path.to_string());
             }
-            continue;
+            ExperimentalMetadataRecord::FilePathMapEntry(rec) => {
+                let computed = to_hex(blake3::hash(rec.path.as_bytes()).as_bytes());
+                if computed == rec.path_digest_blake3 {
+                    out.insert(rec.file_id, rec.path.clone());
+                }
+            }
+            _ => {}
         }
-        if schema != Some("crushr-file-path-map-entry.v1") {
-            continue;
-        }
-        let Some(file_id_u64) = value.get("file_id").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Ok(file_id) = u32::try_from(file_id_u64) else {
-            continue;
-        };
-        let Some(path) = value.get("path").and_then(|v| v.as_str()) else {
-            continue;
-        };
-        let Some(path_digest) = value.get("path_digest_blake3").and_then(|v| v.as_str()) else {
-            continue;
-        };
-        let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
-        if computed != path_digest {
-            continue;
-        }
-        out.insert(file_id, path.to_string());
     }
     out
 }
 
-pub(super) fn parse_payload_block_path_checkpoints(values: &[Value]) -> BTreeMap<u32, String> {
+pub(super) fn parse_payload_block_path_checkpoints(
+    records: &[ExperimentalMetadataRecord],
+) -> BTreeMap<u32, String> {
     let mut out = BTreeMap::new();
-    for value in values {
-        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-path-checkpoint.v1") {
-            continue;
-        }
-        let Some(entries) = value.get("entries").and_then(|v| v.as_array()) else {
+    for record in records {
+        let ExperimentalMetadataRecord::PathCheckpoint(snapshot) = record else {
             continue;
         };
-        for entry in entries {
-            let Some(file_id_u64) = entry.get("file_id").and_then(|v| v.as_u64()) else {
-                continue;
-            };
-            let Ok(file_id) = u32::try_from(file_id_u64) else {
-                continue;
-            };
-            let Some(path) = entry.get("path").and_then(|v| v.as_str()) else {
-                continue;
-            };
-            let Some(path_digest) = entry.get("path_digest_blake3").and_then(|v| v.as_str()) else {
-                continue;
-            };
-            let Some(full_file_size) = entry.get("full_file_size").and_then(|v| v.as_u64()) else {
-                continue;
-            };
-            let Some(total_block_count) = entry.get("total_block_count").and_then(|v| v.as_u64())
-            else {
-                continue;
-            };
-            if total_block_count == 0 {
+        for entry in &snapshot.entries {
+            if entry.total_block_count == 0 {
                 continue;
             }
-            let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
-            if computed != path_digest {
+            let computed = to_hex(blake3::hash(entry.path.as_bytes()).as_bytes());
+            if computed != entry.path_digest_blake3 {
                 continue;
             }
-            if entry
-                .get("path")
-                .and_then(|_| entry.get("full_file_size"))
-                .is_some()
-                && full_file_size > 0
-            {
-                out.insert(file_id, path.to_string());
+            if entry.full_file_size > 0 {
+                out.insert(entry.file_id, entry.path.clone());
             }
         }
     }
@@ -342,171 +679,112 @@ pub(super) struct ParsedPathDictionary {
     pub(super) detected_generation_mismatch_count: u64,
 }
 
-pub(super) fn parse_payload_block_path_dictionary(values: &[Value]) -> ParsedPathDictionary {
+pub(super) fn parse_payload_block_path_dictionary(
+    records: &[ExperimentalMetadataRecord],
+) -> ParsedPathDictionary {
     let mut report = ParsedPathDictionary::default();
     let mut canonical: Option<BTreeMap<u32, String>> = None;
     let mut canonical_generation: Option<u64> = None;
-    let expected_archive = values.iter().find_map(|v| {
-        (v.get("schema").and_then(|s| s.as_str()) == Some("crushr-payload-block-identity.v1"))
-            .then(|| {
-                v.get("archive_identity")
-                    .and_then(|a| a.as_str())
-                    .map(str::to_string)
-            })
-            .flatten()
+    let expected_archive = records.iter().find_map(|record| match record {
+        ExperimentalMetadataRecord::PayloadBlockIdentity(value) => value.archive_identity.clone(),
+        _ => None,
     });
 
-    for value in values {
-        let schema = value.get("schema").and_then(|v| v.as_str());
-        if schema != Some("crushr-path-dictionary-copy.v1")
-            && schema != Some("crushr-path-dictionary-copy.v2")
-        {
-            continue;
-        }
-
+    for record in records {
         let mut map = BTreeMap::new();
-        if let Some(entries) = value.get("entries").and_then(|v| v.as_array()) {
-            for entry in entries {
-                let Some(path_id_u64) = entry.get("path_id").and_then(|v| v.as_u64()) else {
-                    continue;
-                };
-                let Ok(path_id) = u32::try_from(path_id_u64) else {
-                    continue;
-                };
-                let Some(path) = entry.get("path").and_then(|v| v.as_str()) else {
-                    continue;
-                };
-                let Some(path_digest) = entry.get("path_digest_blake3").and_then(|v| v.as_str())
-                else {
-                    continue;
-                };
-                let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
-                if computed != path_digest {
-                    continue;
-                }
-                map.insert(path_id, path.to_string());
-            }
-        } else if let Some(body) = value.get("body") {
-            if let Some(entries) = body.get("entries").and_then(|v| v.as_array()) {
-                for entry in entries {
-                    let Some(path_id_u64) = entry.get("path_id").and_then(|v| v.as_u64()) else {
-                        continue;
-                    };
-                    let Ok(path_id) = u32::try_from(path_id_u64) else {
-                        continue;
-                    };
-                    let Some(path) = entry.get("path").and_then(|v| v.as_str()) else {
-                        continue;
-                    };
-                    let Some(path_digest) =
-                        entry.get("path_digest_blake3").and_then(|v| v.as_str())
-                    else {
-                        continue;
-                    };
-                    let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
-                    if computed != path_digest {
-                        continue;
-                    }
-                    map.insert(path_id, path.to_string());
-                }
-            } else {
-                let mut dirs = BTreeMap::new();
-                let mut names = BTreeMap::new();
-                if let Some(arr) = body.get("directories").and_then(|v| v.as_array()) {
-                    for d in arr {
-                        if let (Some(id), Some(prefix)) = (
-                            d.get("dir_id").and_then(|v| v.as_u64()),
-                            d.get("prefix").and_then(|v| v.as_str()),
-                        ) {
-                            dirs.insert(id as u32, prefix.to_string());
+        let (generation, is_v2, v2_meta): (u64, bool, Option<&PathDictionaryCopyV2Record>) =
+            match record {
+                ExperimentalMetadataRecord::PathDictionaryCopyV1(copy) => {
+                    for entry in &copy.entries {
+                        let computed = to_hex(blake3::hash(entry.path.as_bytes()).as_bytes());
+                        if computed == entry.path_digest_blake3 {
+                            map.insert(entry.path_id, entry.path.clone());
                         }
                     }
+                    (copy.generation, false, None)
                 }
-                if let Some(arr) = body.get("basenames").and_then(|v| v.as_array()) {
-                    for n in arr {
-                        if let (Some(id), Some(name)) = (
-                            n.get("name_id").and_then(|v| v.as_u64()),
-                            n.get("basename").and_then(|v| v.as_str()),
-                        ) {
-                            names.insert(id as u32, name.to_string());
+                ExperimentalMetadataRecord::PathDictionaryCopyV2(copy) => {
+                    if let Some(entries) = &copy.body.entries {
+                        for entry in entries {
+                            let computed = to_hex(blake3::hash(entry.path.as_bytes()).as_bytes());
+                            if computed == entry.path_digest_blake3 {
+                                map.insert(entry.path_id, entry.path.clone());
+                            }
+                        }
+                    } else if let (Some(directories), Some(basenames), Some(file_bindings)) = (
+                        &copy.body.directories,
+                        &copy.body.basenames,
+                        &copy.body.file_bindings,
+                    ) {
+                        let mut dirs = BTreeMap::new();
+                        let mut names = BTreeMap::new();
+                        for d in directories {
+                            dirs.insert(d.dir_id, d.prefix.clone());
+                        }
+                        for n in basenames {
+                            names.insert(n.name_id, n.basename.clone());
+                        }
+                        for f in file_bindings {
+                            let Some(prefix) = dirs.get(&f.dir_id) else {
+                                continue;
+                            };
+                            let Some(name) = names.get(&f.name_id) else {
+                                continue;
+                            };
+                            let path = if prefix.is_empty() {
+                                name.clone()
+                            } else {
+                                format!("{prefix}/{name}")
+                            };
+                            let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
+                            if computed == f.path_digest_blake3 {
+                                map.insert(f.path_id, path);
+                            }
                         }
                     }
+                    (copy.generation, true, Some(copy))
                 }
-                if let Some(arr) = body.get("file_bindings").and_then(|v| v.as_array()) {
-                    for f in arr {
-                        let (Some(path_id), Some(dir_id), Some(name_id), Some(path_digest)) = (
-                            f.get("path_id").and_then(|v| v.as_u64()),
-                            f.get("dir_id").and_then(|v| v.as_u64()),
-                            f.get("name_id").and_then(|v| v.as_u64()),
-                            f.get("path_digest_blake3").and_then(|v| v.as_str()),
-                        ) else {
-                            continue;
-                        };
-                        let Some(prefix) = dirs.get(&(dir_id as u32)) else {
-                            continue;
-                        };
-                        let Some(name) = names.get(&(name_id as u32)) else {
-                            continue;
-                        };
-                        let path = if prefix.is_empty() {
-                            name.clone()
-                        } else {
-                            format!("{prefix}/{name}")
-                        };
-                        let computed = to_hex(blake3::hash(path.as_bytes()).as_bytes());
-                        if computed != path_digest {
-                            continue;
-                        }
-                        map.insert(path_id as u32, path);
-                    }
-                }
-            }
-        }
+                _ => continue,
+            };
 
         if map.is_empty() {
             continue;
         }
 
-        if schema == Some("crushr-path-dictionary-copy.v2") {
+        if is_v2 {
+            let copy = v2_meta.expect("v2 metadata must exist");
             if let (Some(expected), Some(actual)) = (
                 expected_archive.as_deref(),
-                value.get("archive_instance_id").and_then(|v| v.as_str()),
+                copy.archive_instance_id.as_deref(),
             ) {
                 if expected != actual {
                     report.rejected_wrong_archive_count += 1;
                     continue;
                 }
             }
-            if let Some(body) = value.get("body") {
-                let body_bytes = match serde_json::to_vec(body) {
+            let hash_view_bytes =
+                match serde_json::to_vec(&PathDictionaryBodyHashView::from(&copy.body)) {
                     Ok(b) => b,
                     Err(_) => {
                         report.rejected_hash_mismatch_count += 1;
                         continue;
                     }
                 };
-                let computed = to_hex(blake3::hash(&body_bytes).as_bytes());
-                if value
-                    .get("dictionary_content_hash")
-                    .and_then(|v| v.as_str())
-                    != Some(computed.as_str())
-                {
-                    report.rejected_hash_mismatch_count += 1;
-                    continue;
-                }
-                if value.get("dictionary_length").and_then(|v| v.as_u64())
-                    != Some(body_bytes.len() as u64)
-                {
-                    report.rejected_hash_mismatch_count += 1;
-                    continue;
-                }
+            let raw_body_bytes = copy.body_raw_json.as_bytes();
+            let expected_hash = copy.dictionary_content_hash.as_deref();
+            let expected_len = copy.dictionary_length;
+            let hash_view_hash = to_hex(blake3::hash(&hash_view_bytes).as_bytes());
+            let raw_hash = to_hex(blake3::hash(raw_body_bytes).as_bytes());
+            let hash_view_ok = expected_hash == Some(hash_view_hash.as_str())
+                && expected_len == Some(hash_view_bytes.len() as u64);
+            let raw_ok = expected_hash == Some(raw_hash.as_str())
+                && expected_len == Some(raw_body_bytes.len() as u64);
+            if !hash_view_ok && !raw_ok {
+                report.rejected_hash_mismatch_count += 1;
+                continue;
             }
         }
 
-        let generation = value
-            .get("generation")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(0);
         report.valid_dictionary_copy_count += 1;
         if let Some(existing_generation) = canonical_generation {
             if generation != existing_generation {
@@ -532,87 +810,43 @@ pub(super) fn parse_payload_block_path_dictionary(values: &[Value]) -> ParsedPat
 }
 
 pub(super) fn parse_payload_block_identity_records(
-    values: &[Value],
+    records: &[ExperimentalMetadataRecord],
 ) -> Vec<PayloadBlockIdentityRecord> {
     let mut out = Vec::new();
-    for value in values {
-        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-payload-block-identity.v1")
-        {
-            continue;
-        }
-        let Some(archive_identity) = value.get("archive_identity").and_then(|v| v.as_str()) else {
+    for record in records {
+        let ExperimentalMetadataRecord::PayloadBlockIdentity(value) = record else {
             continue;
         };
-        let Some(file_id_u64) = value.get("file_id").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Ok(file_id) = u32::try_from(file_id_u64) else {
-            continue;
-        };
-        let Some(block_index) = value.get("block_index").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Some(total_block_count) = value.get("total_block_count").and_then(|v| v.as_u64())
+        let (
+            Some(archive_identity),
+            Some(file_id),
+            Some(block_index),
+            Some(total_block_count),
+            Some(full_file_size),
+            Some(logical_offset),
+            Some(logical_length),
+            Some(payload_codec),
+            Some(payload_length),
+            Some(block_id),
+            Some(content_identity),
+        ) = (
+            value.archive_identity.clone(),
+            value.file_id,
+            value.block_index,
+            value.total_block_count,
+            value.full_file_size,
+            value.logical_offset,
+            value.logical_length,
+            value.payload_codec,
+            value.payload_length,
+            value.block_id,
+            value.content_identity.clone(),
+        )
         else {
             continue;
         };
-        let Some(full_file_size) = value.get("full_file_size").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Some(logical_offset) = value.get("logical_offset").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Some(logical_length) = value.get("logical_length").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Some(payload_codec_u64) = value.get("payload_codec").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Ok(payload_codec) = u32::try_from(payload_codec_u64) else {
-            continue;
-        };
-        let Some(payload_length) = value.get("payload_length").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Some(block_id_u64) = value.get("block_id").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Ok(block_id) = u32::try_from(block_id_u64) else {
-            continue;
-        };
-        let block_scan_offset = value.get("block_scan_offset").and_then(|v| v.as_u64());
-        let Some(payload_hash_blake3) = value
-            .get("content_identity")
-            .and_then(|v| v.get("payload_hash_blake3"))
-            .and_then(|v| v.as_str())
-        else {
-            continue;
-        };
-        let Some(raw_hash_blake3) = value
-            .get("content_identity")
-            .and_then(|v| v.get("raw_hash_blake3"))
-            .and_then(|v| v.as_str())
-        else {
-            continue;
-        };
-        let name = value
-            .get("name")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let path = value
-            .get("path")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let path_digest_blake3 = value
-            .get("path_digest_blake3")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let path_id = value
-            .get("path_id")
-            .and_then(|v| v.as_u64())
-            .and_then(|v| u32::try_from(v).ok());
         out.push(PayloadBlockIdentityRecord {
-            archive_identity: archive_identity.to_string(),
+            archive_identity,
             file_id,
             block_index,
             total_block_count,
@@ -622,13 +856,13 @@ pub(super) fn parse_payload_block_identity_records(
             payload_codec,
             payload_length,
             block_id,
-            block_scan_offset,
-            payload_hash_blake3: payload_hash_blake3.to_string(),
-            raw_hash_blake3: raw_hash_blake3.to_string(),
-            name,
-            path,
-            path_digest_blake3,
-            path_id,
+            block_scan_offset: value.block_scan_offset,
+            payload_hash_blake3: content_identity.payload_hash_blake3,
+            raw_hash_blake3: content_identity.raw_hash_blake3,
+            name: value.name.clone(),
+            path: value.path.clone(),
+            path_digest_blake3: value.path_digest_blake3.clone(),
+            path_id: value.path_id,
         });
     }
     out
@@ -636,12 +870,12 @@ pub(super) fn parse_payload_block_identity_records(
 
 pub(super) fn verify_and_plan_payload_block_identity_records(
     records: Vec<PayloadBlockIdentityRecord>,
-    values: &[Value],
+    metadata_records: &[ExperimentalMetadataRecord],
     block_verification: &BTreeMap<u32, BlockVerification>,
     verified_candidate_offsets: &BTreeSet<u64>,
 ) -> Result<Vec<FilePlan>> {
-    let path_map = parse_payload_block_path_checkpoints(values);
-    let parsed_dictionary = parse_payload_block_path_dictionary(values);
+    let path_map = parse_payload_block_path_checkpoints(metadata_records);
+    let parsed_dictionary = parse_payload_block_path_dictionary(metadata_records);
     let path_dictionary = parsed_dictionary.map;
     let dictionary_conflict = parsed_dictionary.conflict;
     let mut grouped: BTreeMap<String, PayloadIdentityGroup> = BTreeMap::new();
@@ -661,23 +895,8 @@ pub(super) fn verify_and_plan_payload_block_identity_records(
                 bail!("payload block identity points to unverified content block");
             }
         }
-        if let Some(value) = values.iter().find(|value| {
-            value.get("schema").and_then(|v| v.as_str()) == Some("crushr-payload-block-identity.v1")
-                && value.get("block_id").and_then(|v| v.as_u64()) == Some(record.block_id as u64)
-        }) {
-            let payload = value
-                .get("content_identity")
-                .and_then(|v| v.get("payload_hash_blake3"))
-                .and_then(|v| v.as_str())
-                .unwrap_or_default();
-            let raw = value
-                .get("content_identity")
-                .and_then(|v| v.get("raw_hash_blake3"))
-                .and_then(|v| v.as_str())
-                .unwrap_or_default();
-            if payload != record.payload_hash_blake3 || raw != record.raw_hash_blake3 {
-                bail!("payload block identity content hash mismatch");
-            }
+        if record.payload_hash_blake3.is_empty() || record.raw_hash_blake3.is_empty() {
+            bail!("payload block identity missing content hash");
         }
         let inline_verified_path = if record.path_id.is_some() {
             None
@@ -817,56 +1036,32 @@ pub(super) fn verify_and_plan_payload_block_identity_records(
 }
 
 pub(super) fn parse_file_identity_extent_records(
-    values: &[Value],
+    records: &[ExperimentalMetadataRecord],
 ) -> Vec<FileIdentityExtentRecord> {
     let mut out = Vec::new();
-    for value in values {
-        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-file-identity-extent.v1") {
-            continue;
-        }
-        let Some(file_id_u64) = value.get("file_id").and_then(|v| v.as_u64()) else {
+    for record in records {
+        let ExperimentalMetadataRecord::FileIdentityExtent(value) = record else {
             continue;
         };
-        let Ok(file_id) = u32::try_from(file_id_u64) else {
-            continue;
-        };
-        let Some(size) = value.get("full_file_size").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Some(extent_ordinal) = value.get("extent_ordinal").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Some(block_id_u64) = value.get("block_id").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Ok(block_id) = u32::try_from(block_id_u64) else {
-            continue;
-        };
-        let Some(offset) = value.get("logical_offset").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let Some(len) = value.get("logical_length").and_then(|v| v.as_u64()) else {
-            continue;
-        };
-        let block_scan_offset = value.get("block_scan_offset").and_then(|v| v.as_u64());
-        let Some(path_digest) = value
-            .get("path_linkage")
-            .and_then(|v| v.get("path_digest_blake3"))
-            .and_then(|v| v.as_str())
-        else {
-            continue;
-        };
-        let Some(payload_hash) = value
-            .get("content_identity")
-            .and_then(|v| v.get("payload_hash_blake3"))
-            .and_then(|v| v.as_str())
-        else {
-            continue;
-        };
-        let Some(raw_hash) = value
-            .get("content_identity")
-            .and_then(|v| v.get("raw_hash_blake3"))
-            .and_then(|v| v.as_str())
+        let (
+            Some(file_id),
+            Some(size),
+            Some(extent_ordinal),
+            Some(block_id),
+            Some(offset),
+            Some(len),
+            Some(path_linkage),
+            Some(content_identity),
+        ) = (
+            value.file_id,
+            value.full_file_size,
+            value.extent_ordinal,
+            value.block_id,
+            value.logical_offset,
+            value.logical_length,
+            value.path_linkage.clone(),
+            value.content_identity.clone(),
+        )
         else {
             continue;
         };
@@ -879,10 +1074,10 @@ pub(super) fn parse_file_identity_extent_records(
                 offset,
                 len,
             },
-            block_scan_offset,
-            path_digest_blake3: path_digest.to_string(),
-            payload_hash_blake3: payload_hash.to_string(),
-            raw_hash_blake3: raw_hash.to_string(),
+            block_scan_offset: value.block_scan_offset,
+            path_digest_blake3: path_linkage.path_digest_blake3,
+            payload_hash_blake3: content_identity.payload_hash_blake3,
+            raw_hash_blake3: content_identity.raw_hash_blake3,
         });
     }
     out
@@ -890,11 +1085,11 @@ pub(super) fn parse_file_identity_extent_records(
 
 pub(super) fn verify_and_plan_file_identity_extent_records(
     records: Vec<FileIdentityExtentRecord>,
-    values: &[Value],
+    metadata_records: &[ExperimentalMetadataRecord],
     block_verification: &BTreeMap<u32, BlockVerification>,
     verified_candidate_offsets: &BTreeSet<u64>,
 ) -> Result<Vec<FilePlan>> {
-    let path_map = parse_file_identity_path_map(values);
+    let path_map = parse_file_identity_path_map(metadata_records);
     let mut grouped: BTreeMap<String, (u64, Vec<(u64, Extent)>)> = BTreeMap::new();
 
     for record in records {
@@ -917,24 +1112,8 @@ pub(super) fn verify_and_plan_file_identity_extent_records(
         } else {
             format!("anonymous_verified/file_{:08}.bin", record.file_id)
         };
-        if let Some(value) = values.iter().find(|value| {
-            value.get("schema").and_then(|v| v.as_str()) == Some("crushr-file-identity-extent.v1")
-                && value.get("block_id").and_then(|v| v.as_u64())
-                    == Some(record.extent.block_id as u64)
-        }) {
-            let payload = value
-                .get("content_identity")
-                .and_then(|v| v.get("payload_hash_blake3"))
-                .and_then(|v| v.as_str())
-                .unwrap_or_default();
-            let raw = value
-                .get("content_identity")
-                .and_then(|v| v.get("raw_hash_blake3"))
-                .and_then(|v| v.as_str())
-                .unwrap_or_default();
-            if payload != record.payload_hash_blake3 || raw != record.raw_hash_blake3 {
-                bail!("file identity extent content identity mismatch");
-            }
+        if record.payload_hash_blake3.is_empty() || record.raw_hash_blake3.is_empty() {
+            bail!("file identity extent content identity mismatch");
         }
 
         let entry = grouped
@@ -1099,43 +1278,21 @@ fn classify_from_verified_graph(
     }
 }
 
-pub(super) fn parse_file_manifest_records(values: &[Value]) -> Vec<FileManifestRecord> {
+pub(super) fn parse_file_manifest_records(
+    records: &[ExperimentalMetadataRecord],
+) -> Vec<FileManifestRecord> {
     let mut out = Vec::new();
-    for value in values {
-        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-file-manifest.v1") {
-            continue;
-        }
-        let Some(file_id_u64) = value.get("file_id").and_then(|v| v.as_u64()) else {
+    for record in records {
+        let ExperimentalMetadataRecord::FileManifest(value) = record else {
             continue;
         };
-        let Ok(file_id) = u32::try_from(file_id_u64) else {
-            continue;
-        };
-        let file_size = value.get("file_size").and_then(|v| v.as_u64()).unwrap_or(0);
-        let expected_block_count = value
-            .get("expected_block_count")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(0);
-        let extent_count = value
-            .get("extent_count")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(0);
-        let file_digest = value
-            .get("file_digest")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default()
-            .to_string();
-        let path = value
-            .get("path")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
         out.push(FileManifestRecord {
-            file_id,
-            path,
-            file_size,
-            expected_block_count,
-            extent_count,
-            file_digest,
+            file_id: value.file_id,
+            path: value.path.clone(),
+            file_size: value.file_size.unwrap_or(0),
+            expected_block_count: value.expected_block_count.unwrap_or(0),
+            extent_count: value.extent_count.unwrap_or(0),
+            file_digest: value.file_digest.clone().unwrap_or_default(),
         });
     }
     out
@@ -1144,11 +1301,11 @@ pub(super) fn parse_file_manifest_records(values: &[Value]) -> Vec<FileManifestR
 pub(super) fn verify_and_apply_manifest_expectations(
     mut plans: Vec<FilePlan>,
     manifests: Vec<FileManifestRecord>,
-    values: &[Value],
+    metadata_records: &[ExperimentalMetadataRecord],
     block_verification: &BTreeMap<u32, BlockVerification>,
     mapping_provenance: MappingProvenance,
 ) -> Result<Vec<FilePlan>> {
-    let payload_path_map = parse_payload_block_path_checkpoints(values);
+    let payload_path_map = parse_payload_block_path_checkpoints(metadata_records);
     let mut manifest_by_path = BTreeMap::new();
     let mut manifest_by_id = BTreeMap::new();
     for m in manifests {
@@ -1161,28 +1318,19 @@ pub(super) fn verify_and_apply_manifest_expectations(
         manifest_by_id.insert(m.file_id, m);
     }
 
-    let payload_records = parse_payload_block_identity_records(values);
+    let payload_records = parse_payload_block_identity_records(metadata_records);
     let verified_graph = build_verified_graph(&payload_records, &manifest_by_id, &payload_path_map);
     let mut block_raw_hash = BTreeMap::new();
-    for value in values {
-        if value.get("schema").and_then(|v| v.as_str()) != Some("crushr-payload-block-identity.v1")
-        {
-            continue;
-        }
-        let Some(block_id_u64) = value.get("block_id").and_then(|v| v.as_u64()) else {
+    for record in metadata_records {
+        let ExperimentalMetadataRecord::PayloadBlockIdentity(payload) = record else {
             continue;
         };
-        let Ok(block_id) = u32::try_from(block_id_u64) else {
-            continue;
-        };
-        let Some(raw_hash) = value
-            .get("content_identity")
-            .and_then(|v| v.get("raw_hash_blake3"))
-            .and_then(|v| v.as_str())
+        let (Some(block_id), Some(content_identity)) =
+            (payload.block_id, payload.content_identity.clone())
         else {
             continue;
         };
-        block_raw_hash.insert(block_id, raw_hash.to_string());
+        block_raw_hash.insert(block_id, content_identity.raw_hash_blake3);
     }
 
     if plans.is_empty() {
@@ -1410,6 +1558,17 @@ pub(super) fn verify_and_plan_redundant_map(
 
     plans.sort_by(|a, b| a.file_path.cmp(&b.file_path));
     Ok(plans)
+}
+
+#[cfg(test)]
+fn test_metadata_records(values: Vec<serde_json::Value>) -> Vec<ExperimentalMetadataRecord> {
+    values
+        .into_iter()
+        .map(|value| {
+            let raw = serde_json::to_vec(&value).expect("serialize test metadata record");
+            parse_experimental_metadata_record(&raw).expect("parse typed test metadata record")
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -1646,7 +1805,7 @@ mod tests {
                 path_id: None,
             },
         ];
-        let values = vec![
+        let values = test_metadata_records(vec![
             serde_json::json!({
                 "schema": "crushr-payload-block-identity.v1",
                 "block_id": 1,
@@ -1657,7 +1816,7 @@ mod tests {
                 "block_id": 2,
                 "content_identity": {"payload_hash_blake3":"p2", "raw_hash_blake3":"r2"},
             }),
-        ];
+        ]);
         let block_verification = BTreeMap::from([
             (
                 1u32,
@@ -1711,11 +1870,11 @@ mod tests {
             path_digest_blake3: None,
             path_id: None,
         }];
-        let values = vec![serde_json::json!({
+        let values = test_metadata_records(vec![serde_json::json!({
             "schema": "crushr-payload-block-identity.v1",
             "block_id": 1,
             "content_identity": {"payload_hash_blake3":"p1", "raw_hash_blake3":"r1"},
-        })];
+        })]);
         let block_verification = BTreeMap::from([(
             1u32,
             BlockVerification {
@@ -1764,11 +1923,11 @@ mod tests {
             path_digest_blake3: Some(to_hex(blake3::hash(path.as_bytes()).as_bytes())),
             path_id: None,
         }];
-        let values = vec![serde_json::json!({
+        let values = test_metadata_records(vec![serde_json::json!({
             "schema": "crushr-payload-block-identity.v1",
             "block_id": 1,
             "content_identity": {"payload_hash_blake3":"p1", "raw_hash_blake3":"r1"},
-        })];
+        })]);
         let block_verification = BTreeMap::from([(
             1u32,
             BlockVerification {
@@ -1815,11 +1974,11 @@ mod tests {
             path_digest_blake3: Some("00".repeat(32)),
             path_id: None,
         }];
-        let values = vec![serde_json::json!({
+        let values = test_metadata_records(vec![serde_json::json!({
             "schema": "crushr-payload-block-identity.v1",
             "block_id": 1,
             "content_identity": {"payload_hash_blake3":"p1", "raw_hash_blake3":"r1"},
-        })];
+        })]);
         let block_verification = BTreeMap::from([(
             1u32,
             BlockVerification {
@@ -1852,13 +2011,13 @@ mod format13_dictionary_tests {
 
     #[test]
     fn path_dictionary_parser_is_deterministic() {
-        let values = vec![serde_json::json!({
+        let values = test_metadata_records(vec![serde_json::json!({
             "schema": "crushr-path-dictionary-copy.v1",
             "entries": [
                 {"path_id": 0, "path": "a/b.txt", "path_digest_blake3": to_hex(blake3::hash("a/b.txt".as_bytes()).as_bytes())},
                 {"path_id": 1, "path": "c.txt", "path_digest_blake3": to_hex(blake3::hash("c.txt".as_bytes()).as_bytes())}
             ]
-        })];
+        })]);
         let a = parse_payload_block_path_dictionary(&values);
         let b = parse_payload_block_path_dictionary(&values);
         assert_eq!(a.map, b.map);
@@ -1877,14 +2036,14 @@ mod format13_dictionary_tests {
             }]
         });
         let body_bytes = serde_json::to_vec(&body).unwrap();
-        let values = vec![serde_json::json!({
+        let values = test_metadata_records(vec![serde_json::json!({
             "schema": "crushr-path-dictionary-copy.v2",
             "archive_instance_id": "aid",
             "generation": 1,
             "dictionary_length": body_bytes.len(),
             "dictionary_content_hash": to_hex(blake3::hash(&body_bytes).as_bytes()),
             "body": body
-        })];
+        })]);
         let parsed = parse_payload_block_path_dictionary(&values);
         assert_eq!(parsed.map.get(&0).map(String::as_str), Some("a/b.txt"));
     }
@@ -1897,7 +2056,7 @@ mod format13_dictionary_tests {
             "file_bindings": [{"path_id":0,"dir_id":0,"name_id":0,"path_digest_blake3": to_hex(blake3::hash("a/b.txt".as_bytes()).as_bytes())}]
         });
         let body_bytes = serde_json::to_vec(&body).unwrap();
-        let values = vec![
+        let values = test_metadata_records(vec![
             serde_json::json!({
                 "schema": "crushr-payload-block-identity.v1",
                 "archive_identity": "good_archive",
@@ -1920,7 +2079,7 @@ mod format13_dictionary_tests {
                 "dictionary_content_hash": to_hex(blake3::hash(&body_bytes).as_bytes()),
                 "body": body
             }),
-        ];
+        ]);
         let parsed = parse_payload_block_path_dictionary(&values);
         assert!(parsed.map.is_empty());
         assert_eq!(parsed.rejected_wrong_archive_count, 1);
@@ -1933,14 +2092,14 @@ mod format13_dictionary_tests {
             "basenames": [{"name_id":0,"basename":"x.txt"}],
             "file_bindings": [{"path_id":0,"dir_id":0,"name_id":0,"path_digest_blake3": to_hex(blake3::hash("x.txt".as_bytes()).as_bytes())}]
         });
-        let values = vec![serde_json::json!({
+        let values = test_metadata_records(vec![serde_json::json!({
             "schema": "crushr-path-dictionary-copy.v2",
             "archive_instance_id": "a",
             "generation": 1,
             "dictionary_length": 999,
             "dictionary_content_hash": "00",
             "body": body
-        })];
+        })]);
         let parsed = parse_payload_block_path_dictionary(&values);
         assert!(parsed.map.is_empty());
         assert_eq!(parsed.rejected_hash_mismatch_count, 1);
@@ -1964,9 +2123,32 @@ mod format13_dictionary_tests {
                 "body": body
             })
         };
-        let parsed = parse_payload_block_path_dictionary(&[mk(1), mk(2)]);
+        let parsed =
+            parse_payload_block_path_dictionary(&test_metadata_records(vec![mk(1), mk(2)]));
         assert!(parsed.conflict);
         assert_eq!(parsed.detected_generation_mismatch_count, 1);
+    }
+
+    #[test]
+    fn v2_raw_body_hash_parity_is_preserved_without_value_carrier() {
+        let digest = to_hex(blake3::hash("a.txt".as_bytes()).as_bytes());
+        let body_raw = format!(
+            "{{\"representation\":\"full_path_v1\",\"entry_count\":1,\"entries\":[{{\"path_id\":0,\"path\":\"a.txt\",\"path_digest_blake3\":\"{}\"}}]}}",
+            digest
+        );
+        let body_hash = to_hex(blake3::hash(body_raw.as_bytes()).as_bytes());
+        let value = serde_json::json!({
+            "schema": "crushr-path-dictionary-copy.v2",
+            "archive_instance_id": "aid",
+            "generation": 1,
+            "dictionary_length": body_raw.len(),
+            "dictionary_content_hash": body_hash,
+            "body": serde_json::from_str::<serde_json::Value>(&body_raw).unwrap()
+        });
+        let records = test_metadata_records(vec![value]);
+        let parsed = parse_payload_block_path_dictionary(&records);
+        assert_eq!(parsed.rejected_hash_mismatch_count, 0);
+        assert_eq!(parsed.map.get(&0).map(String::as_str), Some("a.txt"));
     }
 
     #[test]
@@ -1990,7 +2172,7 @@ mod format13_dictionary_tests {
             path_digest_blake3: None,
             path_id: Some(0),
         }];
-        let values = vec![
+        let values = test_metadata_records(vec![
             serde_json::json!({
                 "schema": "crushr-payload-block-identity.v1",
                 "block_id": 1,
@@ -2008,7 +2190,7 @@ mod format13_dictionary_tests {
                     }
                 ]
             }),
-        ];
+        ]);
         let block_verification = BTreeMap::from([(
             1u32,
             BlockVerification {
@@ -2054,7 +2236,7 @@ mod format13_dictionary_tests {
             path_digest_blake3: None,
             path_id: Some(0),
         }];
-        let values = vec![
+        let values = test_metadata_records(vec![
             serde_json::json!({
                 "schema": "crushr-payload-block-identity.v1",
                 "block_id": 1,
@@ -2072,7 +2254,7 @@ mod format13_dictionary_tests {
                     {"path_id": 0, "path": "two.txt", "path_digest_blake3": to_hex(blake3::hash("two.txt".as_bytes()).as_bytes())}
                 ]
             }),
-        ];
+        ]);
         let block_verification = BTreeMap::from([(
             1u32,
             BlockVerification {

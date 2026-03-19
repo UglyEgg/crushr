@@ -5,7 +5,6 @@ use crushr_format::blk3::{write_blk3_header, Blk3Flags, Blk3Header};
 use crushr_format::ledger::LedgerBlob;
 use crushr_format::tailframe::assemble_tail_frame;
 use serde::Serialize;
-use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io::{Seek, Write};
@@ -166,7 +165,7 @@ struct CanonicalFileModel {
 #[derive(Debug)]
 struct DictionaryPlan {
     path_id_by_path: BTreeMap<String, u32>,
-    primary_copy: Option<Value>,
+    primary_copy: Option<PathDictionaryCopyRecordV2>,
     tail_copy_required: bool,
     quasi_uniform_ordinals: BTreeSet<usize>,
 }
@@ -216,6 +215,209 @@ struct RedundantFileMapExtent {
     block_id: u32,
     file_offset: u64,
     len: u64,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct ContentIdentity {
+    payload_hash_blake3: String,
+    raw_hash_blake3: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct SelfDescribingExtentRecord {
+    file_id: u32,
+    path: String,
+    logical_offset: u64,
+    logical_length: u64,
+    full_file_size: u64,
+    extent_ordinal: u64,
+    block_id: u32,
+    content_identity: ContentIdentity,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct SelfDescribingExtentEnvelope {
+    schema: &'static str,
+    record: SelfDescribingExtentRecord,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct CheckpointMapSnapshot {
+    schema: &'static str,
+    checkpoint_ordinal: u64,
+    records: Vec<SelfDescribingExtentRecord>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct PathLinkage {
+    path_digest_blake3: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct FileIdentityExtentRecord {
+    schema: &'static str,
+    file_id: u32,
+    logical_offset: u64,
+    logical_length: u64,
+    full_file_size: u64,
+    extent_ordinal: u64,
+    block_id: u32,
+    block_scan_offset: u64,
+    content_identity: ContentIdentity,
+    path_linkage: PathLinkage,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct FileIdentityPathRecord {
+    file_id: u32,
+    path: String,
+    path_digest_blake3: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct FilePathMapEntryRecord {
+    schema: &'static str,
+    file_id: u32,
+    path: String,
+    path_digest_blake3: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct BootstrapAnchorRecord {
+    schema: &'static str,
+    anchor_ordinal: u64,
+    archive_identity: Option<String>,
+    records_emitted: u64,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct PayloadBlockIdentityRecord {
+    schema: &'static str,
+    archive_identity: Option<String>,
+    file_id: u32,
+    block_id: u32,
+    block_index: u64,
+    extent_index: u64,
+    total_block_count: u64,
+    total_extent_count: u64,
+    full_file_size: u64,
+    logical_offset: u64,
+    payload_codec: u32,
+    payload_length: u64,
+    logical_length: u64,
+    extent_length: u64,
+    block_scan_offset: u64,
+    content_identity: ContentIdentity,
+    name: Option<String>,
+    path: Option<String>,
+    path_digest_blake3: Option<String>,
+    path_id: Option<u32>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct PathCheckpointEntry {
+    file_id: u32,
+    path: String,
+    path_digest_blake3: String,
+    full_file_size: u64,
+    total_block_count: u64,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct PathCheckpointSnapshot {
+    schema: &'static str,
+    checkpoint_ordinal: u64,
+    placement_strategy: Option<&'static str>,
+    entries: Vec<PathCheckpointEntry>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct FileManifestRecord {
+    schema: &'static str,
+    file_id: u32,
+    path: String,
+    file_size: u64,
+    expected_block_count: u64,
+    extent_count: u64,
+    file_digest: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct FileManifestCheckpointSnapshot {
+    schema: &'static str,
+    checkpoint_ordinal: u64,
+    placement_strategy: Option<&'static str>,
+    records: Vec<FileManifestRecord>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct FilePathMapRecord {
+    schema: &'static str,
+    records: Vec<FileIdentityPathRecord>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct PayloadBlockIdentitySummary {
+    schema: &'static str,
+    records_emitted: u64,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct PathDictionaryEntry {
+    path_id: u32,
+    path: String,
+    path_digest_blake3: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct FactoredDirectory {
+    dir_id: u32,
+    prefix: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct FactoredBasename {
+    name_id: u32,
+    basename: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct FactoredFileBinding {
+    path_id: u32,
+    dir_id: u32,
+    name_id: u32,
+    path_digest_blake3: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(tag = "representation")]
+enum PathDictionaryBody {
+    #[serde(rename = "full_path_v1")]
+    FullPath {
+        entry_count: u64,
+        entries: Vec<PathDictionaryEntry>,
+    },
+    #[serde(rename = "factored_namespace_v1")]
+    FactoredNamespace {
+        entry_count: u64,
+        directory_count: u64,
+        basename_count: u64,
+        directories: Vec<FactoredDirectory>,
+        basenames: Vec<FactoredBasename>,
+        file_bindings: Vec<FactoredFileBinding>,
+    },
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct PathDictionaryCopyRecordV2 {
+    schema: &'static str,
+    copy_role: &'static str,
+    archive_instance_id: String,
+    dict_uuid: String,
+    generation: u64,
+    dictionary_length: u64,
+    dictionary_content_hash: String,
+    body: PathDictionaryBody,
 }
 
 fn main() {
@@ -484,7 +686,7 @@ fn emit_archive_from_layout(
             experimental_records.push(record.clone());
             write_experimental_metadata_block(
                 &mut out,
-                &wrap_self_describing_extent(&record),
+                &wrap_self_describing_extent(record),
                 level,
             )?;
 
@@ -567,7 +769,7 @@ fn emit_archive_from_layout(
                     .primary_copy
                     .clone()
                     .context("missing primary dictionary copy for interior mirror")?;
-                copy["copy_role"] = Value::String("interior_mirror".to_string());
+                copy.copy_role = "interior_mirror";
                 write_experimental_metadata_block(&mut out, &copy, level)?;
             }
 
@@ -641,7 +843,7 @@ fn emit_archive_from_layout(
             .primary_copy
             .clone()
             .context("missing primary dictionary copy for tail mirror")?;
-        copy["copy_role"] = Value::String("tail_mirror".to_string());
+        copy.copy_role = "tail_mirror";
         write_experimental_metadata_block(&mut out, &copy, level)?;
     }
 
@@ -665,10 +867,10 @@ fn emit_archive_from_layout(
         )?;
         write_experimental_metadata_block(
             &mut out,
-            &json!({
-                "schema": "crushr-file-path-map.v1",
-                "records": file_identity_path_records,
-            }),
+            &FilePathMapRecord {
+                schema: "crushr-file-path-map.v1",
+                records: file_identity_path_records,
+            },
             level,
         )?;
     }
@@ -688,10 +890,10 @@ fn emit_archive_from_layout(
     if emit_payload_identity {
         write_experimental_metadata_block(
             &mut out,
-            &json!({
-                "schema": "crushr-payload-block-identity-summary.v1",
-                "records_emitted": payload_block_identity_records.len() as u64,
-            }),
+            &PayloadBlockIdentitySummary {
+                schema: "crushr-payload-block-identity-summary.v1",
+                records_emitted: payload_block_identity_records.len() as u64,
+            },
             level,
         )?;
     }
@@ -722,89 +924,100 @@ fn emit_archive_from_layout(
     Ok(())
 }
 
-fn build_self_describing_extent_record(file: &CanonicalFileModel) -> Value {
-    json!({
-        "file_id": file.file_id,
-        "path": file.rel_path,
-        "logical_offset": 0,
-        "logical_length": file.raw.len() as u64,
-        "full_file_size": file.raw.len() as u64,
-        "extent_ordinal": 0,
-        "block_id": file.file_id,
-        "content_identity": {
-            "payload_hash_blake3": to_hex(&file.payload_hash),
-            "raw_hash_blake3": to_hex(&file.raw_hash),
-        }
-    })
+fn build_self_describing_extent_record(file: &CanonicalFileModel) -> SelfDescribingExtentRecord {
+    SelfDescribingExtentRecord {
+        file_id: file.file_id,
+        path: file.rel_path.clone(),
+        logical_offset: 0,
+        logical_length: file.raw.len() as u64,
+        full_file_size: file.raw.len() as u64,
+        extent_ordinal: 0,
+        block_id: file.file_id,
+        content_identity: ContentIdentity {
+            payload_hash_blake3: to_hex(&file.payload_hash),
+            raw_hash_blake3: to_hex(&file.raw_hash),
+        },
+    }
 }
 
-fn wrap_self_describing_extent(record: &Value) -> Value {
-    json!({
-        "schema": "crushr-self-describing-extent.v1",
-        "record": record,
-    })
+fn wrap_self_describing_extent(record: SelfDescribingExtentRecord) -> SelfDescribingExtentEnvelope {
+    SelfDescribingExtentEnvelope {
+        schema: "crushr-self-describing-extent.v1",
+        record,
+    }
 }
 
-fn build_checkpoint_map_snapshot(checkpoint_ordinal: u64, records: &[Value]) -> Value {
-    json!({
-        "schema": "crushr-checkpoint-map-snapshot.v1",
-        "checkpoint_ordinal": checkpoint_ordinal,
-        "records": records,
-    })
+fn build_checkpoint_map_snapshot(
+    checkpoint_ordinal: u64,
+    records: &[SelfDescribingExtentRecord],
+) -> CheckpointMapSnapshot {
+    CheckpointMapSnapshot {
+        schema: "crushr-checkpoint-map-snapshot.v1",
+        checkpoint_ordinal,
+        records: records.to_vec(),
+    }
 }
 
 fn build_file_identity_extent_record(
     file: &CanonicalFileModel,
     block_scan_offset: u64,
     path_digest: &[u8; 32],
-) -> Value {
-    json!({
-        "schema": "crushr-file-identity-extent.v1",
-        "file_id": file.file_id,
-        "logical_offset": 0,
-        "logical_length": file.raw.len() as u64,
-        "full_file_size": file.raw.len() as u64,
-        "extent_ordinal": 0,
-        "block_id": file.file_id,
-        "block_scan_offset": block_scan_offset,
-        "content_identity": {
-            "payload_hash_blake3": to_hex(&file.payload_hash),
-            "raw_hash_blake3": to_hex(&file.raw_hash),
+) -> FileIdentityExtentRecord {
+    FileIdentityExtentRecord {
+        schema: "crushr-file-identity-extent.v1",
+        file_id: file.file_id,
+        logical_offset: 0,
+        logical_length: file.raw.len() as u64,
+        full_file_size: file.raw.len() as u64,
+        extent_ordinal: 0,
+        block_id: file.file_id,
+        block_scan_offset,
+        content_identity: ContentIdentity {
+            payload_hash_blake3: to_hex(&file.payload_hash),
+            raw_hash_blake3: to_hex(&file.raw_hash),
         },
-        "path_linkage": {
-            "path_digest_blake3": to_hex(path_digest),
-        }
-    })
+        path_linkage: PathLinkage {
+            path_digest_blake3: to_hex(path_digest),
+        },
+    }
 }
 
-fn build_file_identity_path_record(file_id: u32, path: &str, path_digest: &[u8; 32]) -> Value {
-    json!({
-        "file_id": file_id,
-        "path": path,
-        "path_digest_blake3": to_hex(path_digest),
-    })
+fn build_file_identity_path_record(
+    file_id: u32,
+    path: &str,
+    path_digest: &[u8; 32],
+) -> FileIdentityPathRecord {
+    FileIdentityPathRecord {
+        file_id,
+        path: path.to_string(),
+        path_digest_blake3: to_hex(path_digest),
+    }
 }
 
-fn build_file_path_map_entry(file_id: u32, path: &str, path_digest: &[u8; 32]) -> Value {
-    json!({
-        "schema": "crushr-file-path-map-entry.v1",
-        "file_id": file_id,
-        "path": path,
-        "path_digest_blake3": to_hex(path_digest),
-    })
+fn build_file_path_map_entry(
+    file_id: u32,
+    path: &str,
+    path_digest: &[u8; 32],
+) -> FilePathMapEntryRecord {
+    FilePathMapEntryRecord {
+        schema: "crushr-file-path-map-entry.v1",
+        file_id,
+        path: path.to_string(),
+        path_digest_blake3: to_hex(path_digest),
+    }
 }
 
 fn build_bootstrap_anchor(
     anchor_ordinal: u64,
     archive_identity: Option<String>,
     records_emitted: u64,
-) -> Value {
-    json!({
-        "schema": "crushr-bootstrap-anchor.v1",
-        "anchor_ordinal": anchor_ordinal,
-        "archive_identity": archive_identity,
-        "records_emitted": records_emitted,
-    })
+) -> BootstrapAnchorRecord {
+    BootstrapAnchorRecord {
+        schema: "crushr-bootstrap-anchor.v1",
+        anchor_ordinal,
+        archive_identity,
+        records_emitted,
+    }
 }
 
 fn build_payload_block_identity_record(
@@ -815,32 +1028,32 @@ fn build_payload_block_identity_record(
     inline_path: Option<String>,
     inline_path_digest: Option<String>,
     path_id: Option<u32>,
-) -> Value {
-    json!({
-        "schema": "crushr-payload-block-identity.v1",
-        "archive_identity": archive_identity,
-        "file_id": file.file_id,
-        "block_id": file.file_id,
-        "block_index": 0,
-        "extent_index": 0,
-        "total_block_count": 1,
-        "total_extent_count": 1,
-        "full_file_size": file.raw.len() as u64,
-        "logical_offset": 0,
-        "payload_codec": ZSTD_CODEC,
-        "payload_length": file.compressed.len() as u64,
-        "logical_length": file.raw.len() as u64,
-        "extent_length": file.raw.len() as u64,
-        "block_scan_offset": block_scan_offset,
-        "content_identity": {
-            "payload_hash_blake3": to_hex(&file.payload_hash),
-            "raw_hash_blake3": to_hex(&file.raw_hash),
+) -> PayloadBlockIdentityRecord {
+    PayloadBlockIdentityRecord {
+        schema: "crushr-payload-block-identity.v1",
+        archive_identity,
+        file_id: file.file_id,
+        block_id: file.file_id,
+        block_index: 0,
+        extent_index: 0,
+        total_block_count: 1,
+        total_extent_count: 1,
+        full_file_size: file.raw.len() as u64,
+        logical_offset: 0,
+        payload_codec: ZSTD_CODEC,
+        payload_length: file.compressed.len() as u64,
+        logical_length: file.raw.len() as u64,
+        extent_length: file.raw.len() as u64,
+        block_scan_offset,
+        content_identity: ContentIdentity {
+            payload_hash_blake3: to_hex(&file.payload_hash),
+            raw_hash_blake3: to_hex(&file.raw_hash),
         },
-        "name": inline_name,
-        "path": inline_path,
-        "path_digest_blake3": inline_path_digest,
-        "path_id": path_id,
-    })
+        name: inline_name,
+        path: inline_path,
+        path_digest_blake3: inline_path_digest,
+        path_id,
+    }
 }
 
 fn build_path_checkpoint_entry(
@@ -848,52 +1061,52 @@ fn build_path_checkpoint_entry(
     path: &str,
     path_digest: &[u8; 32],
     full_file_size: u64,
-) -> Value {
-    json!({
-        "file_id": file_id,
-        "path": path,
-        "path_digest_blake3": to_hex(path_digest),
-        "full_file_size": full_file_size,
-        "total_block_count": 1,
-    })
+) -> PathCheckpointEntry {
+    PathCheckpointEntry {
+        file_id,
+        path: path.to_string(),
+        path_digest_blake3: to_hex(path_digest),
+        full_file_size,
+        total_block_count: 1,
+    }
 }
 
 fn build_path_checkpoint_snapshot(
     checkpoint_ordinal: u64,
     placement_strategy: Option<PlacementStrategy>,
-    entries: &[Value],
-) -> Value {
-    json!({
-        "schema": "crushr-path-checkpoint.v1",
-        "checkpoint_ordinal": checkpoint_ordinal,
-        "placement_strategy": placement_strategy.map(|s| s.as_str()),
-        "entries": entries,
-    })
+    entries: &[PathCheckpointEntry],
+) -> PathCheckpointSnapshot {
+    PathCheckpointSnapshot {
+        schema: "crushr-path-checkpoint.v1",
+        checkpoint_ordinal,
+        placement_strategy: placement_strategy.map(|s| s.as_str()),
+        entries: entries.to_vec(),
+    }
 }
 
-fn build_file_manifest_record(file: &CanonicalFileModel) -> Value {
-    json!({
-        "schema": "crushr-file-manifest.v1",
-        "file_id": file.file_id,
-        "path": file.rel_path,
-        "file_size": file.raw.len() as u64,
-        "expected_block_count": 1,
-        "extent_count": 1,
-        "file_digest": to_hex(blake3::hash(&file.raw).as_bytes()),
-    })
+fn build_file_manifest_record(file: &CanonicalFileModel) -> FileManifestRecord {
+    FileManifestRecord {
+        schema: "crushr-file-manifest.v1",
+        file_id: file.file_id,
+        path: file.rel_path.clone(),
+        file_size: file.raw.len() as u64,
+        expected_block_count: 1,
+        extent_count: 1,
+        file_digest: to_hex(blake3::hash(&file.raw).as_bytes()),
+    }
 }
 
 fn build_manifest_checkpoint_snapshot(
     checkpoint_ordinal: u64,
     placement_strategy: Option<PlacementStrategy>,
-    records: &[Value],
-) -> Value {
-    json!({
-        "schema": "crushr-file-manifest-checkpoint.v1",
-        "checkpoint_ordinal": checkpoint_ordinal,
-        "placement_strategy": placement_strategy.map(|s| s.as_str()),
-        "records": records,
-    })
+    records: &[FileManifestRecord],
+) -> FileManifestCheckpointSnapshot {
+    FileManifestCheckpointSnapshot {
+        schema: "crushr-file-manifest-checkpoint.v1",
+        checkpoint_ordinal,
+        placement_strategy: placement_strategy.map(|s| s.as_str()),
+        records: records.to_vec(),
+    }
 }
 
 fn write_tail_with_redundant_map(
@@ -1031,15 +1244,21 @@ fn build_dictionary_plan(
                 next_name_id += 1;
             }
         }
-        let directories: Vec<Value> = dir_id_by_path
+        let directories: Vec<FactoredDirectory> = dir_id_by_path
             .iter()
-            .map(|(dir, dir_id)| json!({"dir_id": *dir_id, "prefix": dir}))
+            .map(|(dir, dir_id)| FactoredDirectory {
+                dir_id: *dir_id,
+                prefix: dir.clone(),
+            })
             .collect();
-        let basenames: Vec<Value> = name_id_by_name
+        let basenames: Vec<FactoredBasename> = name_id_by_name
             .iter()
-            .map(|(name, name_id)| json!({"name_id": *name_id, "basename": name}))
+            .map(|(name, name_id)| FactoredBasename {
+                name_id: *name_id,
+                basename: name.clone(),
+            })
             .collect();
-        let file_bindings: Vec<Value> = path_id_by_path
+        let file_bindings: Vec<FactoredFileBinding> = path_id_by_path
             .iter()
             .map(|(path, path_id)| {
                 let path_obj = Path::new(path);
@@ -1053,39 +1272,35 @@ fn build_dictionary_plan(
                     .unwrap_or_else(|| path.clone());
                 let dir_id = *dir_id_by_path.get(&dir).expect("dir id");
                 let name_id = *name_id_by_name.get(&name).expect("name id");
-                json!({
-                    "path_id": *path_id,
-                    "dir_id": dir_id,
-                    "name_id": name_id,
-                    "path_digest_blake3": to_hex(blake3::hash(path.as_bytes()).as_bytes())
-                })
+                FactoredFileBinding {
+                    path_id: *path_id,
+                    dir_id,
+                    name_id,
+                    path_digest_blake3: to_hex(blake3::hash(path.as_bytes()).as_bytes()),
+                }
             })
             .collect();
-        json!({
-            "representation": "factored_namespace_v1",
-            "entry_count": path_id_by_path.len() as u64,
-            "directory_count": directories.len() as u64,
-            "basename_count": basenames.len() as u64,
-            "directories": directories,
-            "basenames": basenames,
-            "file_bindings": file_bindings,
-        })
+        PathDictionaryBody::FactoredNamespace {
+            entry_count: path_id_by_path.len() as u64,
+            directory_count: directories.len() as u64,
+            basename_count: basenames.len() as u64,
+            directories,
+            basenames,
+            file_bindings,
+        }
     } else {
-        let entries: Vec<Value> = path_id_by_path
+        let entries: Vec<PathDictionaryEntry> = path_id_by_path
             .iter()
-            .map(|(path, path_id)| {
-                json!({
-                    "path_id": *path_id,
-                    "path": path,
-                    "path_digest_blake3": to_hex(blake3::hash(path.as_bytes()).as_bytes())
-                })
+            .map(|(path, path_id)| PathDictionaryEntry {
+                path_id: *path_id,
+                path: path.clone(),
+                path_digest_blake3: to_hex(blake3::hash(path.as_bytes()).as_bytes()),
             })
             .collect();
-        json!({
-            "representation": "full_path_v1",
-            "entry_count": entries.len() as u64,
-            "entries": entries,
-        })
+        PathDictionaryBody::FullPath {
+            entry_count: entries.len() as u64,
+            entries,
+        }
     };
     let path_dictionary_body_bytes = serde_json::to_vec(&path_dictionary_body)?;
     let dictionary_content_hash = to_hex(blake3::hash(&path_dictionary_body_bytes).as_bytes());
@@ -1101,16 +1316,16 @@ fn build_dictionary_plan(
     );
     Ok(DictionaryPlan {
         path_id_by_path: path_id_by_path.clone(),
-        primary_copy: Some(json!({
-            "schema": "crushr-path-dictionary-copy.v2",
-            "copy_role": "primary",
-            "archive_instance_id": dictionary_archive_instance_id,
-            "dict_uuid": dictionary_uuid,
-            "generation": dictionary_generation,
-            "dictionary_length": path_dictionary_body_bytes.len() as u64,
-            "dictionary_content_hash": dictionary_content_hash,
-            "body": path_dictionary_body,
-        })),
+        primary_copy: Some(PathDictionaryCopyRecordV2 {
+            schema: "crushr-path-dictionary-copy.v2",
+            copy_role: "primary",
+            archive_instance_id: dictionary_archive_instance_id,
+            dict_uuid: dictionary_uuid,
+            generation: dictionary_generation,
+            dictionary_length: path_dictionary_body_bytes.len() as u64,
+            dictionary_content_hash,
+            body: path_dictionary_body,
+        }),
         tail_copy_required,
         quasi_uniform_ordinals,
     })
@@ -1216,9 +1431,9 @@ fn golden_ratio_ordinals(
     set
 }
 
-fn write_experimental_metadata_block(
+fn write_experimental_metadata_block<T: Serialize>(
     out: &mut File,
-    value: &serde_json::Value,
+    value: &T,
     level: i32,
 ) -> Result<()> {
     let raw = serde_json::to_vec(value)?;

@@ -11,7 +11,6 @@ use crushr_format::{
     tailframe::parse_tail_frame,
 };
 use serde::{Serialize, Serializer};
-use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::fs::File;
@@ -131,9 +130,9 @@ use artifacts::{export_artifacts, write_json_output};
 use cli::parse_cli_options;
 use discovery::{build_block_verification, classify_file, scan_blk3_candidates, to_hex};
 use metadata::{
-    parse_checkpoint_extent_records, parse_experimental_metadata_records,
-    parse_file_identity_extent_records, parse_file_manifest_records,
-    parse_payload_block_identity_records, parse_redundant_map_files,
+    is_bootstrap_anchor_record, parse_checkpoint_extent_records,
+    parse_experimental_metadata_records, parse_file_identity_extent_records,
+    parse_file_manifest_records, parse_payload_block_identity_records, parse_redundant_map_files,
     parse_self_describing_extent_records, verify_and_apply_manifest_expectations,
     verify_and_plan_experimental_records, verify_and_plan_file_identity_extent_records,
     verify_and_plan_payload_block_identity_records, verify_and_plan_redundant_map,
@@ -583,9 +582,7 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
             parse_experimental_metadata_records(&archive_bytes, &synthesized_block_verification);
         let verified_anchor_count = experimental_values
             .iter()
-            .filter(|v| {
-                v.get("schema").and_then(|x| x.as_str()) == Some("crushr-bootstrap-anchor.v1")
-            })
+            .filter(|record| is_bootstrap_anchor_record(record))
             .count() as u64;
         bootstrap_anchor_analysis = if verified_anchor_count > 0 {
             BootstrapAnchorAnalysis {
