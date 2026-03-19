@@ -1,27 +1,84 @@
-# Project cruft
+# =========================================================
+# Rust / Cargo
+# =========================================================
+
+# Cargo build output
+/target/
+
+# Rust backup files sometimes produced by tooling
+**/*.rs.bk
+
+
+# =========================================================
+# Project Build / Packaging Artifacts
+# =========================================================
+
+# Local build staging / generated outputs
+/dist/
+/results/
+
+# Release archives
 *.tar.gz
 *.zip
 
-dist/
-results/
-target/
-PHASE2_RESEARCH/*
-TASK_PACKETS/*
 
-# Python / MkDocs
-.venv/
-venv/
-env/
+# =========================================================
+# Local-Only Project Working Data
+# =========================================================
+
+# Tool caches and ephemeral local data
+/.cache/
+
+# Research / task packet working folders - heavy churn and messy
+/PHASE2_RESEARCH/
+/TASK_PACKETS/
+
+
+# =========================================================
+# Python / Documentation Tooling
+# =========================================================
+
+# Virtual environments
+/.venv/
+/venv/
+/env/
+
+# Python bytecode / cache
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
 
-# MkDocs build output
-site/
+# Static site output (MkDocs)
+/site/
 
-# OS/editor noise
+
+# =========================================================
+# Editors / IDEs
+# =========================================================
+
+# JetBrains
+/.idea/
+
+# VS Code
+/.vscode/
+
+# Vim / generic editor temp files
+*.swp
+*.swo
+*~
+
+
+# =========================================================
+# Logs / Temporary Files
+# =========================================================
+
+*.log
+*.tmp
+*.temp
+
+
+# =========================================================
+# OS Noise
+# =========================================================
+
 .DS_Store
 Thumbs.db
-.idea/
-.vscode/
