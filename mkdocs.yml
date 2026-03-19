@@ -1,15 +1,29 @@
+# =========================================================
+# Site Metadata
+# =========================================================
+
 site_name: crushr
 site_description: Salvage-oriented archive format and technical documentation
 site_url: https://crushr.entropy.quest/
+site_author: Richard Majewski — Varanid Works
+
 repo_name: UglyEgg/crushr
 repo_url: https://github.com/UglyEgg/crushr
-site_author: Richard Majewski - Varanid Works
 edit_uri: edit/main/docs/
+
+# =========================================================
+# Theme (Zensical-compatible Material-style config)
+# =========================================================
 
 theme:
   name: material
-  logo: assets/logo.webp
+
+  logo: assets/crushr_icon.webp
   favicon: assets/favicon.png
+
+  icon:
+    repo: fontawesome/brands/github
+
   palette:
     - scheme: slate
       primary: custom
@@ -17,13 +31,16 @@ theme:
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
+
     - scheme: default
       primary: custom
       accent: custom
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
+
   features:
+    # Navigation
     - navigation.instant
     - navigation.tracking
     - navigation.sections
@@ -31,13 +48,25 @@ theme:
     - navigation.top
     - navigation.tabs
     - navigation.tabs.sticky
+
+    # Content / repository actions
     - content.code.copy
     - content.action.edit
-    - search.suggest
+    - content.action.view
+
+    # Search
     - search.highlight
+
+# =========================================================
+# Assets
+# =========================================================
 
 extra_css:
   - assets/stylesheets/theme.css
+
+# =========================================================
+# Markdown Extensions
+# =========================================================
 
 markdown_extensions:
   - admonition
@@ -55,9 +84,14 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.highlight
 
+# =========================================================
+# Navigation Structure
+# =========================================================
+
 nav:
   - Welcome: index.md
   - Why crushr: why-crushr.md
+
   - Whitepaper:
       - Executive summary: whitepaper/index.md
       - Problem statement: whitepaper/problem-statement.md
@@ -65,7 +99,9 @@ nav:
       - Recovery and integrity model: whitepaper/recovery-model.md
       - Experimental evaluation: whitepaper/evaluation.md
       - Applicability and roadmap: whitepaper/applicability.md
+
   - Format evolution: format-evolution.md
+
   - Technical reference:
       - Overview: reference/index.md
       - Archive format boundary: reference/archive-format.md
