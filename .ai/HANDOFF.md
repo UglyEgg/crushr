@@ -21,6 +21,11 @@ CRUSHR-HARDEN-03I completion update (2026-03-19):
 - bootstrap-anchor availability checks were moved from key-based JSON lookups to typed metadata variant checks.
 - FIX2 follow-up: removed localized dictionary-copy-v2 `body: serde_json::Value` raw carrier; parser now captures `body_raw_json` via deterministic raw-slice extraction from the metadata block JSON bytes and preserves hash/length parity semantics.
 
+CRUSHR-LAB-FIX-01 completion update (2026-03-19):
+- `crushr-lab` Phase 2 contract tests no longer assume checked-in `PHASE2_RESEARCH` artifacts exist at workspace root.
+- Comparison shape-contract coverage now uses representative in-test normalized records to validate emitted comparison tables/rankings.
+- Normalization shape + ordering tests now create deterministic temporary trials fixtures and validate both schema-shape conformance and canonical `scenario_id` ordering from emitted normalized records.
+
 
 ## CRUSHR-HARDEN-03A handoff
 - Removed accidental `crushr::extraction_path` library exposure; path-confinement helpers remain internal implementation detail.

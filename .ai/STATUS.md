@@ -6,6 +6,10 @@ Current Step: **CRUSHR-HARDEN-03I complete** (typed metadata conversion closed a
 
 Immediate Next Step: **metadata-pruning evidence review** (use FORMAT-10/11/12/13/14A results to lock keep/prune boundaries)
 
+Latest maintenance fix (2026-03-19):
+- **CRUSHR-LAB-FIX-01 complete**: repaired Phase 2 lab comparison/normalization contract tests so they no longer depend on missing workspace artifacts and instead generate representative deterministic fixtures in-test.
+- Normalization ordering contract is now explicitly enforced through a dedicated scenario-id sort helper used by `normalize_from_trials`.
+
 ## Current truth
 
 - Phase 1 is complete.
