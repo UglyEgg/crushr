@@ -395,15 +395,75 @@ pub fn validate_format_rankings_shape(value: &Value) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::phase2_domain::{CorruptionType, Dataset, Magnitude, TargetClass};
+    use crate::phase2_normalization::{
+        BlastRadiusClass, DiagnosticSpecificity, FailureStage, RecoveryEvidenceStrength, ResultClass,
+    };
+
+    fn representative_normalized_records() -> Vec<NormalizedRunRecord> {
+        vec![
+            NormalizedRunRecord {
+                scenario_id: "p2-core-smallfiles-crushr-bit_flip-header-1B-1000".to_string(),
+                dataset: Dataset::Smallfiles,
+                format: ArchiveFormat::Crushr,
+                corruption_type: CorruptionType::BitFlip,
+                target_class: TargetClass::Header,
+                magnitude: Magnitude::OneByte,
+                magnitude_bytes: 1,
+                seed: 1000,
+                tool_kind: ArchiveFormat::Crushr,
+                exit_code: 0,
+                has_json_result: true,
+                result_completeness: "structured_json_result".to_string(),
+                detected_pre_extract: false,
+                failure_stage: FailureStage::None,
+                result_class: ResultClass::Success,
+                diagnostic_specificity: DiagnosticSpecificity::Precise,
+                files_expected: 10,
+                files_recovered: 10,
+                files_missing: 0,
+                bytes_expected: 100,
+                bytes_recovered: 100,
+                recovery_ratio_files: 1.0,
+                recovery_ratio_bytes: 1.0,
+                blast_radius_class: BlastRadiusClass::None,
+                normalization_notes: vec![],
+                recovery_evidence_strength: RecoveryEvidenceStrength::FileAndByteCounts,
+            },
+            NormalizedRunRecord {
+                scenario_id: "p2-core-smallfiles-zip-bit_flip-header-1B-1000".to_string(),
+                dataset: Dataset::Smallfiles,
+                format: ArchiveFormat::Zip,
+                corruption_type: CorruptionType::BitFlip,
+                target_class: TargetClass::Header,
+                magnitude: Magnitude::OneByte,
+                magnitude_bytes: 1,
+                seed: 1000,
+                tool_kind: ArchiveFormat::Zip,
+                exit_code: 2,
+                has_json_result: false,
+                result_completeness: "stderr_only".to_string(),
+                detected_pre_extract: true,
+                failure_stage: FailureStage::PreExtract,
+                result_class: ResultClass::StructuralFail,
+                diagnostic_specificity: DiagnosticSpecificity::Structural,
+                files_expected: 10,
+                files_recovered: 0,
+                files_missing: 10,
+                bytes_expected: 100,
+                bytes_recovered: 0,
+                recovery_ratio_files: 0.0,
+                recovery_ratio_bytes: 0.0,
+                blast_radius_class: BlastRadiusClass::Total,
+                normalization_notes: vec![],
+                recovery_evidence_strength: RecoveryEvidenceStrength::FileAndByteCounts,
+            },
+        ]
+    }
 
     #[test]
     fn comparison_outputs_validate_against_shape_contracts() {
-        let root = crate::cli::workspace_root().expect("workspace root");
-        let records: Vec<NormalizedRunRecord> = serde_json::from_slice(
-            &fs::read(root.join("PHASE2_RESEARCH/results/normalized_results.json"))
-                .expect("read normalized results"),
-        )
-        .expect("parse normalized results");
+        let records = representative_normalized_records();
 
         let tables = build_comparison_tables(&records);
         let rankings = build_format_rankings(&tables);

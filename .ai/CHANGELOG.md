@@ -1,3 +1,8 @@
+## 2026-03-19 — CRUSHR-LAB-FIX-01
+- Repaired three failing `crushr-lab` Phase 2 tests by removing implicit dependency on absent workspace artifact files.
+- Added deterministic temporary-trials fixture setup for normalization shape/order tests and explicit scenario-id sort-helper usage in normalization code path.
+- Updated comparison shape-contract test to use representative normalized records and validate emitted tables/rankings against active shape validators.
+
 ## 2026-03-18 — CRUSHR-HARDEN-03H
 - Enforced canonical verification-output truth boundary by deleting CLI-local `VerifyReport` in `crushr-extract` and introducing canonical model-owned `VerificationReportView` projection in `crushr-core::verification_model`.
 - Moved refusal-reason output labeling/mapping into `VerificationModel::to_report_view`, removing duplicate classification/summary assembly logic from the output layer.

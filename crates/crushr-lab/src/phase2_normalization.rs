@@ -171,11 +171,15 @@ pub fn normalize_from_trials(trials_dir: &Path) -> Result<NormalizedCorpus> {
         normalized.push(normalize_record(trials_dir, &record)?);
     }
 
-    normalized.sort_by(|a, b| a.scenario_id.cmp(&b.scenario_id));
+    sort_normalized_records_by_scenario_id(&mut normalized);
 
     Ok(NormalizedCorpus {
         records: normalized,
     })
+}
+
+fn sort_normalized_records_by_scenario_id(records: &mut [NormalizedRunRecord]) {
+    records.sort_by(|a, b| a.scenario_id.cmp(&b.scenario_id));
 }
 
 fn normalize_record(trials_dir: &Path, record: &RawRunRecord) -> Result<NormalizedRunRecord> {
@@ -691,8 +695,45 @@ mod tests {
             .to_path_buf()
     }
 
-    fn trials_dir() -> PathBuf {
-        workspace_root().join("PHASE2_RESEARCH/trials")
+    fn create_sample_trials_dir() -> PathBuf {
+        let unique = format!(
+            "phase2-normalize-contract-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("unix epoch")
+                .as_nanos()
+        );
+        let trials = std::env::temp_dir().join(unique);
+        fs::create_dir_all(trials.join("raw/scenario")).expect("create test trials dir");
+
+        let mut b_record = sample_raw_record();
+        b_record.scenario_id = "p2-core-smallfiles-crushr-bit_flip-header-1B-2000".to_string();
+        b_record.seed = 2000;
+        b_record.stdout_path = "raw/scenario/b_stdout.txt".to_string();
+        b_record.stderr_path = "raw/scenario/b_stderr.txt".to_string();
+        b_record.json_result_path = Some("raw/scenario/b_result.json".to_string());
+
+        let mut a_record = sample_raw_record();
+        a_record.scenario_id = "p2-core-smallfiles-crushr-bit_flip-header-1B-1000".to_string();
+        a_record.seed = 1000;
+        a_record.stdout_path = "raw/scenario/a_stdout.txt".to_string();
+        a_record.stderr_path = "raw/scenario/a_stderr.txt".to_string();
+        a_record.json_result_path = Some("raw/scenario/a_result.json".to_string());
+
+        fs::write(
+            trials.join("raw_run_records.json"),
+            serde_json::to_vec_pretty(&vec![b_record, a_record]).expect("serialize raw records"),
+        )
+        .expect("write raw records");
+        fs::write(trials.join("raw/scenario/a_stdout.txt"), "").expect("write a stdout");
+        fs::write(trials.join("raw/scenario/a_stderr.txt"), "").expect("write a stderr");
+        fs::write(trials.join("raw/scenario/a_result.json"), "{}").expect("write a result");
+        fs::write(trials.join("raw/scenario/b_stdout.txt"), "").expect("write b stdout");
+        fs::write(trials.join("raw/scenario/b_stderr.txt"), "").expect("write b stderr");
+        fs::write(trials.join("raw/scenario/b_result.json"), "{}").expect("write b result");
+
+        trials
     }
 
     fn sample_raw_record() -> RawRunRecord {
@@ -913,7 +954,8 @@ mod tests {
 
     #[test]
     fn normalized_output_is_sorted_by_scenario_id() {
-        let corpus = normalize_from_trials(&trials_dir()).expect("normalize");
+        let trials = create_sample_trials_dir();
+        let corpus = normalize_from_trials(&trials).expect("normalize");
         let ids = corpus
             .records
             .iter()
@@ -922,16 +964,19 @@ mod tests {
         let mut sorted = ids.clone();
         sorted.sort();
         assert_eq!(ids, sorted);
+        let _ = fs::remove_dir_all(&trials);
     }
 
     #[test]
     fn normalization_shapes_validate() {
-        let corpus = normalize_from_trials(&trials_dir()).expect("normalize");
+        let trials = create_sample_trials_dir();
+        let corpus = normalize_from_trials(&trials).expect("normalize");
         let summary = build_summary(&corpus.records);
         validate_normalized_results_shape(&serde_json::to_value(&corpus.records).unwrap())
             .expect("normalized results shape valid");
         validate_normalization_summary_shape(&serde_json::to_value(&summary).unwrap())
             .expect("summary shape valid");
+        let _ = fs::remove_dir_all(&trials);
     }
 
     #[test]
