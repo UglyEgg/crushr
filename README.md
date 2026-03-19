@@ -42,7 +42,7 @@ The canonical tool boundary remains:
 - `crushr-pack`
 - `crushr-info`
 - `crushr-extract`
-- 
+- `crushr-extract --verify`
 - `crushr-salvage` (experimental, separate from canonical extraction)
 
 `crushr-extract` remains strict and deterministic.
