@@ -1,0 +1,190 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-HARDEN-03H
+
+Title
+Verification model purity and boundary enforcement
+
+Role
+BUILDER
+
+Objective
+Enforce purity of the canonical verification model introduced in 03G by removing any remaining bypass paths, duplicate truth structures, or output-layer dependence on internal format structures.
+
+This is a boundary-enforcement packet.
+It is intentionally smaller and more hostile than 03G.
+
+---------------------------------------------------------------------
+
+Read first
+
+1. AGENTS.md
+2. AI_BOOTSTRAP.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. .ai/INDEX.md
+6. .ai/STATUS.md
+7. .ai/PHASE_PLAN.md
+8. .ai/DECISION_LOG.md
+9. results of CRUSHR-HARDEN-03G
+10. current output/reporting modules
+11. current canonical verification model
+12. any remaining direct internal-struct uses in output paths
+
+---------------------------------------------------------------------
+
+Context
+
+03G should have introduced:
+- a canonical verification model
+- typed metadata builders
+- output binding through that model
+
+This packet exists to ensure builder did not leave:
+- bypass paths
+- duplicate summary/file-resolution structures
+- direct output formatting from internal structs
+- hidden drift points
+
+---------------------------------------------------------------------
+
+Hard constraints
+
+- Do NOT redesign semantics established in 03G.
+- Do NOT introduce new feature work.
+- This packet is for purity and enforcement only.
+- Prefer deletion of bypass code over preserving convenience shortcuts.
+
+---------------------------------------------------------------------
+
+Required implementation scope
+
+1) Eliminate internal structure leakage into output
+
+Required:
+- no CLI/text/JSON reporting path may consume raw internal format structs directly
+- remove any remaining direct use of extent/dictionary/internal parser structs in output code
+
+Output must consume only:
+- canonical verification model
+or
+- narrow typed render-ready structures derived directly from it
+
+---------------------------------------------------------------------
+
+2) Eliminate parallel truth structures
+
+Required:
+- no duplicate summary models
+- no alternate file-resolution models serving the same meaning
+- no duplicated failure-classification logic outside the canonical resolution path
+
+If duplicates remain:
+- consolidate them
+- delete the extras
+
+---------------------------------------------------------------------
+
+3) Enforce module boundaries
+
+Required:
+- output modules do not import internal format implementation details beyond the canonical boundary
+- format/internal modules do not depend on output/rendering modules
+
+Add compile-time/module-structure enforcement where practical.
+
+---------------------------------------------------------------------
+
+4) Deterministic output regression check
+
+Required:
+- run verification/report generation twice on the same input
+- confirm byte-for-byte identical output where applicable
+
+---------------------------------------------------------------------
+
+5) Structural independence check
+
+Builder must demonstrate:
+- changing an internal format struct does not require output-layer changes unless canonical model semantics change
+
+This may be shown via patch-note explanation and code structure evidence rather than synthetic mutation tests if needed.
+
+---------------------------------------------------------------------
+
+6) Tests/checks
+
+Required:
+- boundary/purity tests where practical
+- determinism regression check
+- any grep/lint/assertion check used to prove no bypass imports/usages remain
+
+---------------------------------------------------------------------
+
+7) Docs/continuity updates
+
+Update:
+- `.ai/STATUS.md`
+- `.ai/PHASE_PLAN.md`
+- `.ai/HANDOFF.md`
+
+Required note:
+- canonical model purity enforced
+- bypass paths removed
+- remaining follow-up debt, if any, explicitly listed
+
+---------------------------------------------------------------------
+
+Required verification commands
+
+Builder must run and report exact commands for:
+- tests/checks used to prove boundary purity
+- deterministic output verification
+- any focused lint/grep checks used to confirm no internal-struct output leakage remains
+
+---------------------------------------------------------------------
+
+Non-goals
+
+This packet must NOT:
+- redesign output semantics
+- add new archive features
+- reopen API-surface contraction work beyond what purity enforcement requires
+- add benchmark harness functionality
+
+---------------------------------------------------------------------
+
+Required deliverables
+
+Code / behavior
+- no remaining internal-struct leakage into output
+- no parallel truth structures in verification/reporting paths
+- cleaner module boundaries around canonical model
+
+Tests/checks
+- determinism confirmation
+- purity/bypass checks
+
+Docs
+- continuity file updates
+
+Submission bundle
+- patch/diff
+- exact commands run
+- short note listing:
+  - bypass paths removed
+  - duplicate truth structures removed
+  - any intentionally deferred cleanup
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+This packet is acceptable only if all of the following are true:
+
+1. The canonical verification model is now the sole source of truth for reporting.
+2. Internal format structures no longer leak into output paths.
+3. Duplicate verification truth structures are materially reduced or eliminated.
+4. Deterministic output is preserved.
+5. The codebase now has a defensible verification-truth boundary that is difficult to accidentally bypass.

@@ -1,0 +1,205 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-HARDEN-03C
+
+Title
+Typed comparison contracts and schema-backed experiment outputs
+
+Role
+BUILDER
+
+Objective
+Replace fragile untyped comparison/report surfaces with typed internal structures and schema-backed emitted artifacts for the comparison pipeline.
+
+This packet exists because comparison artifacts currently rely too heavily on loosely structured JSON/value plumbing, which makes experiment outputs difficult to trust, evolve, and review.
+
+This is a typed-contract packet.
+It is not yet the decomposition packet.
+
+---------------------------------------------------------------------
+
+Read first
+
+1. AGENTS.md
+2. AI_BOOTSTRAP.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. .ai/INDEX.md
+6. .ai/STATUS.md
+7. .ai/PHASE_PLAN.md
+8. .ai/DECISION_LOG.md
+9. current comparison engine code
+10. current experiment output schemas
+11. current summary/report artifacts for FORMAT-12/13/14A/15
+12. reviewer findings for CRUSHR-HARDEN-03C
+
+---------------------------------------------------------------------
+
+Context
+
+The comparison pipeline is central to crushr’s architectural claims. If its outputs are shaped by ad hoc `serde_json::Value` plumbing and implicit conventions instead of typed contracts and schemas, then every ranking, chart, and summary is less trustworthy than it should be.
+
+This packet must create a clean contract boundary for experiment outputs before the comparison engine is decomposed.
+
+---------------------------------------------------------------------
+
+Hard constraints
+
+- Do NOT change experiment results semantically unless required to repair a contract lie.
+- Do NOT spread untyped `Value`-based plumbing into more files.
+- Prefer explicit typed structs/enums over dynamic map-shaped output assembly.
+- Every public machine-readable comparison artifact must have a schema.
+- If old output shapes are materially changed, version them instead of pretending compatibility.
+- This packet must improve trustworthiness first, not aesthetics.
+
+---------------------------------------------------------------------
+
+Required implementation scope
+
+1) Inventory current output artifacts
+
+Identify the currently emitted comparison/report artifact types, for example:
+- comparison summaries
+- stress summaries
+- resilience summaries
+- grouped breakdown outputs
+- any chart-input or report-friendly JSON
+
+Document:
+- which outputs already have schemas
+- which do not
+- which rely on implicit conventions
+- where `serde_json::Value` is currently shaping output
+
+---------------------------------------------------------------------
+
+2) Define typed internal output models
+
+For each active comparison artifact family, introduce typed internal Rust structs/enums representing the emitted content.
+
+Minimum required families:
+- top-level comparison summary
+- by-variant summary
+- grouped breakdown entry
+- metric rows used by report generation
+
+Required:
+- typed enums for variant IDs where practical
+- typed enums for corruption classes/targets where public output depends on them
+- typed metric fields with explicit names and types
+
+---------------------------------------------------------------------
+
+3) Add/repair schemas for active output artifacts
+
+Every active machine-readable experiment output emitted by the comparison pipeline must have a schema.
+
+Required:
+- add missing schemas
+- repair stale schemas
+- version any materially changed schemas
+- ensure filenames and version names are consistent
+
+This packet should cover at least the currently active comparison families used in docs/review.
+
+---------------------------------------------------------------------
+
+4) Replace untyped emission paths
+
+Refactor output generation so emitted JSON is produced from typed structs rather than from ad hoc `Value` assembly.
+
+Required:
+- reduce `serde_json::Value` use in active output paths materially
+- keep any remaining `Value` use bounded and justified
+- document any intentionally deferred untyped areas for 03E
+
+---------------------------------------------------------------------
+
+5) Add schema-validation tests for comparison artifacts
+
+Required tests:
+- emitted comparison artifacts validate against their schemas
+- required fields are always present
+- enum/value vocabularies are consistent
+- version fields are correct
+- representative FORMAT comparison outputs serialize deterministically
+
+---------------------------------------------------------------------
+
+6) Update report-generation paths
+
+Where Markdown summaries or report generation depend on untyped JSON walking, replace that dependency with typed models where feasible.
+
+The goal is not full decomposition yet.
+The goal is to ensure the reporting layer is reading trusted, typed data.
+
+---------------------------------------------------------------------
+
+7) Update docs/continuity files
+
+Update:
+- docs that describe active experiment outputs, if any
+- `.ai/STATUS.md`
+- `.ai/PHASE_PLAN.md`
+- `.ai/HANDOFF.md`
+
+Required note:
+- comparison outputs are now schema-backed and typed
+- remaining decomposition work is deferred to 03E
+
+---------------------------------------------------------------------
+
+Required verification commands
+
+Builder must run and report exact commands for:
+- comparison artifact generation on at least one active comparison command
+- schema-validation tests for those artifacts
+- any unit/integration tests covering typed serialization
+
+---------------------------------------------------------------------
+
+Non-goals
+
+This packet must NOT:
+- fully decompose the comparison engine into many modules
+- redesign the experiment methodology
+- add benchmark harness work
+- redesign salvage output semantics
+- do broad docs-site work
+
+---------------------------------------------------------------------
+
+Required deliverables
+
+Code / behavior
+- typed internal comparison models
+- schema-backed emitted comparison artifacts
+- materially reduced untyped output assembly
+
+Tests
+- schema-validation tests
+- serialization/determinism tests
+
+Docs
+- continuity file updates
+- any necessary output-contract docs
+
+Submission bundle
+- patch/diff
+- exact commands run
+- example emitted artifacts
+- brief note identifying what untyped areas remain and why they were deferred to 03E
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+This packet is acceptable only if all of the following are true:
+
+1. Active comparison outputs are represented by typed internal models.
+2. Active machine-readable outputs have truthful schemas.
+3. Emitted artifacts validate against those schemas.
+4. Untyped `Value`-based output shaping is materially reduced in active paths.
+5. Reporting layers consume trusted structured data.
+6. The codebase is in a better position for later engine decomposition.

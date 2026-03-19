@@ -1,0 +1,295 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-TOOLING-VERIFY-01
+
+Title
+Retire public `crushr-fsck` surface, clean stale fsck references, and implement `crushr-extract --verify`
+
+Role
+BUILDER
+
+Objective
+Clean up legacy `crushr-fsck` code/comments/documentation drift and implement the locked tool-boundary decision:
+
+- `crushr-fsck` is no longer a distinct public-facing tool
+- strict verification belongs to `crushr-extract --verify`
+- recovery-oriented degraded-state analysis remains in `crushr-salvage`
+
+This packet is a **tool-boundary cleanup and implementation packet**.
+It is not a format-redesign packet.
+
+---------------------------------------------------------------------
+
+Read first
+
+1. AGENTS.md
+2. AI_BOOTSTRAP.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. .ai/INDEX.md
+6. .ai/STATUS.md
+7. .ai/PHASE_PLAN.md
+8. .ai/DECISION_LOG.md
+9. updated decision entry locking retirement of `crushr-fsck` as a public tool
+10. README.md
+11. current CLI/binary registrations
+12. current extract code path
+13. current fsck code path
+14. current salvage code path
+15. docs site pages mentioning `crushr-fsck`
+
+---------------------------------------------------------------------
+
+Context
+
+The repo currently contains stale `fsck` naming in code, comments, docs, and possibly CLI registration.
+The locked direction is now:
+
+- `crushr-extract --verify` handles strict archive verification relevant to extraction
+- `crushr-salvage` handles recovery-oriented analysis
+- `crushr-fsck` should not remain a public-facing product identity
+
+This packet must:
+1. clean the stale `fsck` naming drift
+2. migrate strict verification behavior into `crushr-extract --verify`
+3. preserve canonical strict extraction semantics
+4. avoid collapsing salvage behavior into extract
+
+---------------------------------------------------------------------
+
+Hard constraints
+
+- Do NOT weaken strict extraction semantics.
+- Do NOT move salvage planning / degraded recovery analysis into `crushr-extract`.
+- Do NOT add guessed recovery behavior to extract.
+- Do NOT silently change archive format contracts.
+- Do NOT leave overlapping public tool identities after this packet.
+- `crushr-extract --verify` must remain deterministic and strict.
+- If `crushr-fsck` code remains internally for refactor staging, it must no longer present as a public product surface.
+- Prefer deletion over alias sediment where practical.
+
+---------------------------------------------------------------------
+
+Required implementation scope
+
+1) Public tool-surface cleanup
+
+Retire `crushr-fsck` as a distinct public-facing tool identity.
+
+Required outcomes:
+- remove `crushr-fsck` from public docs, help text, tool listings, and examples
+- remove or demote public CLI registration for `crushr-fsck`
+- if binary removal is too invasive for this packet, convert it to a temporary hidden/internal compatibility shim and document that explicitly
+- no new public workflow should instruct users to use `crushr-fsck`
+
+Preferred end state:
+- no public `crushr-fsck` binary or command surface remains
+
+Acceptable temporary fallback only if required for bounded refactor:
+- hidden compatibility wrapper that emits a deprecation/error message directing users to `crushr-extract --verify`
+
+---------------------------------------------------------------------
+
+2) Implement `crushr-extract --verify`
+
+Add a strict verification mode to `crushr-extract`.
+
+Required behavior:
+- perform strict structural and integrity verification relevant to extraction
+- report whether the archive is safe for strict extraction
+- produce deterministic refusal/reporting when verification fails
+- do NOT perform salvage classification or speculative recovery planning
+
+Required command shape:
+
+crushr-extract --verify <archive>
+
+Equivalent CLI shape is acceptable if consistent with existing argument parsing.
+
+Required output behavior:
+- success case: explicit verified/safe result
+- failure case: explicit refusal with reason(s)
+- optional structured JSON output is acceptable if already aligned with project patterns, but plain text behavior must be useful
+
+`--verify` may:
+- verify header/footer/tail structures relevant to canonical extraction
+- verify extent/block hashes and required indices/maps
+- verify dictionary presence/consistency if canonical extraction depends on it
+- verify archive open/parse invariants
+
+`--verify` must NOT:
+- emit anonymous fallback outputs
+- produce salvage plans
+- classify partial ordered/unordered recovery
+- generate research-style degraded-state narratives
+
+This is extraction verification, not salvage analysis.
+
+---------------------------------------------------------------------
+
+3) Reuse and consolidate strict verification logic
+
+Audit current `fsck` and `extract` verification paths.
+
+Required work:
+- identify duplicate strict-verification logic
+- consolidate into shared internal code where appropriate
+- ensure extract does not depend on salvage-only code
+- remove stale `fsck`-named helpers/comments if they now belong to extract verification
+
+Preferred structure:
+- shared strict verification module callable by extract
+- salvage keeps its own recovery-oriented layers above that boundary
+
+---------------------------------------------------------------------
+
+4) Code and comment cleanup
+
+Search for stale `fsck`/`cfsk`/`cfsk`/misspelled or legacy naming in:
+
+- code
+- comments
+- docs strings
+- help text
+- tests
+- module names where practical
+
+Required action per occurrence:
+- rename if still relevant under new boundary
+- delete if obsolete
+- move to salvage terminology if the behavior is recovery-oriented
+- move to extract verification terminology if the behavior is strict verification
+
+This packet should leave the repo without obvious stale `fsck` naming drift in active paths.
+
+---------------------------------------------------------------------
+
+5) CLI/help/documentation updates
+
+Update all relevant docs/help text to reflect the new product surface.
+
+Minimum required docs/files to update:
+- README.md
+- docs site pages mentioning tool suite or command examples
+- any CLI usage/help text snapshots or tests
+- .ai/STATUS.md
+- .ai/PHASE_PLAN.md
+- .ai/HANDOFF.md
+- any public tool listing page
+
+Required tool story after update:
+- `crushr-pack`
+- `crushr-extract`
+- `crushr-extract --verify`
+- `crushr-salvage`
+- `crushr-lab` if applicable
+
+No public-facing primary docs should describe `crushr-fsck` as part of the current product surface.
+
+---------------------------------------------------------------------
+
+6) Verification/refusal output contract
+
+`crushr-extract --verify` must produce a bounded, deterministic result model.
+
+At minimum it must answer:
+- archive opens successfully or not
+- canonical extraction invariants pass or not
+- strict extraction is safe or refused
+
+If JSON/report output exists, include fields equivalent to:
+- archive_path
+- verification_status
+- safe_for_strict_extraction
+- refusal_reasons
+- verified_extent_count if available
+- failed_check_count if available
+
+Do not overdesign a giant schema in this packet unless one already exists and can be cleanly reused.
+
+---------------------------------------------------------------------
+
+7) Required tests
+
+Add or update tests for at minimum:
+
+7.1 `crushr-extract --verify` success path
+- valid archive returns success
+- safe_for_strict_extraction true
+
+7.2 `crushr-extract --verify` failure path
+- damaged archive returns refusal/failure
+- deterministic reasons present
+
+7.3 no salvage leakage
+- `--verify` does not emit salvage planning language
+- `--verify` does not downgrade to anonymous recovery
+
+7.4 public tool-surface cleanup
+- public help/docs no longer advertise `crushr-fsck`
+- if compatibility shim remains, it is hidden or explicitly deprecated
+
+7.5 stale naming cleanup
+- update tests/help snapshots affected by renamed messages
+- no active-path typo/legacy naming remains where touched
+
+7.6 shared verification logic
+- strict verification reused correctly between internals where applicable
+- no behavior drift in strict extraction path
+
+---------------------------------------------------------------------
+
+8) Non-goals
+
+This packet must NOT:
+- redesign salvage output
+- redesign archive format
+- add anonymous extraction to `crushr-extract`
+- add benchmark harness work
+- broaden into full docs-site redesign
+- implement recovery reconstruction features
+
+---------------------------------------------------------------------
+
+Required deliverables
+
+Code / behavior
+- `crushr-extract --verify` implemented
+- stale `crushr-fsck` public surface removed or cleanly deprecated
+- stale `fsck` naming drift cleaned from active paths
+
+Docs
+- updated tool listings and examples
+- updated README and affected docs
+- updated `.ai/` continuity files as needed
+
+Submission bundle
+- patch/diff
+- exact commands run
+- test results
+- brief note listing:
+  - what `crushr-extract --verify` now does
+  - what happened to `crushr-fsck`
+  - any temporary compatibility shims left in place
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+This packet is acceptable only if all of the following are true:
+
+1. `crushr-extract --verify` exists and works.
+2. It performs strict verification only, without salvage behavior.
+3. Public-facing `crushr-fsck` identity is removed or explicitly deprecated/hidden.
+4. Active-path stale `fsck` naming drift is cleaned up.
+5. Public docs and help text reflect the new boundary.
+6. Tests demonstrate success/failure behavior for `--verify`.
+7. No canonical extraction semantics are weakened.
+
+---------------------------------------------------------------------
+
+Submission note for Builder
+
+Prefer a clean public-surface result over preserving compatibility sediment.
+If a compatibility shim is absolutely required, keep it minimal, clearly deprecated, and out of the primary user story.

@@ -1,0 +1,244 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-HARDEN-03D
+
+Title
+Reader boundary audit, strict verification alignment, and `crushr-extract --verify`
+
+Role
+BUILDER
+
+Objective
+Audit and tighten the reader/verification boundary so that strict canonical extraction behavior remains explicit, best-effort/permissive reading does not leak into extraction semantics, and the locked tool-boundary change is implemented through `crushr-extract --verify`.
+
+This packet exists because the reviewer identified permissive read-path behavior that may conflict with strict extraction semantics, and the project has now locked the public boundary:
+
+- `crushr-fsck` is retired as a public-facing tool
+- strict verification belongs in `crushr-extract --verify`
+- recovery-oriented degraded-state analysis belongs in `crushr-salvage`
+
+This is a policy-boundary packet.
+It is not a salvage redesign packet.
+
+---------------------------------------------------------------------
+
+Read first
+
+1. AGENTS.md
+2. AI_BOOTSTRAP.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. .ai/INDEX.md
+6. .ai/STATUS.md
+7. .ai/PHASE_PLAN.md
+8. .ai/DECISION_LOG.md
+9. current reader/open/parse code
+10. current extract code
+11. current fsck code
+12. current salvage code
+13. reviewer findings for CRUSHR-HARDEN-03D
+14. tool-boundary lock retiring public `crushr-fsck`
+
+---------------------------------------------------------------------
+
+Context
+
+The canonical product promise requires:
+- strict extraction
+- deterministic refusal reporting
+- no silent best-effort leakage into extract
+- clear separation between verification and salvage
+
+At the same time, older code/comments/tooling may still reflect:
+- permissive reader behavior
+- stale `fsck` identity
+- boundary confusion between strict verification and salvage analysis
+
+This packet must make that boundary truthful in code and public surface.
+
+---------------------------------------------------------------------
+
+Hard constraints
+
+- Do NOT weaken strict extraction semantics.
+- Do NOT add anonymous fallback or salvage-style downgrade behavior to `crushr-extract`.
+- Do NOT preserve permissive reader behavior in canonical extract paths unless explicitly justified and bounded.
+- Do NOT keep overlapping public tool identities after this packet without explicit documented deprecation staging.
+- Prefer a clean public-surface result over compatibility sediment.
+
+---------------------------------------------------------------------
+
+Required implementation scope
+
+1) Reader boundary audit
+
+Audit the current read/open/parse path and classify behavior into:
+
+- strict canonical extraction behavior
+- shared structural parsing behavior
+- permissive/best-effort/research-only behavior
+
+Required output in patch notes:
+- short audit summary listing what was found
+- explicit note on any permissive behavior that was moved, tightened, or isolated
+
+---------------------------------------------------------------------
+
+2) Tighten canonical extract boundary
+
+Ensure canonical extraction paths use only strict verification behavior.
+
+Required outcomes:
+- extract path does not silently accept malformed/best-effort-read structures
+- extract path refuses deterministically when required invariants fail
+- any permissive read logic needed for salvage is isolated away from canonical extract path
+
+If shared reader code currently mixes strict and permissive modes, refactor to make the mode boundary explicit.
+
+---------------------------------------------------------------------
+
+3) Implement `crushr-extract --verify`
+
+Add a strict verification mode to `crushr-extract`.
+
+Required behavior:
+- verify archive open/parse/structural invariants relevant to canonical extraction
+- report whether archive is safe for strict extraction
+- produce deterministic refusal reasons
+- do NOT perform salvage planning or degraded recovery classification
+
+Required command shape:
+- `crushr-extract --verify <archive>`
+
+Equivalent CLI shape is acceptable if consistent.
+
+Required result semantics:
+- archive opens or not
+- canonical extraction invariants pass or fail
+- safe for strict extraction true/false
+- refusal reasons reported on failure
+
+Optional JSON output is acceptable if aligned cleanly with current tool patterns, but plain text behavior must be useful.
+
+---------------------------------------------------------------------
+
+4) Retire public `crushr-fsck` surface
+
+Implement the tool-boundary lock.
+
+Required outcomes:
+- remove `crushr-fsck` from public docs, examples, and primary tool listings
+- remove public-facing `crushr-fsck` registration if feasible in this packet
+- if a temporary compatibility shim is required, keep it hidden or explicitly deprecated and direct users to `crushr-extract --verify`
+
+Preferred end state:
+- no public `crushr-fsck` identity remains
+
+---------------------------------------------------------------------
+
+5) Clean stale naming drift
+
+Search active paths for stale `fsck` naming in:
+- code comments
+- help text
+- docs strings
+- tests
+- module/function names where practical
+
+Required action:
+- rename strict verification concepts under extract/verification terminology
+- move recovery-oriented language under salvage terminology
+- delete obsolete names/comments when no longer truthful
+
+This packet should materially reduce stale `fsck` drift.
+
+---------------------------------------------------------------------
+
+6) Add focused tests
+
+Required tests:
+- valid archive passes `crushr-extract --verify`
+- damaged archive fails `crushr-extract --verify` deterministically
+- `--verify` does not emit salvage planning language
+- extract path remains strict
+- any compatibility shim/deprecation behavior for `crushr-fsck` behaves as documented
+- no permissive reader behavior leaks into canonical extract path in covered scenarios
+
+---------------------------------------------------------------------
+
+7) Update docs/continuity files
+
+Minimum required updates:
+- README.md
+- public docs pages mentioning tool suite
+- any command examples/help text
+- `.ai/STATUS.md`
+- `.ai/PHASE_PLAN.md`
+- `.ai/HANDOFF.md`
+
+Required public tool story after update:
+- `crushr-pack`
+- `crushr-extract`
+- `crushr-extract --verify`
+- `crushr-salvage`
+- `crushr-lab` if applicable
+
+---------------------------------------------------------------------
+
+Required verification commands
+
+Builder must run and report exact commands for:
+- `crushr-extract --verify` success case
+- `crushr-extract --verify` failure case
+- relevant tests
+- help/CLI verification showing updated public surface
+
+---------------------------------------------------------------------
+
+Non-goals
+
+This packet must NOT:
+- redesign salvage output
+- redesign archive format
+- implement benchmark harness work
+- fully decompose the comparison engine
+- broaden into a docs-site redesign
+
+---------------------------------------------------------------------
+
+Required deliverables
+
+Code / behavior
+- strict reader boundary tightened
+- `crushr-extract --verify` implemented
+- public `crushr-fsck` surface removed or cleanly deprecated/hidden
+- stale `fsck` naming materially cleaned up
+
+Tests
+- success/failure coverage for `--verify`
+- boundary/no-salvage-leakage coverage
+
+Docs
+- updated tool docs/help text
+- continuity file updates
+
+Submission bundle
+- patch/diff
+- exact commands run
+- brief audit summary of reader/permissive behavior findings
+- brief note describing what happened to `crushr-fsck`
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+This packet is acceptable only if all of the following are true:
+
+1. `crushr-extract --verify` exists and works.
+2. Canonical extract paths remain strict.
+3. Permissive/best-effort reader behavior is isolated away from canonical extraction.
+4. Public-facing `crushr-fsck` identity is removed or explicitly deprecated/hidden.
+5. Active-path stale `fsck` naming drift is materially cleaned.
+6. Tests demonstrate strict verification success/failure behavior.
+7. The codebase/tool surface now matches the locked policy boundary.

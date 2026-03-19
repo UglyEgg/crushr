@@ -1,0 +1,215 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-HARDEN-03E
+
+Title
+Comparison engine decomposition and module boundary cleanup
+
+Role
+BUILDER
+
+Objective
+Decompose the oversized comparison engine into smaller, typed, reviewable modules now that output contracts and schemas have been repaired by prior hardening work.
+
+This packet exists because the comparison engine is currently too large and too layered to review safely. Even if its outputs are now typed and schema-backed, the implementation remains structurally fragile if core logic is concentrated in a monolithic engine.
+
+This is a decomposition and maintainability packet.
+It is not a methodology-redesign packet.
+
+---------------------------------------------------------------------
+
+Read first
+
+1. AGENTS.md
+2. AI_BOOTSTRAP.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. .ai/INDEX.md
+6. .ai/STATUS.md
+7. .ai/PHASE_PLAN.md
+8. .ai/DECISION_LOG.md
+9. results of CRUSHR-HARDEN-03C
+10. current comparison engine implementation
+11. current typed comparison models and schemas
+12. reviewer findings for CRUSHR-HARDEN-03E
+
+---------------------------------------------------------------------
+
+Context
+
+Prior hardening work should already have:
+- repaired comparison output contracts
+- introduced typed output models
+- added truthful schemas
+
+That means the next safe step is structural cleanup.
+
+The goal is not merely “split a big file.”
+The goal is to produce module boundaries that align with the comparison engine’s real responsibilities so that future changes do not keep reintroducing layered patch smell.
+
+---------------------------------------------------------------------
+
+Hard constraints
+
+- Do NOT change comparison semantics except where required to preserve behavior under decomposition.
+- Do NOT reintroduce `serde_json::Value`-driven output shaping into decomposed modules.
+- Do NOT mix artifact generation, metric computation, CLI dispatch, and Markdown rendering in one module after this packet.
+- Prefer responsibility-based boundaries over arbitrary file splitting.
+- Maintain deterministic output ordering and field values.
+
+---------------------------------------------------------------------
+
+Required implementation scope
+
+1) Decompose the comparison engine by responsibility
+
+Split the current comparison engine into bounded modules with clear responsibility boundaries.
+
+Recommended module families:
+
+- input loading / artifact ingestion
+- typed model normalization
+- metric computation
+- grouped aggregation
+- ranking / comparative scoring
+- machine-readable artifact emission
+- Markdown/report rendering
+- CLI orchestration / top-level command dispatch
+
+Equivalent structure is acceptable if the responsibilities are comparably clear.
+
+Required rule:
+- no single comparison module should remain a multi-thousand-line mixed-responsibility file
+
+---------------------------------------------------------------------
+
+2) Preserve typed boundaries
+
+All decomposed modules must exchange typed internal data structures, not loose maps or generic `Value` objects.
+
+Required:
+- aggregation code consumes typed records
+- ranking code consumes typed aggregate structures
+- report generation consumes typed summary objects
+- emission code serializes typed outputs
+
+---------------------------------------------------------------------
+
+3) Isolate report rendering from metric logic
+
+The packet must establish a clean boundary between:
+- metric computation
+- human-readable rendering
+
+Required:
+- Markdown/report formatting logic must not embed business logic for metric derivation
+- metric computation must be reusable without Markdown generation
+- rendering code should read prepared summary structs only
+
+---------------------------------------------------------------------
+
+4) Isolate schema/output emission from comparison logic
+
+Machine-readable artifact emission must be isolated from comparison logic.
+
+Required:
+- JSON/schema-backed output generation lives in emission/output modules
+- comparison logic produces typed results, not partially serialized structures
+
+---------------------------------------------------------------------
+
+5) Add focused tests by module boundary
+
+Required tests at minimum:
+
+5.1 aggregation tests
+- grouped metrics computed correctly from typed inputs
+
+5.2 ranking tests
+- deterministic ordering preserved
+- tie behavior explicit and stable
+
+5.3 rendering tests
+- Markdown generation reads typed summaries correctly
+- no business-logic drift from render layer
+
+5.4 emission tests
+- decomposed output modules still emit schema-conforming artifacts
+
+5.5 regression tests
+- representative comparison command produces outputs equivalent in semantics to pre-decomposition behavior
+
+---------------------------------------------------------------------
+
+6) Update docs/continuity files
+
+Update:
+- `.ai/STATUS.md`
+- `.ai/PHASE_PLAN.md`
+- `.ai/HANDOFF.md`
+
+Optional but useful:
+- short developer-facing note in repo docs describing new module structure for comparison/reporting internals
+
+Required note:
+- decomposition complete
+- typed boundaries preserved
+- remaining concerns, if any, explicitly called out
+
+---------------------------------------------------------------------
+
+Required verification commands
+
+Builder must run and report exact commands for:
+- comparison-related tests
+- at least one representative comparison command
+- schema validation tests for emitted outputs
+
+---------------------------------------------------------------------
+
+Non-goals
+
+This packet must NOT:
+- redesign comparison methodology
+- redesign salvage semantics
+- add benchmark harness work
+- redesign archive format
+- broaden into pack pipeline separation work
+
+---------------------------------------------------------------------
+
+Required deliverables
+
+Code / behavior
+- decomposed comparison engine
+- typed module boundaries
+- isolated rendering/emission layers
+
+Tests
+- module-level comparison tests
+- regression tests
+- schema-conformance verification retained
+
+Docs
+- continuity file updates
+- optional internal structure note if helpful
+
+Submission bundle
+- patch/diff
+- exact commands run
+- short before/after module map
+- note on any areas intentionally deferred
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+This packet is acceptable only if all of the following are true:
+
+1. The comparison engine is no longer concentrated in a monolithic mixed-responsibility file.
+2. Module boundaries align with actual responsibilities.
+3. Typed internal models are preserved across module boundaries.
+4. Rendering and emission are cleanly separated from metric computation.
+5. Tests cover aggregation, ranking, rendering, and emission boundaries.
+6. Output semantics remain stable and trustworthy after decomposition.

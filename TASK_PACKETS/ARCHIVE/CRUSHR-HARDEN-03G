@@ -1,0 +1,332 @@
+# TASK_PACKET
+
+Task ID
+CRUSHR-HARDEN-03G
+
+Title
+Canonical verification model, metadata typing completion, and salvage classification cleanup
+
+Role
+BUILDER
+
+Objective
+Introduce a single canonical typed verification/recovery model, eliminate remaining dynamic metadata construction from core paths, bind reporting/output to that model, and clear the carried-forward salvage metadata classification lint so the hardening sequence can proceed on a truthful, deterministic foundation.
+
+This packet exists because:
+
+- CRUSHR-HARDEN-03A improved API/public-surface truth, but full contraction was deferred because current in-repo consumers still depend on `crushr::format` and `crushr::index_codec`
+- a pre-existing clippy failure remains in the salvage metadata classification flow
+- core metadata/output paths still risk drift unless the system converges on one canonical typed model
+
+This is a canonical-model and typed-metadata packet.
+It is not a feature-expansion packet.
+
+---------------------------------------------------------------------
+
+Read first
+
+1. AGENTS.md
+2. AI_BOOTSTRAP.md
+3. REPO_GUARDRAILS.md
+4. PROJECT_STATE.md
+5. .ai/INDEX.md
+6. .ai/STATUS.md
+7. .ai/PHASE_PLAN.md
+8. .ai/DECISION_LOG.md
+9. results of CRUSHR-HARDEN-03A
+10. current salvage metadata classification flow
+11. current metadata record builders
+12. current verify/report/output paths
+13. active schemas for salvage and comparison outputs
+14. reviewer findings that motivated 03B/03C and remaining carry-forward from 03A
+
+---------------------------------------------------------------------
+
+Context
+
+The codebase is now past the point where “mostly correct” structure is acceptable.
+
+At this stage:
+- the system is making claims about verification truth
+- the project is moving toward benchmark credibility and forensic positioning
+- output/reporting semantics must be structurally incapable of drifting
+
+CRUSHR-HARDEN-03A cleaned public/internal exposure as far as safely possible, but it did not define or enforce the single canonical model that all reporting must flow through.
+
+This packet must do that.
+
+---------------------------------------------------------------------
+
+Hard constraints
+
+- Do NOT weaken strict extraction semantics.
+- Do NOT add salvage-style speculative behavior to strict verification.
+- Do NOT preserve `serde_json::Value` in core metadata construction paths.
+- Do NOT allow output/reporting layers to depend directly on raw format/internal structures.
+- Do NOT expand `crushr::format` or `crushr::index_codec` public surfaces beyond what current in-repo consumers already require.
+- The carried-forward salvage metadata classification clippy failure must be fixed in this packet.
+- Prefer one truthful typed model over parallel partially overlapping representations.
+
+---------------------------------------------------------------------
+
+Required implementation scope
+
+1) Introduce a canonical verification model (MANDATORY)
+
+Define a single canonical typed model representing verification/recovery truth.
+
+Naming is flexible, but the concept is mandatory. A structure equivalent to the following must exist:
+
+- `VerificationModel`
+  - `summary: VerifySummary`
+  - `files: Vec<FileResolution>`
+  - `failure_domains: FailureDomains`
+
+Equivalent naming is acceptable, but the responsibilities are not optional.
+
+This canonical model must represent, at minimum:
+
+- identity resolution status (aligned with FORMAT-12 semantics)
+- dictionary resolution state / dictionary failure domain (aligned with FORMAT-14A semantics)
+- verified / partial / rejected trust boundary (aligned with FORMAT-15 semantics)
+
+---------------------------------------------------------------------
+
+2) Enforce canonical model ownership and flow
+
+The system must follow this flow:
+
+  format/internal parsing
+    -> resolution/classification layer
+    -> canonical VerificationModel
+    -> output/rendering/export
+
+Required rules:
+- output/reporting code MUST consume only the canonical model
+- raw internal format structs MUST NOT be formatted directly into CLI/text/JSON output
+- no direct output path may bypass the canonical model
+
+If multiple parallel “truth” representations currently exist:
+- consolidate them
+- remove redundant ones where feasible
+- document any intentionally deferred cleanup
+
+---------------------------------------------------------------------
+
+3) Complete metadata typing in core paths
+
+All remaining metadata record builders in active core paths must return typed structs instead of `serde_json::Value`.
+
+Required:
+- remove `serde_json::Value` from core metadata record builders used in:
+  - verify
+  - extract verification
+  - salvage classification
+  - core metadata/report generation paths
+
+Allowed remaining `Value` use only at:
+- final JSON serialization/export boundary
+- optional test fixture helpers
+- bounded debug/logging utilities
+
+Forbidden:
+- `Value` as an intermediate truth model
+- `Value`-driven classification
+- `Value`-driven failure-mode selection
+- `Value`-driven reporting assembly
+
+---------------------------------------------------------------------
+
+4) Eliminate salvage metadata classification lint failure
+
+The carried-forward clippy failure in the salvage metadata classification flow must be fixed in this packet.
+
+This is mandatory.
+
+Required:
+- strict clippy must be green for the touched/affected path
+- do not suppress or paper over the lint unless there is a documented and truly unavoidable workspace-level reason
+- prefer correcting the underlying classification code structure
+
+Patch notes must explicitly state:
+- what the lint was
+- how it was resolved
+- why the new classification path is cleaner/truthier
+
+---------------------------------------------------------------------
+
+5) Convert classification and failure attribution to typed enums
+
+All public-contract-significant classification values must be enum-driven internally.
+
+At minimum this includes typed representations for:
+
+- verification/recovery verdicts
+- identity resolution status
+- dictionary resolution status or dictionary failure attribution
+- failure modes / reason codes that affect public output
+
+Required:
+- exhaustive match behavior for these enums
+- avoid stringly-typed branching in core classification paths
+- output text/JSON must be derived from typed enum values, not hand-built ad hoc strings
+
+---------------------------------------------------------------------
+
+6) Bind output contract to the canonical model
+
+Verify/report/export output must be generated only from the canonical typed model.
+
+Required:
+- text output consumes canonical model
+- JSON output consumes canonical model
+- no output path directly traverses raw internal parser/format structs
+
+Required semantic result:
+- internal structure changes should not require output-layer rewrites so long as canonical model semantics remain stable
+
+This is the key architectural boundary this packet must establish.
+
+---------------------------------------------------------------------
+
+7) Preserve provisional public surfaces without broadening them
+
+CRUSHR-HARDEN-03A established that `crushr::format` and `crushr::index_codec` remain public for now because current in-repo consumers still require them.
+
+This packet must respect that carry-forward honestly.
+
+Required:
+- do not broaden these surfaces
+- do not add new public dependency on them unless current in-repo consumers genuinely require it
+- any newly introduced canonical verification model / typed metadata structures should use the narrowest truthful visibility possible
+
+This packet is not the API contraction finale.
+It must avoid making that future work harder.
+
+---------------------------------------------------------------------
+
+8) Determinism requirements
+
+Given identical input:
+- verification/report output must be deterministic
+- ordering must be stable
+- summary values must be stable
+- output wording must be stable
+
+Required:
+- sorted/stable file/result ordering where applicable
+- stable enum-to-text mapping
+- fixed formatting for ratios/coverage values if emitted
+
+---------------------------------------------------------------------
+
+9) Tests
+
+Required tests at minimum:
+
+9.1 canonical model construction
+- resolution/classification produces canonical model as expected
+
+9.2 no direct output leakage
+- output/reporting paths do not directly consume raw internal format structs
+
+9.3 typed metadata builders
+- active core metadata builders emit typed structs, not `Value`
+
+9.4 schema/output conformance
+- emitted JSON/report artifacts remain schema-conforming where schemas exist
+
+9.5 salvage classification correctness
+- typed failure/classification values map correctly to public output
+
+9.6 determinism
+- repeated verification/report runs on the same archive yield byte-for-byte identical output where applicable
+
+9.7 clippy quality gate
+- the carried-forward salvage metadata classification lint is gone
+
+---------------------------------------------------------------------
+
+10) Docs and continuity updates
+
+Update:
+- README.md if public verification/reporting semantics are described there
+- any active docs/examples describing verification/salvage output shape
+- `.ai/STATUS.md`
+- `.ai/PHASE_PLAN.md`
+- `.ai/HANDOFF.md`
+
+Required note:
+- canonical verification model introduced
+- core metadata builders now typed
+- salvage classification lint resolved
+- provisional public surfaces from 03A remain bounded but not expanded
+
+---------------------------------------------------------------------
+
+Required verification commands
+
+Builder must run and report exact commands for:
+- strict clippy on affected codepaths/workspace as required by current project gates
+- focused tests for canonical model and typed metadata paths
+- at least one representative verification/report generation command
+- schema-validation tests for affected outputs, where applicable
+
+---------------------------------------------------------------------
+
+Non-goals
+
+This packet must NOT:
+- redesign the archive format
+- add new recovery features
+- broaden benchmark harness work
+- perform the full final API contraction of `crushr::format` and `crushr::index_codec`
+- become the general purity-enforcement packet for every boundary in the codebase
+
+Those concerns belong later.
+
+---------------------------------------------------------------------
+
+Required deliverables
+
+Code / behavior
+- canonical VerificationModel (or equivalently named model) introduced
+- output paths bound to canonical model
+- core metadata builders typed
+- salvage metadata classification lint resolved
+- enum-driven classification/failure attribution in active paths
+
+Tests/checks
+- canonical model tests
+- typed builder tests
+- determinism checks
+- schema/output conformance tests
+- green clippy for affected path/workspace gate as required
+
+Docs
+- updated docs/examples if output semantics changed materially
+- continuity file updates
+
+Submission bundle
+- patch/diff
+- exact commands run
+- short note describing:
+  - canonical model shape introduced
+  - where `serde_json::Value` was removed
+  - how the salvage classification lint was fixed
+  - what provisional public surfaces remain and why
+
+---------------------------------------------------------------------
+
+Acceptance criteria
+
+This packet is acceptable only if all of the following are true:
+
+1. A single canonical verification model now exists.
+2. Output/reporting consumes only that canonical model.
+3. Core metadata builders no longer rely on `serde_json::Value`.
+4. The pre-existing salvage metadata classification clippy failure is fixed.
+5. Classification/failure semantics are enum-driven and deterministic.
+6. Output remains schema-conforming where required.
+7. `crushr::format` and `crushr::index_codec` are not broadened while still accommodating current in-repo consumers.
+8. The codebase is now structurally closer to being incapable of lying about verification truth.
