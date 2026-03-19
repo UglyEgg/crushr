@@ -1,3 +1,8 @@
+## 2026-03-18 — CRUSHR-HARDEN-03H
+- Enforced canonical verification-output truth boundary by deleting CLI-local `VerifyReport` in `crushr-extract` and introducing canonical model-owned `VerificationReportView` projection in `crushr-core::verification_model`.
+- Moved refusal-reason output labeling/mapping into `VerificationModel::to_report_view`, removing duplicate classification/summary assembly logic from the output layer.
+- Revalidated boundary purity and output determinism with focused grep checks plus a byte-for-byte repeated `crushr-extract --verify --json` comparison on the same archive.
+
 ## 2026-03-18 — CRUSHR-HARDEN-03G (canonical verification + salvage lint cleanup, partial)
 - Added `crushr-core::verification_model` with a canonical typed verification truth model (`VerificationModel`, `VerifySummary`, `FileResolution`, `FailureDomains`) and deterministic model construction from strict extraction reports.
 - Updated `crushr-extract --verify` report assembly to consume the canonical verification model instead of constructing refusal/report truth directly from raw extraction internals.
