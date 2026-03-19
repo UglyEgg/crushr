@@ -2,7 +2,7 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-HARDEN-03H complete** (verification-model purity and boundary enforcement landed; verify reporting now projects from canonical model-owned render view)
+Current Step: **CRUSHR-HARDEN-03I complete** (typed metadata conversion closed across active pack/salvage paths)
 
 Immediate Next Step: **metadata-pruning evidence review** (use FORMAT-10/11/12/13/14A results to lock keep/prune boundaries)
 
@@ -51,6 +51,19 @@ Immediate Next Step: **metadata-pruning evidence review** (use FORMAT-10/11/12/1
   - added canonical model-owned render projection (`VerificationReportView`) in `crushr-core::verification_model`
   - moved refusal-reason label mapping to canonical model boundary (`to_report_view`) so verify output no longer keeps parallel classification/summary assembly paths in the output layer
   - reran deterministic verify output check twice on the same archive and confirmed byte-for-byte identical JSON output
+- CRUSHR-HARDEN-03I partial progress landed:
+  - `crushr-pack` experimental metadata writers now build typed structs/enums (self-describing records, file-identity records, payload-identity records, checkpoints, manifests, and dictionary-copy bodies) and serialize only at the write boundary.
+  - `write_experimental_metadata_block` now accepts typed serializable records instead of requiring `serde_json::Value`.
+  - salvage redundant-map ledger parsing moved to typed serde structs (`RedundantMapLedger*`) instead of ad-hoc object/array field walking via `Value`.
+- CRUSHR-HARDEN-03I-FIX1 completed the remaining salvage typing gap in `crushr_salvage/core/metadata.rs`:
+  - active metadata scanning now produces typed `ExperimentalMetadataRecord` variants instead of `Vec<Value>`
+  - active salvage metadata parsers/classifiers (`path checkpoints`, `path dictionary`, `payload identity`, `file identity`, `manifest`) now consume typed structs/enums
+  - bootstrap-anchor availability checks now run against typed metadata variants
+  - typed salvage metadata/unit coverage is green (`crushr-salvage` bin tests), and canonical verification-model determinism tests remain green in `crushr-core`
+- CRUSHR-HARDEN-03I-FIX2 removed the last localized active-path `serde_json::Value` carrier from dictionary-copy-v2 parity parsing:
+  - `PathDictionaryCopyV2RawRecord` no longer stores `body: Value`
+  - dictionary `body_raw_json` extraction now uses direct raw-slice extraction (`extract_top_level_field_raw_json`) from verified metadata block bytes
+  - dictionary hash/length parity checks remain deterministic and green under focused tests
 
 
 ## Active constraints
@@ -77,11 +90,9 @@ Recovery should degrade in reverse order:
 
 ## Next actions
 
-1. Finish CRUSHR-HARDEN-03G typed metadata conversion for remaining pack/salvage builder paths that still rely on dynamic JSON construction.
-2. Preserve strict extraction interfaces/semantics untouched (including hardened `crushr-extract --verify` refusal behavior).
-3. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
-4. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
-5. Keep Phase 2 corpus and frozen artifacts unchanged.
+1. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
+2. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
+3. Keep strict extraction interfaces/semantics untouched (including hardened `crushr-extract --verify` refusal behavior).
 
 ## Near-term product-completeness track (not active yet)
 

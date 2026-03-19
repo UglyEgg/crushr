@@ -52,6 +52,7 @@ Deliverables
 - [x] CRUSHR-HARDEN-03A — finalize API boundary truth by removing accidental public module exposure, tightening visibility, and aligning runtime/library/lab boundary docs with supported surfaces.
 - [~] CRUSHR-HARDEN-03G — canonical verification model + typed metadata completion + salvage classification lint cleanup (in progress; canonical verify model + lint fix landed, remaining typed metadata conversion follow-up tracked in STATUS).
 - [x] CRUSHR-HARDEN-03H — enforce verification model purity by removing verify output bypass/duplicate truth path in `crushr-extract` and projecting report output through canonical `VerificationReportView`.
+- [x] CRUSHR-HARDEN-03I — complete typed pack/salvage metadata conversion and bind remaining salvage classification flows to the canonical verification/report truth model (active salvage metadata flow in `metadata.rs` now typed; dynamic `Vec<Value>` classification path removed).
 - [x] 3.25.1 CRUSHR-FORMAT-14A-FIX1 (repair dictionary-corruption classification/outcome reporting; rerun required FORMAT-14A artifacts)
 - [x] 3.25.2 CRUSHR-FORMAT-14A-FIX2 (restore header+tail dual-copy one-loss named recovery; rerun FORMAT-14A artifacts)
 - [x] CRUSHR-FORMAT-15 — Harden mirrored dictionary identity/generation semantics and add factored namespace dictionary with FORMAT-15 baseline/stress comparison commands + artifacts.
