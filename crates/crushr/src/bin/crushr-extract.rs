@@ -3,7 +3,7 @@ use crushr_core::extraction::ExtractionOutcomeKind;
 use crushr_core::{
     io::{Len, ReadAt},
     open::open_archive_v1,
-    verification_model::{VerificationModel, VerificationVerdict},
+    verification_model::{VerificationModel, VerificationReportView},
     verify::{scan_blocks_v1, verify_block_payloads_v1},
 };
 use serde::Serialize;
@@ -54,38 +54,6 @@ struct CliOptions {
 struct ExtractionErrorReport {
     overall_status: &'static str,
     error: String,
-}
-
-#[derive(Debug, Serialize)]
-struct VerifyReport {
-    archive_path: String,
-    verification_status: &'static str,
-    safe_for_strict_extraction: bool,
-    refusal_reasons: Vec<String>,
-    verified_extent_count: usize,
-    failed_check_count: usize,
-}
-
-impl VerifyReport {
-    fn from_model(archive_path: String, model: &VerificationModel) -> Self {
-        let refusal_reasons = model
-            .files
-            .iter()
-            .filter(|file| file.verdict == VerificationVerdict::Refused)
-            .map(|file| format!("corrupted_required_blocks: {}", file.path))
-            .collect::<Vec<_>>();
-        Self {
-            archive_path,
-            verification_status: match model.summary.verdict {
-                VerificationVerdict::Verified => "verified",
-                VerificationVerdict::Refused => "refused",
-            },
-            safe_for_strict_extraction: model.summary.safe_for_strict_extraction,
-            refusal_reasons,
-            verified_extent_count: model.summary.verified_extent_count,
-            failed_check_count: model.summary.failed_check_count,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -257,7 +225,7 @@ fn run_extract(opts: &CliOptions) -> Result<ClassifiedRun> {
     })
 }
 
-fn run_verify(opts: &CliOptions) -> Result<VerifyReport> {
+fn run_verify(opts: &CliOptions) -> Result<VerificationReportView> {
     let reader = FileReader {
         file: File::open(&opts.archive)
             .with_context(|| format!("open {}", opts.archive.display()))?,
@@ -278,10 +246,7 @@ fn run_verify(opts: &CliOptions) -> Result<VerifyReport> {
     let _ = std::fs::remove_dir_all(&verify_dir);
 
     let model = VerificationModel::from_extraction_report(&strict.report, verified_extent_count);
-    Ok(VerifyReport::from_model(
-        opts.archive.display().to_string(),
-        &model,
-    ))
+    Ok(model.to_report_view(opts.archive.display().to_string()))
 }
 
 fn create_verify_tempdir() -> Result<PathBuf> {
@@ -394,7 +359,7 @@ fn main() {
 mod tests {
     use super::{
         exit_code_for_error, exit_code_for_outcome, ExtractionErrorKind, ExtractionOutcomeKind,
-        RefusalExitPolicy, VerifyReport,
+        RefusalExitPolicy,
     };
     use crushr_core::extraction::{
         build_extraction_report, RefusalReason, RefusedFileReport, SafeFileReport,
@@ -462,7 +427,7 @@ mod tests {
             }],
         );
         let model = VerificationModel::from_extraction_report(&extraction, 3);
-        let report = VerifyReport::from_model("archive.crs".to_string(), &model);
+        let report = model.to_report_view("archive.crs".to_string());
         assert_eq!(report.archive_path, "archive.crs");
         assert_eq!(report.verification_status, "refused");
         assert_eq!(

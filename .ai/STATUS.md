@@ -2,7 +2,7 @@
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-HARDEN-03G in progress** (canonical verification model + typed metadata boundary tightening + salvage lint cleanup)
+Current Step: **CRUSHR-HARDEN-03H complete** (verification-model purity and boundary enforcement landed; verify reporting now projects from canonical model-owned render view)
 
 Immediate Next Step: **metadata-pruning evidence review** (use FORMAT-10/11/12/13/14A results to lock keep/prune boundaries)
 
@@ -46,6 +46,11 @@ Immediate Next Step: **metadata-pruning evidence review** (use FORMAT-10/11/12/1
 - Rendering and emission remain separated from salvage metric derivation paths for typed summary commands (redundant/externalized grouped comparisons), and schema-backed comparison artifact checks remain active.
 - CRUSHR-HARDEN-03G follow-on hardening added a canonical typed verification model (`VerificationModel`) in `crushr-core`; `crushr-extract --verify` now derives output/report fields from that model instead of assembling verify truth directly from raw extraction internals.
 - CRUSHR-HARDEN-03G carry-forward salvage classification lint (`if_same_then_else`) in verified-graph classification was removed by collapsing redundant branching to a single deterministic orphan classification return path.
+- CRUSHR-HARDEN-03H completed verification-truth boundary enforcement:
+  - removed CLI-local duplicate verify summary/output truth (`VerifyReport`) from `crushr-extract`
+  - added canonical model-owned render projection (`VerificationReportView`) in `crushr-core::verification_model`
+  - moved refusal-reason label mapping to canonical model boundary (`to_report_view`) so verify output no longer keeps parallel classification/summary assembly paths in the output layer
+  - reran deterministic verify output check twice on the same archive and confirmed byte-for-byte identical JSON output
 
 
 ## Active constraints
@@ -99,4 +104,4 @@ Once resilience and metadata pruning decisions settle, revisit distributed dicti
 
 
 - CRUSHR-HARDEN-03C introduced explicit schema files for active FORMAT-12/13/14A/15 comparison outputs and added schema-backed artifact checks in integration tests.
-- CRUSHR-HARDEN-03G cleanup now covers both metadata-record builders and redundant-map/tail closeout helpers; no dedicated 03H cleanup step remains.
+- Remaining follow-up debt: pack/salvage typed metadata conversion is still open under CRUSHR-HARDEN-03G follow-through; no additional verify-boundary debt identified after CRUSHR-HARDEN-03H.
