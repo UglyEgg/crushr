@@ -7,12 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-UI-01 complete** (unified CLI presentation contract + standardized `--silent` mode landed across pack/extract/verify/salvage)
+Current Step: **CRUSHR-UI-02 complete** (public CLI surface realigned to canonical preservation suite, legacy generic-compressor exposure demoted, strict verify structural failure presentation repaired)
 
-Immediate Next Step: metadata-pruning evidence review and benchmark-harness preparation on top of the unified operator-facing CLI surface
+Immediate Next Step: metadata-pruning evidence review and benchmark-harness preparation on top of the corrected public CLI identity
 
 
 Latest maintenance fix (2026-03-20):
+- **CRUSHR-UI-02 complete**: rewired top-level `crushr` into a focused dispatcher aligned to `pack/extract/verify/info` plus bounded `salvage/lab`, removed legacy command exposure (`append/list/cat/dict-train/tune/completions`) from primary help/surface, and added help-surface + verify failure-path tests to lock identity drift.
+- **CRUSHR-UI-02 complete**: strict verify structural failures in `crushr-extract --verify` now render deterministic operator-facing refusal output (with failure-domain section and bounded refusal reason) instead of leaking raw parser internals to normal users.
 - **CRUSHR-UI-01-FIX1 complete**: repaired workspace manifest validity by restoring missing `package.name` across all workspace crate manifests, unblocked `cargo fmt --all`, reran targeted UI contract tests, executed representative pack/extract/verify/salvage + `--silent` runtime validation commands, and finalized salvage output mode policy as default human with explicit `--json` for machine output.
 - **CRUSHR-UI-01 complete**: added shared CLI presentation helper (`cli_presentation`) with bounded status vocabulary and deterministic section/header/outcome grammar; wired `crushr-pack`, `crushr-extract`, `crushr-extract --verify`, and `crushr-salvage` to the shared surface; standardized `--silent` one-line scriptable summaries across those commands; added integration tests for determinism/status vocabulary/silent behavior.
 - **CRUSHR-LICENSE-01-FIX1 complete**: replaced deprecated `.reuse/dep5` with `REUSE.toml` to remove REUSE tooling deprecation warnings while preserving the same license mapping model and passing `reuse lint`.

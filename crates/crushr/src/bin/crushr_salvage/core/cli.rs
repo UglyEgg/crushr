@@ -4,6 +4,16 @@
 use super::*;
 
 pub(super) fn parse_cli_options() -> Result<CliOptions> {
+    let early_args: Vec<String> = std::env::args().skip(1).collect();
+    if early_args.iter().any(|a| a == "--help" || a == "-h") {
+        println!("{USAGE}");
+        std::process::exit(0);
+    }
+    if early_args.iter().any(|a| a == "--version" || a == "-V") {
+        println!("{}", env!("CARGO_PKG_VERSION"));
+        std::process::exit(0);
+    }
+
     let mut archive = None;
     let mut json = false;
     let mut json_out = None;

@@ -67,6 +67,7 @@ Deliverables
 - [x] CRUSHR-LICENSE-01-FIX1 — migrate REUSE metadata from `.reuse/dep5` to `REUSE.toml` to remove tooling deprecation warning while keeping licensing classification unchanged.
 - [x] CRUSHR-UI-01 — establish a unified CLI presentation contract and standardized `--silent` mode across `crushr-pack`, `crushr-extract`, `crushr-extract --verify`, and `crushr-salvage` before benchmark-harness work.
 - [x] CRUSHR-UI-01-FIX1 — restore workspace Cargo manifest validity (`package.name` fields), rerun blocked formatting/test commands, and complete representative runtime validation for pack/extract/verify/salvage and `--silent`.
+- [x] CRUSHR-UI-02 — realign public CLI surface to canonical preservation suite (`pack/extract/verify/info`) with bounded salvage/lab demotion and repair strict verify structural-failure presentation so parser internals do not leak in normal user output.
 - FORMAT-15 comparison results
 - FORMAT-15 stress comparison results
 - updated SNAPSHOT_FORMAT.md
