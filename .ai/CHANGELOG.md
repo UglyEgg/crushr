@@ -705,3 +705,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Removed the final localized active-path `serde_json::Value` use from dictionary-copy-v2 metadata parsing (`PathDictionaryCopyV2RawRecord`) in `crushr_salvage/core/metadata.rs`.
 - Added deterministic raw-slice `body_raw_json` extraction helpers (`extract_top_level_field_raw_json` and JSON scanner helpers) so parity checks no longer require dynamic JSON carriers.
 - Added focused parity regression `v2_raw_body_hash_parity_is_preserved_without_value_carrier` and reran salvage/clippy/deterministic pack checks.
+
+## 2026-03-20 — CRUSHR-UI-03
+
+- Reworked shared CLI presentation into minimalist section-based output with aligned key/value rows, explicit final `Result` section, grouped numeric rendering, and optional status color accents in TTY mode.
+- Applied canonical section templates to command surfaces: verify success/failure, pack, info, and salvage.
+- Switched `crushr-info` default output to human-readable sections and retained current JSON output behind `--json`.
+- Hardened verify structural refusal rendering to emit structured failure-domain fields (`component`, `reason`, `expected`, `received`) without exposing raw parser internals.
+- Added deterministic golden output fixtures and integration checks for verify success/failure, pack, info human mode, and salvage output.

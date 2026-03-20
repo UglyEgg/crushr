@@ -7,10 +7,17 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-UI-02 complete** (public CLI surface realigned to canonical preservation suite, legacy generic-compressor exposure demoted, strict verify structural failure presentation repaired)
+Current Step: **CRUSHR-UI-03 complete** (minimalist section-based CLI presentation landed, `crushr-info` defaults to human-readable sections, and strict verify failures render structured failure-domain fields without raw parser leakage)
 
-Immediate Next Step: metadata-pruning evidence review and benchmark-harness preparation on top of the corrected public CLI identity
+Immediate Next Step: metadata-pruning evidence review and benchmark-harness preparation on top of the finalized section-based CLI presentation contract
 
+
+
+Latest maintenance fix (2026-03-20):
+- **CRUSHR-UI-03 complete**: replaced shared CLI presenter output with minimalist section-based layout (`<tool>  /  <action>`, horizontal rule, aligned label/value rows) and explicit per-command canonical section flow ending in `Result`.
+- **CRUSHR-UI-03 complete**: switched `crushr-info` to human-readable section output by default while preserving existing JSON envelope output behind `--json`.
+- **CRUSHR-UI-03 complete**: strict verify refusal/error paths now emit structured `Failure domain` fields (`component/reason/expected/received`) and never print raw parser internals in normal operator output.
+- **CRUSHR-UI-03 complete**: added deterministic golden-output coverage for verify success/failure, pack, info human mode, and salvage in `cli_presentation_contract`.
 
 Latest maintenance fix (2026-03-20):
 - **CRUSHR-UI-02 complete**: rewired top-level `crushr` into a focused dispatcher aligned to `pack/extract/verify/info` plus bounded `salvage/lab`, removed legacy command exposure (`append/list/cat/dict-train/tune/completions`) from primary help/surface, and added help-surface + verify failure-path tests to lock identity drift.

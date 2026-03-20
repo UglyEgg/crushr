@@ -1,0 +1,15 @@
+crushr-extract  /  verify
+------------------------------------------------------------------------
+
+Archive
+  archive                <TMP>/bad.crushr
+
+Failure domain
+  component              archive structure
+  reason                 failed to parse strict verification inputs
+  expected               valid FTR4 footer, tail frame, and index
+  received               invalid or unreadable archive structure
+
+Result
+  status                 REFUSED
+  message                not safe for strict extraction

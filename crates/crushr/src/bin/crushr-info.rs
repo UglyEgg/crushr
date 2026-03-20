@@ -16,6 +16,9 @@ use crushr_core::{
 };
 use crushr_format::ftr4::{Ftr4, FTR4_LEN};
 use crushr_format::tailframe::parse_tail_frame;
+#[path = "../cli_presentation.rs"]
+mod cli_presentation;
+use cli_presentation::{group_u64, CliPresenter, StatusWord};
 use std::collections::BTreeSet;
 use std::fs::File;
 use std::io::Cursor;
@@ -177,9 +180,6 @@ fn run() -> Result<()> {
     }
 
     let archive = archive.context("usage: crushr-info <archive> --json [--report propagation]")?;
-    if !json {
-        bail!("only --json output is implemented");
-    }
 
     let reader = FileReader {
         file: File::open(&archive).with_context(|| format!("open {archive}"))?,
@@ -196,7 +196,35 @@ fn run() -> Result<()> {
     let opened = open_archive_v1(&reader)?;
     let snapshot =
         info_envelope_from_open_archive(&opened, env!("CARGO_PKG_VERSION"), "1970-01-01T00:00:00Z");
-    println!("{}", serialize_snapshot_json(&snapshot)?);
+    let rendered = serialize_snapshot_json(&snapshot)?;
+    if json {
+        println!("{rendered}");
+        return Ok(());
+    }
+
+    let archive_blake3 = snapshot.archive_fingerprint.0.clone();
+
+    let presenter = CliPresenter::new("crushr-info", "info", false);
+    presenter.header();
+    presenter.section("Archive");
+    presenter.kv("path", &archive);
+    presenter.kv(
+        "size bytes",
+        group_u64(snapshot.payload.summary.archive_len),
+    );
+    presenter.kv("blake3", archive_blake3);
+
+    presenter.section("Structure");
+    presenter.kv("has footer", snapshot.payload.summary.has_footer);
+    presenter.kv("has dct1", snapshot.payload.summary.has_dct1);
+    presenter.kv("has ldg1", snapshot.payload.summary.has_ldg1);
+    presenter.kv(
+        "tail frames",
+        group_u64(snapshot.payload.tail_frames.len() as u64),
+    );
+
+    presenter.section("Result");
+    presenter.outcome(StatusWord::Complete, "archive inspection completed");
     Ok(())
 }
 
@@ -211,7 +239,6 @@ fn main() {
                 || msg.contains("unsupported report")
                 || msg.contains("unsupported flag")
                 || msg.contains("unexpected argument")
-                || msg.contains("only --json")
             {
                 1
             } else {

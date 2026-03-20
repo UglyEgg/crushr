@@ -21,7 +21,7 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 #[path = "../cli_presentation.rs"]
 mod cli_presentation;
-use cli_presentation::{CliPresenter, StatusWord};
+use cli_presentation::{group_u64, CliPresenter, StatusWord};
 
 const USAGE: &str =
     "usage: crushr-salvage <archive> [--json] [--json-out <path>] [--export-fragments <dir>] [--silent]";
@@ -792,24 +792,31 @@ fn run() -> Result<()> {
     } else {
         let presenter = CliPresenter::new("crushr-salvage", "plan", opts.silent);
         presenter.header();
-        presenter.section("archive");
+        presenter.section("Archive");
         presenter.kv("archive", &plan.archive.archive_path);
+        presenter.kv("verification label", plan.verification_contract_label);
+        presenter.section("Candidates");
         presenter.kv(
-            "verification_contract_label",
-            plan.verification_contract_label,
+            "total candidates",
+            group_u64(plan.orphan_candidate_summary.total_candidates),
         );
-        presenter.section("summary");
         presenter.kv(
-            "total_candidates",
-            plan.orphan_candidate_summary.total_candidates,
+            "salvageable files",
+            group_u64(plan.summary.salvageable_files),
         );
-        presenter.kv("salvageable_files", plan.summary.salvageable_files);
-        presenter.kv("unsalvageable_files", plan.summary.unsalvageable_files);
-        presenter.kv("unmappable_files", plan.summary.unmappable_files);
-        presenter.section("evidence_model");
-        presenter.kv("verified_files", verified_files);
-        presenter.kv("partial_files", partial_files);
-        presenter.kv("rejected_or_unresolved_files", rejected_or_unresolved_files);
+        presenter.kv(
+            "unsalvageable files",
+            group_u64(plan.summary.unsalvageable_files),
+        );
+        presenter.kv("unmappable files", group_u64(plan.summary.unmappable_files));
+        presenter.section("Evidence");
+        presenter.kv("verified files", group_u64(verified_files as u64));
+        presenter.kv("partial files", group_u64(partial_files as u64));
+        presenter.kv(
+            "rejected/unresolved",
+            group_u64(rejected_or_unresolved_files as u64),
+        );
+        presenter.section("Result");
         presenter.outcome(
             StatusWord::Partial,
             "research salvage output; not canonical extraction",

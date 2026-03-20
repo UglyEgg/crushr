@@ -1,0 +1,18 @@
+crushr-pack  /  pack
+------------------------------------------------------------------------
+
+Target
+  archive                <TMP>/sample.crushr
+  inputs                 1
+  compression level      3
+
+Progress
+  input discovery        SCANNING
+  planning               RUNNING
+  serialization          WRITING
+  finalization           FINALIZING
+
+Result
+  files packed           2
+  status                 COMPLETE
+  message                archive emitted

@@ -1,0 +1,17 @@
+crushr-info  /  info
+------------------------------------------------------------------------
+
+Archive
+  path                   <TMP>/sample.crushr
+  size bytes             1,090
+  blake3                 23bbc1c1c5778a6a4141c4c03120d3a741bfe92cd5b8c68d7727c31089a0e4c3
+
+Structure
+  has footer             true
+  has dct1               false
+  has ldg1               true
+  tail frames            1
+
+Result
+  status                 COMPLETE
+  message                archive inspection completed
