@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Project Scope
 
 crushr is an integrity‑first archive design for modeling corruption impact and safe extraction.

@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Extent Identity
 
 An extent identity is the **atomic unit of truth** in crushr. It binds payload bytes to a deterministic, verifiable identity independent of container structure.

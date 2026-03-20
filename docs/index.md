@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # crushr
 
 crushr is a **salvage-oriented archival format** built for the failure case, not merely the happy path. It addresses a narrow but serious systems question:

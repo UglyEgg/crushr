@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # AGENTS_EXECUTION_ENVIRONMENT_SUPPLEMENT.md
 
 This document defines execution-environment constraints that apply in restricted or sandboxed development contexts.

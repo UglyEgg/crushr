@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-FileCopyrightText: 2026 Richard Majewski
+
 # Load dev/build.toml into shell variables.
 # shellcheck shell=bash
 

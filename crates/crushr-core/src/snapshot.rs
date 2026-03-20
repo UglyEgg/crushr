@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 //! Snapshot envelope types shared by tools and the TUI.
 //!
 //! The normative JSON contract is documented in `docs/SNAPSHOT_FORMAT.md`.

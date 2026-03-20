@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Corruption Propagation Graph v1 (`crushr-info --json --report propagation`)
 
 This contract defines a deterministic explanatory graph for minimal-v1 archives.

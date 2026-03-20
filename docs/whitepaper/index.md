@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Whitepaper
 
 This section presents crushr as a technical format rather than an experiment diary. It explains what the format is for, how the archive is structured, what recovery guarantees it does and does not make, and why the current architecture emerged from the evaluation program.

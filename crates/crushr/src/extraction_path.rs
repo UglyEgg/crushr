@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 use anyhow::{anyhow, bail, Result};
 use std::ffi::OsStr;
 use std::path::{Component, Path, PathBuf};

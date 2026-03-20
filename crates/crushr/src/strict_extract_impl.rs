@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 use crate::extraction_path::resolve_confined_path;
 use anyhow::{bail, Context, Result};
 use crushr::format::{Entry, EntryKind};

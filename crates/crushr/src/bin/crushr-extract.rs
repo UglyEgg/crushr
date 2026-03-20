@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 use anyhow::{Context, Result};
 use crushr_core::extraction::ExtractionOutcomeKind;
 use crushr_core::{

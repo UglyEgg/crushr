@@ -1,4 +1,17 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Handoff
+
+
+License compliance update (2026-03-20):
+- License metadata follow-up (2026-03-20): replaced `.reuse/dep5` with `REUSE.toml` to eliminate REUSE deprecation warnings; compliance remains green.
+- CRUSHR-LICENSE-01 is complete.
+- Repository licensing is now unified: code is MIT OR Apache-2.0, docs/diagrams are CC-BY-4.0.
+- SPDX headers were applied repo-wide for source/docs classes and `REUSE.toml` metadata now covers full repository classification for REUSE auditing.
+- Root license texts now exist as `LICENSE-MIT`, `LICENSE-APACHE-2.0`, and `LICENSE-CC-BY-4.0`; crate `Cargo.toml` metadata is aligned on `MIT OR Apache-2.0`.
 
 Current boundary update (2026-03-18):
 - Public strict verification flow is now `crushr-extract --verify <archive>`.

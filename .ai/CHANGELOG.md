@@ -1,3 +1,17 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
+## 2026-03-20 — CRUSHR-LICENSE-01-FIX1
+- Replaced `.reuse/dep5` with `REUSE.toml` to remove REUSE deprecation warnings while preserving the repository licensing split and SPDX coverage model.
+- Revalidated with `reuse lint`, `cargo check --workspace`, and `cargo test --workspace`.
+
+## 2026-03-20 — CRUSHR-LICENSE-01
+- Unified repository licensing model: code is MIT OR Apache-2.0 and documentation/diagrams are CC-BY-4.0.
+- Added canonical root license texts (`LICENSE-MIT`, `LICENSE-APACHE-2.0`, `LICENSE-CC-BY-4.0`) and aligned crate metadata to `license = "MIT OR Apache-2.0"` across the workspace.
+- Applied SPDX headers repo-wide for `.rs`, `.sh`, `.md`, and `.svg` files, added `.reuse/dep5` mapping for repository-wide classification, and verified REUSE compliance with `reuse lint`.
+
 ## 2026-03-19 — CRUSHR-LAB-FIX-01
 - Repaired three failing `crushr-lab` Phase 2 tests by removing implicit dependency on absent workspace artifact files.
 - Added deterministic temporary-trials fixture setup for normalization shape/order tests and explicit scenario-id sort-helper usage in normalization code path.

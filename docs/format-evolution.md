@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Format Evolution and Decision Record
 
 This document records how the crushr format architecture emerged through **deliberate experimentation and elimination**, not incremental feature accumulation.

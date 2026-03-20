@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Containerized build guide (crushr)
 
 This repository builds `crushr` inside a container so you get a predictable toolchain and reproducible output.

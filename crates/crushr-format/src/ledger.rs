@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 //! Ledger framing and canonical JSON helpers.
 //!
 //! The ledger is a small, explainable metadata payload (JSON) embedded in a tail frame.

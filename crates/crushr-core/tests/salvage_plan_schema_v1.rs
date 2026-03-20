@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 use jsonschema::JSONSchema;
 use serde_json::Value;
 use std::fs;

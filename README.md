@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # crushr
 
 **crushr** is a salvage-oriented archival format built for the failure case, not merely the happy path.
@@ -58,3 +63,14 @@ Current boundary classes:
 - **Removed accidental exposure:** `crushr::extraction_path` is no longer exposed as a public library module; confinement logic remains internal implementation detail.
 
 Treat these boundaries as canonical unless explicitly revised by a future packet/decision.
+## License
+
+Code in this repository is dual-licensed under **MIT OR Apache-2.0**.
+
+- You may use, modify, and distribute code under either license at your option.
+- Contributions are accepted under the same dual-license terms unless explicitly stated otherwise.
+
+Documentation and diagrams (Markdown and visual assets) are licensed under **CC-BY-4.0**.
+
+This repository is structured for REUSE compliance with SPDX headers and `.reuse/dep5` metadata.
+

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 #[allow(dead_code)]
 pub const BLK_MAGIC: &[u8; 4] = b"BLK1";
 pub const BLK_MAGIC_V2: &[u8; 4] = b"BLK2";

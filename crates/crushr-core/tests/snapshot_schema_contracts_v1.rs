@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 use crushr_core::impact::{enumerate_impact_v1, FileEntryV1, FileExtentV1};
 use jsonschema::JSONSchema;
 use serde::Serialize;

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 //! Shared CLI plumbing for the crushr tool suite.
 //!
 //! This crate intentionally keeps the surface small:
