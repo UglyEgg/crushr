@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Format Stability Contract
 
 crushr v1.0 format is defined by `SPEC.md` and the `crushr-format` crate.

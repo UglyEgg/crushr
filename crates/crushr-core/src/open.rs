@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 use crate::io::{Len, ReadAt};
 use anyhow::{ensure, Context, Result};
 use crushr_format::ftr4::{Ftr4, FTR4_LEN};

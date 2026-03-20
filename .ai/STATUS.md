@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # crushr Development Status
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
@@ -5,6 +10,11 @@ Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 Current Step: **CRUSHR-HARDEN-03I complete** (typed metadata conversion closed across active pack/salvage paths)
 
 Immediate Next Step: **metadata-pruning evidence review** (use FORMAT-10/11/12/13/14A results to lock keep/prune boundaries)
+
+
+Latest maintenance fix (2026-03-20):
+- **CRUSHR-LICENSE-01-FIX1 complete**: replaced deprecated `.reuse/dep5` with `REUSE.toml` to remove REUSE tooling deprecation warnings while preserving the same license mapping model and passing `reuse lint`.
+- **CRUSHR-LICENSE-01 complete**: unified repository licensing to MIT OR Apache-2.0 for code and CC-BY-4.0 for docs/diagrams; aligned workspace crate metadata, added root license texts, applied SPDX headers repo-wide, and verified REUSE compliance via `reuse lint`.
 
 Latest maintenance fix (2026-03-19):
 - **CRUSHR-LAB-FIX-01 complete**: repaired Phase 2 lab comparison/normalization contract tests so they no longer depend on missing workspace artifacts and instead generate representative deterministic fixtures in-test.

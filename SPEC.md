@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # crushr Archive Format v1.0
 
 This is the canonical on-disk archive contract for active implementation.

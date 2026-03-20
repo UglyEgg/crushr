@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Dictionary System
 
 crushr uses **mirrored dictionaries** to preserve naming without creating a single point of failure.

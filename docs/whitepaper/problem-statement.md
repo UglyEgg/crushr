@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Problem statement
 
 Conventional archive formats optimize for intact containers. They are good at packaging, transport, and extraction when metadata remains authoritative. They are much less good at the awkward middle state where metadata has become damaged but a meaningful subset of payload still survives.

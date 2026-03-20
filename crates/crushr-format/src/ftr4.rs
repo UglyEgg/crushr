@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 //! FTR4 tail footer.
 //!
 //! FTR4 is the authoritative tail footer for crushr archive format v1.

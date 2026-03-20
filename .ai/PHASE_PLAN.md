@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # crushr Phase Plan
 
 This document defines the high-level development phases for crushr after the
@@ -58,6 +63,8 @@ Deliverables
 - [x] CRUSHR-FORMAT-15 — Harden mirrored dictionary identity/generation semantics and add factored namespace dictionary with FORMAT-15 baseline/stress comparison commands + artifacts.
 - [x] CRUSHR-FORMAT-15-FIX1 — repair FORMAT-15 regression causing false-negative canonical-candidate judgments (restore scenario-authoritative fail-closed gating + v2 full-path dictionary parsing).
 - [x] CRUSHR-LAB-FIX-01 — repair failing Phase 2 comparison/normalization shape-contract tests and restore explicit deterministic normalized scenario ordering checks.
+- [x] CRUSHR-LICENSE-01 — repository-wide license unification (MIT OR Apache-2.0 code, CC-BY-4.0 docs), SPDX header sweep, Cargo metadata alignment, and REUSE compliance verification.
+- [x] CRUSHR-LICENSE-01-FIX1 — migrate REUSE metadata from `.reuse/dep5` to `REUSE.toml` to remove tooling deprecation warning while keeping licensing classification unchanged.
 - FORMAT-15 comparison results
 - FORMAT-15 stress comparison results
 - updated SNAPSHOT_FORMAT.md

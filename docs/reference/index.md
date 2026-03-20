@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Technical reference
 
 This section is intentionally narrow. It exists for readers who need the concise technical reference set behind the public whitepaper. If a page does not clarify the on-disk or recovery model directly, it does not belong here.

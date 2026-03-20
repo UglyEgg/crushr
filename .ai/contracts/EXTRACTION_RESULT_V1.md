@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Extraction Result Contract v1 (`crushr-extract --json`)
 
 This document defines the current stable JSON result contract emitted by:

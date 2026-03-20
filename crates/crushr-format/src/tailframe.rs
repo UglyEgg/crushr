@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 //! Tail frame assembly and parsing helpers.
 //!
 //! Tail frame v1 layout is deterministic:

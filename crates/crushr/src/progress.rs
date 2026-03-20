@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 //! Progress reporting primitives for library and CLI.
 //!
 //! The library emits progress events through a `ProgressSink`. The CLI implements sinks

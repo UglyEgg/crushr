@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 use super::*;
 
 pub(super) fn parse_cli_options() -> Result<CliOptions> {

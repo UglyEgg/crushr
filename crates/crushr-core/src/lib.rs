@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 //! Engine and algorithms for `crushr`.
 //!
 //! `crushr-core` operates over minimal IO traits (read-at / write-at) so the logic

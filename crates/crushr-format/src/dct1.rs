@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 //! DCT1 dictionary table framing.
 //!
 //! DCT1 is embedded per tail frame so each tail frame is self-contained.

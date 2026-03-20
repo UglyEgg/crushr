@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 use crate::format::{
     Entry, EntryKind, Extent, Index, Xattr, IDX_MAGIC_V1, IDX_MAGIC_V2, IDX_MAGIC_V3,
 };

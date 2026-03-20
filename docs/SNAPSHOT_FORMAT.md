@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Snapshot Format
 
 `crushr-salvage` emits deterministic JSON snapshots (plans) for damaged archives.

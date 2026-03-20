@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 use serde::{Deserialize, Serialize};
 
 pub const PHASE2_SCENARIO_ID_FORMAT: &str =

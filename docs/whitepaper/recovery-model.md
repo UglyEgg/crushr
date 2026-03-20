@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Recovery and Integrity Model
 
 crushr separates **data integrity** from **metadata validity**.

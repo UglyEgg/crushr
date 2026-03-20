@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Applicability and roadmap
 
 crushr is best understood as a serious archival utility for workflows that value verifiable post-damage recovery. It is not trying to be the default answer for every routine packaging task.

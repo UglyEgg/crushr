@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 use super::common::{
     comparison_scenarios, corrupt_archive, remove_ledger_for_old_style, run_salvage_plan,
 };

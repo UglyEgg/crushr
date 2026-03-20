@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 use super::common::{
     build_archive_with_pack, build_archive_with_pack_experimental,
     build_archive_with_pack_file_identity, build_archive_with_pack_format05, comparison_scenarios,

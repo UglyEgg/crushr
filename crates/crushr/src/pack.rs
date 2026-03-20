@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 use crate::dict;
 use crate::format::{
     classify_group, Entry, EntryKind, Extent, Index, Xattr, BLK_MAGIC_V2, CODEC_ZSTD, FTR_MAGIC_V2,

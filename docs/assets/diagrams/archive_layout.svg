@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: CC-BY-4.0; SPDX-FileCopyrightText: 2026 Richard Majewski -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="540" viewBox="0 0 1000 540">
 <rect width="1000" height="540" fill="#0b1020"/>
 <rect x="40" y="40" width="920" height="460" rx="28" fill="#111827" stroke="#334155" stroke-width="2"/>

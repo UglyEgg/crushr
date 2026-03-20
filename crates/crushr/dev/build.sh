@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-FileCopyrightText: 2026 Richard Majewski
+
 # dev/build.sh - containerized build for crushr
 
 set -euo pipefail

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: 2026 Richard Majewski
+
 use crate::extraction_path::{resolve_confined_path, validate_symlink_target};
 use crate::format::{
     Entry, EntryKind, Index, BLK_MAGIC_V2, CODEC_ZSTD, FTR_MAGIC_V1, FTR_MAGIC_V2,

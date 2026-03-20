@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Why crushr
 
 crushr exists because conventional archive assumptions become brittle in the damage case. It is a serious attempt to make **what can still be proven** more useful than **the container is no longer coherent, good luck**.
