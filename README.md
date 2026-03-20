@@ -5,7 +5,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # crushr
 
-**crushr** is a salvage-oriented archive format built for the failure case, not merely the happy path.
+![CI](https://github.com/UglyEgg/crushr/actions/workflows/ci.yml/badge.svg)
+![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)
+![REUSE status](https://api.reuse.software/badge/github.com/UglyEgg/crushr)
+![status](https://img.shields.io/badge/status-research%20→%20productization-yellow)
+
+Failure-aware archival and recovery tooling with deterministic verification semantics.
 
 Its core design question is simple:
 
