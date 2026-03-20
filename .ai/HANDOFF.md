@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # Handoff
 
+CRUSHR-UI-01 completion update (2026-03-20):
+- Added shared CLI presentation helper (`crates/crushr/src/cli_presentation.rs`) used by `crushr-pack`, `crushr-extract`, and `crushr-salvage`.
+- Adopted bounded status vocabulary for human output (`VERIFIED`, `OK`, `COMPLETE`, `PARTIAL`, `REFUSED`, `FAILED`, `RUNNING`, `SCANNING`, `WRITING`, `FINALIZING`) and a deterministic section/header/outcome grammar.
+- Standardized `--silent` one-line summaries across `crushr-pack`, `crushr-extract`, `crushr-extract --verify`, and `crushr-salvage` for scripting.
+- Added integration coverage in `crates/crushr/tests/cli_presentation_contract.rs` for output determinism (`--verify`) and silent-mode one-line behavior across all scoped commands.
+- FIX1 follow-up: restored workspace Cargo manifest validity by re-adding missing `package.name` entries across all workspace crates; blocked `cargo fmt --all` and UI/runtime validation commands now execute successfully.
+- Output-mode correction from validation review: `crushr-salvage` now defaults to human presentation output; machine-readable JSON on stdout requires `--json` (while `--json-out` remains available).
+
 
 License compliance update (2026-03-20):
 - License metadata follow-up (2026-03-20): replaced `.reuse/dep5` with `REUSE.toml` to eliminate REUSE deprecation warnings; compliance remains green.

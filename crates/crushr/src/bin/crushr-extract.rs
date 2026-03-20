@@ -13,6 +13,9 @@ use serde::Serialize;
 use std::fmt;
 use std::fs::File;
 use std::path::PathBuf;
+#[path = "../cli_presentation.rs"]
+mod cli_presentation;
+use cli_presentation::{CliPresenter, StatusWord};
 
 #[path = "../extraction_path.rs"]
 mod extraction_path;
@@ -35,7 +38,7 @@ impl RefusalExitPolicy {
     }
 }
 
-const USAGE: &str = "usage: crushr-extract <archive> -o <out-dir> [--overwrite] [--refusal-exit <success|partial-failure>] [--json]\n       crushr-extract --verify <archive> [--json]";
+const USAGE: &str = "usage: crushr-extract <archive> -o <out-dir> [--overwrite] [--refusal-exit <success|partial-failure>] [--json] [--silent]\n       crushr-extract --verify <archive> [--json] [--silent]";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum CliMode {
@@ -51,6 +54,7 @@ struct CliOptions {
     overwrite: bool,
     refusal_exit: RefusalExitPolicy,
     json: bool,
+    silent: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -130,6 +134,7 @@ fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
     let mut overwrite = false;
     let mut refusal_exit = RefusalExitPolicy::Success;
     let mut json = false;
+    let mut silent = false;
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -143,6 +148,8 @@ fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
             overwrite = true;
         } else if arg == "--json" {
             json = true;
+        } else if arg == "--silent" {
+            silent = true;
         } else if arg == "--verify" {
             mode = CliMode::Verify;
         } else if arg == "--refusal-exit" {
@@ -178,6 +185,7 @@ fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
         overwrite,
         refusal_exit,
         json,
+        silent,
     }
     .validate()
 }
@@ -228,7 +236,7 @@ fn run_extract(opts: &CliOptions) -> Result<ClassifiedRun> {
     })
 }
 
-fn run_verify(opts: &CliOptions) -> Result<VerificationReportView> {
+fn run_verify(opts: &CliOptions) -> Result<(VerificationModel, VerificationReportView)> {
     let reader = FileReader {
         file: File::open(&opts.archive)
             .with_context(|| format!("open {}", opts.archive.display()))?,
@@ -249,7 +257,10 @@ fn run_verify(opts: &CliOptions) -> Result<VerificationReportView> {
     let _ = std::fs::remove_dir_all(&verify_dir);
 
     let model = VerificationModel::from_extraction_report(&strict.report, verified_extent_count);
-    Ok(model.to_report_view(opts.archive.display().to_string()))
+    Ok((
+        model.clone(),
+        model.to_report_view(opts.archive.display().to_string()),
+    ))
 }
 
 fn create_verify_tempdir() -> Result<PathBuf> {
@@ -292,11 +303,45 @@ fn main() {
     match opts.mode {
         CliMode::Extract => match run_extract(&opts) {
             Ok(classified) => {
+                let presenter =
+                    CliPresenter::new("crushr-extract", "extract", opts.silent && !opts.json);
                 if opts.json {
                     println!(
                         "{}",
                         serde_json::to_string_pretty(&classified.report)
                             .expect("serialize extraction report")
+                    );
+                } else {
+                    presenter.header();
+                    presenter.section("summary");
+                    presenter.kv("archive", opts.archive.display());
+                    if let Some(out_dir) = &opts.out_dir {
+                        presenter.kv("output_dir", out_dir.display());
+                    }
+                    presenter.kv("safe_files", classified.report.safe_file_count);
+                    presenter.kv("refused_files", classified.report.refused_file_count);
+                    presenter.outcome(
+                        if classified.outcome_kind == ExtractionOutcomeKind::Success {
+                            StatusWord::Complete
+                        } else {
+                            StatusWord::Partial
+                        },
+                        "strict extraction completed",
+                    );
+                    presenter.silent_summary(
+                        if classified.outcome_kind == ExtractionOutcomeKind::Success {
+                            StatusWord::Complete
+                        } else {
+                            StatusWord::Partial
+                        },
+                        &[
+                            ("archive", opts.archive.display().to_string()),
+                            ("safe_files", classified.report.safe_file_count.to_string()),
+                            (
+                                "refused_files",
+                                classified.report.refused_file_count.to_string(),
+                            ),
+                        ],
                     );
                 }
                 let code = exit_code_for_outcome(classified.outcome_kind, opts.refusal_exit);
@@ -323,25 +368,49 @@ fn main() {
             }
         },
         CliMode::Verify => match run_verify(&opts) {
-            Ok(report) => {
+            Ok((model, report)) => {
+                let presenter =
+                    CliPresenter::new("crushr-extract", "verify", opts.silent && !opts.json);
                 if opts.json {
                     println!(
                         "{}",
                         serde_json::to_string_pretty(&report).expect("serialize verify report")
                     );
-                } else if report.safe_for_strict_extraction {
-                    println!(
-                        "verified: archive is safe for strict extraction ({})",
-                        report.archive_path
-                    );
                 } else {
-                    println!(
-                        "refused: archive is not safe for strict extraction ({})",
-                        report.archive_path
+                    presenter.header();
+                    presenter.section("verification");
+                    presenter.kv("archive", &report.archive_path);
+                    presenter.kv("verified_extent_count", report.verified_extent_count);
+                    presenter.kv("failed_check_count", report.failed_check_count);
+                    presenter.section("failure_domains");
+                    presenter.kv(
+                        "identity_resolution",
+                        format!("{:?}", model.failure_domains.identity_resolution).to_lowercase(),
                     );
-                    for reason in report.refusal_reasons {
-                        println!("- {reason}");
+                    presenter.kv(
+                        "dictionary_resolution",
+                        format!("{:?}", model.failure_domains.dictionary_resolution).to_lowercase(),
+                    );
+                    if report.safe_for_strict_extraction {
+                        presenter.outcome(StatusWord::Verified, "safe for strict extraction");
+                    } else {
+                        presenter.outcome(StatusWord::Refused, "not safe for strict extraction");
+                        presenter.section("refusal_reasons");
+                        for reason in &report.refusal_reasons {
+                            presenter.item(StatusWord::Refused, reason);
+                        }
                     }
+                    presenter.silent_summary(
+                        if report.safe_for_strict_extraction {
+                            StatusWord::Verified
+                        } else {
+                            StatusWord::Refused
+                        },
+                        &[
+                            ("archive", report.archive_path.clone()),
+                            ("failed_checks", report.failed_check_count.to_string()),
+                        ],
+                    );
                 }
                 std::process::exit(if report.safe_for_strict_extraction {
                     0

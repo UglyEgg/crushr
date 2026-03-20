@@ -72,6 +72,36 @@ Current boundary classes:
 
 Treat these boundaries as canonical unless explicitly revised by a future decision.
 
+## Unified CLI presentation contract
+
+Public-facing runtime commands now share one operator-facing presentation grammar:
+
+- Header: `== <tool> | <action> ==`
+- Sections: `-- <section> --`
+- Status markers: bounded vocabulary (`VERIFIED`, `OK`, `COMPLETE`, `PARTIAL`, `REFUSED`, `FAILED`, `RUNNING`, `SCANNING`, `WRITING`, `FINALIZING`)
+- Final outcome lines are deterministic and status-prefixed.
+
+### Silent/scriptable mode
+
+`crushr-pack`, `crushr-extract`, `crushr-extract --verify`, and `crushr-salvage` support `--silent`.
+
+- Silent mode suppresses multi-line presentation output.
+- Silent mode emits one deterministic summary line:
+  - `crushr-pack status=COMPLETE ...`
+  - `crushr-extract status=COMPLETE|PARTIAL ...`
+  - `crushr-extract status=VERIFIED|REFUSED ...` for `--verify`
+  - `crushr-salvage status=PARTIAL ...` (research-only salvage surface)
+
+### Evidence-package lifecycle alignment
+
+crushr presentation/reporting now aligns to an evidence-review workflow:
+
+1. Damaged media is imaged in an external evidence format.
+2. Recovery/analysis tooling may produce intact files, partial files, carved fragments, and sidecars/logs.
+3. Those outputs are packaged into crushr archives.
+4. Verification/salvage reporting records deterministic classifications for verified, partial, and rejected/unresolved outcomes.
+5. Later reviewers can rerun verification and recover the same typed result model.
+
 ## License
 
 Code in this repository is dual-licensed under **MIT OR Apache-2.0**.

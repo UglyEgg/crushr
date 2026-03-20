@@ -3,6 +3,17 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
+## 2026-03-20 — CRUSHR-UI-01
+- Added shared CLI presentation layer (`crates/crushr/src/cli_presentation.rs`) defining deterministic header/section/outcome formatting and bounded status vocabulary.
+- Wired `crushr-pack`, `crushr-extract`, `crushr-extract --verify`, and `crushr-salvage` to shared presentation semantics while preserving strict/salvage boundaries.
+- Standardized `--silent` one-line deterministic summaries for scoped public commands and updated usage/help text accordingly.
+- Added integration coverage (`crates/crushr/tests/cli_presentation_contract.rs`) for verify-output determinism and silent-mode behavior across pack/extract/verify/salvage.
+
+## 2026-03-20 — CRUSHR-UI-01-FIX1
+- Restored workspace Cargo manifest validity by adding missing `package.name` in all workspace crates (`crushr-format`, `crushr-core`, `crushr-cli-common`, `crushr`, `crushr-tui`, `crushr-lab`).
+- Unblocked and reran validation commands: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract`, and representative runtime runs for pack/extract/verify/salvage plus `--silent` variants.
+- Corrected `crushr-salvage` output mode: default stdout is human presentation again; JSON stdout now requires explicit `--json` (with schema-contract tests updated to pass `--json`).
+
 ## 2026-03-20 — CRUSHR-LICENSE-01-FIX1
 - Replaced `.reuse/dep5` with `REUSE.toml` to remove REUSE deprecation warnings while preserving the repository licensing split and SPDX coverage model.
 - Revalidated with `reuse lint`, `cargo check --workspace`, and `cargo test --workspace`.

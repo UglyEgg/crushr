@@ -5,12 +5,18 @@ use super::*;
 
 pub(super) fn parse_cli_options() -> Result<CliOptions> {
     let mut archive = None;
+    let mut json = false;
     let mut json_out = None;
     let mut export_fragments = None;
+    let mut silent = false;
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
-        if arg == "--json-out" {
+        if arg == "--json" {
+            json = true;
+        } else if arg == "--silent" {
+            silent = true;
+        } else if arg == "--json-out" {
             let path = args.next().context(USAGE)?;
             json_out = Some(PathBuf::from(path));
         } else if arg == "--export-fragments" {
@@ -27,7 +33,9 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
 
     Ok(CliOptions {
         archive: archive.context(USAGE)?,
+        json,
         json_out,
         export_fragments,
+        silent,
     })
 }

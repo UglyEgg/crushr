@@ -12,9 +12,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
+#[path = "../cli_presentation.rs"]
+mod cli_presentation;
+use cli_presentation::{CliPresenter, StatusWord};
 
 const ZSTD_CODEC: u32 = 1;
-const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only|extent_identity_inline_path|extent_identity_distributed_names|extent_identity_path_dict_single|extent_identity_path_dict_header_tail|extent_identity_path_dict_quasi_uniform|extent_identity_path_dict_factored_header_tail>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only | extent_identity_inline_path | extent_identity_distributed_names | extent_identity_path_dict_single | extent_identity_path_dict_header_tail | extent_identity_path_dict_quasi_uniform | extent_identity_path_dict_factored_header_tail\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  -h, --help                                 print this help text";
+const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only|extent_identity_inline_path|extent_identity_distributed_names|extent_identity_path_dict_single|extent_identity_path_dict_header_tail|extent_identity_path_dict_quasi_uniform|extent_identity_path_dict_factored_header_tail>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only | extent_identity_inline_path | extent_identity_distributed_names | extent_identity_path_dict_single | extent_identity_path_dict_header_tail | extent_identity_path_dict_quasi_uniform | extent_identity_path_dict_factored_header_tail\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
 
 #[derive(Clone, Copy, Debug)]
 enum PlacementStrategy {
@@ -449,6 +452,7 @@ fn run() -> Result<()> {
     let mut experimental_file_manifest_checkpoints = false;
     let mut metadata_profile = None;
     let mut placement_strategy = None;
+    let mut silent = false;
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -476,6 +480,8 @@ fn run() -> Result<()> {
             metadata_profile = Some(MetadataProfile::parse(&args.next().context(USAGE)?)?);
         } else if arg == "--placement-strategy" {
             placement_strategy = Some(PlacementStrategy::parse(&args.next().context(USAGE)?)?);
+        } else if arg == "--silent" {
+            silent = true;
         } else if arg.starts_with('-') {
             bail!("unsupported flag: {arg}");
         } else {
@@ -508,6 +514,13 @@ fn run() -> Result<()> {
         );
     }
 
+    let presenter = CliPresenter::new("crushr-pack", "pack", silent);
+    presenter.header();
+    presenter.section("input");
+    presenter.kv("archive_target", output.display());
+    presenter.kv("input_count", inputs.len());
+    presenter.kv("compression_level", level);
+
     pack_minimal_v1(
         &inputs,
         &output,
@@ -520,6 +533,7 @@ fn run() -> Result<()> {
             metadata_profile,
             placement_strategy,
         },
+        &presenter,
     )
 }
 
@@ -528,14 +542,30 @@ fn pack_minimal_v1(
     output: &Path,
     level: i32,
     options: PackExperimentalOptions,
+    presenter: &CliPresenter,
 ) -> Result<()> {
+    presenter.section("stages");
+    presenter.stage("input_discovery", StatusWord::Scanning);
     let files = collect_files(inputs)?;
     if files.is_empty() {
         bail!("no input files to pack");
     }
     reject_duplicate_logical_paths(&files)?;
+    presenter.stage("planning", StatusWord::Running);
     let layout = build_pack_layout_plan(files, level, options)?;
-    emit_archive_from_layout(layout, output, level, options)
+    let file_count = layout.files.len();
+    presenter.stage("serialization", StatusWord::Writing);
+    emit_archive_from_layout(layout, output, level, options)?;
+    presenter.stage("finalization", StatusWord::Finalizing);
+    presenter.outcome(StatusWord::Complete, "archive emitted");
+    presenter.silent_summary(
+        StatusWord::Complete,
+        &[
+            ("archive", output.display().to_string()),
+            ("files", file_count.to_string()),
+        ],
+    );
+    Ok(())
 }
 
 fn build_pack_layout_plan(

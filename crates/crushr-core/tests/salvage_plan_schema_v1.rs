@@ -78,7 +78,7 @@ fn make_single_file_archive(root: &Path, name: &str, body: &[u8]) -> PathBuf {
 }
 
 fn run_salvage_json(archive: &Path) -> Value {
-    let out = run_bin("crushr-salvage", &[archive.to_str().unwrap()]);
+    let out = run_bin("crushr-salvage", &[archive.to_str().unwrap(), "--json"]);
     assert_ok(&out);
     serde_json::from_slice(&out.stdout).unwrap()
 }
@@ -88,6 +88,7 @@ fn run_salvage_json_with_export(archive: &Path, export_dir: &Path) -> Value {
         "crushr-salvage",
         &[
             archive.to_str().unwrap(),
+            "--json",
             "--export-fragments",
             export_dir.to_str().unwrap(),
         ],
