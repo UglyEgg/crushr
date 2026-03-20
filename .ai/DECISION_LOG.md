@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-20 — CRUSHR-UI-02 public CLI surface realignment + verify structural-failure presentation lock
+
+- Decision:
+  - Convert top-level `crushr` into a focused dispatcher aligned to canonical commands (`pack`, `extract`, `verify`, `info`) and bounded non-primary commands (`salvage`, `lab`).
+  - Remove legacy generic-compressor command exposure (`append`, `list`, `cat`, `dict-train`, `tune`, `completions`) from the primary help surface and return explicit demotion guidance when invoked.
+  - Render `crushr-extract --verify` structural failures through deterministic operator-facing refusal presentation (with bounded failure-domain/reason wording) instead of printing raw parser internals in normal output mode.
+- Alternatives considered:
+  1. Keep the legacy monolithic `crushr` command map and only update wording.
+  2. Keep raw parser errors in verify path for all output modes.
+- Rationale:
+  - Product surface must match the preservation-oriented suite and remain small/coherent.
+  - Raw parse internals are unstable and not operator-grade as primary failure presentation.
+- Blast radius:
+  - Changes top-level `crushr --help` and command routing behavior.
+  - Changes non-JSON verify structural failure presentation text in `crushr-extract --verify`.
+  - No archive format, extraction semantics, or salvage schema contract changes.
+
 ## 2026-03-20 — CRUSHR-UI-01 unified CLI presentation + silent-mode contract
 
 - Decision:

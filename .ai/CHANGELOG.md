@@ -9,6 +9,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Standardized `--silent` one-line deterministic summaries for scoped public commands and updated usage/help text accordingly.
 - Added integration coverage (`crates/crushr/tests/cli_presentation_contract.rs`) for verify-output determinism and silent-mode behavior across pack/extract/verify/salvage.
 
+## 2026-03-20 — CRUSHR-UI-02
+- Realigned top-level `crushr` help/dispatch to canonical preservation suite commands (`pack`, `extract`, `verify`, `info`) with bounded non-primary `salvage`/`lab` entries.
+- Demoted legacy generic-compressor command exposure from primary root surface (`append`, `list`, `cat`, `dict-train`, `tune`, `completions`) and added explicit legacy-demotion guidance.
+- Repaired `crushr-extract --verify` structural-failure presentation so normal user output renders deterministic operator-facing refusal sections/reasons without raw parser leak strings.
+- Added help-surface and verify-failure leakage tests in `crates/crushr/tests/cli_presentation_contract.rs`.
+
 ## 2026-03-20 — CRUSHR-UI-01-FIX1
 - Restored workspace Cargo manifest validity by adding missing `package.name` in all workspace crates (`crushr-format`, `crushr-core`, `crushr-cli-common`, `crushr`, `crushr-tui`, `crushr-lab`).
 - Unblocked and reran validation commands: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract`, and representative runtime runs for pack/extract/verify/salvage plus `--silent` variants.

@@ -5,6 +5,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # Handoff
 
+CRUSHR-UI-02 completion update (2026-03-20):
+- Replaced legacy top-level monolithic `crushr` command surface with a bounded dispatcher identity aligned to the canonical suite: `pack`, `extract`, `verify`, `info`; bounded non-primary surfaces remain `salvage` and `lab`.
+- Removed legacy generic-compressor commands from primary help exposure (`append`, `list`, `cat`, `dict-train`, `tune`, `completions`), and now return explicit demotion guidance if invoked.
+- Rewrote root help/branding/examples so `crushr --help` describes an integrity-first preservation suite instead of generic solid-block compressor language.
+- Repaired strict verify structural-failure presentation in `crushr-extract --verify`: normal output now emits deterministic operator-facing refusal sections (`failure_domains`, bounded refusal reason) and no longer surfaces raw parser internals such as `parse FTR4: bad footer magic ...`.
+- Added coverage in `crates/crushr/tests/cli_presentation_contract.rs` for root-help command-surface assertions and invalid-archive verify leakage prevention checks.
+
 CRUSHR-UI-01 completion update (2026-03-20):
 - Added shared CLI presentation helper (`crates/crushr/src/cli_presentation.rs`) used by `crushr-pack`, `crushr-extract`, and `crushr-salvage`.
 - Adopted bounded status vocabulary for human output (`VERIFIED`, `OK`, `COMPLETE`, `PARTIAL`, `REFUSED`, `FAILED`, `RUNNING`, `SCANNING`, `WRITING`, `FINALIZING`) and a deterministic section/header/outcome grammar.

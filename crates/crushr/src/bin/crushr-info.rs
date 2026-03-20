@@ -147,6 +147,16 @@ fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> R
 }
 
 fn run() -> Result<()> {
+    let early_args: Vec<String> = std::env::args().skip(1).collect();
+    if early_args.iter().any(|a| a == "--help" || a == "-h") {
+        println!("usage: crushr-info <archive> --json [--report propagation]");
+        return Ok(());
+    }
+    if early_args.iter().any(|a| a == "--version" || a == "-V") {
+        println!("{}", env!("CARGO_PKG_VERSION"));
+        return Ok(());
+    }
+
     let mut archive = None;
     let mut json = false;
     let mut report = None;

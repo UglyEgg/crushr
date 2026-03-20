@@ -38,7 +38,7 @@ impl RefusalExitPolicy {
     }
 }
 
-const USAGE: &str = "usage: crushr-extract <archive> -o <out-dir> [--overwrite] [--refusal-exit <success|partial-failure>] [--json] [--silent]\n       crushr-extract --verify <archive> [--json] [--silent]";
+const USAGE: &str = "usage: crushr-extract <archive> -o <out-dir> [--all] [PATH ...] [--overwrite] [--refusal-exit <success|partial-failure>] [--json] [--silent]\n       crushr-extract --verify <archive> [--json] [--silent]";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum CliMode {
@@ -52,6 +52,8 @@ struct CliOptions {
     archive: PathBuf,
     out_dir: Option<PathBuf>,
     overwrite: bool,
+    all: bool,
+    selected_paths: Vec<String>,
     refusal_exit: RefusalExitPolicy,
     json: bool,
     silent: bool,
@@ -132,6 +134,8 @@ fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
     let mut archive = None;
     let mut out_dir = None;
     let mut overwrite = false;
+    let mut all = false;
+    let mut selected_paths: Vec<String> = Vec::new();
     let mut refusal_exit = RefusalExitPolicy::Success;
     let mut json = false;
     let mut silent = false;
@@ -150,6 +154,8 @@ fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
             json = true;
         } else if arg == "--silent" {
             silent = true;
+        } else if arg == "--all" {
+            all = true;
         } else if arg == "--verify" {
             mode = CliMode::Verify;
         } else if arg == "--refusal-exit" {
@@ -170,9 +176,7 @@ fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
         } else if archive.is_none() {
             archive = Some(PathBuf::from(arg));
         } else {
-            return Err(ExtractionClassifiedError::usage(anyhow::anyhow!(
-                "unexpected argument: {arg}"
-            )));
+            selected_paths.push(arg);
         }
     }
 
@@ -183,6 +187,8 @@ fn parse_cli_options() -> Result<CliOptions, ExtractionClassifiedError> {
             .map_err(ExtractionClassifiedError::usage)?,
         out_dir,
         overwrite,
+        all,
+        selected_paths,
         refusal_exit,
         json,
         silent,
@@ -196,6 +202,11 @@ impl CliOptions {
             CliMode::Extract => {
                 if self.out_dir.is_none() {
                     return Err(ExtractionClassifiedError::usage(anyhow::anyhow!(USAGE)));
+                }
+                if self.all && !self.selected_paths.is_empty() {
+                    return Err(ExtractionClassifiedError::usage(anyhow::anyhow!(
+                        "--all cannot be combined with explicit PATH arguments"
+                    )));
                 }
             }
             CliMode::Verify => {
@@ -214,6 +225,11 @@ impl CliOptions {
                         "--verify cannot be combined with --refusal-exit"
                     )));
                 }
+                if self.all || !self.selected_paths.is_empty() {
+                    return Err(ExtractionClassifiedError::usage(anyhow::anyhow!(
+                        "--verify does not accept --all or PATH arguments"
+                    )));
+                }
             }
         }
 
@@ -227,7 +243,11 @@ fn run_extract(opts: &CliOptions) -> Result<ClassifiedRun> {
             archive: opts.archive.clone(),
             out_dir: opts.out_dir.clone().expect("validated output dir"),
             overwrite: opts.overwrite,
-            selected_paths: None,
+            selected_paths: if opts.all || opts.selected_paths.is_empty() {
+                None
+            } else {
+                Some(opts.selected_paths.clone())
+            },
         })?;
 
     Ok(ClassifiedRun {
@@ -292,6 +312,16 @@ fn exit_code_for_error(kind: ExtractionErrorKind) -> i32 {
 }
 
 fn main() {
+    let early_args: Vec<String> = std::env::args().skip(1).collect();
+    if early_args.iter().any(|a| a == "--help" || a == "-h") {
+        println!("{USAGE}");
+        std::process::exit(0);
+    }
+    if early_args.iter().any(|a| a == "--version" || a == "-V") {
+        println!("{}", env!("CARGO_PKG_VERSION"));
+        std::process::exit(0);
+    }
+
     let opts = match parse_cli_options() {
         Ok(opts) => opts,
         Err(err) => {
@@ -420,7 +450,31 @@ fn main() {
             }
             Err(err) => {
                 let classified_err = ExtractionClassifiedError::structural(err);
-                eprintln!("{classified_err}");
+                if opts.json {
+                    eprintln!("{classified_err}");
+                } else {
+                    let presenter =
+                        CliPresenter::new("crushr-extract", "verify", opts.silent && !opts.json);
+                    presenter.header();
+                    presenter.section("verification");
+                    presenter.kv("archive", opts.archive.display());
+                    presenter.section("failure_domains");
+                    presenter.kv("identity_resolution", "unknown");
+                    presenter.kv("dictionary_resolution", "unknown");
+                    presenter.outcome(StatusWord::Refused, "not safe for strict extraction");
+                    presenter.section("refusal_reasons");
+                    presenter.item(
+                        StatusWord::Refused,
+                        "archive structure validation failed before strict verification could complete",
+                    );
+                    presenter.silent_summary(
+                        StatusWord::Refused,
+                        &[
+                            ("archive", opts.archive.display().to_string()),
+                            ("failed_checks", "1".to_string()),
+                        ],
+                    );
+                }
                 std::process::exit(exit_code_for_error(classified_err.kind));
             }
         },
