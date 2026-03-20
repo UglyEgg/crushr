@@ -5,6 +5,8 @@ use anyhow::{bail, Context, Result};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+mod about;
+
 const HELP: &str = r#"crushr — integrity-first preservation archive suite
 
 Usage:
@@ -16,6 +18,7 @@ Canonical product commands:
   extract   strict extraction (dispatches to crushr-extract)
   verify    strict verification alias (dispatches to crushr-extract --verify)
   info      inspect archive metadata/reporting (dispatches to crushr-info)
+  about     product identity and build metadata
 
 Bounded non-primary commands:
   salvage   experimental salvage planner (dispatches to crushr-salvage)
@@ -62,6 +65,13 @@ fn run() -> Result<()> {
         "pack" => forward_to("crushr-pack", &rest),
         "extract" => forward_to("crushr-extract", &rest),
         "info" => forward_to("crushr-info", &rest),
+        "about" => {
+            if !rest.is_empty() {
+                bail!("usage: crushr about");
+            }
+            print!("{}", about::render_about(&about::BuildMetadata::from_env()));
+            Ok(())
+        }
         "salvage" => forward_to("crushr-salvage", &rest),
         "lab" => forward_to("crushr-lab", &rest),
         "verify" => {

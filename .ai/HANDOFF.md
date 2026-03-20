@@ -1,3 +1,15 @@
+CRUSHR-BUILD-01 completion update (2026-03-20):
+- Added `Containerfile.musl` (Alpine + rustup musl target), `.cargo/config.toml` musl static rustflags, and `scripts/build-musl-release-podman.sh` (release build + checksum + runtime sample path).
+- Build script now supports environment-first metadata injection for release builds: `CRUSHR_VERSION`, `CRUSHR_GIT_COMMIT`, `CRUSHR_BUILD_TIMESTAMP`, `CRUSHR_TARGET_TRIPLE`, `CRUSHR_RUSTC_VERSION`; bounded shell fallback remains for local environments.
+- Final metadata fallback behavior is explicit `unknown`; no metadata path panics if tools/env are missing.
+- `crushr about` now reads the new runtime constants while keeping locked UI wording/order unchanged.
+
+CRUSHR-UI-04 completion update (2026-03-20):
+- Added top-level `crushr about` command on the canonical `crushr` surface and exposed it in root help output.
+- Implemented locked minimalist about renderer with fixed section order/wording and present-state-only behavior/data-model statements.
+- Added deterministic compile-time build metadata injection (commit/built/target/rustc) with bounded `unknown` fallback when metadata is unavailable.
+- Added about drift coverage: fixed-metadata golden rendering test, metadata-fallback stability test, and help-surface assertion that includes `about`.
+
 CRUSHR-VERSION-01 completion update (2026-03-20):
 - Root `VERSION` is now the canonical human-edited product version source (strict SemVer only, initial value `0.2.2`).
 - Runtime/tool metadata version surfaces now route through `crushr::product_version()` (sourced from `VERSION`) instead of `env!("CARGO_PKG_VERSION")` strings in active output paths.

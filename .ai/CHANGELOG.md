@@ -719,3 +719,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Switched `crushr-info` default output to human-readable sections and retained current JSON output behind `--json`.
 - Hardened verify structural refusal rendering to emit structured failure-domain fields (`component`, `reason`, `expected`, `received`) without exposing raw parser internals.
 - Added deterministic golden output fixtures and integration checks for verify success/failure, pack, info human mode, and salvage output.
+
+## 2026-03-20 — CRUSHR-UI-04
+
+- Added canonical top-level `crushr about` command and root-help exposure for a locked product-identity screen.
+- Implemented minimalist about renderer with fixed section order/wording plus deterministic build metadata fields (`version`, `commit`, `built`, `target`, `rust`) and explicit `unknown` fallback behavior.
+- Added deterministic drift guards: fixed-metadata golden output lock (`tests/golden/about.txt`), metadata fallback stability test, and root help-surface coverage for `about`.
+
+## 2026-03-20 — CRUSHR-BUILD-01
+
+- Added reproducible musl release build path: repo-root `Containerfile.musl`, `.cargo/config.toml` musl static flags, and `scripts/build-musl-release-podman.sh`.
+- Updated `crates/crushr/build.rs` to use environment-first metadata (`CRUSHR_VERSION`, `CRUSHR_GIT_COMMIT`, `CRUSHR_BUILD_TIMESTAMP`, `CRUSHR_TARGET_TRIPLE`, `CRUSHR_RUSTC_VERSION`) with bounded shell fallback and final `unknown`.
+- Kept `crushr about` rendering contract locked while switching runtime metadata reads to the new constant names.

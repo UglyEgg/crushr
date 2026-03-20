@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-FileCopyrightText: 2026 Richard Majewski
+
+FROM alpine:3.20
+
+RUN apk add --no-cache \
+    bash \
+    build-base \
+    ca-certificates \
+    coreutils \
+    file \
+    git \
+    llvm19 \
+    rustup
+
+ENV RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH=/root/.cargo/bin:${PATH}
+
+RUN rustup-init -y --profile minimal --default-toolchain stable \
+ && rustup target add x86_64-unknown-linux-musl
+
+WORKDIR /work

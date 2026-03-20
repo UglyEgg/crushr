@@ -7,11 +7,21 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-UI-03 complete** (minimalist section-based CLI presentation landed, `crushr-info` defaults to human-readable sections, and strict verify failures render structured failure-domain fields without raw parser leakage)
+Current Step: **CRUSHR-BUILD-01 complete** (Podman/Alpine musl release build path and environment-first build metadata injection are now landed with bounded fallback behavior)
 
-Immediate Next Step: metadata-pruning evidence review and benchmark-harness preparation on top of the finalized section-based CLI presentation contract (with canonical version governance now locked to root VERSION).
+Immediate Next Step: run CRUSHR-BUILD-01 musl release script in an environment with Podman available to capture static-binary proof artifacts (`file` + checksums) and then continue metadata-pruning evidence review/benchmark harness preparation.
 
 
+
+Latest maintenance fix (2026-03-20):
+- **CRUSHR-BUILD-01 complete**: added repo-root `Containerfile.musl`, `.cargo/config.toml` musl static flags, and `scripts/build-musl-release-podman.sh` for reproducible Podman/Alpine release builds with checksum emission (`SHA256SUMS`, optional `B3SUMS`).
+- **CRUSHR-BUILD-01 complete**: updated `crates/crushr/build.rs` to prefer environment-injected release metadata (`CRUSHR_VERSION`, `CRUSHR_GIT_COMMIT`, `CRUSHR_BUILD_TIMESTAMP`, `CRUSHR_TARGET_TRIPLE`, `CRUSHR_RUSTC_VERSION`) and only shell out as bounded fallback before final `unknown`.
+- **CRUSHR-BUILD-01 complete**: `crushr about` build metadata now consumes the new runtime constants (`CRUSHR_*`) with existing locked wording/layout unchanged.
+
+Latest maintenance fix (2026-03-20):
+- **CRUSHR-UI-04 complete**: added top-level `crushr about` command with locked minimalist section order/wording and UTF-8 divider contract.
+- **CRUSHR-UI-04 complete**: wired build metadata injection (`version`, `commit`, `built`, `target`, `rust`) via compile-time build script env values with explicit `unknown` fallback behavior.
+- **CRUSHR-UI-04 complete**: added deterministic output guards (golden about output + fallback + help-surface assertions) to prevent presentation drift and preserve present-state-only product wording.
 
 Latest maintenance fix (2026-03-20):
 - **CRUSHR-VERSION-01 complete**: added root canonical `VERSION` (`0.2.2`) as strict SemVer source of truth and replaced runtime/tool metadata version reads with `crushr::product_version()` so active `--version`/JSON/report tool-version surfaces no longer depend on hardcoded strings.

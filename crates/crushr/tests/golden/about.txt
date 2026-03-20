@@ -1,0 +1,33 @@
+crushr / about
+══════════════════════════════════════════════════════════════════════════════
+
+  Deterministic archives with verifiable structure and explicit outcomes.
+
+Build
+  version          0.2.2
+  commit           2d06ea041fd3
+  built            2026-03-20T18:12:04Z
+  target           x86_64-unknown-linux-musl
+  rust             rustc 1.93.1 (01f6ddf75 2026-02-11)
+
+Behavior
+  pack             deterministic archive creation
+  extract          strict extraction (verification-gated)
+  verify           structural and integrity validation
+  salvage          research-mode recovery planning (non-canonical)
+
+Data Model
+  tail-framed archive layout
+  index + ledger backed structure
+  optional dictionary support
+  deterministic output contracts
+
+Built with
+  Rust • clap • serde • zstd • blake3
+  Notices          THIRD_PARTY_NOTICES.md
+  Source           https://github.com/UglyEgg/crushr
+
+Support
+  If something looks wrong, attach:
+    crushr info <archive> --json
+    crushr extract --verify <archive>

@@ -114,7 +114,9 @@ fn silent_mode_emits_one_line_summary_for_public_commands() {
 fn root_help_lists_canonical_suite_and_demotes_legacy_surface() {
     let out = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("--help"));
 
-    for token in ["pack", "extract", "verify", "info", "salvage", "lab"] {
+    for token in [
+        "pack", "extract", "verify", "info", "about", "salvage", "lab",
+    ] {
         assert!(
             out.contains(token),
             "root help missing canonical command token: {token}\n{out}"
@@ -159,6 +161,24 @@ fn verify_invalid_archive_uses_operator_surface_without_parser_leakage() {
     assert!(!stdout.contains("bad footer magic"));
     assert!(!stderr.contains("parse FTR4"));
     assert!(!stderr.contains("bad footer magic"));
+}
+
+#[test]
+fn about_command_matches_locked_output_shape() {
+    let out = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("about"));
+
+    assert!(out.contains("crushr / about"));
+    assert!(out.contains("Build"));
+    assert!(out.contains("Behavior"));
+    assert!(out.contains("Data Model"));
+    assert!(out.contains("Built with"));
+    assert!(out.contains("Support"));
+    assert!(out.contains("pack             deterministic archive creation"));
+    assert!(out.contains("extract          strict extraction (verification-gated)"));
+    assert!(out.contains("verify           structural and integrity validation"));
+    assert!(out.contains("salvage          research-mode recovery planning (non-canonical)"));
+    assert!(out.contains("crushr info <archive> --json"));
+    assert!(out.contains("crushr extract --verify <archive>"));
 }
 
 #[test]
