@@ -678,3 +678,21 @@ Blast radius:
   - `crushr-salvage` JSON output labels changed to v3 canonical enums where drift existed.
   - Tests/docs/lab expectations referencing legacy labels were updated where they consumed salvage-plan contract values.
   - No changes to canonical strict extraction semantics (`crushr-extract`).
+
+## 2026-03-20 — CRUSHR-UI-03 section-based CLI presentation + info default mode
+
+- Decision:
+  - Adopt a minimalist section-based CLI rendering contract across public operator commands with canonical per-command section templates and required terminal `Result` section.
+  - Make `crushr-info` human-readable by default and preserve machine-readable snapshot output under explicit `--json`.
+  - Map verify structural failures to structured failure-domain fields (`component`, `reason`, `expected`, `received`) instead of exposing raw parser error text in normal user output.
+- Alternatives considered:
+  1. Keep prior mixed presenter grammar (`==`, `--`, bracketed status lines) and only adjust wording.
+  2. Keep `crushr-info` JSON-only and require wrapper tooling for human readability.
+- Rationale:
+  - Unified section templates reduce command-to-command output drift and improve operator scanability.
+  - Human-readable default `crushr-info` aligns command behavior with the rest of the product surface while keeping JSON automation intact.
+  - Structured failure-domain output maintains deterministic operator semantics and avoids leaking unstable parser internals.
+- Blast radius:
+  - Human output text for `crushr-pack`, `crushr-extract --verify`, `crushr-info`, and `crushr-salvage` changed.
+  - JSON output contracts remain unchanged for verify/info/salvage.
+  - Added golden fixtures/tests locking the new output contract.

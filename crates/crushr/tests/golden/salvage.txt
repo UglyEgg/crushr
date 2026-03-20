@@ -1,0 +1,21 @@
+crushr-salvage  /  plan
+------------------------------------------------------------------------
+
+Archive
+  archive                <TMP>/sample.crushr
+  verification label     UNVERIFIED_RESEARCH_OUTPUT_NOT_CANONICAL_EXTRACTION
+
+Candidates
+  total candidates       2
+  salvageable files      2
+  unsalvageable files    0
+  unmappable files       0
+
+Evidence
+  verified files         2
+  partial files          0
+  rejected/unresolved    0
+
+Result
+  status                 PARTIAL
+  message                research salvage output; not canonical extraction

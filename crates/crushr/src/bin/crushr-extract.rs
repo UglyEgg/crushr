@@ -15,7 +15,7 @@ use std::fs::File;
 use std::path::PathBuf;
 #[path = "../cli_presentation.rs"]
 mod cli_presentation;
-use cli_presentation::{CliPresenter, StatusWord};
+use cli_presentation::{group_u64, CliPresenter, StatusWord};
 
 #[path = "../extraction_path.rs"]
 mod extraction_path;
@@ -343,13 +343,20 @@ fn main() {
                     );
                 } else {
                     presenter.header();
-                    presenter.section("summary");
+                    presenter.section("Archive");
                     presenter.kv("archive", opts.archive.display());
                     if let Some(out_dir) = &opts.out_dir {
-                        presenter.kv("output_dir", out_dir.display());
+                        presenter.kv("output dir", out_dir.display());
                     }
-                    presenter.kv("safe_files", classified.report.safe_file_count);
-                    presenter.kv("refused_files", classified.report.refused_file_count);
+                    presenter.section("Result");
+                    presenter.kv(
+                        "safe files",
+                        group_u64(classified.report.safe_file_count as u64),
+                    );
+                    presenter.kv(
+                        "refused files",
+                        group_u64(classified.report.refused_file_count as u64),
+                    );
                     presenter.outcome(
                         if classified.outcome_kind == ExtractionOutcomeKind::Success {
                             StatusWord::Complete
@@ -408,27 +415,39 @@ fn main() {
                     );
                 } else {
                     presenter.header();
-                    presenter.section("verification");
+                    presenter.section("Archive");
                     presenter.kv("archive", &report.archive_path);
-                    presenter.kv("verified_extent_count", report.verified_extent_count);
-                    presenter.kv("failed_check_count", report.failed_check_count);
-                    presenter.section("failure_domains");
-                    presenter.kv(
-                        "identity_resolution",
-                        format!("{:?}", model.failure_domains.identity_resolution).to_lowercase(),
-                    );
-                    presenter.kv(
-                        "dictionary_resolution",
-                        format!("{:?}", model.failure_domains.dictionary_resolution).to_lowercase(),
-                    );
                     if report.safe_for_strict_extraction {
+                        presenter.section("Verification");
+                        presenter.kv(
+                            "verified extents",
+                            group_u64(report.verified_extent_count as u64),
+                        );
+                        presenter.kv("failed checks", group_u64(report.failed_check_count as u64));
+                        presenter.kv(
+                            "identity resolution",
+                            format!("{:?}", model.failure_domains.identity_resolution)
+                                .to_lowercase(),
+                        );
+                        presenter.kv(
+                            "dictionary resolution",
+                            format!("{:?}", model.failure_domains.dictionary_resolution)
+                                .to_lowercase(),
+                        );
+                        presenter.section("Result");
                         presenter.outcome(StatusWord::Verified, "safe for strict extraction");
                     } else {
-                        presenter.outcome(StatusWord::Refused, "not safe for strict extraction");
-                        presenter.section("refusal_reasons");
-                        for reason in &report.refusal_reasons {
-                            presenter.item(StatusWord::Refused, reason);
+                        presenter.section("Failure domain");
+                        presenter.kv("component", "strict verification");
+                        presenter.kv("reason", "verification checks failed");
+                        presenter.kv("expected", "archive passes all strict checks");
+                        presenter.kv("received", "failed checks detected");
+                        presenter.kv("failed checks", group_u64(report.failed_check_count as u64));
+                        if let Some(first_reason) = report.refusal_reasons.first() {
+                            presenter.kv("first refusal", first_reason);
                         }
+                        presenter.section("Result");
+                        presenter.outcome(StatusWord::Refused, "not safe for strict extraction");
                     }
                     presenter.silent_summary(
                         if report.safe_for_strict_extraction {
@@ -456,17 +475,15 @@ fn main() {
                     let presenter =
                         CliPresenter::new("crushr-extract", "verify", opts.silent && !opts.json);
                     presenter.header();
-                    presenter.section("verification");
+                    presenter.section("Archive");
                     presenter.kv("archive", opts.archive.display());
-                    presenter.section("failure_domains");
-                    presenter.kv("identity_resolution", "unknown");
-                    presenter.kv("dictionary_resolution", "unknown");
+                    presenter.section("Failure domain");
+                    presenter.kv("component", "archive structure");
+                    presenter.kv("reason", "failed to parse strict verification inputs");
+                    presenter.kv("expected", "valid FTR4 footer, tail frame, and index");
+                    presenter.kv("received", "invalid or unreadable archive structure");
+                    presenter.section("Result");
                     presenter.outcome(StatusWord::Refused, "not safe for strict extraction");
-                    presenter.section("refusal_reasons");
-                    presenter.item(
-                        StatusWord::Refused,
-                        "archive structure validation failed before strict verification could complete",
-                    );
                     presenter.silent_summary(
                         StatusWord::Refused,
                         &[

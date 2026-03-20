@@ -1,3 +1,10 @@
+CRUSHR-UI-03 completion update (2026-03-20):
+- Shared CLI presenter now renders the minimalist section contract: `<tool>  /  <action>`, fixed horizontal rule, title-based sections, aligned label/value rows, and explicit terminal `Result` section.
+- Canonical section templates are now enforced in runtime tools: verify success (`Archive/Verification/Result`), verify refusal (`Archive/Failure domain/Result`), pack (`Target/Progress/Result`), info (`Archive/Structure/Result`), salvage (`Archive/Candidates/Evidence/Result`).
+- `crushr-info` now defaults to human-readable sections; `--json` preserves existing snapshot JSON output contract.
+- Verify structural failure rendering is now structured (`component/reason/expected/received`) with no raw parser error leakage in normal human output.
+- Added deterministic golden output fixtures + contract test coverage for verify success, verify failure, pack, info human mode, and salvage (`tests/golden/*.txt`, `cli_presentation_contract.rs`).
+
 <!--
 SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski

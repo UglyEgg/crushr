@@ -1,0 +1,15 @@
+crushr-extract  /  verify
+------------------------------------------------------------------------
+
+Archive
+  archive                <TMP>/sample.crushr
+
+Verification
+  verified extents       2
+  failed checks          0
+  identity resolution    verified
+  dictionary resolution  verified
+
+Result
+  status                 VERIFIED
+  message                safe for strict extraction
