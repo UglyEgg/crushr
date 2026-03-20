@@ -713,3 +713,37 @@ Blast radius:
 - Blast radius:
   - `crushr` runtime version reporting paths and lab tool-version fields now consume canonical `VERSION` accessor.
   - Version governance tooling/docs (`scripts/check-version-sync.sh`, `scripts/sync-version.sh`, `VERSION`, README/continuity notes) now define the bump workflow.
+
+## 2026-03-20 — CRUSHR-UI-04 locked `crushr about` surface + bounded build metadata fallback
+
+- Decision:
+  - Add top-level `crushr about` as a locked product-identity surface with fixed section ordering and present-state wording.
+  - Inject build metadata at compile time (`commit`, `built`, `target`, `rustc`) and require explicit `unknown` fallback when unavailable.
+  - Protect output contract with deterministic golden/fallback/help-surface tests to prevent wording/spacing drift.
+- Alternatives considered:
+  1. Keep `about` dynamic/freeform under shared presenter templates.
+  2. Omit build metadata fields when unavailable.
+- Rationale:
+  - Product identity wording must stay stable and non-speculative.
+  - Explicit fallback avoids panics/empty fields while keeping output deterministic.
+- Blast radius:
+  - Adds `about` to top-level help and command routing.
+  - Introduces compile-time metadata injection for `crushr` binary.
+  - No archive format, extraction semantics, or salvage contract changes.
+
+## 2026-03-20 — CRUSHR-BUILD-01 musl release path + environment-first metadata injection
+
+- Decision:
+  - Add a repo-root Podman/Alpine musl release build path (`Containerfile.musl` + `scripts/build-musl-release-podman.sh`) that injects metadata through environment variables.
+  - Treat `VERSION` as canonical release version source and pass it via `CRUSHR_VERSION` during release builds.
+  - Keep `build.rs` environment-first with bounded shell fallbacks and final `unknown` values to prevent panics in minimal/dev environments.
+- Alternatives considered:
+  1. Shell-only metadata discovery in all environments.
+  2. No containerized musl build path in-repo.
+- Rationale:
+  - Release reproducibility needs explicit metadata control and a stable musl build recipe.
+  - Local developer workflows still need safe fallback behavior when metadata tooling is absent.
+- Blast radius:
+  - Adds build artifacts/tooling files (`Containerfile.musl`, `.cargo/config.toml`, build script helper).
+  - Changes compile-time metadata key names consumed by `crushr about` build display fields.
+  - No archive format or extraction/salvage behavior changes.
