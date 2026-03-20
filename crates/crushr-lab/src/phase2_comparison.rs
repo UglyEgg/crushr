@@ -400,7 +400,8 @@ mod tests {
     use super::*;
     use crate::phase2_domain::{CorruptionType, Dataset, Magnitude, TargetClass};
     use crate::phase2_normalization::{
-        BlastRadiusClass, DiagnosticSpecificity, FailureStage, RecoveryEvidenceStrength, ResultClass,
+        BlastRadiusClass, DiagnosticSpecificity, FailureStage, RecoveryEvidenceStrength,
+        ResultClass,
     };
 
     fn representative_normalized_records() -> Vec<NormalizedRunRecord> {
