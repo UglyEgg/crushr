@@ -7,12 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-HARDEN-03I complete** (typed metadata conversion closed across active pack/salvage paths)
+Current Step: **CRUSHR-UI-01 complete** (unified CLI presentation contract + standardized `--silent` mode landed across pack/extract/verify/salvage)
 
-Immediate Next Step: **CRUSHR-UI-01** (establish unified CLI presentation contract and standardized `--silent` behavior before benchmark-harness expansion)
+Immediate Next Step: metadata-pruning evidence review and benchmark-harness preparation on top of the unified operator-facing CLI surface
 
 
 Latest maintenance fix (2026-03-20):
+- **CRUSHR-UI-01-FIX1 complete**: repaired workspace manifest validity by restoring missing `package.name` across all workspace crate manifests, unblocked `cargo fmt --all`, reran targeted UI contract tests, executed representative pack/extract/verify/salvage + `--silent` runtime validation commands, and finalized salvage output mode policy as default human with explicit `--json` for machine output.
+- **CRUSHR-UI-01 complete**: added shared CLI presentation helper (`cli_presentation`) with bounded status vocabulary and deterministic section/header/outcome grammar; wired `crushr-pack`, `crushr-extract`, `crushr-extract --verify`, and `crushr-salvage` to the shared surface; standardized `--silent` one-line scriptable summaries across those commands; added integration tests for determinism/status vocabulary/silent behavior.
 - **CRUSHR-LICENSE-01-FIX1 complete**: replaced deprecated `.reuse/dep5` with `REUSE.toml` to remove REUSE tooling deprecation warnings while preserving the same license mapping model and passing `reuse lint`.
 - **CRUSHR-LICENSE-01 complete**: unified repository licensing to MIT OR Apache-2.0 for code and CC-BY-4.0 for docs/diagrams; aligned workspace crate metadata, added root license texts, applied SPDX headers repo-wide, and verified REUSE compliance via `reuse lint`.
 

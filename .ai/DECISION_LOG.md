@@ -5,6 +5,22 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-20 — CRUSHR-UI-01 unified CLI presentation + silent-mode contract
+
+- Decision:
+  - Introduce one shared CLI presentation helper (`crates/crushr/src/cli_presentation.rs`) for public runtime tools in scope.
+  - Standardize a bounded user-facing status vocabulary: `VERIFIED`, `OK`, `COMPLETE`, `PARTIAL`, `REFUSED`, `FAILED`, `RUNNING`, `SCANNING`, `WRITING`, `FINALIZING`.
+  - Standardize `--silent` across `crushr-pack`, `crushr-extract`, `crushr-extract --verify`, and `crushr-salvage` to emit deterministic one-line summaries for scripting.
+- Alternatives considered:
+  1. Keep command-local ad-hoc output and add only style guidance docs.
+  2. Use independent per-binary formatting with no shared helper.
+- Rationale:
+  - Shared rendering primitives reduce wording/status drift and establish one product identity before benchmark-harness expansion.
+  - A common `--silent` contract removes command-specific scripting surprises.
+- Blast radius:
+  - Affects CLI human-output/help behavior for pack/extract/verify/salvage.
+  - Does not alter archive semantics, strict extraction verification boundaries, or salvage research contract fields.
+
 ## 2026-03-18 — CRUSHR-HARDEN-03G canonical verify truth boundary
 
 - Decision:

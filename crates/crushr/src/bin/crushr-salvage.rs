@@ -19,9 +19,12 @@ use std::fs;
 use std::fs::File;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
+#[path = "../cli_presentation.rs"]
+mod cli_presentation;
+use cli_presentation::{CliPresenter, StatusWord};
 
 const USAGE: &str =
-    "usage: crushr-salvage <archive> [--json-out <path>] [--export-fragments <dir>]";
+    "usage: crushr-salvage <archive> [--json] [--json-out <path>] [--export-fragments <dir>] [--silent]";
 const RESEARCH_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
 #[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
 enum MappingProvenance {
@@ -161,8 +164,10 @@ impl Len for FileReader {
 #[derive(Debug)]
 struct CliOptions {
     archive: PathBuf,
+    json: bool,
     json_out: Option<PathBuf>,
     export_fragments: Option<PathBuf>,
+    silent: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -748,6 +753,26 @@ fn plan_from_experimental_metadata(
 fn run() -> Result<()> {
     let opts = parse_cli_options()?;
     let (mut plan, archive_bytes) = build_plan(&opts)?;
+    let verified_files = plan
+        .file_plans
+        .iter()
+        .filter(|file| file.recovery_classification == RecoveryClassification::FullVerified)
+        .count();
+    let partial_files = plan
+        .file_plans
+        .iter()
+        .filter(|file| {
+            matches!(
+                file.recovery_classification,
+                RecoveryClassification::PartialOrdered | RecoveryClassification::PartialUnordered
+            )
+        })
+        .count();
+    let rejected_or_unresolved_files = plan
+        .file_plans
+        .iter()
+        .filter(|file| file.recovery_classification == RecoveryClassification::OrphanBlocks)
+        .count();
 
     if let Some(export_dir) = &opts.export_fragments {
         let exported = export_artifacts(
@@ -762,8 +787,44 @@ fn run() -> Result<()> {
     let rendered = serde_json::to_string_pretty(&plan)?;
     if let Some(path) = opts.json_out {
         write_json_output(&path, &rendered)?;
-    } else {
+    } else if opts.json {
         println!("{rendered}");
+    } else {
+        let presenter = CliPresenter::new("crushr-salvage", "plan", opts.silent);
+        presenter.header();
+        presenter.section("archive");
+        presenter.kv("archive", &plan.archive.archive_path);
+        presenter.kv(
+            "verification_contract_label",
+            plan.verification_contract_label,
+        );
+        presenter.section("summary");
+        presenter.kv(
+            "total_candidates",
+            plan.orphan_candidate_summary.total_candidates,
+        );
+        presenter.kv("salvageable_files", plan.summary.salvageable_files);
+        presenter.kv("unsalvageable_files", plan.summary.unsalvageable_files);
+        presenter.kv("unmappable_files", plan.summary.unmappable_files);
+        presenter.section("evidence_model");
+        presenter.kv("verified_files", verified_files);
+        presenter.kv("partial_files", partial_files);
+        presenter.kv("rejected_or_unresolved_files", rejected_or_unresolved_files);
+        presenter.outcome(
+            StatusWord::Partial,
+            "research salvage output; not canonical extraction",
+        );
+        presenter.silent_summary(
+            StatusWord::Partial,
+            &[
+                ("archive", plan.archive.archive_path.clone()),
+                (
+                    "salvageable_files",
+                    plan.summary.salvageable_files.to_string(),
+                ),
+                ("label", RESEARCH_LABEL.to_string()),
+            ],
+        );
     }
 
     Ok(())
