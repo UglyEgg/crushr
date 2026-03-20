@@ -10,7 +10,7 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
         std::process::exit(0);
     }
     if early_args.iter().any(|a| a == "--version" || a == "-V") {
-        println!("{}", env!("CARGO_PKG_VERSION"));
+        println!("{}", crushr::product_version());
         std::process::exit(0);
     }
 

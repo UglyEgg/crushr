@@ -13,6 +13,7 @@ You do **not** need to know Docker internals to use this. Think of the container
 
 - A release artifact under `dist/`:
   - `dist/crushr-<version>-<target>.tar.gz`
+- Version source: root `VERSION` (strict SemVer) is canonical for build artifact naming.
   - Contains `bin/crushr` and selected documentation files.
 
 - Two build environments:

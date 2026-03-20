@@ -53,7 +53,7 @@ fn run() -> Result<()> {
         return Ok(());
     }
     if cmd == "--version" || cmd == "-V" {
-        println!("{}", env!("CARGO_PKG_VERSION"));
+        println!("{}", crushr::product_version());
         return Ok(());
     }
 

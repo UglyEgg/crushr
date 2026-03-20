@@ -200,7 +200,7 @@ pub(crate) fn run_format08_placement_comparison(
     let summary = serde_json::json!({
         "schema_version": "crushr-lab-salvage-format08-placement-comparison.v1",
         "tool": "crushr-lab-salvage",
-        "tool_version": env!("CARGO_PKG_VERSION"),
+        "tool_version": crushr::product_version(),
         "verification_label": VERIFICATION_LABEL,
         "scenario_count": rows.len(),
         "placement_strategies": strategies,
@@ -405,7 +405,7 @@ pub(crate) fn run_format06_comparison(comparison_dir: &Path, verbose: bool) -> R
     let summary = serde_json::json!({
         "schema_version": "crushr-lab-salvage-format06-comparison.v1",
         "tool": "crushr-lab-salvage",
-        "tool_version": env!("CARGO_PKG_VERSION"),
+        "tool_version": crushr::product_version(),
         "verification_label": VERIFICATION_LABEL,
         "scenario_count": rows.len(),
         "old_outcome_counts": count_outcomes(rows.iter().filter_map(|r| r.get("old_outcome").and_then(Value::as_str))),
@@ -565,7 +565,7 @@ pub(crate) fn run_format07_comparison(comparison_dir: &Path, verbose: bool) -> R
     let summary = serde_json::json!({
         "schema_version": "crushr-lab-salvage-format07-comparison.v1",
         "tool": "crushr-lab-salvage",
-        "tool_version": env!("CARGO_PKG_VERSION"),
+        "tool_version": crushr::product_version(),
         "verification_label": VERIFICATION_LABEL,
         "scenario_count": rows.len(),
         "old_outcome_counts": count_outcomes(rows.iter().filter_map(|r| r.get("old_outcome").and_then(Value::as_str))),
@@ -1081,7 +1081,7 @@ pub(crate) fn run_format09_comparison(comparison_dir: &Path, verbose: bool) -> R
     let summary = serde_json::json!({
         "schema_version": "crushr-lab-salvage-format09-comparison.v1",
         "tool": "crushr-lab-salvage",
-        "tool_version": env!("CARGO_PKG_VERSION"),
+        "tool_version": crushr::product_version(),
         "verification_label": VERIFICATION_LABEL,
         "scenario_count": rows.len(),
         "metadata_regimes": ["metadata_intact", "metadata_destroyed", "metadata_partial", "metadata_conflicting"],
@@ -1439,7 +1439,7 @@ pub(crate) fn run_format10_pruning_comparison(comparison_dir: &Path, verbose: bo
     let summary = serde_json::json!({
         "schema_version": "crushr-lab-salvage-format10-pruning-comparison.v1",
         "tool": "crushr-lab-salvage",
-        "tool_version": env!("CARGO_PKG_VERSION"),
+        "tool_version": crushr::product_version(),
         "verification_label": VERIFICATION_LABEL,
         "scenario_count": rows.len(),
         "variants": ["full_current_experimental", "payload_only", "payload_plus_manifest", "payload_plus_path"],
@@ -1742,7 +1742,7 @@ pub(crate) fn run_format11_extent_identity_comparison(
     let summary = serde_json::json!({
         "schema_version": "crushr-lab-salvage-format11-extent-identity-comparison.v1",
         "tool": "crushr-lab-salvage",
-        "tool_version": env!("CARGO_PKG_VERSION"),
+        "tool_version": crushr::product_version(),
         "verification_label": VERIFICATION_LABEL,
         "scenario_count": rows.len(),
         "variants": ["payload_only", "payload_plus_manifest", "full_current_experimental", "extent_identity_only"],
@@ -2067,7 +2067,7 @@ pub(crate) fn run_format12_inline_path_comparison(
     let summary = serde_json::json!({
         "schema_version": "crushr-lab-salvage-format12-inline-path-comparison.v1",
         "tool": "crushr-lab-salvage",
-        "tool_version": env!("CARGO_PKG_VERSION"),
+        "tool_version": crushr::product_version(),
         "verification_label": VERIFICATION_LABEL,
         "scenario_count": rows.len(),
         "variants": ["payload_only", "extent_identity_only", "extent_identity_distributed_names", "payload_plus_manifest", "full_current_experimental", "extent_identity_inline_path"],
@@ -2599,7 +2599,7 @@ pub(crate) fn run_format12_stress_comparison(comparison_dir: &Path, verbose: boo
     let summary = serde_json::json!({
         "schema_version": "crushr-lab-salvage-format12-stress-comparison.v2",
         "tool": "crushr-lab-salvage",
-        "tool_version": env!("CARGO_PKG_VERSION"),
+        "tool_version": crushr::product_version(),
         "verification_label": VERIFICATION_LABEL,
         "scenario_count": rows.len(),
         "deterministic_seed_start": 9100u64,

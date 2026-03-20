@@ -19,3 +19,7 @@
 //! ```
 pub mod format;
 pub mod index_codec;
+
+pub mod versioning;
+
+pub use versioning::product_version;

@@ -69,6 +69,7 @@ Deliverables
 - [x] CRUSHR-UI-01-FIX1 — restore workspace Cargo manifest validity (`package.name` fields), rerun blocked formatting/test commands, and complete representative runtime validation for pack/extract/verify/salvage and `--silent`.
 - [x] CRUSHR-UI-02 — realign public CLI surface to canonical preservation suite (`pack/extract/verify/info`) with bounded salvage/lab demotion and repair strict verify structural-failure presentation so parser internals do not leak in normal user output.
 - [x] CRUSHR-UI-03 — ship minimalist section-based CLI presentation templates across pack/verify/info/salvage, default `crushr-info` to human-readable mode, and lock deterministic golden outputs for verify success/failure + pack/info/salvage.
+- [x] CRUSHR-VERSION-01 — establish canonical root `VERSION` SemVer source, align runtime/tooling/Cargo version surfaces, and add automated drift validation + sync tooling.
 - FORMAT-15 comparison results
 - FORMAT-15 stress comparison results
 - updated SNAPSHOT_FORMAT.md

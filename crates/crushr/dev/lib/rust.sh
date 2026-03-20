@@ -9,10 +9,13 @@ set -euo pipefail
 
 cargo_version() {
   python3 - <<'PY'
-import tomllib
-with open("Cargo.toml","rb") as f:
-    t = tomllib.load(f)
-print(t.get("package",{}).get("version","0.0.0"))
+import pathlib
+import re
+
+value = pathlib.Path("/work/VERSION").read_text(encoding="utf-8").strip()
+if not re.fullmatch(r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?", value):
+    raise SystemExit(f"VERSION is not strict SemVer: {value!r}")
+print(value)
 PY
 }
 

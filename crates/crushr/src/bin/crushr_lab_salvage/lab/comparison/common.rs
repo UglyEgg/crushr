@@ -686,7 +686,7 @@ pub(crate) fn run_redundant_map_comparison(comparison_dir: &Path, verbose: bool)
     let summary = ComparisonSummary {
         schema_version: "crushr-lab-salvage-comparison.v1",
         tool: "crushr-lab-salvage",
-        tool_version: env!("CARGO_PKG_VERSION"),
+        tool_version: crushr::product_version(),
         verification_label: VERIFICATION_LABEL,
         scenario_count: rows.len(),
         old_archive_count: rows.len(),

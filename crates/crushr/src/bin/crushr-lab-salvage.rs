@@ -633,7 +633,7 @@ fn run() -> Result<()> {
 
             let experiment_id = {
                 let mut hasher = blake3::Hasher::new();
-                hasher.update(env!("CARGO_PKG_VERSION").as_bytes());
+                hasher.update(crushr::product_version().as_bytes());
                 hasher.update(if opts.export_fragments {
                     b"export"
                 } else {
@@ -648,7 +648,7 @@ fn run() -> Result<()> {
 
             let manifest = ExperimentManifest {
                 experiment_id: experiment_id.clone(),
-                tool_version: env!("CARGO_PKG_VERSION"),
+                tool_version: crushr::product_version(),
                 schema_version: EXPERIMENT_SCHEMA_VERSION,
                 run_count: archive_ids.len(),
                 run_timestamp: run_timestamp(),
