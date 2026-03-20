@@ -1,10 +1,15 @@
 [package]
-name = "crushr"
 version.workspace = true
 edition.workspace = true
-license = "MIT OR Apache-2.0"
-description = "Seekable solid-block archive format + tool suite"
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "Deterministic failure-aware archive tool suite with strict verification and recovery research tooling."
 readme = "../../README.md"
+categories = ["compression", "command-line-utilities", "filesystem"]
+keywords.workspace = true
 
 [dependencies]
 crushr-core = { path = "../crushr-core" }

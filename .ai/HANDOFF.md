@@ -66,3 +66,10 @@ CRUSHR-LAB-FIX-01 completion update (2026-03-19):
 - Comparison engine is now split into `lab/comparison/mod.rs`, `common.rs`, `experimental.rs`, `format06_to12.rs`, and `format13_to15.rs`.
 - Command dispatch in `crushr-lab-salvage` is unchanged; import path now points to `comparison/mod.rs`.
 - Remaining concern: format09/10 helper internals still use permissive helper visibility and some untyped `Value` helper flow that should be tightened in follow-up 03F.
+
+
+## Current near-term priority note
+
+- Repository licensing is now unified (MIT OR Apache-2.0 for code; CC-BY-4.0 for docs) and REUSE-compliant.
+- `zensical.toml` is now the canonical docs-site configuration; `mkdocs.yml` should be treated as transitional compatibility only.
+- Before benchmark-harness expansion, the intended next product-facing step is a unified CLI presentation contract (`CRUSHR-UI-01`) so pack/extract/verify/salvage share one operator-facing identity and consistent `--silent` behavior.

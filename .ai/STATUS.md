@@ -9,7 +9,7 @@ Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
 Current Step: **CRUSHR-HARDEN-03I complete** (typed metadata conversion closed across active pack/salvage paths)
 
-Immediate Next Step: **metadata-pruning evidence review** (use FORMAT-10/11/12/13/14A results to lock keep/prune boundaries)
+Immediate Next Step: **CRUSHR-UI-01** (establish unified CLI presentation contract and standardized `--silent` behavior before benchmark-harness expansion)
 
 
 Latest maintenance fix (2026-03-20):
@@ -107,6 +107,7 @@ Recovery should degrade in reverse order:
 1. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
 2. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
 3. Keep strict extraction interfaces/semantics untouched (including hardened `crushr-extract --verify` refusal behavior).
+4. Establish a unified CLI identity/presentation layer before building the benchmark harness so future output/report surfaces inherit one product language.
 
 ## Near-term product-completeness track (not active yet)
 

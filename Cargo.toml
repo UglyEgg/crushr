@@ -13,6 +13,12 @@ members = [
 version = "0.2.2"
 edition = "2021"
 license = "MIT OR Apache-2.0"
+authors = ["Richard Majewski"]
+repository = "https://github.com/UglyEgg/crushr"
+homepage = "https://crushr.entropy.quest/"
+documentation = "https://crushr.entropy.quest/"
+keywords = ["archive", "compression", "recovery", "forensics", "integrity"]
+
 
 [workspace.dependencies]
 anyhow = "1"

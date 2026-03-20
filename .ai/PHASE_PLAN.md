@@ -65,6 +65,7 @@ Deliverables
 - [x] CRUSHR-LAB-FIX-01 — repair failing Phase 2 comparison/normalization shape-contract tests and restore explicit deterministic normalized scenario ordering checks.
 - [x] CRUSHR-LICENSE-01 — repository-wide license unification (MIT OR Apache-2.0 code, CC-BY-4.0 docs), SPDX header sweep, Cargo metadata alignment, and REUSE compliance verification.
 - [x] CRUSHR-LICENSE-01-FIX1 — migrate REUSE metadata from `.reuse/dep5` to `REUSE.toml` to remove tooling deprecation warning while keeping licensing classification unchanged.
+- [ ] CRUSHR-UI-01 — establish a unified CLI presentation contract and standardized `--silent` mode across `crushr-pack`, `crushr-extract`, `crushr-extract --verify`, and `crushr-salvage` before benchmark-harness work.
 - FORMAT-15 comparison results
 - FORMAT-15 stress comparison results
 - updated SNAPSHOT_FORMAT.md

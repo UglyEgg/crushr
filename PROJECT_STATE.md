@@ -23,6 +23,7 @@ Non-negotiable baseline:
 - `crushr-extract` — strict verified extraction with deterministic refusal reporting
 - `crushr-lab` — controlled research harness
 - `crushr-salvage` — separate experimental salvage-planning executable (unverified research output only)
+- `crushr-lab` — deterministic research harness (not part of canonical extraction product surface)
 
 `crushr-salvage` must not change or weaken `crushr-extract` semantics.
 
@@ -38,6 +39,8 @@ Non-negotiable baseline:
 - Phase 2 execution matrix: complete and frozen.
 - Phase 2 normalization: complete and frozen.
 - Phase 2 comparison/ranking analysis: complete and frozen.
+- Current hardening work around typed verification/report truth and licensing is complete.
+- Near-term productization focus is unified CLI identity and presentation before benchmark-harness expansion.
 - Current experimental direction after FORMAT-12: payload identity remains the primary recovery truth, and metadata layers are under explicit pruning evaluation. FORMAT-12 adds `extent_identity_inline_path` to test repeated local path/name truth per extent against `payload_plus_manifest` and `extent_identity_only` for named-recovery gain vs byte overhead.
 
 Canonical Phase 2 workspace root remains `PHASE2_RESEARCH/`.

@@ -5,7 +5,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # crushr
 
-**crushr** is a salvage-oriented archival format built for the failure case, not merely the happy path.
+**crushr** is a salvage-oriented archive format built for the failure case, not merely the happy path.
 
 Its core design question is simple:
 
@@ -21,15 +21,17 @@ crushr’s current architecture is built around:
 
 ## Documentation
 
-The public product and whitepaper documentation now lives under `docs/`.
+The public product and whitepaper documentation lives under `docs/`.
 
-Start here:
+Primary entry points:
 
 - `docs/index.md` — site landing page
-- `docs/ARCHITECTURE.md` — canonical runtime and lab boundary
 - `docs/why-crushr.md` — positioning and legitimacy
 - `docs/whitepaper/index.md` — technical whitepaper
-- `docs/foundational_docs/index.md` — lower-level format references
+- `docs/format-evolution.md` — design-branch / decision history
+- `docs/reference/index.md` — concise technical reference
+
+The published docs site now targets **Zensical** via `zensical.toml`. `mkdocs.yml` remains only as a transition artifact until the docs pipeline fully drops it.
 
 ## Internal project control
 
@@ -42,27 +44,29 @@ These files are not part of the website and should be treated as internal engine
 
 ## Canonical runtime boundary
 
-The canonical tool boundary remains:
+The canonical public tool boundary is:
 
 - `crushr-pack`
 - `crushr-info`
 - `crushr-extract`
 - `crushr-extract --verify`
 - `crushr-salvage` (experimental, separate from canonical extraction)
+- `crushr-lab` (research harness, not product surface)
 
 `crushr-extract` remains strict and deterministic.
-`crushr-fsck` is retained only as a temporary deprecated compatibility shim that directs to `crushr-extract --verify`.
+`crushr-fsck` is retained only as a temporary deprecated compatibility shim that directs users to `crushr-extract --verify`.
 
-## API boundary truth (CRUSHR-HARDEN-03A)
+## API boundary truth
 
 Current boundary classes:
 
-- **Stable product surface:** CLI behavior and machine-readable outputs of `crushr-pack`, `crushr-info`, `crushr-extract --verify`, `crushr-extract`, and bounded experimental `crushr-salvage`.
-- **Bounded internal surface:** workspace Rust crates/modules used to implement the tools (`crushr`, `crushr-core`, `crushr-format`, `crushr-cli-common`).
-- **Experimental/lab-only surface:** `crushr-lab` and `crushr-lab-salvage` workflows, schemas, and FORMAT comparison commands.
-- **Removed accidental exposure:** `crushr::extraction_path` is no longer exposed as a public library module; confinement logic remains internal implementation detail.
+- **Stable product surface:** CLI behavior and machine-readable outputs of `crushr-pack`, `crushr-info`, `crushr-extract --verify`, and `crushr-extract`
+- **Bounded internal surface:** workspace Rust crates/modules used to implement the tool suite (`crushr`, `crushr-core`, `crushr-format`, `crushr-cli-common`)
+- **Experimental/lab-only surface:** `crushr-salvage`, `crushr-lab`, FORMAT comparison workflows, and research schemas/artifacts
+- **Removed accidental exposure:** internal extraction-path and verify-report assembly details are no longer public library API
 
-Treat these boundaries as canonical unless explicitly revised by a future packet/decision.
+Treat these boundaries as canonical unless explicitly revised by a future decision.
+
 ## License
 
 Code in this repository is dual-licensed under **MIT OR Apache-2.0**.
@@ -72,5 +76,4 @@ Code in this repository is dual-licensed under **MIT OR Apache-2.0**.
 
 Documentation and diagrams (Markdown and visual assets) are licensed under **CC-BY-4.0**.
 
-This repository is structured for REUSE compliance with SPDX headers and `.reuse/dep5` metadata.
-
+This repository is structured for REUSE compliance with SPDX headers and `REUSE.toml` metadata.

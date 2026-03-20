@@ -1,9 +1,15 @@
 [package]
-name = "crushr-core"
 version.workspace = true
 edition.workspace = true
-license = "MIT OR Apache-2.0"
-description = "crushr engine: verify/repair/plan over minimal IO traits"
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "Core verification, extraction, and recovery-graph logic for crushr archives."
+readme = "../../README.md"
+categories = ["compression", "filesystem"]
+keywords.workspace = true
 
 [dependencies]
 anyhow.workspace = true

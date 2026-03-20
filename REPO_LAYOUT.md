@@ -26,7 +26,8 @@ Primary entry points:
 - `docs/index.md`
 - `docs/why-crushr.md`
 - `docs/whitepaper/index.md`
-- `docs/foundational_docs/index.md`
+- `docs/format-evolution.md`
+- `docs/reference/index.md`
 
 ## Internal contracts and project-control docs
 
@@ -36,8 +37,14 @@ Primary entry points:
 ## Code and supporting dirs
 
 - `schemas/` — versioned JSON schemas
-- `docs/` — website only
+- `docs/` — website content only
+- `site/` — generated documentation output
 - `.ai/` — internal project control
+
+## Documentation tooling
+
+- `zensical.toml` — canonical docs-site configuration
+- `mkdocs.yml` — transitional compatibility file only; do not treat it as the long-term source of truth once the migration is complete
 
 ## Documentation rule
 

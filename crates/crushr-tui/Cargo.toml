@@ -1,10 +1,16 @@
 [package]
-name = "crushr-tui"
 version.workspace = true
 edition.workspace = true
-license = "MIT OR Apache-2.0"
-
-description = "Interactive inspector for crushr archives (live + snapshot modes)."
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "Interactive terminal inspector for crushr archives and snapshots."
+readme = "../../README.md"
+categories = ["command-line-utilities", "filesystem"]
+keywords.workspace = true
+publish = false
 
 [dependencies]
 anyhow.workspace = true

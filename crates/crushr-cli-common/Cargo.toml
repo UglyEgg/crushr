@@ -1,10 +1,15 @@
 [package]
-name = "crushr-cli-common"
 version.workspace = true
 edition.workspace = true
-license = "MIT OR Apache-2.0"
-
-description = "Shared CLI plumbing for the crushr tool suite (flags, logging, output)."
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "Shared command-line plumbing and presentation helpers for the crushr tool suite."
+readme = "../../README.md"
+categories = ["command-line-utilities"]
+keywords.workspace = true
 
 [dependencies]
 anyhow.workspace = true

@@ -1,9 +1,15 @@
 [package]
-name = "crushr-format"
 version.workspace = true
 edition.workspace = true
-license = "MIT OR Apache-2.0"
-description = "crushr on-disk format: structs, encoding/decoding, invariants"
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "On-disk format types, codecs, and invariants for crushr archives."
+readme = "../../README.md"
+categories = ["compression", "filesystem"]
+keywords.workspace = true
 
 [dependencies]
 anyhow.workspace = true

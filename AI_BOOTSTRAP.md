@@ -23,6 +23,10 @@ Then confirm active phase/step from `.ai/STATUS.md` before coding.
 
 - Integrity-first thesis remains unchanged.
 - `crushr-extract` is strict-only canonical extraction.
+- Public strict verification lives under `crushr-extract --verify`.
+- `crushr-salvage` remains research-only and must not be presented as canonical extraction.
 - Phase 2 execution/normalization/comparison are complete and frozen.
-- Active workstream is CRUSHR-SALVAGE-01: standalone deterministic salvage planning via `crushr-salvage`.
-- Salvage outputs are unverified research outputs and must not be presented as canonical extraction.
+- Current near-term engineering direction is productization and hardening:
+  - metadata-pruning / keep-prune evidence review
+  - product-surface clarity
+  - unified CLI identity before benchmark-harness expansion
