@@ -9,9 +9,14 @@ Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
 Current Step: **CRUSHR-UI-03 complete** (minimalist section-based CLI presentation landed, `crushr-info` defaults to human-readable sections, and strict verify failures render structured failure-domain fields without raw parser leakage)
 
-Immediate Next Step: metadata-pruning evidence review and benchmark-harness preparation on top of the finalized section-based CLI presentation contract
+Immediate Next Step: metadata-pruning evidence review and benchmark-harness preparation on top of the finalized section-based CLI presentation contract (with canonical version governance now locked to root VERSION).
 
 
+
+Latest maintenance fix (2026-03-20):
+- **CRUSHR-VERSION-01 complete**: added root canonical `VERSION` (`0.2.2`) as strict SemVer source of truth and replaced runtime/tool metadata version reads with `crushr::product_version()` so active `--version`/JSON/report tool-version surfaces no longer depend on hardcoded strings.
+- **CRUSHR-VERSION-01 complete**: added deterministic SemVer+drift guardrails via `scripts/check-version-sync.sh` and integration test `crates/crushr/tests/version_contract.rs` asserting `VERSION` == `workspace.package.version` and strict SemVer validity.
+- **CRUSHR-VERSION-01 complete**: added `scripts/sync-version.sh` for single-touch version bumps (humans edit `VERSION`, tooling propagates Cargo workspace version), and aligned dev packaging helper `cargo_version()` to read root `VERSION`.
 
 Latest maintenance fix (2026-03-20):
 - **CRUSHR-UI-03 complete**: replaced shared CLI presenter output with minimalist section-based layout (`<tool>  /  <action>`, horizontal rule, aligned label/value rows) and explicit per-command canonical section flow ending in `Result`.

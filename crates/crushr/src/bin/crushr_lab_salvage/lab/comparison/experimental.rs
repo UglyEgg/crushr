@@ -217,7 +217,7 @@ pub(crate) fn run_experimental_resilience_comparison(
     let summary = ExperimentalComparisonSummary {
         schema_version: "crushr-lab-salvage-experimental-comparison.v1",
         tool: "crushr-lab-salvage",
-        tool_version: env!("CARGO_PKG_VERSION"),
+        tool_version: crushr::product_version(),
         verification_label: VERIFICATION_LABEL,
         scenario_count: rows.len(),
         old_outcome_counts: count_outcomes(rows.iter().map(|r| r.old_outcome.as_str())),
@@ -440,7 +440,7 @@ pub(crate) fn run_format05_comparison(comparison_dir: &Path, verbose: bool) -> R
     let summary = Format05ComparisonSummary {
         schema_version: "crushr-lab-salvage-format05-comparison.v1",
         tool: "crushr-lab-salvage",
-        tool_version: env!("CARGO_PKG_VERSION"),
+        tool_version: crushr::product_version(),
         verification_label: VERIFICATION_LABEL,
         scenario_count: rows.len(),
         old_outcome_counts: count_outcomes(rows.iter().map(|r| r.old_outcome.as_str())),

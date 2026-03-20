@@ -3,6 +3,12 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
+## 2026-03-20 — CRUSHR-VERSION-01
+- Added root canonical `VERSION` file (strict SemVer, initial value `0.2.2`) and a shared runtime accessor `crushr::product_version()` with strict SemVer validation in `crates/crushr/src/versioning.rs`.
+- Replaced active `env!("CARGO_PKG_VERSION")` runtime/report/tool-version paths in `crushr` binaries/lab outputs with canonical `crushr::product_version()`.
+- Added version-governance tooling: `scripts/check-version-sync.sh` (SemVer + drift validation), `scripts/sync-version.sh` (propagate `VERSION` to `workspace.package.version`), and updated `crates/crushr/dev/lib/rust.sh` packaging version source to read root `VERSION`.
+- Added integration coverage `crates/crushr/tests/version_contract.rs` ensuring `VERSION` strict SemVer and Cargo workspace version alignment.
+
 ## 2026-03-20 — CRUSHR-UI-01
 - Added shared CLI presentation layer (`crates/crushr/src/cli_presentation.rs`) defining deterministic header/section/outcome formatting and bounded status vocabulary.
 - Wired `crushr-pack`, `crushr-extract`, `crushr-extract --verify`, and `crushr-salvage` to shared presentation semantics while preserving strict/salvage boundaries.

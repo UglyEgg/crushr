@@ -1,3 +1,8 @@
+CRUSHR-VERSION-01 completion update (2026-03-20):
+- Root `VERSION` is now the canonical human-edited product version source (strict SemVer only, initial value `0.2.2`).
+- Runtime/tool metadata version surfaces now route through `crushr::product_version()` (sourced from `VERSION`) instead of `env!("CARGO_PKG_VERSION")` strings in active output paths.
+- Version drift/validation tooling is in place: `scripts/check-version-sync.sh` and integration test `crates/crushr/tests/version_contract.rs` enforce strict SemVer and `VERSION == workspace.package.version`; `scripts/sync-version.sh` updates workspace Cargo version from `VERSION` for single-touch bumps.
+
 CRUSHR-UI-03 completion update (2026-03-20):
 - Shared CLI presenter now renders the minimalist section contract: `<tool>  /  <action>`, fixed horizontal rule, title-based sections, aligned label/value rows, and explicit terminal `Result` section.
 - Canonical section templates are now enforced in runtime tools: verify success (`Archive/Verification/Result`), verify refusal (`Archive/Failure domain/Result`), pack (`Target/Progress/Result`), info (`Archive/Structure/Result`), salvage (`Archive/Candidates/Evidence/Result`).

@@ -457,7 +457,7 @@ pub(super) fn generate_analysis_files(
     let analysis = ExperimentAnalysis {
         schema_version: ANALYSIS_SCHEMA_VERSION,
         tool: "crushr-lab-salvage",
-        tool_version: env!("CARGO_PKG_VERSION"),
+        tool_version: crushr::product_version(),
         experiment_id: experiment_id.to_string(),
         verification_label: VERIFICATION_LABEL,
         run_count: ordered_runs.len(),
@@ -601,7 +601,7 @@ pub(super) fn generate_summary_files(
     let summary = ExperimentSummary {
         schema_version: SUMMARY_SCHEMA_VERSION,
         tool: "crushr-lab-salvage",
-        tool_version: env!("CARGO_PKG_VERSION"),
+        tool_version: crushr::product_version(),
         experiment_id: experiment_id.to_string(),
         verification_label: VERIFICATION_LABEL,
         run_count: rows.len(),

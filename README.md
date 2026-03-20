@@ -102,6 +102,13 @@ crushr presentation/reporting now aligns to an evidence-review workflow:
 4. Verification/salvage reporting records deterministic classifications for verified, partial, and rejected/unresolved outcomes.
 5. Later reviewers can rerun verification and recover the same typed result model.
 
+
+## Product version governance
+
+- Root `VERSION` is the canonical product version source (strict SemVer only, no `v` prefix).
+- Human version bumps should edit `VERSION` only, then run `./scripts/sync-version.sh` to propagate `workspace.package.version`.
+- Validate drift with `./scripts/check-version-sync.sh` (used by tests/tooling).
+
 ## License
 
 Code in this repository is dual-licensed under **MIT OR Apache-2.0**.

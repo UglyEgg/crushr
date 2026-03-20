@@ -156,7 +156,7 @@ fn run() -> Result<()> {
         return Ok(());
     }
     if early_args.iter().any(|a| a == "--version" || a == "-V") {
-        println!("{}", env!("CARGO_PKG_VERSION"));
+        println!("{}", crushr::product_version());
         return Ok(());
     }
 
@@ -195,7 +195,7 @@ fn run() -> Result<()> {
 
     let opened = open_archive_v1(&reader)?;
     let snapshot =
-        info_envelope_from_open_archive(&opened, env!("CARGO_PKG_VERSION"), "1970-01-01T00:00:00Z");
+        info_envelope_from_open_archive(&opened, crushr::product_version(), "1970-01-01T00:00:00Z");
     let rendered = serialize_snapshot_json(&snapshot)?;
     if json {
         println!("{rendered}");

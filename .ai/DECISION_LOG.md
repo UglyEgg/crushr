@@ -696,3 +696,20 @@ Blast radius:
   - Human output text for `crushr-pack`, `crushr-extract --verify`, `crushr-info`, and `crushr-salvage` changed.
   - JSON output contracts remain unchanged for verify/info/salvage.
   - Added golden fixtures/tests locking the new output contract.
+
+## 2026-03-20 — CRUSHR-VERSION-01 canonical product version source lock
+
+- Decision:
+  - Root `VERSION` is the single canonical human-edited product version source.
+  - `VERSION` must contain strict SemVer only (no `v` prefix, no comments/prose).
+  - Active runtime/report/tool metadata version paths use `crushr::product_version()` sourced from `VERSION`.
+  - `workspace.package.version` remains aligned to `VERSION` via sync tooling and explicit drift validation.
+- Alternatives considered:
+  1. Keep Cargo workspace version as manual source and derive runtime from `env!("CARGO_PKG_VERSION")` only.
+  2. Keep multiple manual version surfaces (Cargo/runtime/docs) with reviewer-enforced consistency.
+- Rationale:
+  - Single-touch human version edits reduce drift risk and unblock consistent future `crushr about`/report/release surfaces.
+  - Explicit SemVer + drift checks fail closed on malformed/mismatched state.
+- Blast radius:
+  - `crushr` runtime version reporting paths and lab tool-version fields now consume canonical `VERSION` accessor.
+  - Version governance tooling/docs (`scripts/check-version-sync.sh`, `scripts/sync-version.sh`, `VERSION`, README/continuity notes) now define the bump workflow.

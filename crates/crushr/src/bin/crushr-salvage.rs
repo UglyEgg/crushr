@@ -646,7 +646,7 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
         SalvagePlan {
             schema_version: "crushr-salvage-plan.v3",
             tool: "crushr-salvage",
-            tool_version: env!("CARGO_PKG_VERSION"),
+            tool_version: crushr::product_version(),
             verification_contract_label: "UNVERIFIED_RESEARCH_OUTPUT_NOT_CANONICAL_EXTRACTION",
             archive: ArchiveIdentity {
                 archive_path: opts.archive.display().to_string(),

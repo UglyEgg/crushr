@@ -407,7 +407,7 @@ fn run_format13_impl(comparison_dir: &Path, verbose: bool, stress: bool) -> Resu
     let summary = serde_json::json!({
         "schema_version": if stress {"crushr-lab-salvage-format13-stress-comparison.v1"} else {"crushr-lab-salvage-format13-comparison.v1"},
         "tool": "crushr-lab-salvage",
-        "tool_version": env!("CARGO_PKG_VERSION"),
+        "tool_version": crushr::product_version(),
         "verification_label": VERIFICATION_LABEL,
         "scenario_count": rows.len(),
         "variants": variants,
@@ -614,7 +614,7 @@ fn run_format14a_dictionary_resilience_impl(
     let summary = serde_json::json!({
         "schema_version": if stress {"crushr-lab-salvage-format14a-dictionary-resilience-stress.v1"} else {"crushr-lab-salvage-format14a-dictionary-resilience.v1"},
         "tool": "crushr-lab-salvage",
-        "tool_version": env!("CARGO_PKG_VERSION"),
+        "tool_version": crushr::product_version(),
         "verification_label": VERIFICATION_LABEL,
         "scenario_count": rows.len(),
         "variants": variants,
