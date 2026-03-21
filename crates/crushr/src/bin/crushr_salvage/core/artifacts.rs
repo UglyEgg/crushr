@@ -76,11 +76,7 @@ pub(super) fn sanitize_component(value: &str) -> String {
             out.push('_');
         }
     }
-    if out.is_empty() {
-        "_".to_string()
-    } else {
-        out
-    }
+    if out.is_empty() { "_".to_string() } else { out }
 }
 
 pub(super) fn sanitize_rel_path(path: &str) -> PathBuf {

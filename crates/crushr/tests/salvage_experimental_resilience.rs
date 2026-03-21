@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crushr_format::{
-    ftr4::{Ftr4, FTR4_LEN},
+    ftr4::{FTR4_LEN, Ftr4},
     tailframe::{assemble_tail_frame, parse_tail_frame},
 };
 use serde_json::Value;
@@ -334,9 +334,10 @@ fn format07_comparison_command_reports_graph_classification_fields() {
         summary["recovery_classification_delta_vs_format06"]["partial_ordered_verified_delta"]
             .is_number()
     );
-    assert!(summary["recovery_classification_delta_vs_format06"]
-        ["partial_unordered_verified_delta"]
-        .is_number());
+    assert!(
+        summary["recovery_classification_delta_vs_format06"]["partial_unordered_verified_delta"]
+            .is_number()
+    );
     assert!(
         summary["recovery_classification_delta_vs_format06"]["orphan_evidence_only_delta"]
             .is_number()
@@ -735,9 +736,11 @@ fn format12_stress_comparison_command_reports_required_fields() {
 
     let summary_path = out_dir.join("format12_stress_comparison_summary.json");
     assert!(summary_path.exists());
-    assert!(out_dir
-        .join("format12_stress_comparison_summary.md")
-        .exists());
+    assert!(
+        out_dir
+            .join("format12_stress_comparison_summary.md")
+            .exists()
+    );
 
     let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
     let variants = summary["variants"].as_array().unwrap();
@@ -860,9 +863,11 @@ fn format13_stress_comparison_command_writes_required_artifacts() {
 
     let summary_path = out_dir.join("format13_stress_comparison_summary.json");
     assert!(summary_path.exists());
-    assert!(out_dir
-        .join("format13_stress_comparison_summary.md")
-        .exists());
+    assert!(
+        out_dir
+            .join("format13_stress_comparison_summary.md")
+            .exists()
+    );
     let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
     let grouped = summary["grouped_breakdown"].as_object().unwrap();
     assert!(grouped.contains_key("dataset"));
@@ -884,9 +889,11 @@ fn format14a_dictionary_resilience_comparison_writes_required_artifacts() {
 
     let summary_path = out_dir.join("format14a_dictionary_resilience_summary.json");
     assert!(summary_path.exists());
-    assert!(out_dir
-        .join("format14a_dictionary_resilience_summary.md")
-        .exists());
+    assert!(
+        out_dir
+            .join("format14a_dictionary_resilience_summary.md")
+            .exists()
+    );
     let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
 
     for v in [
@@ -919,9 +926,11 @@ fn format14a_dictionary_resilience_stress_comparison_writes_required_artifacts()
 
     let summary_path = out_dir.join("format14a_dictionary_resilience_stress_summary.json");
     assert!(summary_path.exists());
-    assert!(out_dir
-        .join("format14a_dictionary_resilience_stress_summary.md")
-        .exists());
+    assert!(
+        out_dir
+            .join("format14a_dictionary_resilience_stress_summary.md")
+            .exists()
+    );
     let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
     let grouped = summary["grouped_breakdown"].as_object().unwrap();
     assert!(grouped.contains_key("dataset"));
@@ -1035,9 +1044,11 @@ fn format15_stress_comparison_writes_required_artifacts() {
 
     let summary_path = out_dir.join("format15_stress_comparison_summary.json");
     assert!(summary_path.exists());
-    assert!(out_dir
-        .join("format15_stress_comparison_summary.md")
-        .exists());
+    assert!(
+        out_dir
+            .join("format15_stress_comparison_summary.md")
+            .exists()
+    );
 
     let summary: Value = serde_json::from_slice(&fs::read(summary_path).unwrap()).unwrap();
     let grouped = summary["grouped_breakdown"].as_object().unwrap();

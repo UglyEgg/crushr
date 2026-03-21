@@ -5,8 +5,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # crushr
 
-[![CI](https://github.com/UglyEgg/crushr/actions/workflows/ci.yml/badge.svg)](https://github.com/UglyEgg/crushr/actions/workflows/ci.yml)
-[![Secret Scan](https://github.com/UglyEgg/crushr/actions/workflows/trufflehog.yml/badge.svg)](https://github.com/UglyEgg/crushr/actions/workflows/trufflehog.yml)
+[![Policy Gate](https://github.com/UglyEgg/crushr/actions/workflows/policy-gate.yml/badge.svg)](https://github.com/UglyEgg/crushr/actions/workflows/policy-gate.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
 [![REUSE status](https://api.reuse.software/badge/github.com/UglyEgg/crushr)](https://api.reuse.software/info/github.com/UglyEgg/crushr)
 

@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use crushr::format::{EntryKind, IDX_MAGIC_V3};
 use crushr::index_codec::decode_index;
 use crushr_core::{
     io::{Len, ReadAt},
     open::open_archive_v1,
     propagation::{
-        build_propagation_report_v1, build_structural_failure_report_v1, FileDependencyV1,
-        STRUCTURE_FTR4, STRUCTURE_IDX3, STRUCTURE_TAIL_FRAME,
+        FileDependencyV1, STRUCTURE_FTR4, STRUCTURE_IDX3, STRUCTURE_TAIL_FRAME,
+        build_propagation_report_v1, build_structural_failure_report_v1,
     },
     snapshot::{info_envelope_from_open_archive, serialize_snapshot_json},
     verify::verify_block_payloads_v1,
 };
-use crushr_format::ftr4::{Ftr4, FTR4_LEN};
+use crushr_format::ftr4::{FTR4_LEN, Ftr4};
 use crushr_format::tailframe::parse_tail_frame;
 #[path = "../cli_presentation.rs"]
 mod cli_presentation;
-use cli_presentation::{group_u64, CliPresenter, StatusWord};
+use cli_presentation::{CliPresenter, StatusWord, group_u64};
 use std::collections::BTreeSet;
 use std::fs::File;
 use std::io::Cursor;

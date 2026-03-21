@@ -10,7 +10,7 @@
 //! This module implements strict, versioned parsing and encoding.
 //! All reserved bytes MUST be zero.
 
-use anyhow::{bail, ensure, Context, Result};
+use anyhow::{Context, Result, bail, ensure};
 use blake3::Hash;
 use std::io::{Read, Write};
 

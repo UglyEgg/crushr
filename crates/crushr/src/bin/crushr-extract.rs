@@ -15,7 +15,7 @@ use std::fs::File;
 use std::path::PathBuf;
 #[path = "../cli_presentation.rs"]
 mod cli_presentation;
-use cli_presentation::{group_u64, CliPresenter, StatusWord};
+use cli_presentation::{CliPresenter, StatusWord, group_u64};
 
 #[path = "../extraction_path.rs"]
 mod extraction_path;
@@ -501,11 +501,11 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::{
-        exit_code_for_error, exit_code_for_outcome, ExtractionErrorKind, ExtractionOutcomeKind,
-        RefusalExitPolicy,
+        ExtractionErrorKind, ExtractionOutcomeKind, RefusalExitPolicy, exit_code_for_error,
+        exit_code_for_outcome,
     };
     use crushr_core::extraction::{
-        build_extraction_report, RefusalReason, RefusedFileReport, SafeFileReport,
+        RefusalReason, RefusedFileReport, SafeFileReport, build_extraction_report,
     };
     use crushr_core::verification_model::VerificationModel;
 

@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
 
 use crate::phase2_domain::{
-    locked_core_scenario_id, ArchiveFormat, CorruptionType, Dataset, Magnitude, TargetClass,
-    LOCKED_CORE_SEEDS, PHASE2_SCENARIO_ID_FORMAT,
+    ArchiveFormat, CorruptionType, Dataset, LOCKED_CORE_SEEDS, Magnitude,
+    PHASE2_SCENARIO_ID_FORMAT, TargetClass, locked_core_scenario_id,
 };
 
 pub const PHASE2_MANIFEST_SCHEMA_PATH: &str =

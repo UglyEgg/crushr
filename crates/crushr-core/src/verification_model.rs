@@ -154,7 +154,7 @@ impl PartialOrd for VerificationVerdict {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::extraction::{build_extraction_report, RefusedFileReport, SafeFileReport};
+    use crate::extraction::{RefusedFileReport, SafeFileReport, build_extraction_report};
 
     #[test]
     fn canonical_verification_model_is_deterministic() {

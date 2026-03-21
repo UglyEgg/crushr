@@ -5,6 +5,39 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-21 — CRUSHR-CHECK-02-FIX1 follow-up review adjustments
+
+- Decision:
+  - Revert `.github/SECURITY.md` from the CRUSHR-CHECK-02 patch per review direction.
+  - Keep unified `policy-gate` workflow unchanged and make style enforcement pass by running repository-wide `cargo fmt` cleanup.
+- Alternatives considered:
+  1. Keep `.github/SECURITY.md` despite review request.
+  2. Keep formatting drift and tolerate failing style job.
+- Rationale:
+  - Follow-up packet instructions explicitly required undoing `SECURITY.md` and making policy-gate style checks green.
+- Blast radius:
+  - Documentation/policy files and formatting-only source changes.
+  - No archive format or runtime semantic changes.
+
+## 2026-03-21 — CRUSHR-CHECK-02 unified policy-gate baseline (secrets/audit/MSRV/style/version)
+
+- Decision:
+  - Replace separate `trufflehog` and `cargo-audit` workflows with a single `policy-gate` workflow that runs on pull requests and pushes to `main`.
+  - Enforce one high-signal baseline: TruffleHog verified-only secret scanning, `cargo audit --deny warnings`, MSRV check on Rust 1.85.0, style checks (`check-crate-policy`, `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`), and root `VERSION` drift validation.
+  - Add explicit audit exception policy in `.cargo/audit.toml` for `RUSTSEC-2025-0119` only (transitive `number_prefix` warning), keeping all other warnings/advisories fail-closed.
+- Alternatives considered:
+  1. Keep multiple scattered workflows for each check category.
+  2. Keep `cargo audit` default warning behavior and allow unmaintained advisories to pass silently.
+  3. Narrow fmt/clippy scope to avoid exposing existing drift.
+- Rationale:
+  - A unified policy gate gives one obvious maturity surface and avoids badge/workflow sprawl.
+  - Explicit exception files are auditable; silent warning acceptance is not.
+  - Style enforcement remains truthful even with known pre-existing rustfmt drift.
+- Blast radius:
+  - GitHub Actions governance surface and contributor PR expectations.
+  - README badge row now reflects workflow-backed checks.
+  - No archive format/runtime extraction behavior changes.
+
 ## 2026-03-21 — CRUSHR-CRATE-01 crate-governance lock (MSRV + metadata inheritance + publish intent)
 
 - Decision:

@@ -5,13 +5,13 @@ use super::common::{
     comparison_scenarios, corrupt_archive, remove_ledger_for_old_style, run_salvage_plan,
 };
 use super::format06_to12::{
-    build_archive_with_pack_metadata_profile_name, compute_stress_identity_stats,
-    corrupt_dictionary_block_payload, enforce_dictionary_fail_closed,
-    expected_dictionary_state_for_scenario, format12_stress_scenarios, mean_f64,
-    parse_metadata_json_blocks, parse_metadata_json_blocks_with_offsets, recovery_class_rank,
-    recovery_classification_counts, rewrite_dictionary_block_as_inconsistent,
-    terminal_recovery_outcome, to_hex_lower, write_dataset_fixture_format12,
-    write_dataset_fixture_format12_stress, MetadataJsonBlock, TerminalRecoveryOutcome,
+    MetadataJsonBlock, TerminalRecoveryOutcome, build_archive_with_pack_metadata_profile_name,
+    compute_stress_identity_stats, corrupt_dictionary_block_payload,
+    enforce_dictionary_fail_closed, expected_dictionary_state_for_scenario,
+    format12_stress_scenarios, mean_f64, parse_metadata_json_blocks,
+    parse_metadata_json_blocks_with_offsets, recovery_class_rank, recovery_classification_counts,
+    rewrite_dictionary_block_as_inconsistent, terminal_recovery_outcome, to_hex_lower,
+    write_dataset_fixture_format12, write_dataset_fixture_format12_stress,
 };
 use super::*;
 use crate::runner::{resolve_pack_bin, resolve_salvage_bin};

@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::io::{Len, ReadAt};
-use anyhow::{ensure, Context, Result};
-use crushr_format::blk3::{read_blk3_header, BLK3_MAGIC};
+use anyhow::{Context, Result, ensure};
+use crushr_format::blk3::{BLK3_MAGIC, read_blk3_header};
 use std::collections::BTreeSet;
 use std::io::Cursor;
 
@@ -140,7 +140,7 @@ mod tests {
     use crate::io::{Len, ReadAt};
     use anyhow::Result;
     use crushr_format::{
-        blk3::{write_blk3_header, Blk3Flags, Blk3Header},
+        blk3::{Blk3Flags, Blk3Header, write_blk3_header},
         tailframe::assemble_tail_frame,
     };
 

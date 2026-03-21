@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use crushr::format::{EntryKind, Extent, IDX_MAGIC_V3};
 use crushr::index_codec::decode_index;
 use crushr_core::{
@@ -9,8 +9,8 @@ use crushr_core::{
     verify::scan_blocks_v1,
 };
 use crushr_format::{
-    blk3::{read_blk3_header, BLK3_MAGIC},
-    ftr4::{Ftr4, FTR4_LEN},
+    blk3::{BLK3_MAGIC, read_blk3_header},
+    ftr4::{FTR4_LEN, Ftr4},
     tailframe::parse_tail_frame,
 };
 use serde::{Serialize, Serializer};
@@ -21,10 +21,9 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 #[path = "../cli_presentation.rs"]
 mod cli_presentation;
-use cli_presentation::{group_u64, CliPresenter, StatusWord};
+use cli_presentation::{CliPresenter, StatusWord, group_u64};
 
-const USAGE: &str =
-    "usage: crushr-salvage <archive> [--json] [--json-out <path>] [--export-fragments <dir>] [--silent]";
+const USAGE: &str = "usage: crushr-salvage <archive> [--json] [--json-out <path>] [--export-fragments <dir>] [--silent]";
 const RESEARCH_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
 #[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
 enum MappingProvenance {

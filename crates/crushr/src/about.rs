@@ -103,7 +103,7 @@ fn kv_line(out: &mut String, label: &str, value: &str) {
 
 #[cfg(test)]
 mod tests {
-    use super::{render_about, BuildMetadata};
+    use super::{BuildMetadata, render_about};
 
     #[test]
     fn golden_about_output_is_locked_for_fixed_metadata() {

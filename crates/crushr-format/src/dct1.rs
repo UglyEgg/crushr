@@ -15,7 +15,7 @@
 //!   - dict_hash: [u8;32] (BLAKE3 of dict_bytes)
 //!   - dict_bytes: [u8;dict_len]
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::collections::BTreeSet;
 use std::io::{Read, Write};
 

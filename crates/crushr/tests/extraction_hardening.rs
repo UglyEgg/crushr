@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use crushr::format::{Entry, EntryKind, Extent, Index, BLK_MAGIC_V2, CODEC_ZSTD, FTR_MAGIC_V2};
+use crushr::format::{BLK_MAGIC_V2, CODEC_ZSTD, Entry, EntryKind, Extent, FTR_MAGIC_V2, Index};
 use crushr::index_codec::encode_index;
 use std::fs;
 use std::io::Write;

@@ -3,7 +3,7 @@
 
 use crushr::index_codec::decode_index;
 use crushr_format::{
-    ftr4::{Ftr4, FTR4_LEN},
+    ftr4::{FTR4_LEN, Ftr4},
     tailframe::parse_tail_frame,
 };
 use std::fs;

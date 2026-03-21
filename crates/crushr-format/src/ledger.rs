@@ -6,7 +6,7 @@
 //! The ledger is a small, explainable metadata payload (JSON) embedded in a tail frame.
 //! It is intended to be deterministic and stable across identical inputs.
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use blake3::Hash;
 use serde_json::Value;
 use std::collections::BTreeMap;

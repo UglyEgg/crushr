@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-FileCopyrightText: 2026 Richard Majewski
+
+[advisories]
+ignore = [
+  # Transitively pulled by indicatif via number_prefix; no maintained replacement has landed yet.
+  "RUSTSEC-2025-0119",
+]

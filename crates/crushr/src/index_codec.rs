@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::format::{
-    Entry, EntryKind, Extent, Index, Xattr, IDX_MAGIC_V1, IDX_MAGIC_V2, IDX_MAGIC_V3,
+    Entry, EntryKind, Extent, IDX_MAGIC_V1, IDX_MAGIC_V2, IDX_MAGIC_V3, Index, Xattr,
 };
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 fn put_u8(out: &mut Vec<u8>, v: u8) {
     out.push(v);
