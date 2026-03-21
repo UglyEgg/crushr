@@ -7,11 +7,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-BUILD-01 complete** (Podman/Alpine musl release build path and environment-first build metadata injection are now landed with bounded fallback behavior)
+Current Step: **CRUSHR-CRATE-01 complete** (workspace crate governance now locks MSRV 1.85, crates.io metadata inheritance policy, explicit publish intent, and manifest drift checks)
 
-Immediate Next Step: run CRUSHR-BUILD-01 musl release script in an environment with Podman available to capture static-binary proof artifacts (`file` + checksums) and then continue metadata-pruning evidence review/benchmark harness preparation.
+Immediate Next Step: continue metadata-pruning evidence review/benchmark harness preparation and run the CRUSHR-BUILD-01 musl release script in an environment with Podman available to capture static-binary proof artifacts (`file` + checksums).
 
 
+
+Latest maintenance fix (2026-03-21):
+- **CRUSHR-CRATE-01 complete**: locked workspace MSRV policy to `rust-version = "1.85"` while retaining `edition = "2024"` and `resolver = "3"` at the workspace root.
+- **CRUSHR-CRATE-01 complete**: normalized crate metadata policy by inheriting crates.io-facing fields from `[workspace.package]`, requiring `rust-version.workspace = true` on members, and setting explicit non-publish intent (`publish = false`) for internal crates (`crushr-cli-common`, `crushr-lab`, `crushr-tui`).
+- **CRUSHR-CRATE-01 complete**: added `scripts/check-crate-policy.sh` to fail closed on missing `package.name`, metadata inheritance drift, publish-intent ambiguity, and workspace policy drift (`resolver`/`edition`/`rust-version`).
 
 Latest maintenance fix (2026-03-20):
 - **CRUSHR-BUILD-01 complete**: added repo-root `Containerfile.musl`, `.cargo/config.toml` musl static flags, and `scripts/build-musl-release-podman.sh` for reproducible Podman/Alpine release builds with checksum emission (`SHA256SUMS`, optional `B3SUMS`).
@@ -108,6 +113,7 @@ Latest maintenance fix (2026-03-19):
 
 ## Active constraints
 
+- Workspace crate policy is locked: resolver `3`, edition `2024`, MSRV `1.85`, publishable crates must carry crates.io-facing workspace metadata inheritance, and internal crates must set `publish = false`.
 - No speculative recovery/reconstruction/repair in `crushr-extract`.
 - `crushr-salvage` output is unverified research output and not canonical extraction.
 - No guessed mappings, guessed extents, speculative byte stitching, or archive mutation.

@@ -1,3 +1,10 @@
+CRUSHR-CRATE-01 completion update (2026-03-21):
+- Locked workspace crate policy to `resolver = "3"`, `edition = "2024"`, and initial MSRV `rust-version = "1.85"` in root `Cargo.toml`.
+- Added explicit `rust-version.workspace = true` inheritance to all member crates and normalized publishable crate metadata inheritance for crates.io-facing fields.
+- Locked internal publish intent with explicit `publish = false` on `crushr-cli-common`, `crushr-lab`, and `crushr-tui`; publishable crates are now `crushr`, `crushr-core`, and `crushr-format`.
+- Added `scripts/check-crate-policy.sh` to fail on missing `package.name`, publish-intent ambiguity for internal crates, missing publishable metadata inheritance, and workspace resolver/edition/MSRV drift.
+- Verified policy with `./scripts/check-crate-policy.sh`, `cargo metadata --format-version 1 --no-deps`, and `cargo +1.85.0 check --workspace`.
+
 CRUSHR-BUILD-01 completion update (2026-03-20):
 - Added `Containerfile.musl` (Alpine + rustup musl target), `.cargo/config.toml` musl static rustflags, and `scripts/build-musl-release-podman.sh` (release build + checksum + runtime sample path).
 - Build script now supports environment-first metadata injection for release builds: `CRUSHR_VERSION`, `CRUSHR_GIT_COMMIT`, `CRUSHR_BUILD_TIMESTAMP`, `CRUSHR_TARGET_TRIPLE`, `CRUSHR_RUSTC_VERSION`; bounded shell fallback remains for local environments.

@@ -2,6 +2,7 @@
 name = "crushr"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
@@ -9,7 +10,7 @@ homepage.workspace = true
 documentation.workspace = true
 description = "Deterministic failure-aware archive tool suite with strict verification and recovery research tooling."
 readme = "../../README.md"
-categories = ["compression", "command-line-utilities", "filesystem"]
+categories.workspace = true
 keywords.workspace = true
 
 [dependencies]

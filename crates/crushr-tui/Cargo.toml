@@ -2,6 +2,7 @@
 name = "crushr-tui"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
@@ -9,7 +10,7 @@ homepage.workspace = true
 documentation.workspace = true
 description = "Interactive terminal inspector for crushr archives and snapshots."
 readme = "../../README.md"
-categories = ["command-line-utilities", "filesystem"]
+categories.workspace = true
 keywords.workspace = true
 publish = false
 

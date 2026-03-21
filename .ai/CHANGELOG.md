@@ -3,6 +3,13 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
+## 2026-03-21 — CRUSHR-CRATE-01
+- Locked workspace crate policy in root `Cargo.toml`: `resolver = "3"`, `edition = "2024"`, and initial MSRV `rust-version = "1.85"`.
+- Added `rust-version.workspace = true` across member crates and normalized publishable crate metadata inheritance to workspace-managed crates.io fields (`version`, `edition`, `rust-version`, `license`, `authors`, `repository`, `homepage`, `documentation`, `keywords`, `categories`).
+- Made internal crates explicitly non-publishable with `publish = false` for `crushr-cli-common`, `crushr-lab`, and `crushr-tui`; publishable crates are `crushr`, `crushr-core`, and `crushr-format`.
+- Added `scripts/check-crate-policy.sh` drift guard for package name presence, publishable metadata completeness, explicit internal publish intent, and resolver/edition/MSRV lock checks.
+- Validation evidence: `./scripts/check-crate-policy.sh`, `cargo metadata --format-version 1 --no-deps`, `cargo +1.85.0 check --workspace`, and `cargo test -p crushr --test version_contract`.
+
 ## 2026-03-20 — CRUSHR-VERSION-01
 - Added root canonical `VERSION` file (strict SemVer, initial value `0.2.2`) and a shared runtime accessor `crushr::product_version()` with strict SemVer validation in `crates/crushr/src/versioning.rs`.
 - Replaced active `env!("CARGO_PKG_VERSION")` runtime/report/tool-version paths in `crushr` binaries/lab outputs with canonical `crushr::product_version()`.

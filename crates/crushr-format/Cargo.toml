@@ -2,6 +2,7 @@
 name = "crushr-format"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
@@ -9,7 +10,7 @@ homepage.workspace = true
 documentation.workspace = true
 description = "On-disk format types, codecs, and invariants for crushr archives."
 readme = "../../README.md"
-categories = ["compression", "filesystem"]
+categories.workspace = true
 keywords.workspace = true
 
 [dependencies]

@@ -2,6 +2,7 @@
 name = "crushr-cli-common"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
@@ -9,8 +10,9 @@ homepage.workspace = true
 documentation.workspace = true
 description = "Shared command-line plumbing and presentation helpers for the crushr tool suite."
 readme = "../../README.md"
-categories = ["command-line-utilities"]
+categories.workspace = true
 keywords.workspace = true
+publish = false
 
 [dependencies]
 anyhow.workspace = true

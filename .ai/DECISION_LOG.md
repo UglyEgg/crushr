@@ -5,6 +5,25 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-21 — CRUSHR-CRATE-01 crate-governance lock (MSRV + metadata inheritance + publish intent)
+
+- Decision:
+  - Lock workspace crate policy to `resolver = "3"`, `edition = "2024"`, and initial MSRV `rust-version = "1.85"` in `[workspace.package]`.
+  - Require publishable crates to inherit crates.io-facing metadata from workspace (`version`, `edition`, `rust-version`, `license`, `authors`, `repository`, `homepage`, `documentation`, `keywords`, `categories`) and carry crate-specific `description` + `readme`.
+  - Treat `crushr-cli-common`, `crushr-lab`, and `crushr-tui` as internal crates with explicit `publish = false`.
+  - Add fail-closed policy validation via `scripts/check-crate-policy.sh`.
+- Alternatives considered:
+  1. Keep MSRV at 1.86 to match current toolchain and skip pinned governance policy.
+  2. Leave publish intent implicit based on historical use and omit explicit `publish = false` for internal crates.
+  3. Duplicate full metadata in each crate manifest rather than enforcing workspace inheritance.
+- Rationale:
+  - Packet locks require an explicit initial MSRV and explicit publishability intent with no ambiguity.
+  - Workspace inheritance reduces drift and simplifies future metadata governance.
+  - A scripted drift check prevents silent manifest sediment and policy regression.
+- Blast radius:
+  - Cargo manifests and release metadata policy across all workspace crates.
+  - Adds one policy-check script under `scripts/`; no runtime archive/extraction behavior changes.
+
 ## 2026-03-20 — CRUSHR-UI-02 public CLI surface realignment + verify structural-failure presentation lock
 
 - Decision:

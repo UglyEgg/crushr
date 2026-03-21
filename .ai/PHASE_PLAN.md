@@ -61,6 +61,7 @@ Deliverables
 - [x] CRUSHR-HARDEN-03I — typed metadata completion in active pack/salvage verification paths.
 - [x] CRUSHR-LAB-FIX-01 — repair comparison/normalization contract tests and deterministic scenario ordering.
 - [x] CRUSHR-LICENSE-01 — unified licensing + REUSE compliance.
+- [x] CRUSHR-CRATE-01 — lock workspace MSRV/edition/resolver policy and enforce explicit publish intent + crates.io metadata drift checks.
 - [~] CRUSHR-UI-01 — unified CLI presentation contract and standardized `--silent` behavior across pack/extract/verify/salvage (pending final runtime validation / acceptance).
 - [ ] CRUSHR-BENCH-01 — implement benchmark harness foundation using manifest-driven deterministic corpus/variant/corruption execution and schema-backed raw/summary output.
 - [ ] CRUSHR-BENCH-02 — initial canonical corpus generation, baseline runs, and first quantitative benchmark artifacts.
