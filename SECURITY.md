@@ -5,6 +5,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # Security Policy
 
+This repository is continuously scanned for secrets using TruffleHog.
+All commits and pull requests are automatically checked for credential leaks.
+
 ## Reporting a vulnerability
 
 If you believe you have found a security vulnerability in this project, please do not open a public issue.

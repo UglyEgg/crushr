@@ -1,0 +1,25 @@
+name: trufflehog
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required for history scanning
+
+      - name: Run TruffleHog
+        uses: trufflesecurity/trufflehog@v3.82.0
+        with:
+          path: .
+          base: ${{ github.event.pull_request.base.sha || 'HEAD~1' }}
+          head: HEAD
+          extra_args: --only-verified

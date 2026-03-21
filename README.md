@@ -5,10 +5,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # crushr
 
-![CI](https://github.com/UglyEgg/crushr/actions/workflows/ci.yml/badge.svg)
-![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)
-![REUSE status](https://api.reuse.software/badge/github.com/UglyEgg/crushr)
-![status](https://img.shields.io/badge/status-research%20→%20productization-yellow)
+[![CI](https://github.com/UglyEgg/crushr/actions/workflows/ci.yml/badge.svg)](https://github.com/UglyEgg/crushr/actions/workflows/ci.yml)
+[![Secret Scan](https://github.com/UglyEgg/crushr/actions/workflows/trufflehog.yml/badge.svg)](https://github.com/UglyEgg/crushr/actions/workflows/trufflehog.yml)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
+[![REUSE status](https://api.reuse.software/badge/github.com/UglyEgg/crushr)](https://api.reuse.software/info/github.com/UglyEgg/crushr)
 
 Failure-aware archival and recovery tooling with deterministic verification semantics.
 
@@ -101,7 +101,6 @@ crushr presentation/reporting now aligns to an evidence-review workflow:
 3. Those outputs are packaged into crushr archives.
 4. Verification/salvage reporting records deterministic classifications for verified, partial, and rejected/unresolved outcomes.
 5. Later reviewers can rerun verification and recover the same typed result model.
-
 
 ## Product version governance
 
