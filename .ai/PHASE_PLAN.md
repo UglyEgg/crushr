@@ -6,122 +6,115 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 # crushr Phase Plan
 
 This document defines the high-level development phases for crushr after the
-format experiments (FORMAT-11 through FORMAT-14A) established the core archive
-architecture.
+format experiments established the core archive architecture.
 
-The project is transitioning from experimental exploration to productization.
-Future work prioritizes architectural stability, documentation clarity, and
-bounded feature additions.
+The project is now explicitly sequenced across three maturity bands:
+
+- **0.x** — product proof, stabilization, benchmarking, and compression/performance evidence
+- **1.x** — stable preservation platform with locked contracts and workflow maturity
+- **2.x** — evidence-grade extension layer (custody/signing/classification expansion)
+
+The immediate focus is 0.x.
 
 ---------------------------------------------------------------------
 
 Current Architectural Identity
 
-crushr is a salvage-oriented archive format built around:
+crushr is a salvage-oriented preservation/archive format built around:
 
 - distributed extent identity
 - mirrored naming dictionaries
-- deterministic recovery classification
+- deterministic recovery / verification reporting
 - fail-closed naming semantics
 - anonymous fallback when naming proof is unavailable
+- structured, explicit preservation of imperfect result sets
 
 The format prioritizes recoverability and deterministic verification over
 maximum compression ratio.
 
 ---------------------------------------------------------------------
 
-[ - ] PHASE 15 — Dictionary Hardening and Namespace Factoring
+[~] PHASE 15 — Dictionary Hardening and Namespace Factoring
 
 Goal
 
-Promote the mirrored dictionary architecture to the canonical format while
-improving robustness and dictionary efficiency.
+Finalize the mirrored dictionary direction, close hardening debt, and complete
+the transition from experimental format work into product-ready baseline
+architecture.
 
 Key work
 
 - generation-aware dictionary copy headers
 - mirrored dictionary validation rules
 - factored namespace dictionary
-  - directory prefix dictionary
-  - basename dictionary
-  - file binding table
-- new comparison harness runs
-- baseline + stress corpus validation
+- canonical verification/report truth cleanup
+- operator-facing CLI unification
+- benchmark harness kickoff readiness
 
 Deliverables
 
-- [x] CRUSHR-HARDEN-03C — add schema-backed contracts for active FORMAT-12/13/14A/15 comparison artifacts and test coverage; defer broader decomposition to 03E.
-- [x] CRUSHR-HARDEN-03E — decompose `crushr-lab-salvage` comparison engine into bounded modules (`common`, `experimental`, `format06_to12`, `format13_to15`) while keeping comparison command semantics stable and schema-backed checks passing.
-- [x] CRUSHR-HARDEN-03F — decompose `crushr-pack` into explicit layout/emission stages, isolate dictionary planning, and tighten canonical vs experimental writer boundary without changing archive semantics.
-- [x] CRUSHR-HARDEN-03G — extract experimental metadata-record JSON construction into helper builders to reduce emission-loop coupling while preserving deterministic writer semantics.
-- [x] CRUSHR-HARDEN-03A — finalize API boundary truth by removing accidental public module exposure, tightening visibility, and aligning runtime/library/lab boundary docs with supported surfaces.
-- [~] CRUSHR-HARDEN-03G — canonical verification model + typed metadata completion + salvage classification lint cleanup (in progress; canonical verify model + lint fix landed, remaining typed metadata conversion follow-up tracked in STATUS).
-- [x] CRUSHR-HARDEN-03H — enforce verification model purity by removing verify output bypass/duplicate truth path in `crushr-extract` and projecting report output through canonical `VerificationReportView`.
-- [x] CRUSHR-HARDEN-03I — complete typed pack/salvage metadata conversion and bind remaining salvage classification flows to the canonical verification/report truth model (active salvage metadata flow in `metadata.rs` now typed; dynamic `Vec<Value>` classification path removed).
-- [x] 3.25.1 CRUSHR-FORMAT-14A-FIX1 (repair dictionary-corruption classification/outcome reporting; rerun required FORMAT-14A artifacts)
-- [x] 3.25.2 CRUSHR-FORMAT-14A-FIX2 (restore header+tail dual-copy one-loss named recovery; rerun FORMAT-14A artifacts)
-- [x] CRUSHR-FORMAT-15 — Harden mirrored dictionary identity/generation semantics and add factored namespace dictionary with FORMAT-15 baseline/stress comparison commands + artifacts.
-- [x] CRUSHR-FORMAT-15-FIX1 — repair FORMAT-15 regression causing false-negative canonical-candidate judgments (restore scenario-authoritative fail-closed gating + v2 full-path dictionary parsing).
-- [x] CRUSHR-LAB-FIX-01 — repair failing Phase 2 comparison/normalization shape-contract tests and restore explicit deterministic normalized scenario ordering checks.
-- [x] CRUSHR-LICENSE-01 — repository-wide license unification (MIT OR Apache-2.0 code, CC-BY-4.0 docs), SPDX header sweep, Cargo metadata alignment, and REUSE compliance verification.
-- [x] CRUSHR-LICENSE-01-FIX1 — migrate REUSE metadata from `.reuse/dep5` to `REUSE.toml` to remove tooling deprecation warning while keeping licensing classification unchanged.
-- [x] CRUSHR-UI-01 — establish a unified CLI presentation contract and standardized `--silent` mode across `crushr-pack`, `crushr-extract`, `crushr-extract --verify`, and `crushr-salvage` before benchmark-harness work.
-- [x] CRUSHR-UI-01-FIX1 — restore workspace Cargo manifest validity (`package.name` fields), rerun blocked formatting/test commands, and complete representative runtime validation for pack/extract/verify/salvage and `--silent`.
-- [x] CRUSHR-UI-02 — realign public CLI surface to canonical preservation suite (`pack/extract/verify/info`) with bounded salvage/lab demotion and repair strict verify structural-failure presentation so parser internals do not leak in normal user output.
-- [x] CRUSHR-UI-03 — ship minimalist section-based CLI presentation templates across pack/verify/info/salvage, default `crushr-info` to human-readable mode, and lock deterministic golden outputs for verify success/failure + pack/info/salvage.
-- [x] CRUSHR-UI-04 — add locked `crushr about` product-identity surface with deterministic build metadata injection and golden/fallback/help drift coverage.
-- [x] CRUSHR-BUILD-01 — add Podman/Alpine musl release build path, environment-first build metadata injection, and checksum emission workflow.
-- [x] CRUSHR-VERSION-01 — establish canonical root `VERSION` SemVer source, align runtime/tooling/Cargo version surfaces, and add automated drift validation + sync tooling.
-- FORMAT-15 comparison results
-- FORMAT-15 stress comparison results
-- updated SNAPSHOT_FORMAT.md
-- updated format-evolution.md
+- [x] CRUSHR-HARDEN-03C — schema-backed contracts for active FORMAT comparison artifacts.
+- [x] CRUSHR-HARDEN-03E — decomposition of `crushr-lab-salvage` comparison engine.
+- [x] CRUSHR-HARDEN-03F — staged `crushr-pack` layout/emission pipeline.
+- [x] CRUSHR-HARDEN-03A — API boundary truth / visibility cleanup.
+- [x] CRUSHR-HARDEN-03H — verification model purity enforcement.
+- [x] CRUSHR-HARDEN-03I — typed metadata completion in active pack/salvage verification paths.
+- [x] CRUSHR-LAB-FIX-01 — repair comparison/normalization contract tests and deterministic scenario ordering.
+- [x] CRUSHR-LICENSE-01 — unified licensing + REUSE compliance.
+- [~] CRUSHR-UI-01 — unified CLI presentation contract and standardized `--silent` behavior across pack/extract/verify/salvage (pending final runtime validation / acceptance).
+- [ ] CRUSHR-BENCH-01 — implement benchmark harness foundation using manifest-driven deterministic corpus/variant/corruption execution and schema-backed raw/summary output.
+- [ ] CRUSHR-BENCH-02 — initial canonical corpus generation, baseline runs, and first quantitative benchmark artifacts.
+- [ ] CRUSHR-BENCH-03 — benchmark result review, compression/performance tuning priorities, and whitepaper/data-surface integration.
 
 Exit criteria
 
-- factored mirrored dictionary is confirmed smaller or equal to the existing
-  mirrored dictionary approach
-- recovery semantics remain deterministic and fail-closed
+- mirrored dictionary / namespace direction is canonical and documented
+- verification/report truth is deterministic and typed
+- unified CLI/operator identity is accepted
+- benchmark harness foundation exists and produces schema-valid deterministic output
 
 ---------------------------------------------------------------------
 
-[x] PHASE 16 — Architecture Hardening and De-cruft
+[ ] PHASE 16 — 0.x Benchmarking and Compression Evidence
 
 Goal
 
-Convert the repository from an experimental lab environment into a clean,
-coherent product codebase.
+Establish quantitative evidence for crushr’s 0.x product thesis and use the
+results to guide compression and performance refinement.
 
 Key work
 
-- hostile architectural review
-- remove abandoned experimental variants
-- isolate research harness into `lab/`
-- consolidate salvage pipeline logic
-- simplify configuration and variant flags
-- align CLI surface with product behavior
-- documentation rewrite to reflect canonical architecture
+- deterministic corpus families and corruption families
+- manifest-driven benchmark execution
+- archive size, overhead, and verified recovery measurement
+- classification stability measurement
+- verification/report reproducibility measurement
+- compression/performance analysis from real benchmark data
+- update docs/whitepaper with measured results rather than narrative claims
 
 Deliverables
 
-- hostile review report
-- repository refactor patch
-- updated architecture documentation
-- clean module boundaries between runtime and lab code
+- benchmark harness implementation
+- raw benchmark records
+- normalized benchmark outputs
+- schema-valid summary artifacts
+- first whitepaper-ready charts/tables
+- compression/performance tuning plan driven by measured data
 
 Exit criteria
 
-- canonical runtime code contains no experimental variant logic
-- research harness exists but is isolated from production paths
-- CLI surface matches documented product behavior
+- benchmark harness is reproducible and schema-backed
+- crushr has quantitative evidence for recovery, overhead, and determinism
+- compression work is guided by data rather than intuition
 
 ---------------------------------------------------------------------
 
-[ ] PHASE 17 — Archive Envelope Completion
+[ ] PHASE 17 — 0.x Product Envelope Completion
 
 Goal
 
-Complete the archive metadata envelope required for a production archive tool.
+Complete the bounded metadata and workflow surface needed for a serious 0.x
+preservation product.
 
 Key work
 
@@ -131,7 +124,8 @@ Key work
 - symbolic link handling
 - extended attribute support (xattrs)
 - archive identity and version policy
-- compatibility rules for future format revisions
+- stable machine-readable verify/report contracts
+- post-recovery preservation workflow documentation
 
 Constraints
 
@@ -141,146 +135,122 @@ Constraints
 Deliverables
 
 - metadata envelope implementation
-- documentation updates
+- stable verify/report schemas
+- workflow docs/examples
 - compatibility rules
 
 Exit criteria
 
 - crushr can represent the common POSIX filesystem model
-- metadata integrity survives salvage operations
+- verification/report outputs are stable enough for workflow automation
+- 0.x product story is coherent and documented
 
 ---------------------------------------------------------------------
 
-[ ] PHASE 18 — Compression Intelligence
+[ ] PHASE 18 — 1.x Preservation Platform
 
 Goal
 
-Improve compression efficiency while preserving recovery semantics.
+Graduate crushr from promising 0.x product into a stable preservation platform
+that others can build workflows around.
 
 Key work
 
-- compression dictionary experimentation
-- corpus benchmarking
-- dictionary persistence strategies
-- interaction between compression dictionaries and extent identity
-- bounded compression improvements without destabilizing recovery
+- lock on-disk format commitments appropriate for 1.x
+- stabilize public CLI/report contracts
+- release/process hardening
+- reproducible build verification
+- stronger packaging and workflow integration
+- public-facing docs/tutorial maturity
+
+Deliverables
+
+- 1.x contract review
+- stable format/reference docs
+- reproducible build and release process
+- workflow-ready product surface
+
+Exit criteria
+
+- format and verification contracts are stable
+- operators can build repeatable workflows around crushr
+- release quality is defensible
+
+---------------------------------------------------------------------
+
+[ ] PHASE 19 — 2.x Evidence and Custody Layer
+
+Goal
+
+Add evidence-grade extension capabilities on top of the stabilized preservation
+platform without prematurely coupling legal/custody semantics into the core
+format.
+
+Key work
+
+- evidence manifest sidecar design and implementation
+- signature scope over archive + canonical verify report
+- append-only custody event log
+- signer identity / tool-version provenance
+- extension-point review for future embedded evidence semantics, if ever justified
 
 Constraints
 
-- compression must not compromise deterministic recovery
-- compression metadata must remain verifiable
+- sidecar-first design preferred
+- no premature legal-ceremony claims without validated process/tool support
+- core format should remain stable and minimally burdened
 
 Deliverables
 
-- compression comparison results
-- updated compression pipeline
-- documentation updates
+- evidence manifest schema
+- custody event schema / append-only model
+- signing / verification workflow
+- docs describing evidentiary scope and limitations
 
 Exit criteria
 
-- measurable compression improvement over baseline
-- salvage behavior unchanged
+- crushr can preserve and later attest to packaging / verification events
+- custody/signing layer is coherent and externally explainable
+- evidence features remain separable from core archive semantics
 
 ---------------------------------------------------------------------
 
-[ ] PHASE 19 — Verification and Tooling Excellence
+[ ] PHASE 20 — 2.x Deterministic Internal Classification Expansion
 
 Goal
 
-Make verification and recovery tooling first-class capabilities.
+Expand crushr from preserving declared truth toward deriving more categories of
+truth internally where the tool can prove them safely.
 
 Key work
 
-- strict verification UX/reporting improvements (`crushr-extract --verify`)
-- recovery diagnostics
-- structured output formats
-- clearer salvage reporting
-- improved error explanations
-- enhanced archive introspection
+- deterministic classification expansion where provable
+- stronger internal structural / naming derivation rules
+- refusal and fallback logic review
+- richer evidence/preservation reporting categories
+
+Constraints
+
+- no semantic overreach
+- every derived claim must remain provable and deterministic
+- do not invent “confidence theater”
 
 Deliverables
 
-- improved CLI tooling
-- richer strict verification reports
-- improved info command output
+- expanded internal classification rules
+- updated schemas/reports
+- validation corpus and review artifacts
 
 Exit criteria
 
-- operators can easily diagnose archive state
-- salvage outcomes are transparent and well explained
+- crushr can derive more preservation truth itself without weakening trust
+- every new category has a defensible proof model
 
 ---------------------------------------------------------------------
 
-[ ] PHASE 20 — CLI and Documentation Polish
+Latest priority doctrine
 
-Goal
-
-Prepare crushr for public release by improving usability and documentation.
-
-Key work
-
-- CLI consistency review
-- man-page style help text
-- usage examples
-- README rewrite
-- tutorials and workflow documentation
-- archive format reference documentation
-
-Deliverables
-
-- polished CLI
-- improved documentation
-- examples and tutorials
-
-Exit criteria
-
-- new users can understand crushr from documentation alone
-- CLI commands are predictable and consistent
-
----------------------------------------------------------------------
-
-[ ] PHASE 21 — Release Candidate
-
-Goal
-
-Produce the first release candidate of the crushr archive format and toolset.
-
-Key work
-
-- final hostile review
-- compatibility audit
-- reproducible build verification
-- packaging preparation
-- release documentation
-
-Deliverables
-
-- release candidate tag
-- reproducible builds
-- checksums and verification files
-- compatibility notes
-- roadmap for post-v1 improvements
-
-Exit criteria
-
-- archive format is stable
-- documentation is complete
-- tooling is production-ready
-
-
-## Latest completion
-- **CRUSHR-HARDEN-03D is complete**: audited reader/open/parse boundary, aligned strict verification semantics under `crushr-extract --verify`, tightened permissive legacy reader checks, and refreshed active docs/help naming for the locked tool boundary.
-
-
-## 2026-03-18 — CRUSHR-HARDEN-03B
-
-- [x] Reconciled `crushr-salvage` emitted `mapping_provenance` and `recovery_classification` vocabularies with `schemas/crushr-salvage-plan.v3.schema.json`.
-- [x] Added typed enum boundaries in salvage output path for classification/provenance and typed reason-code emission for contract-level reason arrays.
-- [x] Added schema-conformance coverage for enum vocabulary parity and reason-code closure.
-
-## 2026-03-18 — CRUSHR-HARDEN-03D
-
-- [x] Audited reader/open/parse behavior and documented strict-vs-permissive boundary findings in control updates.
-- [x] Hardened `crushr-extract --verify` to run strict extraction semantics and emit deterministic refusal reasons from canonical refusal paths.
-- [x] Tightened permissive legacy reader checks that could blur strict boundary expectations.
-- [x] Updated active boundary docs and stale help strings to reduce public `fsck` naming drift.
+- Finish acceptance of the unified CLI/operator surface.
+- Start benchmark harness implementation immediately after.
+- Use benchmark data to steer compression and performance work.
+- Keep evidence/custody features on the long-range roadmap rather than inside the current 0.x core.
