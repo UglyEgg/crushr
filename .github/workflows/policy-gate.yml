@@ -30,8 +30,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-bin: true
+          cache-all-crates: true
+
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
 
       - name: Dependency audit
         run: cargo audit --deny warnings
@@ -45,6 +56,9 @@ jobs:
 
       - name: Install Rust 1.85.0
         uses: dtolnay/rust-toolchain@1.85.0
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
 
       - name: MSRV workspace check
         run: cargo check --workspace
@@ -60,6 +74,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
 
       - name: Crate policy
         run: ./scripts/check-crate-policy.sh
