@@ -19,7 +19,7 @@ indicatif = "0.17"
 console = "0.15"
 anyhow.workspace = true
 blake3.workspace = true
-clap = { version = "4", features = ["derive"] }
+clap.workspace = true
 clap_complete = "4"
 serde.workspace = true
 serde_json.workspace = true

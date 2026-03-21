@@ -5,7 +5,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="$(tr -d '\r\n' < "$ROOT_DIR/VERSION")"
+VERSION="$(tr -d '\r\n' <"$ROOT_DIR/VERSION")"
 CARGO_TOML="$ROOT_DIR/Cargo.toml"
 
 python3 - "$CARGO_TOML" "$VERSION" <<'PY'
@@ -21,7 +21,7 @@ semver = r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|[0-9A
 if not re.fullmatch(semver, version):
     raise SystemExit(f"VERSION is not strict SemVer: {version!r}")
 
-pattern = re.compile(r"(?ms)(\[workspace\.package\]\s.*?^version\s*=\s*")([^"]+)(")")
+pattern = re.compile(r'(?ms)(\[workspace\.package\]\s.*?^version\s*=\s*")([^"]+)(")')
 updated, n = pattern.subn(lambda m: m.group(1) + version + m.group(3), text, count=1)
 if n != 1:
     raise SystemExit("unable to locate workspace.package.version in Cargo.toml")

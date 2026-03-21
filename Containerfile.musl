@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 # SPDX-FileCopyrightText: 2026 Richard Majewski
 
-FROM alpine:3.20
+FROM docker.io/library/rust:1.94-alpine3.20
 
 RUN apk add --no-cache \
     bash \
@@ -10,14 +10,19 @@ RUN apk add --no-cache \
     coreutils \
     file \
     git \
-    llvm19 \
-    rustup
+    musl-dev \
+    pkgconf \
+    binutils \
+    openssl-dev \
+    zstd-dev
 
-ENV RUSTUP_HOME=/root/.rustup \
-    CARGO_HOME=/root/.cargo \
-    PATH=/root/.cargo/bin:${PATH}
+WORKDIR /src
 
-RUN rustup-init -y --profile minimal --default-toolchain stable \
- && rustup target add x86_64-unknown-linux-musl
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV CARGO_HOME=/usr/local/cargo
+ENV PATH=/usr/local/cargo/bin:/usr/local/rustup/toolchains/stable-x86_64-unknown-linux-musl/bin:/usr/local/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-WORKDIR /work
+ENV CARGO_TERM_COLOR=always
+ENV RUSTFLAGS="-C target-feature=+crt-static"
+
+CMD ["/bin/bash"]
