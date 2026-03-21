@@ -330,13 +330,15 @@ mod tests {
             &BTreeSet::new(),
         );
 
-        assert!(report
-            .per_file_impacts
-            .iter()
-            .all(|f| f.actual_impacts_from_current_corruption
-                == vec![FileImpactCause {
-                    cause_node: STRUCTURE_IDX3.to_string(),
-                    reason: PropagationImpactReason::CorruptedRequiredStructure,
-                }]));
+        assert!(
+            report
+                .per_file_impacts
+                .iter()
+                .all(|f| f.actual_impacts_from_current_corruption
+                    == vec![FileImpactCause {
+                        cause_node: STRUCTURE_IDX3.to_string(),
+                        reason: PropagationImpactReason::CorruptedRequiredStructure,
+                    }])
+        );
     }
 }

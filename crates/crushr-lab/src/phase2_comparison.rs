@@ -3,7 +3,7 @@
 
 use crate::phase2_domain::ArchiveFormat;
 use crate::phase2_normalization::NormalizedRunRecord;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;

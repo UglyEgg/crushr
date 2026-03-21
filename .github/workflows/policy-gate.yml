@@ -1,0 +1,81 @@
+name: policy-gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  secrets:
+    name: secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog (verified findings)
+        uses: trufflesecurity/trufflehog@v3.82.0
+        with:
+          path: .
+          base: ${{ github.event.pull_request.base.sha || 'HEAD~1' }}
+          head: HEAD
+          extra_args: --only-verified
+
+  audit:
+    name: audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Dependency audit
+        run: cargo audit --deny warnings
+
+  msrv:
+    name: msrv-1.85
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.85.0
+        uses: dtolnay/rust-toolchain@1.85.0
+
+      - name: MSRV workspace check
+        run: cargo check --workspace
+
+  style:
+    name: style
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Crate policy
+        run: ./scripts/check-crate-policy.sh
+
+      - name: Formatting
+        run: cargo fmt --check
+
+      - name: Lint
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  version-policy:
+    name: version-policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: VERSION drift check
+        run: ./scripts/check-version-sync.sh

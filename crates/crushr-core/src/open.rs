@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::io::{Len, ReadAt};
-use anyhow::{ensure, Context, Result};
-use crushr_format::ftr4::{Ftr4, FTR4_LEN};
-use crushr_format::tailframe::{parse_tail_frame, TailFrameParts};
+use anyhow::{Context, Result, ensure};
+use crushr_format::ftr4::{FTR4_LEN, Ftr4};
+use crushr_format::tailframe::{TailFrameParts, parse_tail_frame};
 use std::io::Cursor;
 
 #[derive(Debug, Clone)]

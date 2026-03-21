@@ -3,7 +3,7 @@
 
 use crate::phase2_domain::{ArchiveFormat, CorruptionType, Dataset, Magnitude, TargetClass};
 use crate::phase2_runner::{RawRunRecord, RecoveryAccounting};
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -153,8 +153,12 @@ pub fn run_phase2_normalization_cmd(raw_args: Vec<String>) -> Result<()> {
 
     eprintln!("wrote {}", normalized_path.display());
     eprintln!("wrote {}", summary_path.display());
-    eprintln!("normalized results schema: {NORMALIZED_RESULTS_SCHEMA_ID} ({NORMALIZED_RESULTS_SCHEMA_PATH})");
-    eprintln!("normalization summary schema: {NORMALIZED_SUMMARY_SCHEMA_ID} ({NORMALIZED_SUMMARY_SCHEMA_PATH})");
+    eprintln!(
+        "normalized results schema: {NORMALIZED_RESULTS_SCHEMA_ID} ({NORMALIZED_RESULTS_SCHEMA_PATH})"
+    );
+    eprintln!(
+        "normalization summary schema: {NORMALIZED_SUMMARY_SCHEMA_ID} ({NORMALIZED_SUMMARY_SCHEMA_PATH})"
+    );
     Ok(())
 }
 

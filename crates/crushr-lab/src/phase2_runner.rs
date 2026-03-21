@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use crate::phase2_corruption::{apply_locked_corruption, CorruptionRequest};
+use crate::phase2_corruption::{CorruptionRequest, apply_locked_corruption};
 use crate::phase2_domain::{ArchiveFormat, CorruptionType, Dataset, Magnitude, TargetClass};
 use crate::phase2_foundation::{
     ArchiveBuildRecord, DatasetInventory, ExecutionStatus, FileInventoryEntry,
     Phase2FoundationReport,
 };
 use crate::phase2_manifest::{Phase2ExperimentManifest, Phase2Scenario};
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;

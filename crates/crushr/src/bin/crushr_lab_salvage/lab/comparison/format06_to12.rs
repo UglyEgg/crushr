@@ -9,7 +9,7 @@ use super::common::{
 };
 use super::*;
 use crate::runner::{resolve_pack_bin, resolve_salvage_bin};
-use crushr_format::blk3::{read_blk3_header, write_blk3_header, Blk3Header};
+use crushr_format::blk3::{Blk3Header, read_blk3_header, write_blk3_header};
 
 pub(crate) fn build_archive_with_pack_format06(
     pack_bin: &Path,
@@ -432,7 +432,10 @@ pub(crate) fn run_format06_comparison(comparison_dir: &Path, verbose: bool) -> R
         comparison_dir.join("format06_comparison_summary.md"),
         format!(
             "# Format-06 comparison\n\nScenarios: {}\n\n- outcomes tracked: old, redundant, format05, format06\n",
-            summary.get("scenario_count").and_then(Value::as_u64).unwrap_or(0)
+            summary
+                .get("scenario_count")
+                .and_then(Value::as_u64)
+                .unwrap_or(0)
         ),
     )?;
 
@@ -594,7 +597,10 @@ pub(crate) fn run_format07_comparison(comparison_dir: &Path, verbose: bool) -> R
         comparison_dir.join("format07_comparison_summary.md"),
         format!(
             "# Format-07 comparison\n\nScenarios: {}\n\n- outcomes tracked: old, redundant, format05, format06, format07\n",
-            summary.get("scenario_count").and_then(Value::as_u64).unwrap_or(0)
+            summary
+                .get("scenario_count")
+                .and_then(Value::as_u64)
+                .unwrap_or(0)
         ),
     )?;
 

@@ -2,13 +2,13 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::phase2_domain::{
-    ArchiveFormat, CorruptionType, Dataset, Magnitude, TargetClass, LOCKED_CORE_SEEDS,
-    PHASE2_SCENARIO_ID_FORMAT,
+    ArchiveFormat, CorruptionType, Dataset, LOCKED_CORE_SEEDS, Magnitude,
+    PHASE2_SCENARIO_ID_FORMAT, TargetClass,
 };
 use crate::phase2_manifest::{
-    validate_manifest_shape, Phase2ExperimentManifest, PHASE2_MANIFEST_SCHEMA_PATH,
+    PHASE2_MANIFEST_SCHEMA_PATH, Phase2ExperimentManifest, validate_manifest_shape,
 };
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashSet;
@@ -419,7 +419,7 @@ fn locked_matrix_summary() -> LockedMatrixSummary {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::phase2_manifest::{Phase2ExperimentManifest, PHASE2_MANIFEST_SCHEMA_ID};
+    use crate::phase2_manifest::{PHASE2_MANIFEST_SCHEMA_ID, Phase2ExperimentManifest};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_dir(label: &str) -> PathBuf {

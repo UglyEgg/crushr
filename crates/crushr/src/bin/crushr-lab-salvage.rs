@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use crushr_format::blk3::BLK3_MAGIC;
-use crushr_format::ftr4::{Ftr4, FTR4_LEN};
+use crushr_format::ftr4::{FTR4_LEN, Ftr4};
 use crushr_format::tailframe::{assemble_tail_frame, parse_tail_frame};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

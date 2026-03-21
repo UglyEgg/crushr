@@ -1,3 +1,13 @@
+CRUSHR-CHECK-02-FIX1 completion update (2026-03-21):
+- Reverted `.github/SECURITY.md` addition per follow-up review request.
+- Applied repository formatting cleanup with `cargo fmt`; style gate commands now pass (`cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`).
+
+CRUSHR-CHECK-02 completion update (2026-03-21):
+- Added unified GitHub Actions workflow `.github/workflows/policy-gate.yml` covering secrets (`trufflehog --only-verified` with full history), dependency audit (`cargo audit --deny warnings`), MSRV check (`cargo +1.85.0 check --workspace`), style (`check-crate-policy`, `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`), and version drift (`./scripts/check-version-sync.sh`).
+- Added explicit cargo-audit exception policy in `.cargo/audit.toml` for `RUSTSEC-2025-0119` only; all other audit warnings/advisories fail the gate.
+- Added `.github/SECURITY.md` private vulnerability reporting guidance and updated README badges to point to real enforced workflows.
+- Important current constraint: `cargo fmt --check` fails today due pre-existing repository formatting drift; the new style gate remains intentionally truthful/fail-closed until that drift is resolved in a dedicated cleanup step.
+
 CRUSHR-CRATE-01 completion update (2026-03-21):
 - Locked workspace crate policy to `resolver = "3"`, `edition = "2024"`, and initial MSRV `rust-version = "1.85"` in root `Cargo.toml`.
 - Added explicit `rust-version.workspace = true` inheritance to all member crates and normalized publishable crate metadata inheritance for crates.io-facing fields.

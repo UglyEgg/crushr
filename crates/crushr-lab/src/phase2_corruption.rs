@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::Serialize;
 use std::fs;
 use std::path::PathBuf;
 
-use crate::phase2_domain::{CorruptionType, Magnitude, TargetClass, LOCKED_CORE_SEEDS};
+use crate::phase2_domain::{CorruptionType, LOCKED_CORE_SEEDS, Magnitude, TargetClass};
 
 #[derive(Debug, Clone)]
 pub struct CorruptionRequest {

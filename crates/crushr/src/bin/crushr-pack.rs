@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use crushr::format::{Entry, EntryKind, Extent, Index};
 use crushr::index_codec::encode_index;
-use crushr_format::blk3::{write_blk3_header, Blk3Flags, Blk3Header};
+use crushr_format::blk3::{Blk3Flags, Blk3Header, write_blk3_header};
 use crushr_format::ledger::LedgerBlob;
 use crushr_format::tailframe::assemble_tail_frame;
 use serde::Serialize;
@@ -14,7 +14,7 @@ use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
 #[path = "../cli_presentation.rs"]
 mod cli_presentation;
-use cli_presentation::{group_u64, CliPresenter, StatusWord};
+use cli_presentation::{CliPresenter, StatusWord, group_u64};
 
 const ZSTD_CODEC: u32 = 1;
 const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only|extent_identity_inline_path|extent_identity_distributed_names|extent_identity_path_dict_single|extent_identity_path_dict_header_tail|extent_identity_path_dict_quasi_uniform|extent_identity_path_dict_factored_header_tail>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only | extent_identity_inline_path | extent_identity_distributed_names | extent_identity_path_dict_single | extent_identity_path_dict_header_tail | extent_identity_path_dict_quasi_uniform | extent_identity_path_dict_factored_header_tail\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";

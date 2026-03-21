@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 fn usage() -> &'static str {
     "Usage:\n  crushr-tui <archive>\n  crushr-tui --snapshot <crushr-info.json> [--verify <crushr-extract-verify.json>]\n\nNotes:\n  Live mode opens the archive directly.\n  Snapshot mode loads JSON outputs from crushr-info/crushr-extract --verify.\n  This is currently a skeleton (UI not implemented yet).\n"
@@ -58,7 +58,9 @@ fn main() -> Result<()> {
             if let Some(p) = verify_json {
                 eprintln!("  verify: {p}");
             }
-            eprintln!("  (UI not implemented yet; snapshot schemas are documented in docs/SNAPSHOT_FORMAT.md)");
+            eprintln!(
+                "  (UI not implemented yet; snapshot schemas are documented in docs/SNAPSHOT_FORMAT.md)"
+            );
             Ok(())
         }
         (None, None, Some(archive_path)) => {

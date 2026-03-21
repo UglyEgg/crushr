@@ -6,10 +6,10 @@
 //! Tail frame v1 layout is deterministic:
 //! `DCT1? + IDX3 + LDG1? + FTR4`.
 
-use crate::dct1::{read_dct1, write_dct1, Dct1Table, DCT1_MAGIC};
-use crate::ftr4::{Ftr4, FTR4_LEN};
-use crate::ledger::{read_ldg1, write_ldg1, LedgerBlob, LDG1_MAGIC};
-use anyhow::{ensure, Context, Result};
+use crate::dct1::{DCT1_MAGIC, Dct1Table, read_dct1, write_dct1};
+use crate::ftr4::{FTR4_LEN, Ftr4};
+use crate::ledger::{LDG1_MAGIC, LedgerBlob, read_ldg1, write_ldg1};
+use anyhow::{Context, Result, ensure};
 use std::io::Cursor;
 
 pub const IDX3_MAGIC: [u8; 4] = *b"IDX3";

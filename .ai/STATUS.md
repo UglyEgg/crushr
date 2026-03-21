@@ -14,6 +14,16 @@ Immediate Next Step: continue metadata-pruning evidence review/benchmark harness
 
 
 Latest maintenance fix (2026-03-21):
+- **CRUSHR-CHECK-02-FIX1 complete**: reverted `.github/SECURITY.md` addition per review direction.
+- **CRUSHR-CHECK-02-FIX1 complete**: applied repository formatting cleanup (`cargo fmt`) so policy-gate style checks are green (`cargo fmt --check`, clippy, and full workspace tests pass).
+
+Latest maintenance fix (2026-03-21):
+- **CRUSHR-CHECK-02 complete**: replaced scattered security/governance checks with a unified GitHub Actions policy gate workflow (`policy-gate`) covering secrets (TruffleHog verified findings), dependency advisories (`cargo audit --deny warnings`), MSRV check on Rust 1.85.0, crate-policy drift guard, clippy (`-D warnings`), fmt check, and VERSION drift validation.
+- **CRUSHR-CHECK-02 complete**: added `.cargo/audit.toml` with explicit temporary ignore for `RUSTSEC-2025-0119` (`number_prefix` transitively via `indicatif`) so audit remains fail-closed for other warnings/advisories while keeping the exception visible.
+- **CRUSHR-CHECK-02 complete**: aligned README badge row to machine-backed workflows (`policy-gate`, `reuse`).
+- **CRUSHR-CHECK-02 note**: style enforcement remains fail-closed in CI and now passes after formatting cleanup.
+
+Latest maintenance fix (2026-03-21):
 - **CRUSHR-CRATE-01 complete**: locked workspace MSRV policy to `rust-version = "1.85"` while retaining `edition = "2024"` and `resolver = "3"` at the workspace root.
 - **CRUSHR-CRATE-01 complete**: normalized crate metadata policy by inheriting crates.io-facing fields from `[workspace.package]`, requiring `rust-version.workspace = true` on members, and setting explicit non-publish intent (`publish = false`) for internal crates (`crushr-cli-common`, `crushr-lab`, `crushr-tui`).
 - **CRUSHR-CRATE-01 complete**: added `scripts/check-crate-policy.sh` to fail closed on missing `package.name`, metadata inheritance drift, publish-intent ambiguity, and workspace policy drift (`resolver`/`edition`/`rust-version`).
@@ -114,6 +124,7 @@ Latest maintenance fix (2026-03-19):
 ## Active constraints
 
 - Workspace crate policy is locked: resolver `3`, edition `2024`, MSRV `1.85`, publishable crates must carry crates.io-facing workspace metadata inheritance, and internal crates must set `publish = false`.
+- Unified policy gate baseline is active on PRs/pushes to `main`: secrets, dependency audit, MSRV, style (crate policy + clippy + fmt), and VERSION drift checks.
 - No speculative recovery/reconstruction/repair in `crushr-extract`.
 - `crushr-salvage` output is unverified research output and not canonical extraction.
 - No guessed mappings, guessed extents, speculative byte stitching, or archive mutation.

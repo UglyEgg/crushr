@@ -738,3 +738,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added reproducible musl release build path: repo-root `Containerfile.musl`, `.cargo/config.toml` musl static flags, and `scripts/build-musl-release-podman.sh`.
 - Updated `crates/crushr/build.rs` to use environment-first metadata (`CRUSHR_VERSION`, `CRUSHR_GIT_COMMIT`, `CRUSHR_BUILD_TIMESTAMP`, `CRUSHR_TARGET_TRIPLE`, `CRUSHR_RUSTC_VERSION`) with bounded shell fallback and final `unknown`.
 - Kept `crushr about` rendering contract locked while switching runtime metadata reads to the new constant names.
+
+## 2026-03-21 — CRUSHR-CHECK-02
+- Added unified policy-gate workflow (`.github/workflows/policy-gate.yml`) enforcing secrets scan (TruffleHog verified mode), dependency audit (`cargo audit --deny warnings`), MSRV check on Rust 1.85.0, style/lint checks, and VERSION drift validation on PRs and pushes to `main`.
+- Added `.cargo/audit.toml` with explicit temporary ignore for `RUSTSEC-2025-0119` to keep audit gating fail-closed and exception-visible.
+- Added `.github/SECURITY.md` for private vulnerability reporting guidance.
+- Updated README maturity signal badges to machine-backed workflow status (`policy-gate`, `reuse`) and removed stale CI/legacy secret-scan badge references.
+- Validation evidence: YAML parse check, `./scripts/check-version-sync.sh`, `cargo audit --deny warnings`, `cargo +1.85.0 check --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --check` (known failing due pre-existing formatting drift).
+
+## 2026-03-21 — CRUSHR-CHECK-02-FIX1
+- Reverted `.github/SECURITY.md` addition per review direction.
+- Ran repository formatting cleanup (`cargo fmt`) so policy-gate style enforcement is green.
+- Validation evidence: `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`.

@@ -2,11 +2,11 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::extraction_path::resolve_confined_path;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use crushr::format::{Entry, EntryKind};
 use crushr::index_codec::decode_index;
 use crushr_core::{
-    extraction::{build_extraction_report, classify_refusal_paths, ExtractionOutcomeKind},
+    extraction::{ExtractionOutcomeKind, build_extraction_report, classify_refusal_paths},
     io::{Len, ReadAt},
     open::open_archive_v1,
     verify::{scan_blocks_v1, verify_block_payloads_v1},

@@ -241,14 +241,18 @@ fn verify_refuses_corrupted_archive_for_payload_byte_flip() {
     let verify_json: serde_json::Value = serde_json::from_slice(&verify.stdout).unwrap();
     assert_eq!(verify_json["verification_status"], "refused");
     assert_eq!(verify_json["safe_for_strict_extraction"], false);
-    assert!(verify_json["refusal_reasons"][0]
-        .as_str()
-        .unwrap()
-        .contains("corrupted_required_blocks"));
-    assert!(verify_json["refusal_reasons"][0]
-        .as_str()
-        .unwrap()
-        .contains("hello.txt"));
+    assert!(
+        verify_json["refusal_reasons"][0]
+            .as_str()
+            .unwrap()
+            .contains("corrupted_required_blocks")
+    );
+    assert!(
+        verify_json["refusal_reasons"][0]
+            .as_str()
+            .unwrap()
+            .contains("hello.txt")
+    );
 
     // Deterministic for identical archive bytes + corruption input.
     let verify_again = run_bin(

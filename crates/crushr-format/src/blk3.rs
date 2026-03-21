@@ -19,7 +19,7 @@
 //! - raw_hash: [u8;32] (optional; BLAKE3 of raw/decompressed bytes)
 //! - reserved/pad: zero bytes up to header_len
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::io::{Read, Write};
 
 pub const BLK3_MAGIC: [u8; 4] = *b"BLK3";

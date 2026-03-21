@@ -13,7 +13,7 @@ mod phase2_manifest;
 mod phase2_normalization;
 mod phase2_runner;
 
-use cli::{print_usage, Command};
+use cli::{Command, print_usage};
 use phase2_audit::run_phase2_pretrial_audit_cmd;
 use phase2_comparison::run_phase2_comparison_cmd;
 use phase2_corruption::run_corrupt;

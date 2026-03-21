@@ -5,7 +5,7 @@
 //!
 //! The normative JSON contract is documented in `docs/SNAPSHOT_FORMAT.md`.
 
-use crate::impact::{enumerate_impact_v1, ImpactReportV1};
+use crate::impact::{ImpactReportV1, enumerate_impact_v1};
 use crate::io::{Len, ReadAt};
 use crate::open::OpenArchiveV1;
 use crate::verify::verify_block_payloads_v1;
@@ -248,7 +248,7 @@ mod tests {
     use crate::{io::Len, io::ReadAt};
     use anyhow::Result;
     use crushr_format::{
-        blk3::{write_blk3_header, Blk3Flags, Blk3Header},
+        blk3::{Blk3Flags, Blk3Header, write_blk3_header},
         dct1::{Dct1Entry, Dct1Table},
         ledger::LedgerBlob,
         tailframe::assemble_tail_frame,

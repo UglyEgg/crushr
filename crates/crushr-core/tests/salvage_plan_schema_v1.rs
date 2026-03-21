@@ -390,10 +390,12 @@ fn decompression_failure_block_is_not_exported() {
 
     let export_dir = root.join("out");
     let plan = run_salvage_json_with_export(&broken, &export_dir);
-    assert!(plan["exported_artifacts"]["exported_block_artifacts"]
-        .as_array()
-        .unwrap()
-        .is_empty());
+    assert!(
+        plan["exported_artifacts"]["exported_block_artifacts"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
 
     let _ = fs::remove_dir_all(&root);
 }
@@ -415,10 +417,12 @@ fn missing_dictionary_dependency_block_is_not_exported() {
 
     let export_dir = root.join("out");
     let plan = run_salvage_json_with_export(&mutated, &export_dir);
-    assert!(plan["exported_artifacts"]["exported_block_artifacts"]
-        .as_array()
-        .unwrap()
-        .is_empty());
+    assert!(
+        plan["exported_artifacts"]["exported_block_artifacts"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
 
     let _ = fs::remove_dir_all(&root);
 }
@@ -455,10 +459,12 @@ fn partial_fragment_export_has_extents_but_no_complete_file() {
 
     let export_dir = root.join("out");
     let plan = run_salvage_json_with_export(&broken, &export_dir);
-    assert!(!plan["exported_artifacts"]["exported_fragment_artifacts"]
-        .as_array()
-        .unwrap()
-        .is_empty());
+    assert!(
+        !plan["exported_artifacts"]["exported_fragment_artifacts"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
     let fulls = plan["exported_artifacts"]["exported_complete_file_artifacts"]
         .as_array()
         .unwrap();
