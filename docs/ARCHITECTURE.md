@@ -25,6 +25,8 @@ The runtime tools are:
 - `crushr-extract`
 - `crushr-salvage`
 
+`crushr` is the canonical command host for `pack`, `extract`, `verify`, `info`, `about`, and `lab`, with in-process command dispatch through shared library entrypoints (no sibling-process launch for canonical product commands).
+
 `crushr-fsck` is no longer a public runtime tool surface; the compatibility shim directs users to `crushr-extract --verify`.
 
 ## Lab modules

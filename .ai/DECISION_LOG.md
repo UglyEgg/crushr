@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-22 — CRUSHR_CLI_UNIFY_01 canonical shared-app CLI wiring
+
+- Decision:
+  - Make top-level `crushr` the canonical command host with shared parse/dispatch (`cli_app`) and in-process execution for canonical commands.
+  - Extract `crushr-pack`, `crushr-extract`, and `crushr-info` runtime entrypoints into shared library modules (`crushr::commands::{pack,extract,info}`) and keep binary targets as thin wrappers only.
+  - Promote `crushr-lab` to expose library dispatch (`crushr_lab::dispatch`) and wire `crushr lab` through crate dependency (`crushr-lab`).
+  - Remove obsolete placeholder crate `crushr-cli-common` from workspace membership.
+- Alternatives considered:
+  1. Keep top-level process dispatch to sibling binaries.
+  2. Add compatibility shims/aliases while retaining legacy dispatch paths.
+- Rationale:
+  - Packet requires hard removal of top-level external-process dispatch for canonical command ownership and a single authoritative CLI command model/help/about/version boundary.
+- Blast radius:
+  - Workspace dependency graph changes (`crushr` now depends on `crushr-lab`; `crushr-cli-common` removed).
+  - Top-level command execution path and binary ownership boundaries changed.
+  - No archive format or strict extraction semantics changes.
+
 ## 2026-03-21 — CRUSHR-CHECK-02-FIX1 follow-up review adjustments
 
 - Decision:

@@ -52,6 +52,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # Handoff
 
+CRUSHR_CLI_UNIFY_01 completion update (2026-03-22):
+- Canonical `crushr` command host now dispatches through shared command model/entrypoint code in `crates/crushr/src/cli_app.rs` (pack/extract/verify/info/about/lab surfaces).
+- Canonical command implementations for `pack`, `extract`, and `info` were moved into shared library modules under `crates/crushr/src/commands/`; binary targets are now thin wrappers to those shared entrypoints.
+- `crushr-lab` now exports a library dispatch entrypoint (`crushr_lab::dispatch`) so `crushr lab` runs in-process.
+- Obsolete workspace shared-CLI placeholder crate `crushr-cli-common` was removed.
+
 CRUSHR-UI-02 completion update (2026-03-20):
 - Replaced legacy top-level monolithic `crushr` command surface with a bounded dispatcher identity aligned to the canonical suite: `pack`, `extract`, `verify`, `info`; bounded non-primary surfaces remain `salvage` and `lab`.
 - Removed legacy generic-compressor commands from primary help exposure (`append`, `list`, `cat`, `dict-train`, `tune`, `completions`), and now return explicit demotion guidance if invoked.

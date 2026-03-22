@@ -301,6 +301,7 @@ dependencies = [
  "console",
  "crushr-core",
  "crushr-format",
+ "crushr-lab",
  "indicatif",
  "rayon",
  "serde",
@@ -309,15 +310,6 @@ dependencies = [
  "walkdir",
  "xattr",
  "zstd",
-]
-
-[[package]]
-name = "crushr-cli-common"
-version = "0.2.2"
-dependencies = [
- "anyhow",
- "serde",
- "serde_json",
 ]
 
 [[package]]

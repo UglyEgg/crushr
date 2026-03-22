@@ -3,7 +3,6 @@ resolver = "3"
 members = [
   "crates/crushr-format",
   "crates/crushr-core",
-  "crates/crushr-cli-common",
   "crates/crushr",
   "crates/crushr-tui",
   "crates/crushr-lab",

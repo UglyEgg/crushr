@@ -755,3 +755,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Ran a repo-wide Clippy style sweep under enforced policy gate and resolved all surfaced warnings (primarily `collapsible_if`) across workspace crates, binaries, lab/test/support code, and build script paths.
 - Applied idiomatic Rust 1.88 let-chain rewrites to collapse nested conditionals while preserving behavior and readability; no blanket `#[allow(clippy::...)]` strategy used.
 - Validation evidence: `cargo fmt` and `cargo clippy --workspace --all-targets -- -D warnings` both pass.
+
+## 2026-03-22 — CRUSHR_CLI_UNIFY_01
+- Introduced canonical shared CLI app dispatcher (`crates/crushr/src/cli_app.rs`) and rewired `crushr` to execute canonical commands in-process for `pack`, `extract`, `verify`, `info`, `about`, and `lab`.
+- Moved canonical command entrypoints for `pack`, `extract`, and `info` into shared library modules (`crates/crushr/src/commands/*`) and converted corresponding binaries into thin wrappers.
+- Promoted `crushr-lab` with a library dispatch entrypoint (`crushr_lab::dispatch`) and added crate wiring to call it from top-level `crushr`.
+- Removed obsolete workspace crate `crushr-cli-common` and updated architecture/readme boundary docs for the new shared-app layout.

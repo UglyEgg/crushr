@@ -65,7 +65,7 @@ The canonical public tool boundary is:
 Current boundary classes:
 
 - **Stable product surface:** CLI behavior and machine-readable outputs of `crushr-pack`, `crushr-info`, `crushr-extract --verify`, and `crushr-extract`
-- **Bounded internal surface:** workspace Rust crates/modules used to implement the tool suite (`crushr`, `crushr-core`, `crushr-format`, `crushr-cli-common`)
+- **Bounded internal surface:** workspace Rust crates/modules used to implement the tool suite (`crushr`, `crushr-core`, `crushr-format`, `crushr-lab`)
 - **Experimental/lab-only surface:** `crushr-salvage`, `crushr-lab`, FORMAT comparison workflows, and research schemas/artifacts
 - **Removed accidental exposure:** internal extraction-path and verify-report assembly details are no longer public library API
 
