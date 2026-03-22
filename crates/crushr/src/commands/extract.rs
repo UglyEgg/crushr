@@ -308,11 +308,17 @@ fn exit_code_for_error(kind: ExtractionErrorKind) -> i32 {
 
 pub fn dispatch(args: Vec<String>) -> i32 {
     let early_args = args.clone();
-    if early_args.iter().any(|a| a == "--help" || a == "-h") {
+    if matches!(
+        early_args.first().map(String::as_str),
+        Some("--help" | "-h")
+    ) {
         println!("{USAGE}");
         return 0;
     }
-    if early_args.iter().any(|a| a == "--version" || a == "-V") {
+    if matches!(
+        early_args.first().map(String::as_str),
+        Some("--version" | "-V")
+    ) {
         println!("{}", crate::product_version());
         return 0;
     }

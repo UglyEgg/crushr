@@ -743,11 +743,11 @@ fn plan_from_experimental_metadata(
 }
 
 pub fn dispatch(args: Vec<String>) -> i32 {
-    if args.iter().any(|a| a == "--help" || a == "-h") {
+    if matches!(args.first().map(String::as_str), Some("--help" | "-h")) {
         println!("{USAGE}");
         return 0;
     }
-    if args.iter().any(|a| a == "--version" || a == "-V") {
+    if matches!(args.first().map(String::as_str), Some("--version" | "-V")) {
         println!("{}", crate::product_version());
         return 0;
     }

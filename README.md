@@ -67,6 +67,7 @@ Wrapper entrypoints map to canonical `crushr` commands:
 - `crushr-salvage` → `crushr salvage ...`
 
 Each wrapper provides the same baseline control mechanics: `--help`, `--version`, and `about`.
+These wrapper controls are only recognized as the first argument (`crushr-pack --help`, not `crushr-pack <arg> --help`).
 
 ## API boundary truth
 

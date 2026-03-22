@@ -67,6 +67,7 @@ Deliverables
 - [x] CRUSHR-STYLE-FIX-01 — repo-wide Clippy style-debt cleanup to reestablish zero warnings under enforced `-D warnings` policy gate.
 - [x] CRUSHR_CLI_UNIFY_01 — canonical shared CLI app boundary with in-process `crushr` command dispatch for pack/extract/verify/info/about/lab, plus legacy top-level dispatch cleanup.
 - [x] CRUSHR_CLI_UNIFY_02 — retained companion binaries unified as thin wrappers over shared CLI/app dispatch (`pack`/`extract`/`info`/`salvage`) with wrapper-owned presentation/parsing duplication removed.
+- [x] CRUSHR_CLI_UNIFY_03 — CLI contract enforcement pass: added integration tests for canonical taxonomy/help/about/version/exit-code/shared-flag invariants and removed remaining undocumented alias branches.
 - [ ] CRUSHR-BENCH-01 — implement benchmark harness foundation using manifest-driven deterministic corpus/variant/corruption execution and schema-backed raw/summary output.
 - [ ] CRUSHR-BENCH-02 — initial canonical corpus generation, baseline runs, and first quantitative benchmark artifacts.
 - [ ] CRUSHR-BENCH-03 — benchmark result review, compression/performance tuning priorities, and whitepaper/data-surface integration.

@@ -149,11 +149,17 @@ fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> R
 
 fn run(raw_args: Vec<String>) -> Result<()> {
     let early_args = raw_args.clone();
-    if early_args.iter().any(|a| a == "--help" || a == "-h") {
-        println!("usage: crushr-info <archive> --json [--report propagation]");
+    if matches!(
+        early_args.first().map(String::as_str),
+        Some("--help" | "-h")
+    ) {
+        println!("usage: crushr-info <archive> [--json] [--report propagation]");
         return Ok(());
     }
-    if early_args.iter().any(|a| a == "--version" || a == "-V") {
+    if matches!(
+        early_args.first().map(String::as_str),
+        Some("--version" | "-V")
+    ) {
         println!("{}", crate::product_version());
         return Ok(());
     }
@@ -177,7 +183,8 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         }
     }
 
-    let archive = archive.context("usage: crushr-info <archive> --json [--report propagation]")?;
+    let archive =
+        archive.context("usage: crushr-info <archive> [--json] [--report propagation]")?;
 
     let reader = FileReader {
         file: File::open(&archive).with_context(|| format!("open {archive}"))?,

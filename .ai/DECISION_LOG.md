@@ -5,6 +5,22 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-22 — CRUSHR_CLI_UNIFY_03 CLI contract enforcement + hidden-alias purge
+
+- Decision:
+  - Add explicit integration-level CLI contract tests (`crates/crushr/tests/cli_contract_surface.rs`) that fail closed on command-taxonomy drift, wrapper/canonical help-about-version divergence, legacy alias resurfacing, and shared-flag contract drift.
+  - Remove remaining undocumented positional alias branches by recognizing wrapper/command `--help`/`--version` controls only as first arguments.
+  - Keep JSON precedence over silent presentation for combined `--json --silent` usage and lock that behavior in tests.
+- Alternatives considered:
+  1. Keep existing presentation tests only and rely on manual review for contract drift.
+  2. Retain positional `--help`/`--version` acceptance as permissive compatibility behavior.
+- Rationale:
+  - Packet requires enforceable product-surface contracts and explicit negative tests for legacy alias reintroduction.
+  - Positional help/version handling was undocumented behavior and created hidden parser branches that could mask invalid invocations.
+- Blast radius:
+  - Wrapper/command argument parsing is stricter for misplaced help/version flags.
+  - New contract tests will fail immediately on future surface drift in taxonomy/help/about/version/flag semantics.
+
 ## 2026-03-22 — CRUSHR_CLI_UNIFY_02 retained-wrapper unification and fsck binary removal
 
 - Decision:
