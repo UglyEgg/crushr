@@ -9,13 +9,13 @@ pub fn run_wrapper_env(
     dispatch: fn(Vec<String>) -> i32,
 ) -> i32 {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    if args.iter().any(|arg| arg == "--help" || arg == "-h") {
+    if matches!(args.first().map(String::as_str), Some("--help" | "-h")) {
         println!(
             "{wrapper_name} — wrapper over canonical crushr CLI\ncanonical equivalent: {canonical_usage}\n"
         );
         return dispatch(vec!["--help".to_string()]);
     }
-    if args.iter().any(|arg| arg == "--version" || arg == "-V") {
+    if matches!(args.first().map(String::as_str), Some("--version" | "-V")) {
         println!("{}", crate::product_version());
         return 0;
     }

@@ -458,7 +458,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
 
     let mut args = raw_args.into_iter();
     while let Some(arg) = args.next() {
-        if arg == "--help" || arg == "-h" || arg == "help" {
+        if inputs.is_empty() && output.is_none() && (arg == "--help" || arg == "-h") {
             println!("{USAGE}");
             return Ok(());
         }

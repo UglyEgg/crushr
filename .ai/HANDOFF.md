@@ -52,6 +52,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # Handoff
 
+CRUSHR_CLI_UNIFY_03 completion update (2026-03-22):
+- Added `crates/crushr/tests/cli_contract_surface.rs` to enforce canonical CLI contract invariants: approved root command taxonomy, wrapper/canonical help-about-version parity, negative legacy-alias rejection, root exit-code behavior, and combined shared-flag behavior (`--json` + `--silent`).
+- Removed remaining undocumented alias drift by restricting help/version handling to first-argument controls only across shared wrapper and command dispatch paths (`wrapper_cli`, `pack`, `extract`, `info`, `salvage`).
+- Synced CLI docs/help usage with runtime behavior (`README` wrapper-control position contract; `crushr-info` usage now shows optional `--json`).
+
 CRUSHR_CLI_UNIFY_02 completion update (2026-03-22):
 - Converted retained companion wrappers in `crates/crushr` (`crushr-pack`, `crushr-extract`, `crushr-info`, `crushr-salvage`) to use one shared wrapper entry helper (`crushr::wrapper_cli::run_wrapper_env`) so wrappers no longer own independent help/version/about logic.
 - Migrated `crushr-salvage` runtime implementation into shared library command module (`crates/crushr/src/commands/salvage.rs`) and switched top-level `crushr salvage` to in-process shared dispatch.

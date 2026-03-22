@@ -7,9 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_CLI_UNIFY_02 complete** (retained companion binaries are thin wrappers over shared CLI/app dispatch with canonical-equivalent help/about/version mechanics; duplicate wrapper-owned parsing/help surfaces removed)
+Current Step: **CRUSHR_CLI_UNIFY_03 complete** (CLI contract surface is now enforced by integration tests; undocumented alias drift removed; help/about/version and shared-flag behavior locked across canonical/wrapper binaries)
 
-Immediate Next Step: continue metadata-pruning evidence review/benchmark harness preparation while preserving the unified CLI shared-entrypoint boundary and zero-warning Clippy baseline in follow-up packets.
+Immediate Next Step: continue metadata-pruning evidence review/benchmark harness preparation with unified CLI contracts now test-enforced and hidden alias drift removed from command/wrapper entry paths.
+
+Latest maintenance fix (2026-03-22):
+- **CRUSHR_CLI_UNIFY_03 complete**: added dedicated CLI contract integration coverage (`crates/crushr/tests/cli_contract_surface.rs`) to lock canonical command taxonomy, wrapper/canonical help+about+version equivalence, legacy alias rejection, root exit-code behavior, and `--json`+`--silent` shared-flag consistency.
+- **CRUSHR_CLI_UNIFY_03 complete**: removed remaining undocumented argument-position aliases by making help/version controls first-argument-only across wrapper and command dispatch paths (`wrapper_cli`, `pack`, `extract`, `info`, `salvage`).
+- **CRUSHR_CLI_UNIFY_03 complete**: synchronized public CLI docs with actual behavior (wrapper control-position contract + `crushr-info` usage text reflects optional `--json`).
 
 Latest maintenance fix (2026-03-22):
 - **CRUSHR_CLI_UNIFY_02 complete**: moved `crushr-salvage` runtime into shared command module (`crushr::commands::salvage`) and rewired `crushr` top-level `salvage` command to run in-process through shared dispatch.
