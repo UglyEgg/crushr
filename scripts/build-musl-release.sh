@@ -17,49 +17,6 @@ set -Eeuo pipefail
 #   dev         -> dist/musl-dev
 #   release     -> dist/musl
 #   release-lto -> dist/musl-release-lto
-#
-# Usage:
-#   ./scripts/build-musl-release.sh
-#   ./scripts/build-musl-release.sh --profile dev
-#   ./scripts/build-musl-release.sh --profile release-lto
-#   ./scripts/build-musl-release.sh --bin crushr
-#   ./scripts/build-musl-release.sh --bin crushr --bin crushr-pack
-#   ./scripts/build-musl-release.sh --network host
-#   ./scripts/build-musl-release.sh --network none
-#
-# Notes:
-# - Canonical product version is read from root VERSION.
-# - Build metadata is injected via env vars for runtime/about/version surfaces.
-# - This script assumes build.rs prefers those env vars and only falls back
-#   to shell-outs when absent.
-#
-# Matching Containerfile.musl:
-#
-#   FROM docker.io/library/rust:1.94-alpine3.20
-#
-#   RUN apk add --no-cache \
-#       bash \
-#       build-base \
-#       ca-certificates \
-#       coreutils \
-#       file \
-#       git \
-#       musl-dev \
-#       pkgconf \
-#       binutils \
-#       openssl-dev \
-#       zstd-dev
-#
-#   WORKDIR /src
-#
-#   ENV RUSTUP_HOME=/usr/local/rustup
-#   ENV CARGO_HOME=/usr/local/cargo
-#   ENV PATH=/usr/local/cargo/bin:/usr/local/rustup/toolchains/stable-x86_64-unknown-linux-musl/bin:/usr/local/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-#
-#   ENV CARGO_TERM_COLOR=always
-#   ENV RUSTFLAGS="-C target-feature=+crt-static"
-#
-#   CMD ["/bin/bash"]
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
@@ -164,7 +121,6 @@ mkdir -p "$CACHE_ROOT/registry"
 mkdir -p "$CACHE_ROOT/git"
 mkdir -p "$CACHE_ROOT/target"
 
-# Default public binaries. Adjust if your actual bin names differ.
 if [[ ${#BINS[@]} -eq 0 ]]; then
     BINS=(
         crushr
@@ -190,6 +146,11 @@ release-lto)
     CONTAINER_CODEGEN_UNITS_VALUE="1"
     ;;
 esac
+
+CARGO_NET_OFFLINE_VALUE="false"
+if [[ "$NETWORK_MODE" == "none" ]]; then
+    CARGO_NET_OFFLINE_VALUE="true"
+fi
 
 echo "==> Build configuration"
 echo "    image          $IMAGE_TAG"
@@ -230,6 +191,7 @@ podman run --rm \
     -e BIN_LIST="$BIN_LIST" \
     -e CARGO_PROFILE_RELEASE_LTO="$CONTAINER_LTO_VALUE" \
     -e CARGO_PROFILE_RELEASE_CODEGEN_UNITS="$CONTAINER_CODEGEN_UNITS_VALUE" \
+    -e CARGO_NET_OFFLINE="$CARGO_NET_OFFLINE_VALUE" \
     -v "$ROOT_DIR:/src:Z" \
     -v "$DIST_DIR:/out:Z" \
     -v "$CACHE_ROOT/registry:/usr/local/cargo/registry:Z" \
@@ -250,12 +212,11 @@ podman run --rm \
             dev)
                 CARGO_OUTPUT_DIR="debug"
                 ;;
-            release|release-lto)
+            release)
                 CARGO_OUTPUT_DIR="release"
                 ;;
             *)
-                echo "Unsupported BUILD_PROFILE inside container: $BUILD_PROFILE" >&2
-                exit 1
+                CARGO_OUTPUT_DIR="$BUILD_PROFILE"
                 ;;
         esac
 
@@ -269,6 +230,10 @@ podman run --rm \
                 --target "$TARGET_TRIPLE" \
                 --bin "$bin"
         done
+
+        echo
+        echo "==> Listing target output directory"
+        ls -la "/src/target/$TARGET_TRIPLE/$CARGO_OUTPUT_DIR" || true
 
         echo
         echo "==> Copying artifacts to /out"
