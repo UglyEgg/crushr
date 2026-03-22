@@ -20,7 +20,7 @@ workspace = tomllib.loads(cargo_file.read_text(encoding="utf-8"))
 
 expected_resolver = "3"
 expected_edition = "2024"
-expected_rust_version = "1.85"
+expected_rust_version = "1.88"
 
 workspace_table = workspace.get("workspace", {})
 workspace_package = workspace_table.get("package", {})
