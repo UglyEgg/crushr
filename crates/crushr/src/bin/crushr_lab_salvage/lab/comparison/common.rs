@@ -303,14 +303,12 @@ pub(crate) fn damage_redundant_map_ledger(archive_path: &Path) -> Result<()> {
     };
 
     let mut value: Value = serde_json::from_slice(&ledger.json)?;
-    if let Some(files) = value.get_mut("files").and_then(Value::as_array_mut) {
-        if let Some(first) = files.first_mut() {
-            if let Some(extents) = first.get_mut("extents").and_then(Value::as_array_mut) {
-                if let Some(ext) = extents.first_mut() {
-                    ext["block_id"] = Value::from(999999u64);
-                }
-            }
-        }
+    if let Some(files) = value.get_mut("files").and_then(Value::as_array_mut)
+        && let Some(first) = files.first_mut()
+        && let Some(extents) = first.get_mut("extents").and_then(Value::as_array_mut)
+        && let Some(ext) = extents.first_mut()
+    {
+        ext["block_id"] = Value::from(999999u64);
     }
     ledger.json = serde_json::to_vec(&value)?;
 

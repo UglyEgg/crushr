@@ -550,20 +550,19 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
         dictionary_analysis.status == "available",
     );
 
-    if footer_analysis.status == "valid" {
-        if let Some(blocks_end_offset) = footer_analysis.blocks_end_offset {
-            if let Ok(spans) = scan_blocks_v1(&reader, blocks_end_offset) {
-                let index_by_offset = candidates
-                    .iter()
-                    .enumerate()
-                    .map(|(i, c)| (c.scan_offset, i))
-                    .collect::<BTreeMap<_, _>>();
-                for span in spans {
-                    mapped_candidate_offsets.insert(span.header_offset);
-                    if let Some(ix) = index_by_offset.get(&span.header_offset) {
-                        candidates[*ix].mapped_block_id = Some(span.block_id);
-                    }
-                }
+    if footer_analysis.status == "valid"
+        && let Some(blocks_end_offset) = footer_analysis.blocks_end_offset
+        && let Ok(spans) = scan_blocks_v1(&reader, blocks_end_offset)
+    {
+        let index_by_offset = candidates
+            .iter()
+            .enumerate()
+            .map(|(i, c)| (c.scan_offset, i))
+            .collect::<BTreeMap<_, _>>();
+        for span in spans {
+            mapped_candidate_offsets.insert(span.header_offset);
+            if let Some(ix) = index_by_offset.get(&span.header_offset) {
+                candidates[*ix].mapped_block_id = Some(span.block_id);
             }
         }
     }
@@ -692,10 +691,9 @@ fn plan_from_experimental_metadata(
         parse_checkpoint_extent_records(&experimental_values),
         block_verification,
         MappingProvenance::CheckpointMapPath,
-    ) {
-        if !checkpoint_plans.is_empty() {
-            file_plans = checkpoint_plans;
-        }
+    ) && !checkpoint_plans.is_empty()
+    {
+        file_plans = checkpoint_plans;
     }
 
     if let Ok(manifest_plans) = verify_and_apply_manifest_expectations(
@@ -708,42 +706,39 @@ fn plan_from_experimental_metadata(
         file_plans = manifest_plans;
     }
 
-    if file_plans.is_empty() {
-        if let Ok(file_identity_plans) = verify_and_plan_file_identity_extent_records(
+    if file_plans.is_empty()
+        && let Ok(file_identity_plans) = verify_and_plan_file_identity_extent_records(
             parse_file_identity_extent_records(&experimental_values),
             &experimental_values,
             block_verification,
             verified_candidate_offsets,
-        ) {
-            if !file_identity_plans.is_empty() {
-                file_plans = file_identity_plans;
-            }
-        }
+        )
+        && !file_identity_plans.is_empty()
+    {
+        file_plans = file_identity_plans;
     }
 
-    if file_plans.is_empty() {
-        if let Ok(payload_identity_plans) = verify_and_plan_payload_block_identity_records(
+    if file_plans.is_empty()
+        && let Ok(payload_identity_plans) = verify_and_plan_payload_block_identity_records(
             parse_payload_block_identity_records(&experimental_values),
             &experimental_values,
             block_verification,
             verified_candidate_offsets,
-        ) {
-            if !payload_identity_plans.is_empty() {
-                file_plans = payload_identity_plans;
-            }
-        }
+        )
+        && !payload_identity_plans.is_empty()
+    {
+        file_plans = payload_identity_plans;
     }
 
-    if file_plans.is_empty() {
-        if let Ok(extent_plans) = verify_and_plan_experimental_records(
+    if file_plans.is_empty()
+        && let Ok(extent_plans) = verify_and_plan_experimental_records(
             parse_self_describing_extent_records(&experimental_values),
             block_verification,
             MappingProvenance::SelfDescribingExtentPath,
-        ) {
-            if !extent_plans.is_empty() {
-                file_plans = extent_plans;
-            }
-        }
+        )
+        && !extent_plans.is_empty()
+    {
+        file_plans = extent_plans;
     }
 
     file_plans

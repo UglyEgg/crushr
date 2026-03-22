@@ -45,10 +45,10 @@ pub(super) fn decode_verified_blocks(
             continue;
         };
 
-        if let Some(raw_hash) = header.raw_hash {
-            if blake3::hash(&raw).as_bytes() != &raw_hash {
-                continue;
-            }
+        if let Some(raw_hash) = header.raw_hash
+            && blake3::hash(&raw).as_bytes() != &raw_hash
+        {
+            continue;
         }
 
         out.insert(

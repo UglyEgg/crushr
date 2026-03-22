@@ -75,16 +75,16 @@ fn git_commit() -> Option<String> {
 }
 
 fn build_timestamp() -> Option<String> {
-    if let Ok(epoch) = std::env::var("SOURCE_DATE_EPOCH") {
-        if let Some(epoch) = clean(epoch) {
-            return run_cmd([
-                "date",
-                "-u",
-                "-d",
-                &format!("@{epoch}"),
-                "+%Y-%m-%dT%H:%M:%SZ",
-            ]);
-        }
+    if let Ok(epoch) = std::env::var("SOURCE_DATE_EPOCH")
+        && let Some(epoch) = clean(epoch)
+    {
+        return run_cmd([
+            "date",
+            "-u",
+            "-d",
+            &format!("@{epoch}"),
+            "+%Y-%m-%dT%H:%M:%SZ",
+        ]);
     }
     run_cmd(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"])
 }

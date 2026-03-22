@@ -240,12 +240,12 @@ pub(super) fn classify_file(
     }
 
     for extent in extents {
-        if let Some(state) = block_verification.get(&extent.block_id) {
-            if let Some(raw_len) = state.verified_raw_len {
-                let end = extent.offset.saturating_add(extent.len);
-                if end > raw_len {
-                    failure_reasons.insert(ReasonCode::RequiredExtentOutOfBounds);
-                }
+        if let Some(state) = block_verification.get(&extent.block_id)
+            && let Some(raw_len) = state.verified_raw_len
+        {
+            let end = extent.offset.saturating_add(extent.len);
+            if end > raw_len {
+                failure_reasons.insert(ReasonCode::RequiredExtentOutOfBounds);
             }
         }
     }

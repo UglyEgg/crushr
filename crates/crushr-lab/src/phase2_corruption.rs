@@ -281,23 +281,23 @@ fn apply_bit_flip(
     }
 
     if let Some(offset) = forced_offset {
-        if let Ok(ix) = usize::try_from(offset) {
-            if ix < bytes.len() {
-                let bit_index = (seed % 8) as u8;
-                let mask = 1_u8 << bit_index;
-                let before = bytes[ix];
-                bytes[ix] ^= mask;
-                details.push(MutationDetail {
-                    operation: "bit_flip".to_string(),
-                    offset: Some(ix as u64),
-                    before: Some(before),
-                    after: Some(bytes[ix]),
-                    length: Some(1),
-                    range_start: Some(ix as u64),
-                    range_end: Some(ix as u64 + 1),
-                    bit_index: Some(bit_index),
-                });
-            }
+        if let Ok(ix) = usize::try_from(offset)
+            && ix < bytes.len()
+        {
+            let bit_index = (seed % 8) as u8;
+            let mask = 1_u8 << bit_index;
+            let before = bytes[ix];
+            bytes[ix] ^= mask;
+            details.push(MutationDetail {
+                operation: "bit_flip".to_string(),
+                offset: Some(ix as u64),
+                before: Some(before),
+                after: Some(bytes[ix]),
+                length: Some(1),
+                range_start: Some(ix as u64),
+                range_end: Some(ix as u64 + 1),
+                bit_index: Some(bit_index),
+            });
         }
         return details;
     }

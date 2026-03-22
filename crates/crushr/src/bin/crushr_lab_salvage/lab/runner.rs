@@ -135,13 +135,13 @@ pub(super) fn resolve_salvage_bin() -> Result<PathBuf> {
         );
     }
 
-    if let Ok(current_exe) = std::env::current_exe() {
-        if let Some(exe_dir) = current_exe.parent() {
-            let candidate = exe_dir.join(format!("crushr-salvage{}", std::env::consts::EXE_SUFFIX));
-            let _ = build_salvage_bin_with_cargo(&candidate);
-            if candidate.is_file() {
-                return Ok(candidate);
-            }
+    if let Ok(current_exe) = std::env::current_exe()
+        && let Some(exe_dir) = current_exe.parent()
+    {
+        let candidate = exe_dir.join(format!("crushr-salvage{}", std::env::consts::EXE_SUFFIX));
+        let _ = build_salvage_bin_with_cargo(&candidate);
+        if candidate.is_file() {
+            return Ok(candidate);
         }
     }
 
@@ -801,13 +801,13 @@ pub(super) fn resolve_pack_bin() -> Result<PathBuf> {
         );
     }
 
-    if let Ok(current_exe) = std::env::current_exe() {
-        if let Some(exe_dir) = current_exe.parent() {
-            let candidate = exe_dir.join(format!("crushr-pack{}", std::env::consts::EXE_SUFFIX));
-            let _ = build_pack_bin_with_cargo(&candidate);
-            if candidate.is_file() {
-                return Ok(candidate);
-            }
+    if let Ok(current_exe) = std::env::current_exe()
+        && let Some(exe_dir) = current_exe.parent()
+    {
+        let candidate = exe_dir.join(format!("crushr-pack{}", std::env::consts::EXE_SUFFIX));
+        let _ = build_pack_bin_with_cargo(&candidate);
+        if candidate.is_file() {
+            return Ok(candidate);
         }
     }
 
