@@ -750,3 +750,8 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Reverted `.github/SECURITY.md` addition per review direction.
 - Ran repository formatting cleanup (`cargo fmt`) so policy-gate style enforcement is green.
 - Validation evidence: `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`.
+
+## 2026-03-22 — CRUSHR-STYLE-FIX-01
+- Ran a repo-wide Clippy style sweep under enforced policy gate and resolved all surfaced warnings (primarily `collapsible_if`) across workspace crates, binaries, lab/test/support code, and build script paths.
+- Applied idiomatic Rust 1.88 let-chain rewrites to collapse nested conditionals while preserving behavior and readability; no blanket `#[allow(clippy::...)]` strategy used.
+- Validation evidence: `cargo fmt` and `cargo clippy --workspace --all-targets -- -D warnings` both pass.

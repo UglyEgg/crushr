@@ -372,13 +372,12 @@ pub(super) fn parse_experimental_metadata_records(
                 continue;
             }
             if let Some(record) = parse_experimental_metadata_record(&raw) {
-                if let ExperimentalMetadataRecord::SelfDescribingExtent(envelope) = &record {
-                    if let Some(v) = block_verification.get(&envelope.record.block_id) {
-                        if !v.content_verified {
-                            offset += 1;
-                            continue;
-                        }
-                    }
+                if let ExperimentalMetadataRecord::SelfDescribingExtent(envelope) = &record
+                    && let Some(v) = block_verification.get(&envelope.record.block_id)
+                    && !v.content_verified
+                {
+                    offset += 1;
+                    continue;
                 }
                 records.push(record);
             }
@@ -759,11 +758,10 @@ pub(super) fn parse_payload_block_path_dictionary(
             if let (Some(expected), Some(actual)) = (
                 expected_archive.as_deref(),
                 copy.archive_instance_id.as_deref(),
-            ) {
-                if expected != actual {
-                    report.rejected_wrong_archive_count += 1;
-                    continue;
-                }
+            ) && expected != actual
+            {
+                report.rejected_wrong_archive_count += 1;
+                continue;
             }
             let hash_view_bytes =
                 match serde_json::to_vec(&PathDictionaryBodyHashView::from(&copy.body)) {
@@ -1195,10 +1193,10 @@ fn build_verified_graph(
     let mut rejected_blocks = BTreeSet::<u32>::new();
 
     for record in payload_records {
-        if let Some(prev_owner) = block_owner.insert(record.block_id, record.file_id) {
-            if prev_owner != record.file_id {
-                rejected_blocks.insert(record.block_id);
-            }
+        if let Some(prev_owner) = block_owner.insert(record.block_id, record.file_id)
+            && prev_owner != record.file_id
+        {
+            rejected_blocks.insert(record.block_id);
         }
     }
 

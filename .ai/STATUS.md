@@ -7,10 +7,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-CRATE-01 complete** (workspace crate governance now locks MSRV 1.85, crates.io metadata inheritance policy, explicit publish intent, and manifest drift checks)
+Current Step: **CRUSHR-STYLE-FIX-01 complete** (repo-wide Clippy style debt cleanup completed; enforced style gate is now clean under `cargo clippy --workspace --all-targets -- -D warnings`)
 
-Immediate Next Step: continue metadata-pruning evidence review/benchmark harness preparation and run the CRUSHR-BUILD-01 musl release script in an environment with Podman available to capture static-binary proof artifacts (`file` + checksums).
+Immediate Next Step: continue metadata-pruning evidence review/benchmark harness preparation while preserving the newly restored zero-warning Clippy baseline in all follow-up packets.
 
+
+
+Latest maintenance fix (2026-03-22):
+- **CRUSHR-STYLE-FIX-01 complete**: performed a repo-wide Clippy style sweep and resolved all surfaced warning classes (primarily `collapsible_if` let-chain rewrites) across workspace crates, binaries, tests, and build/support code.
+- **CRUSHR-STYLE-FIX-01 complete**: reran required style gates; `cargo fmt` and `cargo clippy --workspace --all-targets -- -D warnings` both pass, restoring a clean enforced baseline.
 
 
 Latest maintenance fix (2026-03-21):
@@ -123,7 +128,7 @@ Latest maintenance fix (2026-03-19):
 
 ## Active constraints
 
-- Workspace crate policy is locked: resolver `3`, edition `2024`, MSRV `1.85`, publishable crates must carry crates.io-facing workspace metadata inheritance, and internal crates must set `publish = false`.
+- Workspace crate policy is locked: resolver `3`, edition `2024`, MSRV `1.88`, publishable crates must carry crates.io-facing workspace metadata inheritance, and internal crates must set `publish = false`.
 - Unified policy gate baseline is active on PRs/pushes to `main`: secrets, dependency audit, MSRV, style (crate policy + clippy + fmt), and VERSION drift checks.
 - No speculative recovery/reconstruction/repair in `crushr-extract`.
 - `crushr-salvage` output is unverified research output and not canonical extraction.

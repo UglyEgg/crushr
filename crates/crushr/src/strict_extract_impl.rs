@@ -79,10 +79,10 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
 
     let mut required_blocks_by_path = BTreeMap::<String, Vec<u32>>::new();
     for entry in &entries {
-        if let Some(selected_paths) = &selected {
-            if !selected_paths.contains(&entry.path) {
-                continue;
-            }
+        if let Some(selected_paths) = &selected
+            && !selected_paths.contains(&entry.path)
+        {
+            continue;
         }
 
         if entry.kind != EntryKind::Regular {

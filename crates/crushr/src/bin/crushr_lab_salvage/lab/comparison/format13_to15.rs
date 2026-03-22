@@ -746,11 +746,10 @@ fn compute_format15_dictionary_metrics(archive: &Path) -> Result<Value> {
             if let (Some(expected), Some(actual)) = (
                 expected_archive_id.as_deref(),
                 row.get("archive_instance_id").and_then(Value::as_str),
-            ) {
-                if expected != actual {
-                    rejected_wrong_archive_count += 1;
-                    continue;
-                }
+            ) && expected != actual
+            {
+                rejected_wrong_archive_count += 1;
+                continue;
             }
 
             if let Some(body) = row.get("body") {

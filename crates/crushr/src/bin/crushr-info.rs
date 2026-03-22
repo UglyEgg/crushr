@@ -138,10 +138,10 @@ fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> R
         }
     }
 
-    if footer.blocks_end_offset <= archive_len {
-        if let Ok(values) = verify_block_payloads_v1(reader, footer.blocks_end_offset) {
-            corrupted_blocks = values;
-        }
+    if footer.blocks_end_offset <= archive_len
+        && let Ok(values) = verify_block_payloads_v1(reader, footer.blocks_end_offset)
+    {
+        corrupted_blocks = values;
     }
 
     let report =

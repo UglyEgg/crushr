@@ -33,16 +33,16 @@ pub fn validate_semver_strict(value: &str) -> bool {
         return false;
     }
 
-    if let Some(pre) = pre {
-        if !validate_identifiers(pre, true) {
-            return false;
-        }
+    if let Some(pre) = pre
+        && !validate_identifiers(pre, true)
+    {
+        return false;
     }
 
-    if let Some(build) = build {
-        if !validate_identifiers(build, false) {
-            return false;
-        }
+    if let Some(build) = build
+        && !validate_identifiers(build, false)
+    {
+        return false;
     }
 
     true

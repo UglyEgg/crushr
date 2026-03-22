@@ -1,3 +1,9 @@
+CRUSHR-STYLE-FIX-01 completion update (2026-03-22):
+- Completed a full workspace Clippy cleanup pass under enforced gate (`cargo clippy --workspace --all-targets -- -D warnings`) and removed all currently surfaced warnings without adding blanket lint suppressions.
+- Primary cleanup class was `collapsible_if`; rewrites use Rust 1.88-compatible let-chains and preserve existing behavior.
+- Required style commands now pass cleanly: `cargo fmt` and `cargo clippy --workspace --all-targets -- -D warnings`.
+- Follow-up packets should preserve this clean style baseline and treat new Clippy warnings as regressions.
+
 CRUSHR-CHECK-02-FIX1 completion update (2026-03-21):
 - Reverted `.github/SECURITY.md` addition per follow-up review request.
 - Applied repository formatting cleanup with `cargo fmt`; style gate commands now pass (`cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`).

@@ -132,10 +132,10 @@ impl CliPresenter {
     }
 
     fn paint_status(&self, status: StatusWord) -> String {
-        if self.use_color {
-            if let Some(code) = status.color_code() {
-                return format!("{code}{}\x1b[0m", status.as_str());
-            }
+        if self.use_color
+            && let Some(code) = status.color_code()
+        {
+            return format!("{code}{}\x1b[0m", status.as_str());
         }
         status.as_str().to_string()
     }
