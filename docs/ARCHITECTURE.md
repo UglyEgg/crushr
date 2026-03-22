@@ -25,9 +25,14 @@ The runtime tools are:
 - `crushr-extract`
 - `crushr-salvage`
 
-`crushr` is the canonical command host for `pack`, `extract`, `verify`, `info`, `about`, and `lab`, with in-process command dispatch through shared library entrypoints (no sibling-process launch for canonical product commands).
+`crushr` is the canonical command host for `pack`, `extract`, `verify`, `info`, `about`, `salvage`, and `lab`, with in-process command dispatch through shared library entrypoints.
 
-`crushr-fsck` is no longer a public runtime tool surface; the compatibility shim directs users to `crushr-extract --verify`.
+Companion binaries are thin wrappers over the same shared CLI/app layer and expose canonical-equivalent usage:
+
+- `crushr-pack` → `crushr pack ...`
+- `crushr-extract` → `crushr extract ...`
+- `crushr-info` → `crushr info ...`
+- `crushr-salvage` → `crushr salvage ...`
 
 ## Lab modules
 
@@ -37,7 +42,7 @@ Research and comparison code is isolated under lab-facing modules and binaries:
 - `lab/corruption_harness`
 - `lab/comparison_runners`
 
-In this repository these are currently implemented by the `crushr-lab-salvage` binary and its `lab/*` module tree.
+In this repository these are currently implemented by the `crushr-lab` crate/binary.
 
 ## Boundary rules
 

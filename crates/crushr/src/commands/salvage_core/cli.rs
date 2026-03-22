@@ -3,16 +3,8 @@
 
 use super::*;
 
-pub(super) fn parse_cli_options() -> Result<CliOptions> {
-    let early_args: Vec<String> = std::env::args().skip(1).collect();
-    if early_args.iter().any(|a| a == "--help" || a == "-h") {
-        println!("{USAGE}");
-        std::process::exit(0);
-    }
-    if early_args.iter().any(|a| a == "--version" || a == "-V") {
-        println!("{}", crushr::product_version());
-        std::process::exit(0);
-    }
+pub(super) fn parse_cli_options(args: Vec<String>) -> Result<CliOptions> {
+    let early_args = args;
 
     let mut archive = None;
     let mut json = false;
@@ -20,17 +12,17 @@ pub(super) fn parse_cli_options() -> Result<CliOptions> {
     let mut export_fragments = None;
     let mut silent = false;
 
-    let mut args = std::env::args().skip(1);
-    while let Some(arg) = args.next() {
+    let mut iter = early_args.into_iter();
+    while let Some(arg) = iter.next() {
         if arg == "--json" {
             json = true;
         } else if arg == "--silent" {
             silent = true;
         } else if arg == "--json-out" {
-            let path = args.next().context(USAGE)?;
+            let path = iter.next().context(USAGE)?;
             json_out = Some(PathBuf::from(path));
         } else if arg == "--export-fragments" {
-            let path = args.next().context(USAGE)?;
+            let path = iter.next().context(USAGE)?;
             export_fragments = Some(PathBuf::from(path));
         } else if arg.starts_with('-') {
             bail!("unsupported flag: {arg}");

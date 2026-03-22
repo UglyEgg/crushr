@@ -4,3 +4,4 @@
 pub mod extract;
 pub mod info;
 pub mod pack;
+pub mod salvage;

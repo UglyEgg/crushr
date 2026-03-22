@@ -3,6 +3,12 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
+## 2026-03-22 — CRUSHR_CLI_UNIFY_02
+- Converted retained companion binaries to thin wrappers over shared CLI dispatch via `crushr::wrapper_cli::run_wrapper_env` (`crushr-pack`, `crushr-extract`, `crushr-info`, `crushr-salvage`) with uniform wrapper-level `--help`/`--version`/`about` handling and canonical-equivalent guidance.
+- Moved salvage runtime into shared library command module (`crates/crushr/src/commands/salvage.rs`) and rewired top-level `crushr salvage` to in-process shared dispatch.
+- Added explicit bin retention policy in `crates/crushr/Cargo.toml` (`autobins = false`) and removed deprecated `crushr-fsck` from active build outputs.
+- Updated architecture/runtime docs for canonical-vs-wrapper usage mapping and refreshed product-surface test (`crushr-core/tests/minimal_pack_v1.rs`) to assert fsck-binary removal.
+
 ## 2026-03-21 — CRUSHR-CRATE-01
 - Locked workspace crate policy in root `Cargo.toml`: `resolver = "3"`, `edition = "2024"`, and initial MSRV `rust-version = "1.85"`.
 - Added `rust-version.workspace = true` across member crates and normalized publishable crate metadata inheritance to workspace-managed crates.io fields (`version`, `edition`, `rust-version`, `license`, `authors`, `repository`, `homepage`, `documentation`, `keywords`, `categories`).

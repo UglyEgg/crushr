@@ -1,5 +1,6 @@
 [package]
 name = "crushr"
+autobins = false
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -34,3 +35,27 @@ tempfile = "3"
 
 [target.'cfg(unix)'.dependencies]
 xattr = "1"
+
+[[bin]]
+name = "crushr"
+path = "src/main.rs"
+
+[[bin]]
+name = "crushr-pack"
+path = "src/bin/crushr-pack.rs"
+
+[[bin]]
+name = "crushr-extract"
+path = "src/bin/crushr-extract.rs"
+
+[[bin]]
+name = "crushr-info"
+path = "src/bin/crushr-info.rs"
+
+[[bin]]
+name = "crushr-salvage"
+path = "src/bin/crushr-salvage.rs"
+
+[[bin]]
+name = "crushr-lab-salvage"
+path = "src/bin/crushr-lab-salvage.rs"

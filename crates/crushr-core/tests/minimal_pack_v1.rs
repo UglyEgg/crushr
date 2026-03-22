@@ -388,13 +388,10 @@ fn verify_output_is_strict_only_without_salvage_language() {
 }
 
 #[test]
-fn retired_fsck_binary_exits_with_deprecation_guidance() {
+fn fsck_binary_is_removed_from_retained_product_surface() {
     ensure_bins_built();
-    let out = run_bin("crushr-fsck", &["/tmp/does-not-matter.crs", "--json"]);
-    assert_eq!(out.status.code(), Some(2));
-    let stderr = String::from_utf8(out.stderr).unwrap();
-    assert!(stderr.contains("crushr-fsck is retired"));
-    assert!(stderr.contains("crushr-extract --verify"));
+    let bin_path = workspace_root().join("target/debug/crushr-fsck");
+    assert!(!bin_path.exists());
 }
 
 #[test]
