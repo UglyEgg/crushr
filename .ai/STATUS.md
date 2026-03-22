@@ -7,9 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR-STYLE-FIX-01 complete** (repo-wide Clippy style debt cleanup completed; enforced style gate is now clean under `cargo clippy --workspace --all-targets -- -D warnings`)
+Current Step: **CRUSHR_CLI_UNIFY_01 complete** (canonical CLI shared-app foundation established; `crushr` now executes canonical commands in-process for pack/extract/verify/info/about/lab, with legacy top-level external dispatch removed)
 
-Immediate Next Step: continue metadata-pruning evidence review/benchmark harness preparation while preserving the newly restored zero-warning Clippy baseline in all follow-up packets.
+Immediate Next Step: continue metadata-pruning evidence review/benchmark harness preparation while preserving the unified CLI shared-entrypoint boundary and zero-warning Clippy baseline in follow-up packets.
+
+Latest maintenance fix (2026-03-22):
+- **CRUSHR_CLI_UNIFY_01 complete**: extracted canonical command entrypoints into shared library modules (`crushr::commands::{pack,extract,info}`), rewired `crushr` root CLI to a canonical command model/dispatcher (`cli_app`) and removed top-level companion-binary process dispatch for canonical product commands.
+- **CRUSHR_CLI_UNIFY_01 complete**: promoted `crushr-lab` to expose a library dispatch entrypoint and wired top-level `crushr lab` to run in-process through crate dependency (`crushr-lab`).
+- **CRUSHR_CLI_UNIFY_01 complete**: removed obsolete `crushr-cli-common` crate from the workspace and updated architecture docs to reflect the new shared command-host boundary.
 
 
 

@@ -4,12 +4,12 @@
 use std::fmt::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct BuildMetadata {
-    pub(crate) version: String,
-    pub(crate) commit: String,
-    pub(crate) built: String,
-    pub(crate) target: String,
-    pub(crate) rust: String,
+pub struct BuildMetadata {
+    pub version: String,
+    pub commit: String,
+    pub built: String,
+    pub target: String,
+    pub rust: String,
 }
 
 impl BuildMetadata {
@@ -37,9 +37,9 @@ impl BuildMetadata {
         }
     }
 
-    pub(crate) fn from_env() -> Self {
+    pub fn from_env() -> Self {
         Self::from_parts(
-            option_env!("CRUSHR_VERSION").unwrap_or(crushr::product_version()),
+            option_env!("CRUSHR_VERSION").unwrap_or(crate::product_version()),
             option_env!("CRUSHR_GIT_COMMIT"),
             option_env!("CRUSHR_BUILD_TIMESTAMP"),
             option_env!("CRUSHR_TARGET_TRIPLE"),
@@ -48,7 +48,7 @@ impl BuildMetadata {
     }
 }
 
-pub(crate) fn render_about(metadata: &BuildMetadata) -> String {
+pub fn render_about(metadata: &BuildMetadata) -> String {
     let mut out = String::new();
 
     out.push_str("crushr / about\n");

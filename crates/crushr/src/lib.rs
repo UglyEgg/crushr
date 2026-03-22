@@ -17,8 +17,13 @@
 //! // Internal extraction confinement helpers are intentionally not public API.
 //! use crushr::extraction_path::resolve_confined_path;
 //! ```
+pub mod about;
+pub mod cli_presentation;
+pub mod commands;
+mod extraction_path;
 pub mod format;
 pub mod index_codec;
+pub mod strict_extract_impl;
 
 pub mod versioning;
 

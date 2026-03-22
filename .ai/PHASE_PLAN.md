@@ -65,6 +65,7 @@ Deliverables
 - [~] CRUSHR-UI-01 — unified CLI presentation contract and standardized `--silent` behavior across pack/extract/verify/salvage (pending final runtime validation / acceptance).
 - [x] CRUSHR-CHECK-02 — unified policy gate baseline (secrets, audit, MSRV, style, and VERSION drift enforcement) plus SECURITY.md and workflow-backed README badge alignment.
 - [x] CRUSHR-STYLE-FIX-01 — repo-wide Clippy style-debt cleanup to reestablish zero warnings under enforced `-D warnings` policy gate.
+- [x] CRUSHR_CLI_UNIFY_01 — canonical shared CLI app boundary with in-process `crushr` command dispatch for pack/extract/verify/info/about/lab, plus legacy top-level dispatch cleanup.
 - [ ] CRUSHR-BENCH-01 — implement benchmark harness foundation using manifest-driven deterministic corpus/variant/corruption execution and schema-backed raw/summary output.
 - [ ] CRUSHR-BENCH-02 — initial canonical corpus generation, baseline runs, and first quantitative benchmark artifacts.
 - [ ] CRUSHR-BENCH-03 — benchmark result review, compression/performance tuning priorities, and whitepaper/data-surface integration.

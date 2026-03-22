@@ -16,6 +16,7 @@ keywords.workspace = true
 [dependencies]
 crushr-core = { path = "../crushr-core" }
 crushr-format = { path = "../crushr-format" }
+crushr-lab = { path = "../crushr-lab" }
 indicatif = "0.17"
 console = "0.15"
 anyhow.workspace = true
