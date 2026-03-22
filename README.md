@@ -58,7 +58,15 @@ The canonical public tool boundary is:
 - `crushr-lab` (research harness, not product surface)
 
 `crushr-extract` remains strict and deterministic.
-`crushr-fsck` is retained only as a temporary deprecated compatibility shim that directs users to `crushr-extract --verify`.
+
+Wrapper entrypoints map to canonical `crushr` commands:
+
+- `crushr-pack` → `crushr pack ...`
+- `crushr-extract` → `crushr extract ...`
+- `crushr-info` → `crushr info ...`
+- `crushr-salvage` → `crushr salvage ...`
+
+Each wrapper provides the same baseline control mechanics: `--help`, `--version`, and `about`.
 
 ## API boundary truth
 

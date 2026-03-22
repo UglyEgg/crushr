@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-22 — CRUSHR_CLI_UNIFY_02 retained-wrapper unification and fsck binary removal
+
+- Decision:
+  - Make retained companion binaries (`crushr-pack`, `crushr-extract`, `crushr-info`, `crushr-salvage`) thin wrappers over one shared wrapper-entry helper (`crushr::wrapper_cli::run_wrapper_env`) rather than keeping wrapper-local help/version/about/presentation branches.
+  - Move salvage runtime implementation to shared library command ownership (`crushr::commands::salvage`) so both `crushr salvage` and `crushr-salvage` execute the same in-process command path.
+  - Remove deprecated `crushr-fsck` binary from active build outputs and treat it as non-retained product surface.
+- Alternatives considered:
+  1. Keep `crushr-salvage` as standalone binary logic with top-level process forwarding.
+  2. Keep `crushr-fsck` as deprecated shim for compatibility.
+- Rationale:
+  - Packet requires wrapper binaries to be thin and to avoid duplicate parser/help/about/version implementations.
+  - Packet explicitly calls for deleting fsck-era compatibility surfaces and undocumented legacy tool names.
+- Blast radius:
+  - Wrapper help/version/about output text changed to canonical wrapper mapping model.
+  - `crates/crushr` bin-target declaration changed to explicit retention list.
+  - Tests/docs expecting fsck shim were updated for removed-binary behavior.
+
 ## 2026-03-22 — CRUSHR_CLI_UNIFY_01 canonical shared-app CLI wiring
 
 - Decision:

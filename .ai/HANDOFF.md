@@ -52,6 +52,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # Handoff
 
+CRUSHR_CLI_UNIFY_02 completion update (2026-03-22):
+- Converted retained companion wrappers in `crates/crushr` (`crushr-pack`, `crushr-extract`, `crushr-info`, `crushr-salvage`) to use one shared wrapper entry helper (`crushr::wrapper_cli::run_wrapper_env`) so wrappers no longer own independent help/version/about logic.
+- Migrated `crushr-salvage` runtime implementation into shared library command module (`crates/crushr/src/commands/salvage.rs`) and switched top-level `crushr salvage` to in-process shared dispatch.
+- Enabled explicit bin target control via `autobins = false` and retained only approved/runtime-needed binaries in `crates/crushr/Cargo.toml` (`crushr`, `crushr-pack`, `crushr-extract`, `crushr-info`, `crushr-salvage`, plus internal test harness `crushr-lab-salvage`).
+- Removed deprecated `crushr-fsck` binary from active build outputs; updated `crushr-core` minimal-pack test to assert removal from retained surface.
+
 CRUSHR_CLI_UNIFY_01 completion update (2026-03-22):
 - Canonical `crushr` command host now dispatches through shared command model/entrypoint code in `crates/crushr/src/cli_app.rs` (pack/extract/verify/info/about/lab surfaces).
 - Canonical command implementations for `pack`, `extract`, and `info` were moved into shared library modules under `crates/crushr/src/commands/`; binary targets are now thin wrappers to those shared entrypoints.

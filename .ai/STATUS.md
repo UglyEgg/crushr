@@ -7,9 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_CLI_UNIFY_01 complete** (canonical CLI shared-app foundation established; `crushr` now executes canonical commands in-process for pack/extract/verify/info/about/lab, with legacy top-level external dispatch removed)
+Current Step: **CRUSHR_CLI_UNIFY_02 complete** (retained companion binaries are thin wrappers over shared CLI/app dispatch with canonical-equivalent help/about/version mechanics; duplicate wrapper-owned parsing/help surfaces removed)
 
 Immediate Next Step: continue metadata-pruning evidence review/benchmark harness preparation while preserving the unified CLI shared-entrypoint boundary and zero-warning Clippy baseline in follow-up packets.
+
+Latest maintenance fix (2026-03-22):
+- **CRUSHR_CLI_UNIFY_02 complete**: moved `crushr-salvage` runtime into shared command module (`crushr::commands::salvage`) and rewired `crushr` top-level `salvage` command to run in-process through shared dispatch.
+- **CRUSHR_CLI_UNIFY_02 complete**: converted retained wrappers (`crushr-pack`, `crushr-extract`, `crushr-info`, `crushr-salvage`) to a common wrapper entry helper with uniform wrapper mechanics (`--help`, `--version`, `about`) and explicit canonical-equivalent guidance.
+- **CRUSHR_CLI_UNIFY_02 complete**: restricted `crates/crushr` explicit bin targets to retained surface plus required internal research harness binary (`crushr-lab-salvage`) and removed deprecated `crushr-fsck` compatibility binary target from build outputs.
 
 Latest maintenance fix (2026-03-22):
 - **CRUSHR_CLI_UNIFY_01 complete**: extracted canonical command entrypoints into shared library modules (`crushr::commands::{pack,extract,info}`), rewired `crushr` root CLI to a canonical command model/dispatcher (`cli_app`) and removed top-level companion-binary process dispatch for canonical product commands.

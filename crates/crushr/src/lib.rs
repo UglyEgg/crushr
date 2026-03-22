@@ -24,6 +24,7 @@ mod extraction_path;
 pub mod format;
 pub mod index_codec;
 pub mod strict_extract_impl;
+pub mod wrapper_cli;
 
 pub mod versioning;
 

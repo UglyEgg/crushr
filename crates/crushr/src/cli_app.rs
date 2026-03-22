@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use anyhow::{Context, Result, bail};
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use anyhow::{Result, bail};
 
 const HELP: &str = r#"crushr — integrity-first preservation archive suite
 
@@ -101,34 +99,9 @@ fn run(args: Vec<String>) -> Result<i32> {
             );
             0
         }
-        AppCommand::Salvage => forward_to("crushr-salvage", &rest)?,
+        AppCommand::Salvage => crushr::commands::salvage::dispatch(rest),
         AppCommand::Lab => crushr_lab::dispatch(rest)?,
     };
 
     Ok(code)
-}
-
-fn forward_to(binary: &str, args: &[String]) -> Result<i32> {
-    let target = resolve_sibling_binary(binary)?;
-    let status = Command::new(&target).args(args).status()?;
-    Ok(status.code().unwrap_or(1))
-}
-
-fn resolve_sibling_binary(binary: &str) -> Result<PathBuf> {
-    let exe = std::env::current_exe()?;
-    let dir = exe
-        .parent()
-        .map(Path::to_path_buf)
-        .context("resolve executable directory")?;
-    let mut filename = binary.to_string();
-    if cfg!(windows) {
-        filename.push_str(".exe");
-    }
-    let candidate = dir.join(filename);
-    anyhow::ensure!(
-        candidate.exists(),
-        "required companion binary not found: {}",
-        candidate.display()
-    );
-    Ok(candidate)
 }
