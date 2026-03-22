@@ -804,27 +804,27 @@ pub(super) fn resolve_pack_bin() -> Result<PathBuf> {
     if let Ok(current_exe) = std::env::current_exe()
         && let Some(exe_dir) = current_exe.parent()
     {
-        let candidate = exe_dir.join(format!("crushr-pack{}", std::env::consts::EXE_SUFFIX));
+        let candidate = exe_dir.join(format!("crushr{}", std::env::consts::EXE_SUFFIX));
         let _ = build_pack_bin_with_cargo(&candidate);
         if candidate.is_file() {
             return Ok(candidate);
         }
     }
 
-    if let Ok(path) = std::env::var("CARGO_BIN_EXE_crushr-pack") {
+    if let Ok(path) = std::env::var("CARGO_BIN_EXE_crushr") {
         let candidate = PathBuf::from(path);
         if candidate.is_file() {
             return Ok(candidate);
         }
     }
 
-    bail!("unable to resolve crushr-pack binary")
+    bail!("unable to resolve crushr binary")
 }
 
 pub(super) fn build_pack_bin_with_cargo(pack_candidate: &Path) -> Result<()> {
     let cargo_bin = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd = Command::new(&cargo_bin);
-    cmd.args(["build", "-p", "crushr", "--bin", "crushr-pack"]);
+    cmd.args(["build", "-p", "crushr", "--bin", "crushr"]);
     if let Some(target_dir) = pack_candidate.parent().and_then(Path::parent) {
         cmd.arg("--target-dir").arg(target_dir);
     }
@@ -833,7 +833,7 @@ pub(super) fn build_pack_bin_with_cargo(pack_candidate: &Path) -> Result<()> {
         Ok(())
     } else {
         bail!(
-            "failed to build crushr-pack with cargo\nstdout:\n{}\nstderr:\n{}",
+            "failed to build crushr with cargo\nstdout:\n{}\nstderr:\n{}",
             String::from_utf8_lossy(&out.stdout),
             String::from_utf8_lossy(&out.stderr)
         )

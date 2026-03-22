@@ -100,7 +100,7 @@ fn run(args: Vec<String>) -> Result<i32> {
             0
         }
         AppCommand::Salvage => crushr::commands::salvage::dispatch(rest),
-        AppCommand::Lab => crushr_lab::dispatch(rest)?,
+        AppCommand::Lab => crushr::commands::lab::dispatch(rest)?,
     };
 
     Ok(code)

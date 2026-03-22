@@ -15,7 +15,9 @@ use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
 
 const ZSTD_CODEC: u32 = 1;
-const USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only|extent_identity_inline_path|extent_identity_distributed_names|extent_identity_path_dict_single|extent_identity_path_dict_header_tail|extent_identity_path_dict_quasi_uniform|extent_identity_path_dict_factored_header_tail>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only | extent_identity_inline_path | extent_identity_distributed_names | extent_identity_path_dict_single | extent_identity_path_dict_header_tail | extent_identity_path_dict_quasi_uniform | extent_identity_path_dict_factored_header_tail\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
+const PRODUCTION_USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
+
+const LAB_EXPERIMENTAL_USAGE: &str = "usage: crushr lab pack-experimental <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only|extent_identity_inline_path|extent_identity_distributed_names|extent_identity_path_dict_single|extent_identity_path_dict_header_tail|extent_identity_path_dict_quasi_uniform|extent_identity_path_dict_factored_header_tail>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only | extent_identity_inline_path | extent_identity_distributed_names | extent_identity_path_dict_single | extent_identity_path_dict_header_tail | extent_identity_path_dict_quasi_uniform | extent_identity_path_dict_factored_header_tail\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
 
 #[derive(Clone, Copy, Debug)]
 enum PlacementStrategy {
@@ -47,6 +49,25 @@ enum MetadataProfile {
     ExtentIdentityPathDictHeaderTail,
     ExtentIdentityPathDictQuasiUniform,
     ExtentIdentityPathDictFactoredHeaderTail,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PackCliSurface {
+    Production,
+    LabExperimental,
+}
+
+impl PackCliSurface {
+    fn usage(self) -> &'static str {
+        match self {
+            Self::Production => PRODUCTION_USAGE,
+            Self::LabExperimental => LAB_EXPERIMENTAL_USAGE,
+        }
+    }
+
+    fn allows_experimental_flags(self) -> bool {
+        matches!(self, Self::LabExperimental)
+    }
 }
 
 impl PlacementStrategy {
@@ -425,7 +446,7 @@ struct PathDictionaryCopyRecordV2 {
 }
 
 pub fn dispatch(args: Vec<String>) -> i32 {
-    if let Err(err) = run(args) {
+    if let Err(err) = run(args, PackCliSurface::Production) {
         eprintln!("{err:#}");
         let message = format!("{err:#}");
         if message.contains("usage:")
@@ -444,7 +465,23 @@ pub fn dispatch_from_env() -> i32 {
     dispatch(std::env::args().skip(1).collect())
 }
 
-fn run(raw_args: Vec<String>) -> Result<()> {
+pub fn dispatch_lab_experimental(args: Vec<String>) -> i32 {
+    if let Err(err) = run(args, PackCliSurface::LabExperimental) {
+        eprintln!("{err:#}");
+        let message = format!("{err:#}");
+        if message.contains("usage:")
+            || message.contains("unsupported flag")
+            || message.contains("unexpected argument")
+        {
+            return 1;
+        } else {
+            return 2;
+        }
+    }
+    0
+}
+
+fn run(raw_args: Vec<String>, surface: PackCliSurface) -> Result<()> {
     let mut inputs = Vec::new();
     let mut output = None;
     let mut level: i32 = 3;
@@ -459,29 +496,51 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     let mut args = raw_args.into_iter();
     while let Some(arg) = args.next() {
         if inputs.is_empty() && output.is_none() && (arg == "--help" || arg == "-h") {
-            println!("{USAGE}");
+            println!("{}", surface.usage());
             return Ok(());
         }
         if arg == "-o" || arg == "--output" {
-            let value = args.next().context(USAGE)?;
+            let value = args.next().context(surface.usage())?;
             output = Some(PathBuf::from(value));
         } else if arg == "--level" {
-            let value = args.next().context(USAGE)?;
+            let value = args.next().context(surface.usage())?;
             level = value
                 .parse::<i32>()
                 .with_context(|| format!("invalid --level value: {value}"))?;
         } else if arg == "--experimental-self-describing-extents" {
+            if !surface.allows_experimental_flags() {
+                bail!("unsupported flag: {arg}");
+            }
             experimental_self_describing_extents = true;
         } else if arg == "--experimental-file-identity-extents" {
+            if !surface.allows_experimental_flags() {
+                bail!("unsupported flag: {arg}");
+            }
             experimental_file_identity_extents = true;
         } else if arg == "--experimental-self-identifying-blocks" {
+            if !surface.allows_experimental_flags() {
+                bail!("unsupported flag: {arg}");
+            }
             experimental_self_identifying_blocks = true;
         } else if arg == "--experimental-file-manifest-checkpoints" {
+            if !surface.allows_experimental_flags() {
+                bail!("unsupported flag: {arg}");
+            }
             experimental_file_manifest_checkpoints = true;
         } else if arg == "--metadata-profile" {
-            metadata_profile = Some(MetadataProfile::parse(&args.next().context(USAGE)?)?);
+            if !surface.allows_experimental_flags() {
+                bail!("unsupported flag: {arg}");
+            }
+            metadata_profile = Some(MetadataProfile::parse(
+                &args.next().context(surface.usage())?,
+            )?);
         } else if arg == "--placement-strategy" {
-            placement_strategy = Some(PlacementStrategy::parse(&args.next().context(USAGE)?)?);
+            if !surface.allows_experimental_flags() {
+                bail!("unsupported flag: {arg}");
+            }
+            placement_strategy = Some(PlacementStrategy::parse(
+                &args.next().context(surface.usage())?,
+            )?);
         } else if arg == "--silent" {
             silent = true;
         } else if arg.starts_with('-') {
@@ -491,9 +550,9 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         }
     }
 
-    let output = output.context(USAGE)?;
+    let output = output.context(surface.usage())?;
     if inputs.is_empty() {
-        bail!(USAGE);
+        bail!(surface.usage());
     }
     if metadata_profile.is_some()
         && (experimental_self_identifying_blocks || experimental_file_manifest_checkpoints)
