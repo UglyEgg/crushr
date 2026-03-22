@@ -52,6 +52,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # Handoff
 
+CRUSHR_CLI_UNIFY_04 completion update (2026-03-22):
+- Public `crushr-pack`/`crushr pack` now exposes only production-facing controls (`<input>...`, `-o/--output`, `--level`, `--silent`); all experimental format/layout/profile flags were removed from the production parser/help surface (no hidden compatibility acceptance).
+- Added lab-owned experimental pack entrypoint `crushr lab pack-experimental ...` and switched lab comparison harness pack invocation paths to that lab command.
+- Updated integration coverage (`deterministic_pack`, `salvage_experimental_resilience`, lab comparison runner wiring) to enforce production rejection + lab acceptance for experimental pack controls.
+
 CRUSHR_CLI_UNIFY_03 completion update (2026-03-22):
 - Added `crates/crushr/tests/cli_contract_surface.rs` to enforce canonical CLI contract invariants: approved root command taxonomy, wrapper/canonical help-about-version parity, negative legacy-alias rejection, root exit-code behavior, and combined shared-flag behavior (`--json` + `--silent`).
 - Removed remaining undocumented alias drift by restricting help/version handling to first-argument controls only across shared wrapper and command dispatch paths (`wrapper_cli`, `pack`, `extract`, `info`, `salvage`).

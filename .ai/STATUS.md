@@ -7,9 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_CLI_UNIFY_03 complete** (CLI contract surface is now enforced by integration tests; undocumented alias drift removed; help/about/version and shared-flag behavior locked across canonical/wrapper binaries)
+Current Step: **CRUSHR_CLI_UNIFY_04 complete** (public `pack` surface is now production-only; experimental format/layout controls were removed from production `pack` and relocated under `crushr lab pack-experimental`)
 
-Immediate Next Step: continue metadata-pruning evidence review/benchmark harness preparation with unified CLI contracts now test-enforced and hidden alias drift removed from command/wrapper entry paths.
+Immediate Next Step: continue metadata-pruning evidence review/benchmark harness preparation with unified CLI contracts now test-enforced and production-vs-lab pack boundaries explicitly enforced.
+
+Latest maintenance fix (2026-03-22):
+- **CRUSHR_CLI_UNIFY_04 complete**: pruned production `crushr-pack` parser/help surface to production flags only (`inputs`, `-o/--output`, `--level`, shared `--silent`), and removed acceptance of experimental format/layout/profile flags from the public pack path.
+- **CRUSHR_CLI_UNIFY_04 complete**: added lab-owned experimental pack entrypoint (`crushr lab pack-experimental`) and rewired lab comparison harness pack invocations to run through lab-owned experimental surface instead of production `crushr-pack` flags.
+- **CRUSHR_CLI_UNIFY_04 complete**: updated deterministic/resilience CLI tests to assert production pack flag rejection and lab experimental-flag acceptance; full workspace clippy/tests are green after boundary pruning.
 
 Latest maintenance fix (2026-03-22):
 - **CRUSHR_CLI_UNIFY_03 complete**: added dedicated CLI contract integration coverage (`crates/crushr/tests/cli_contract_surface.rs`) to lock canonical command taxonomy, wrapper/canonical help+about+version equivalence, legacy alias rejection, root exit-code behavior, and `--json`+`--silent` shared-flag consistency.

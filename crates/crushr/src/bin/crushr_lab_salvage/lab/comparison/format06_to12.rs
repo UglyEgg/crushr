@@ -17,6 +17,8 @@ pub(crate) fn build_archive_with_pack_format06(
     output: &Path,
 ) -> Result<()> {
     let out = Command::new(pack_bin)
+        .arg("lab")
+        .arg("pack-experimental")
         .arg(input)
         .arg("-o")
         .arg(output)
@@ -1202,6 +1204,8 @@ pub(crate) fn build_archive_with_pack_metadata_profile(
     variant: Format10Variant,
 ) -> Result<()> {
     let out = Command::new(pack_bin)
+        .arg("lab")
+        .arg("pack-experimental")
         .arg(input)
         .arg("-o")
         .arg(output)
@@ -1529,6 +1533,8 @@ pub(crate) fn build_archive_with_pack_metadata_profile_name(
     profile: &str,
 ) -> Result<()> {
     let out = Command::new(pack_bin)
+        .arg("lab")
+        .arg("pack-experimental")
         .arg(input)
         .arg("-o")
         .arg(output)

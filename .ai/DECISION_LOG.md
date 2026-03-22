@@ -5,6 +5,22 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-22 — CRUSHR_CLI_UNIFY_04 production-vs-lab pack surface boundary
+
+- Decision:
+  - Restrict public `crushr-pack`/`crushr pack` CLI parser/help surface to production controls only (`<input>...`, `-o/--output`, `--level`, shared `--silent`), with no compatibility/deprecated/hidden acceptance for experimental format/layout/profile flags.
+  - Relocate experimental writer controls to an explicit lab-owned surface `crushr lab pack-experimental ...` and route lab comparison harness pack invocations through that lab surface.
+- Alternatives considered:
+  1. Keep experimental flags on public `pack` and only reword help.
+  2. Keep compatibility parsing for removed flags as hidden/deprecated aliases.
+- Rationale:
+  - Packet locks require a hard production-vs-lab boundary and explicitly forbid hidden compatibility acceptance for removed production experimental flags.
+  - Lab workflows still need deterministic access to experimental controls, so relocation keeps research capability without polluting production operator UX.
+- Blast radius:
+  - Public pack invocation contract is stricter; prior experimental pack flags now fail on production pack path.
+  - Lab comparison harness pack resolution now targets `crushr` and invokes `lab pack-experimental`.
+  - Integration tests and help-surface assertions were updated to enforce the new boundary.
+
 ## 2026-03-22 — CRUSHR_CLI_UNIFY_03 CLI contract enforcement + hidden-alias purge
 
 - Decision:

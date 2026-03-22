@@ -116,38 +116,55 @@ fn crushr_pack_index_order_and_metadata_are_normalized() {
 }
 
 #[test]
-fn crushr_pack_help_lists_experimental_flags() {
+fn crushr_pack_help_is_production_focused() {
     let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
     let out = Command::new(bin).arg("--help").output().expect("run help");
     assert!(out.status.success());
 
     let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.contains("--experimental-self-describing-extents"));
-    assert!(stdout.contains("--experimental-file-identity-extents"));
-    assert!(stdout.contains("--experimental-self-identifying-blocks"));
+    assert!(!stdout.contains("--experimental-self-describing-extents"));
+    assert!(!stdout.contains("--experimental-file-identity-extents"));
+    assert!(!stdout.contains("--experimental-self-identifying-blocks"));
+    assert!(!stdout.contains("--metadata-profile"));
+    assert!(!stdout.contains("--placement-strategy"));
 }
 
 #[test]
-fn crushr_pack_accepts_experimental_writer_flags_and_emits_archives() {
+fn crushr_pack_rejects_experimental_writer_flags() {
     let td = TempDir::new().unwrap();
     let input = td.path().join("input");
     fs::create_dir_all(&input).unwrap();
     fs::write(input.join("payload.txt"), b"payload").unwrap();
 
     let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
-    let self_describing = td.path().join("self-describing.crushr");
-    run(Command::new(bin).args([
-        input.to_str().unwrap(),
-        "-o",
-        self_describing.to_str().unwrap(),
-        "--level",
-        "3",
-        "--experimental-self-describing-extents",
-    ]));
-    assert!(self_describing.exists());
+    let self_describing_archive = td.path().join("self-describing.crushr");
+    let self_describing = Command::new(bin)
+        .args([
+            input.to_str().unwrap(),
+            "-o",
+            self_describing_archive.to_str().unwrap(),
+            "--level",
+            "3",
+            "--experimental-self-describing-extents",
+        ])
+        .output()
+        .expect("run command");
+    assert!(!self_describing.status.success());
+    assert!(String::from_utf8_lossy(&self_describing.stderr).contains("unsupported flag"));
+}
 
+#[test]
+fn crushr_lab_pack_experimental_accepts_writer_flags() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    fs::write(input.join("payload.txt"), b"payload").unwrap();
+
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let file_identity = td.path().join("file-identity.crushr");
     run(Command::new(bin).args([
+        "lab",
+        "pack-experimental",
         input.to_str().unwrap(),
         "-o",
         file_identity.to_str().unwrap(),
@@ -156,17 +173,6 @@ fn crushr_pack_accepts_experimental_writer_flags_and_emits_archives() {
         "--experimental-file-identity-extents",
     ]));
     assert!(file_identity.exists());
-
-    let format05 = td.path().join("format05.crushr");
-    run(Command::new(bin).args([
-        input.to_str().unwrap(),
-        "-o",
-        format05.to_str().unwrap(),
-        "--level",
-        "3",
-        "--experimental-self-identifying-blocks",
-    ]));
-    assert!(format05.exists());
 }
 
 #[test]
@@ -276,8 +282,10 @@ fn crushr_pack_metadata_profile_runs_remain_byte_identical() {
 
     let one = td.path().join("one.crs");
     let two = td.path().join("two.crs");
-    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     run(Command::new(bin).args([
+        "lab",
+        "pack-experimental",
         input.to_str().unwrap(),
         "-o",
         one.to_str().unwrap(),
@@ -287,6 +295,8 @@ fn crushr_pack_metadata_profile_runs_remain_byte_identical() {
         "extent_identity_path_dict_header_tail",
     ]));
     run(Command::new(bin).args([
+        "lab",
+        "pack-experimental",
         input.to_str().unwrap(),
         "-o",
         two.to_str().unwrap(),
@@ -306,9 +316,11 @@ fn crushr_pack_payload_only_profile_records_profile_in_redundant_map() {
     fs::create_dir_all(&input).unwrap();
     fs::write(input.join("payload.txt"), b"payload").unwrap();
     let archive = td.path().join("archive.crs");
-    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
 
     run(Command::new(pack_bin).args([
+        "lab",
+        "pack-experimental",
         input.to_str().unwrap(),
         "-o",
         archive.to_str().unwrap(),
@@ -416,11 +428,13 @@ fn placement_strategy_is_deterministic_per_strategy() {
     for i in 0..6 {
         fs::write(input.join(format!("f{i}.txt")), format!("payload-{i}")).unwrap();
     }
-    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     for strategy in ["fixed_spread", "hash_spread", "golden_spread"] {
         let a = td.path().join(format!("{strategy}-a.crushr"));
         let b = td.path().join(format!("{strategy}-b.crushr"));
         run(Command::new(bin).args([
+            "lab",
+            "pack-experimental",
             input.to_str().unwrap(),
             "-o",
             a.to_str().unwrap(),
@@ -432,6 +446,8 @@ fn placement_strategy_is_deterministic_per_strategy() {
             strategy,
         ]));
         run(Command::new(bin).args([
+            "lab",
+            "pack-experimental",
             input.to_str().unwrap(),
             "-o",
             b.to_str().unwrap(),
@@ -454,11 +470,13 @@ fn placement_strategies_differ_for_representative_archive_size() {
     for i in 0..9 {
         fs::write(input.join(format!("f{i}.txt")), format!("payload-{i}")).unwrap();
     }
-    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let mut outputs = Vec::new();
     for strategy in ["fixed_spread", "hash_spread", "golden_spread"] {
         let a = td.path().join(format!("{strategy}.crushr"));
         run(Command::new(bin).args([
+            "lab",
+            "pack-experimental",
             input.to_str().unwrap(),
             "-o",
             a.to_str().unwrap(),

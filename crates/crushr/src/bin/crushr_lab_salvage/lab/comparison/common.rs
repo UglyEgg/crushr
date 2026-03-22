@@ -62,6 +62,7 @@ pub(crate) fn write_dataset_fixture(root: &Path, dataset: &str) -> Result<()> {
 
 pub(crate) fn build_archive_with_pack(pack_bin: &Path, input: &Path, output: &Path) -> Result<()> {
     let out = Command::new(pack_bin)
+        .arg("pack")
         .arg(input)
         .arg("-o")
         .arg(output)
@@ -89,6 +90,8 @@ pub(crate) fn build_archive_with_pack_experimental(
     output: &Path,
 ) -> Result<()> {
     let out = Command::new(pack_bin)
+        .arg("lab")
+        .arg("pack-experimental")
         .arg(input)
         .arg("-o")
         .arg(output)
@@ -117,6 +120,8 @@ pub(crate) fn build_archive_with_pack_file_identity(
     output: &Path,
 ) -> Result<()> {
     let out = Command::new(pack_bin)
+        .arg("lab")
+        .arg("pack-experimental")
         .arg(input)
         .arg("-o")
         .arg(output)
@@ -145,6 +150,8 @@ pub(crate) fn build_archive_with_pack_format05(
     output: &Path,
 ) -> Result<()> {
     let out = Command::new(pack_bin)
+        .arg("lab")
+        .arg("pack-experimental")
         .arg(input)
         .arg("-o")
         .arg(output)
@@ -174,6 +181,8 @@ pub(crate) fn build_archive_with_pack_format08(
     strategy: &str,
 ) -> Result<()> {
     let out = Command::new(pack_bin)
+        .arg("lab")
+        .arg("pack-experimental")
         .arg(input)
         .arg("-o")
         .arg(output)
