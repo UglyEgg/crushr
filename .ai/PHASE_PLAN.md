@@ -70,6 +70,7 @@ Deliverables
 - [x] CRUSHR_CLI_UNIFY_03 — CLI contract enforcement pass: added integration tests for canonical taxonomy/help/about/version/exit-code/shared-flag invariants and removed remaining undocumented alias branches.
 - [x] CRUSHR_CLI_UNIFY_04 — production-vs-lab pack boundary lock: remove experimental format/layout controls from public `pack`, relocate retained experimentation to `crushr lab`, and align parser/help/tests/docs.
 - [x] CRUSHR_PACK_SCALE_01 — bound production `pack` planning memory by eliminating whole-run file payload pre-materialization and moving payload compression/hashing to serialization-time streaming.
+- [x] CRUSHR_VERIFY_SCALE_01 — bound production `verify` memory by removing temp extraction/materialization from verify path and adding deterministic real-phase progress visibility in human verify output.
 - [ ] CRUSHR-BENCH-01 — implement benchmark harness foundation using manifest-driven deterministic corpus/variant/corruption execution and schema-backed raw/summary output.
 - [ ] CRUSHR-BENCH-02 — initial canonical corpus generation, baseline runs, and first quantitative benchmark artifacts.
 - [ ] CRUSHR-BENCH-03 — benchmark result review, compression/performance tuning priorities, and whitepaper/data-surface integration.

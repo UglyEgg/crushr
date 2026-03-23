@@ -3,6 +3,12 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
+## 2026-03-23 — CRUSHR_VERIFY_SCALE_01
+- Reworked `crushr-extract --verify` to run strict verification in a bounded verify-only pass (no temp extraction output materialization), while preserving strict refusal/report semantics.
+- Removed strict extraction decompressed payload cache retention/cloning in active paths to reduce verify-time memory residency pressure.
+- Added deterministic production verify progress stages to human output and updated verify golden fixtures/integration assertions.
+- Validation: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`.
+
 ## 2026-03-22 — CRUSHR_CLI_UNIFY_04
 - Pruned public `crushr-pack` parser/help surface to production-only controls (`input`, `-o/--output`, `--level`, `--silent`) and removed experimental flag acceptance from the production pack path.
 - Added lab-owned experimental pack invocation surface `crushr lab pack-experimental` and wired it through shared command dispatch.

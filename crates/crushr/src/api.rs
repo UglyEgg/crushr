@@ -110,6 +110,7 @@ pub fn extract_all(opts: &ExtractOptions) -> Result<()> {
         out_dir: opts.output_dir.clone(),
         overwrite: opts.overwrite,
         selected_paths: None,
+        verify_only: false,
     })
     .map(|_| ())
 }

@@ -52,6 +52,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # Handoff
 
+CRUSHR_VERIFY_SCALE_01 completion update (2026-03-23):
+- `crushr-extract --verify` no longer routes through temp-directory strict extraction output; verify now executes strict validation in verify-only mode (no output materialization).
+- Strict extraction no longer retains/clones a cross-run decompressed payload cache for block reads, reducing memory retention pressure in verify and extraction flows.
+- Human verify output now includes deterministic real work phases (`archive open / header read`, `metadata/index scan`, `payload verification`, `manifest validation`, `final result/report`), with updated integration assertions and golden fixtures.
+- Synthetic scale check: verify completed successfully on a generated 12,000-file archive without OOM termination in this environment.
+
 CRUSHR_CLI_UNIFY_04 completion update (2026-03-22):
 - Public `crushr-pack`/`crushr pack` now exposes only production-facing controls (`<input>...`, `-o/--output`, `--level`, `--silent`); all experimental format/layout/profile flags were removed from the production parser/help surface (no hidden compatibility acceptance).
 - Added lab-owned experimental pack entrypoint `crushr lab pack-experimental ...` and switched lab comparison harness pack invocation paths to that lab command.

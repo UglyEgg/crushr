@@ -1,6 +1,13 @@
 crushr-extract  /  verify
 ------------------------------------------------------------------------
 
+Progress
+  archive open / header read OK
+  metadata/index scan    SCANNING
+  payload verification   RUNNING
+  manifest validation    FINALIZING
+  final result/report    COMPLETE
+
 Archive
   archive                <TMP>/sample.crushr
 
