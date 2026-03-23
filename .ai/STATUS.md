@@ -12,6 +12,12 @@ Current Step: **CRUSHR_CLI_UNIFY_04 complete** (public `pack` surface is now pro
 Immediate Next Step: continue metadata-pruning evidence review/benchmark harness preparation with unified CLI contracts now test-enforced and production-vs-lab pack boundaries explicitly enforced.
 
 Latest maintenance fix (2026-03-22):
+- **CRUSHR_PACK_SCALE_01 complete**: removed whole-run payload pre-materialization in `crushr-pack` planning by replacing `PackLayoutPlan` file payload storage with lightweight file descriptors (`abs_path`, logical path, planned size/id), so planning no longer retains raw+compressed bytes for every file simultaneously.
+- **CRUSHR_PACK_SCALE_01 complete**: moved file read/compress/hash work to the serialization loop with a deterministic guard that fails closed if an input file changes between planning and emit.
+- **CRUSHR_PACK_SCALE_01 complete**: added pack-stage regressions for planning-on-unreadable-files and mutation-between-planning-and-emit detection; workspace fmt/clippy/tests remain green.
+- **CRUSHR_PACK_SCALE_01 evidence**: synthetic 20,000-file dataset max RSS dropped from **177,248 KiB** (pre-fix `HEAD~1`) to **76,556 KiB** (current), with identical pack success semantics.
+
+Latest maintenance fix (2026-03-22):
 - **CRUSHR_CLI_UNIFY_04 complete**: pruned production `crushr-pack` parser/help surface to production flags only (`inputs`, `-o/--output`, `--level`, shared `--silent`), and removed acceptance of experimental format/layout/profile flags from the public pack path.
 - **CRUSHR_CLI_UNIFY_04 complete**: added lab-owned experimental pack entrypoint (`crushr lab pack-experimental`) and rewired lab comparison harness pack invocations to run through lab-owned experimental surface instead of production `crushr-pack` flags.
 - **CRUSHR_CLI_UNIFY_04 complete**: updated deterministic/resilience CLI tests to assert production pack flag rejection and lab experimental-flag acceptance; full workspace clippy/tests are green after boundary pruning.

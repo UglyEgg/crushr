@@ -778,3 +778,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Moved canonical command entrypoints for `pack`, `extract`, and `info` into shared library modules (`crates/crushr/src/commands/*`) and converted corresponding binaries into thin wrappers.
 - Promoted `crushr-lab` with a library dispatch entrypoint (`crushr_lab::dispatch`) and added crate wiring to call it from top-level `crushr`.
 - Removed obsolete workspace crate `crushr-cli-common` and updated architecture/readme boundary docs for the new shared-app layout.
+
+## 2026-03-22 — CRUSHR_PACK_SCALE_01
+- Reworked production `crushr-pack` planning to stop retaining full raw/compressed file bytes in `PackLayoutPlan`; planning now records lightweight per-file descriptors and metadata plan state only.
+- Moved file read/compress/hash to emission-time processing and added fail-closed detection for file-size mutation between planning and serialization.
+- Added unit regressions for unreadable-file planning behavior and plan/emit mutation detection to guard bounded-memory pipeline behavior.
+- Synthetic 20,000-file memory evidence: max RSS reduced from `177248 KiB` (pre-fix `HEAD~1`) to `76556 KiB` (current).

@@ -178,13 +178,11 @@ struct InputFile {
 }
 
 #[derive(Debug)]
-struct CanonicalFileModel {
+struct PlannedFileModel {
     file_id: u32,
     rel_path: String,
-    raw: Vec<u8>,
-    compressed: Vec<u8>,
-    payload_hash: [u8; 32],
-    raw_hash: [u8; 32],
+    abs_path: PathBuf,
+    raw_len: u64,
 }
 
 #[derive(Debug)]
@@ -211,8 +209,17 @@ struct MetadataPlan {
 
 #[derive(Debug)]
 struct PackLayoutPlan {
-    files: Vec<CanonicalFileModel>,
+    files: Vec<PlannedFileModel>,
     metadata: MetadataPlan,
+}
+
+struct PayloadIdentityInput<'a> {
+    file_id: u32,
+    raw_len: u64,
+    compressed_len: u64,
+    payload_hash: &'a [u8; 32],
+    raw_hash: &'a [u8; 32],
+    block_scan_offset: u64,
 }
 
 #[derive(Debug, Serialize)]
@@ -613,7 +620,7 @@ fn pack_minimal_v1(
     }
     reject_duplicate_logical_paths(&files)?;
     presenter.stage("planning", StatusWord::Running);
-    let layout = build_pack_layout_plan(files, level, options)?;
+    let layout = build_pack_layout_plan(files, options)?;
     let file_count = layout.files.len();
     presenter.stage("serialization", StatusWord::Writing);
     emit_archive_from_layout(layout, output, level, options)?;
@@ -633,7 +640,6 @@ fn pack_minimal_v1(
 
 fn build_pack_layout_plan(
     files: Vec<InputFile>,
-    level: i32,
     options: PackExperimentalOptions,
 ) -> Result<PackLayoutPlan> {
     let total_files = files.len();
@@ -694,24 +700,21 @@ fn build_pack_layout_plan(
         &placement_seed,
         options.metadata_profile,
     )?;
-    let mut canonical_files = Vec::with_capacity(files.len());
+    let mut planned_files = Vec::with_capacity(files.len());
     for (idx, file) in files.into_iter().enumerate() {
-        let raw = std::fs::read(&file.abs_path)
-            .with_context(|| format!("read {}", file.abs_path.display()))?;
-        let compressed = compress_deterministic(&raw, level)
-            .with_context(|| format!("compress {}", file.abs_path.display()))?;
-        canonical_files.push(CanonicalFileModel {
+        let raw_len = std::fs::metadata(&file.abs_path)
+            .with_context(|| format!("stat {}", file.abs_path.display()))?
+            .len();
+        planned_files.push(PlannedFileModel {
             file_id: idx as u32,
             rel_path: file.rel_path,
-            payload_hash: *blake3::hash(&compressed).as_bytes(),
-            raw_hash: *blake3::hash(&raw).as_bytes(),
-            raw,
-            compressed,
+            abs_path: file.abs_path,
+            raw_len,
         });
     }
 
     Ok(PackLayoutPlan {
-        files: canonical_files,
+        files: planned_files,
         metadata: MetadataPlan {
             emit_payload_identity,
             emit_path_checkpoints,
@@ -758,9 +761,20 @@ fn emit_archive_from_layout(
         write_experimental_metadata_block(&mut out, path_dictionary, level)?;
     }
     for (ordinal, file) in layout.files.into_iter().enumerate() {
+        let raw = std::fs::read(&file.abs_path)
+            .with_context(|| format!("read {}", file.abs_path.display()))?;
+        let raw_len = raw.len() as u64;
+        if raw_len != file.raw_len {
+            bail!(
+                "input changed during pack planning: {}",
+                file.abs_path.display()
+            );
+        }
+        let compressed = compress_deterministic(&raw, level)
+            .with_context(|| format!("compress {}", file.abs_path.display()))?;
         let block_scan_offset = out.stream_position()?;
-        let payload_hash = file.payload_hash;
-        let raw_hash = file.raw_hash;
+        let payload_hash = *blake3::hash(&compressed).as_bytes();
+        let raw_hash = *blake3::hash(&raw).as_bytes();
         let flags = Blk3Flags(Blk3Flags::HAS_PAYLOAD_HASH | Blk3Flags::HAS_RAW_HASH);
         let header = Blk3Header {
             header_len: (4 + 2 + 2 + 4 + 4 + 4 + 8 + 8 + 32 + 32) as u16,
@@ -768,17 +782,23 @@ fn emit_archive_from_layout(
             codec: ZSTD_CODEC,
             level,
             dict_id: 0,
-            raw_len: file.raw.len() as u64,
-            comp_len: file.compressed.len() as u64,
+            raw_len,
+            comp_len: compressed.len() as u64,
             payload_hash: Some(payload_hash),
             raw_hash: Some(raw_hash),
         };
 
         write_blk3_header(&mut out, &header)?;
-        out.write_all(&file.compressed)?;
+        out.write_all(&compressed)?;
 
         if options.self_describing_extents {
-            let record = build_self_describing_extent_record(&file);
+            let record = build_self_describing_extent_record(
+                file.file_id,
+                &file.rel_path,
+                raw.len() as u64,
+                &payload_hash,
+                &raw_hash,
+            );
             experimental_records.push(record.clone());
             write_experimental_metadata_block(
                 &mut out,
@@ -802,7 +822,10 @@ fn emit_archive_from_layout(
             let path = file.rel_path.clone();
             let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
             file_identity_extent_records.push(build_file_identity_extent_record(
-                &file,
+                file.file_id,
+                raw.len() as u64,
+                &payload_hash,
+                &raw_hash,
                 block_scan_offset,
                 &path_digest,
             ));
@@ -847,9 +870,15 @@ fn emit_archive_from_layout(
             let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
             let path_id = path_id_by_path.get(&path).copied();
             let payload_record = build_payload_block_identity_record(
-                &file,
+                PayloadIdentityInput {
+                    file_id: file.file_id,
+                    raw_len,
+                    compressed_len: compressed.len() as u64,
+                    payload_hash: &payload_hash,
+                    raw_hash: &raw_hash,
+                    block_scan_offset,
+                },
                 archive_identity,
-                block_scan_offset,
                 inline_payload_path.then_some(name),
                 inline_payload_path.then_some(path.clone()),
                 inline_payload_path.then_some(to_hex(&path_digest)),
@@ -874,7 +903,7 @@ fn emit_archive_from_layout(
                     file.file_id,
                     &path,
                     &path_digest,
-                    file.raw.len() as u64,
+                    raw_len,
                 ));
 
                 if should_emit_anchor(ordinal, total_files)
@@ -894,7 +923,8 @@ fn emit_archive_from_layout(
         }
 
         if emit_manifest_checkpoints {
-            let manifest_record = build_file_manifest_record(&file);
+            let manifest_record =
+                build_file_manifest_record(file.file_id, &file.rel_path, &raw, raw_len);
             file_manifest_records.push(manifest_record.clone());
             write_experimental_metadata_block(&mut out, &manifest_record, level)?;
 
@@ -921,11 +951,11 @@ fn emit_archive_from_layout(
             kind: EntryKind::Regular,
             mode: 0,
             mtime: 0,
-            size: file.raw.len() as u64,
+            size: raw_len,
             extents: vec![Extent {
                 block_id: file.file_id,
                 offset: 0,
-                len: file.raw.len() as u64,
+                len: raw_len,
             }],
             link_target: None,
             xattrs: Vec::new(),
@@ -1020,18 +1050,24 @@ fn emit_archive_from_layout(
     Ok(())
 }
 
-fn build_self_describing_extent_record(file: &CanonicalFileModel) -> SelfDescribingExtentRecord {
+fn build_self_describing_extent_record(
+    file_id: u32,
+    rel_path: &str,
+    raw_len: u64,
+    payload_hash: &[u8; 32],
+    raw_hash: &[u8; 32],
+) -> SelfDescribingExtentRecord {
     SelfDescribingExtentRecord {
-        file_id: file.file_id,
-        path: file.rel_path.clone(),
+        file_id,
+        path: rel_path.to_string(),
         logical_offset: 0,
-        logical_length: file.raw.len() as u64,
-        full_file_size: file.raw.len() as u64,
+        logical_length: raw_len,
+        full_file_size: raw_len,
         extent_ordinal: 0,
-        block_id: file.file_id,
+        block_id: file_id,
         content_identity: ContentIdentity {
-            payload_hash_blake3: to_hex(&file.payload_hash),
-            raw_hash_blake3: to_hex(&file.raw_hash),
+            payload_hash_blake3: to_hex(payload_hash),
+            raw_hash_blake3: to_hex(raw_hash),
         },
     }
 }
@@ -1055,22 +1091,25 @@ fn build_checkpoint_map_snapshot(
 }
 
 fn build_file_identity_extent_record(
-    file: &CanonicalFileModel,
+    file_id: u32,
+    raw_len: u64,
+    payload_hash: &[u8; 32],
+    raw_hash: &[u8; 32],
     block_scan_offset: u64,
     path_digest: &[u8; 32],
 ) -> FileIdentityExtentRecord {
     FileIdentityExtentRecord {
         schema: "crushr-file-identity-extent.v1",
-        file_id: file.file_id,
+        file_id,
         logical_offset: 0,
-        logical_length: file.raw.len() as u64,
-        full_file_size: file.raw.len() as u64,
+        logical_length: raw_len,
+        full_file_size: raw_len,
         extent_ordinal: 0,
-        block_id: file.file_id,
+        block_id: file_id,
         block_scan_offset,
         content_identity: ContentIdentity {
-            payload_hash_blake3: to_hex(&file.payload_hash),
-            raw_hash_blake3: to_hex(&file.raw_hash),
+            payload_hash_blake3: to_hex(payload_hash),
+            raw_hash_blake3: to_hex(raw_hash),
         },
         path_linkage: PathLinkage {
             path_digest_blake3: to_hex(path_digest),
@@ -1117,9 +1156,8 @@ fn build_bootstrap_anchor(
 }
 
 fn build_payload_block_identity_record(
-    file: &CanonicalFileModel,
+    input: PayloadIdentityInput<'_>,
     archive_identity: Option<String>,
-    block_scan_offset: u64,
     inline_name: Option<String>,
     inline_path: Option<String>,
     inline_path_digest: Option<String>,
@@ -1128,22 +1166,22 @@ fn build_payload_block_identity_record(
     PayloadBlockIdentityRecord {
         schema: "crushr-payload-block-identity.v1",
         archive_identity,
-        file_id: file.file_id,
-        block_id: file.file_id,
+        file_id: input.file_id,
+        block_id: input.file_id,
         block_index: 0,
         extent_index: 0,
         total_block_count: 1,
         total_extent_count: 1,
-        full_file_size: file.raw.len() as u64,
+        full_file_size: input.raw_len,
         logical_offset: 0,
         payload_codec: ZSTD_CODEC,
-        payload_length: file.compressed.len() as u64,
-        logical_length: file.raw.len() as u64,
-        extent_length: file.raw.len() as u64,
-        block_scan_offset,
+        payload_length: input.compressed_len,
+        logical_length: input.raw_len,
+        extent_length: input.raw_len,
+        block_scan_offset: input.block_scan_offset,
         content_identity: ContentIdentity {
-            payload_hash_blake3: to_hex(&file.payload_hash),
-            raw_hash_blake3: to_hex(&file.raw_hash),
+            payload_hash_blake3: to_hex(input.payload_hash),
+            raw_hash_blake3: to_hex(input.raw_hash),
         },
         name: inline_name,
         path: inline_path,
@@ -1180,15 +1218,20 @@ fn build_path_checkpoint_snapshot(
     }
 }
 
-fn build_file_manifest_record(file: &CanonicalFileModel) -> FileManifestRecord {
+fn build_file_manifest_record(
+    file_id: u32,
+    rel_path: &str,
+    raw: &[u8],
+    raw_len: u64,
+) -> FileManifestRecord {
     FileManifestRecord {
         schema: "crushr-file-manifest.v1",
-        file_id: file.file_id,
-        path: file.rel_path.clone(),
-        file_size: file.raw.len() as u64,
+        file_id,
+        path: rel_path.to_string(),
+        file_size: raw_len,
         expected_block_count: 1,
         extent_count: 1,
-        file_digest: to_hex(blake3::hash(&file.raw).as_bytes()),
+        file_digest: to_hex(blake3::hash(raw).as_bytes()),
     }
 }
 
@@ -1631,4 +1674,60 @@ fn reject_duplicate_logical_paths(files: &[InputFile]) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    fn baseline_options() -> PackExperimentalOptions {
+        PackExperimentalOptions {
+            self_describing_extents: false,
+            file_identity_extents: false,
+            self_identifying_blocks: false,
+            file_manifest_checkpoints: false,
+            metadata_profile: None,
+            placement_strategy: None,
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn planning_does_not_require_readable_file_contents() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let td = TempDir::new().expect("tempdir");
+        let unreadable = td.path().join("payload.bin");
+        std::fs::write(&unreadable, b"payload").expect("write file");
+        let mut perms = std::fs::metadata(&unreadable)
+            .expect("metadata")
+            .permissions();
+        perms.set_mode(0o000);
+        std::fs::set_permissions(&unreadable, perms).expect("set permissions");
+
+        let files = collect_files(&[unreadable]).expect("collect files");
+        let layout = build_pack_layout_plan(files, baseline_options()).expect("build layout");
+        assert_eq!(layout.files.len(), 1);
+        assert!(layout.files[0].raw_len > 0);
+    }
+
+    #[test]
+    fn pack_fails_if_file_changes_between_planning_and_emit() {
+        let td = TempDir::new().expect("tempdir");
+        let input = td.path().join("payload.bin");
+        std::fs::write(&input, b"before").expect("write file");
+        let files = collect_files(std::slice::from_ref(&input)).expect("collect files");
+        let layout = build_pack_layout_plan(files, baseline_options()).expect("build layout");
+        std::fs::write(&input, b"changed-content").expect("mutate file");
+
+        let output = td.path().join("out.crs");
+        let err = emit_archive_from_layout(layout, &output, 3, baseline_options())
+            .expect_err("emit should fail");
+        assert!(
+            err.to_string()
+                .contains("input changed during pack planning"),
+            "unexpected error: {err:#}"
+        );
+    }
 }
