@@ -54,6 +54,7 @@ pub struct RecoverExtractOptions {
 pub struct RecoverExtractRun {
     pub outcome_kind: ExtractionOutcomeKind,
     pub report: crushr_core::extraction::ExtractionReport,
+    pub manifest_path: PathBuf,
     pub canonical_count: usize,
     pub recovered_named_count: usize,
     pub recovered_anonymous_count: usize,
@@ -119,15 +120,23 @@ struct OriginalIdentity {
     name_status: IdentityStatus,
 }
 
-pub fn run_recover_extract(opts: &RecoverExtractOptions) -> Result<RecoverExtractRun> {
+pub fn run_recover_extract_with_progress<F>(
+    opts: &RecoverExtractOptions,
+    mut progress: F,
+) -> Result<RecoverExtractRun>
+where
+    F: FnMut(&'static str),
+{
     let _ = TRUST_CLASS_CONTRACT;
     let _ = IDENTITY_STATUS_CONTRACT;
+    progress("archive open");
     let reader = FileReader {
         file: File::open(&opts.archive)
             .with_context(|| format!("open {}", opts.archive.display()))?,
     };
 
     let opened = open_archive_v1(&reader)?;
+    progress("metadata scan");
     let blocks = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset)?;
     let index = decode_index(&opened.tail.idx3_bytes).context("decode IDX3")?;
     let corrupted = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
@@ -186,6 +195,7 @@ pub fn run_recover_extract(opts: &RecoverExtractOptions) -> Result<RecoverExtrac
         .map(|entry| entry.path.as_str())
         .collect::<BTreeSet<_>>();
 
+    progress("canonical extraction");
     for entry in selected_entries
         .iter()
         .filter(|entry| safe_paths.contains(entry.path.as_str()))
@@ -275,6 +285,7 @@ pub fn run_recover_extract(opts: &RecoverExtractOptions) -> Result<RecoverExtrac
             });
         }
     }
+    progress("recovery extraction");
     let unrecoverable_count = manifest_entries
         .iter()
         .filter(|entry| matches!(entry.recovery_kind, RecoveryKind::Unrecoverable))
@@ -286,11 +297,13 @@ pub fn run_recover_extract(opts: &RecoverExtractOptions) -> Result<RecoverExtrac
         entries: manifest_entries,
     };
 
+    let manifest_path = recovery_root.join("manifest.json");
     fs::write(
-        recovery_root.join("manifest.json"),
+        &manifest_path,
         serde_json::to_string_pretty(&manifest).expect("serialize recovery manifest"),
     )
-    .with_context(|| format!("write {}", recovery_root.join("manifest.json").display()))?;
+    .with_context(|| format!("write {}", manifest_path.display()))?;
+    progress("manifest/report finalization");
 
     let canonical_count = safe_files.len();
     let canonical_trust = if refused_files.is_empty() {
@@ -303,6 +316,7 @@ pub fn run_recover_extract(opts: &RecoverExtractOptions) -> Result<RecoverExtrac
     Ok(RecoverExtractRun {
         outcome_kind,
         report,
+        manifest_path,
         canonical_count,
         recovered_named_count,
         recovered_anonymous_count,

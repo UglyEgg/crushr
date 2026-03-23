@@ -244,9 +244,20 @@ impl CliOptions {
     }
 }
 
-fn run_extract(opts: &CliOptions) -> Result<ClassifiedRun> {
+fn run_extract<F>(opts: &CliOptions, mut recover_progress: F) -> Result<ClassifiedRun>
+where
+    F: FnMut(&'static str),
+{
     if opts.recover {
-        let recovered = recover_extract_impl::run_recover_extract(
+        recover_progress("recovery analysis");
+        let analysis = recover_extract_impl::run_recovery_analysis(&opts.archive)?;
+        let _ = (
+            analysis.canonical_complete,
+            analysis.recoverable_named,
+            analysis.recoverable_anonymous,
+            analysis.unrecoverable,
+        );
+        let recovered = recover_extract_impl::run_recover_extract_with_progress(
             &recover_extract_impl::RecoverExtractOptions {
                 archive: opts.archive.clone(),
                 out_dir: opts.out_dir.clone().expect("validated output dir"),
@@ -257,6 +268,7 @@ fn run_extract(opts: &CliOptions) -> Result<ClassifiedRun> {
                     Some(opts.selected_paths.clone())
                 },
             },
+            &mut recover_progress,
         )?;
         return Ok(ClassifiedRun {
             outcome_kind: recovered.outcome_kind,
@@ -376,25 +388,21 @@ pub fn dispatch(args: Vec<String>) -> i32 {
             if opts.recover && !opts.json && !opts.silent {
                 presenter.header();
                 presenter.section("Progress");
-                presenter.stage("archive open", StatusWord::Ok);
-                presenter.stage("metadata scan", StatusWord::Scanning);
-                presenter.stage("canonical extraction", StatusWord::Running);
-                match recover_extract_impl::run_recovery_analysis(&opts.archive) {
-                    Ok(analysis) => {
-                        let _ = (
-                            analysis.canonical_complete,
-                            analysis.recoverable_named,
-                            analysis.recoverable_anonymous,
-                            analysis.unrecoverable,
-                        );
-                        presenter.stage("recovery analysis", StatusWord::Running)
-                    }
-                    Err(_) => presenter.stage("recovery analysis", StatusWord::Partial),
-                }
-                presenter.stage("recovery extraction", StatusWord::Finalizing);
-                presenter.stage("finalization", StatusWord::Complete);
             }
-            match run_extract(&opts) {
+            match run_extract(&opts, |stage| {
+                if opts.recover && !opts.json && !opts.silent {
+                    let status = match stage {
+                        "archive open" => StatusWord::Ok,
+                        "metadata scan" => StatusWord::Scanning,
+                        "canonical extraction" => StatusWord::Running,
+                        "recovery analysis" => StatusWord::Running,
+                        "recovery extraction" => StatusWord::Finalizing,
+                        "manifest/report finalization" => StatusWord::Complete,
+                        _ => StatusWord::Running,
+                    };
+                    presenter.stage(stage, status);
+                }
+            }) {
                 Ok(classified) => {
                     if opts.json {
                         println!(
@@ -427,20 +435,30 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                                 group_u64(recovered_run.canonical_count as u64),
                             );
                             presenter.kv(
-                                "named recovered",
+                                "recovered_named",
                                 group_u64(recovered_run.recovered_named_count as u64),
                             );
                             presenter.kv(
-                                "anonymous recovered",
+                                "recovered_anonymous",
                                 group_u64(recovered_run.recovered_anonymous_count as u64),
                             );
                             presenter.kv(
                                 "unrecoverable",
                                 group_u64(recovered_run.unrecoverable_count as u64),
                             );
-                            presenter.section("Trust");
+                            presenter.section("Extraction status");
                             presenter.kv("canonical extraction", recovered_run.canonical_trust);
                             presenter.kv("recovery extraction", recovered_run.recovery_trust);
+                            let non_canonical_count = recovered_run.recovered_named_count
+                                + recovered_run.recovered_anonymous_count;
+                            if non_canonical_count > 0 || recovered_run.unrecoverable_count > 0 {
+                                presenter.section("Notes");
+                                presenter.item(
+                                    StatusWord::Ok,
+                                    "recovered output is non-canonical and kept under recovery paths",
+                                );
+                                presenter.kv("manifest", recovered_run.manifest_path.display());
+                            }
                         } else {
                             presenter.kv(
                                 "safe files",

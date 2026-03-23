@@ -75,6 +75,8 @@ Deliverables
 - [x] CRUSHR_RECOVERY_MODEL_02 — integrate salvage planning into `extract --recover`, add required recover progress phases, and emit required recovery Result/Trust summary contract.
 - [x] CRUSHR_RECOVERY_MODEL_03 — implement confidence-tiered anonymous content classification with modular signature/structure validation, manifest integration, and enforced naming tiers.
 - [x] CRUSHR_RECOVERY_MODEL_04 — build deterministic corruption corpus and end-to-end strict/recover extraction validation with manifest/naming/classification truth assertions.
+- [x] CRUSHR_RECOVERY_MODEL_05 — polish recover-mode user presentation so phased progress, final summary labels, and trust/notes clearly separate canonical extraction, recovered outputs, and unrecoverable loss without salvage/lab jargon.
+- [x] CRUSHR_RECOVERY_MODEL_06 — harden recovery classification correctness boundaries (zip-family high-confidence gating), deterministic naming collision guarantees, and clean-archive zero-recovery-artifact assertions.
 - [ ] CRUSHR-BENCH-01 — implement benchmark harness foundation using manifest-driven deterministic corpus/variant/corruption execution and schema-backed raw/summary output.
 - [ ] CRUSHR-BENCH-02 — initial canonical corpus generation, baseline runs, and first quantitative benchmark artifacts.
 - [ ] CRUSHR-BENCH-03 — benchmark result review, compression/performance tuning priorities, and whitepaper/data-surface integration.

@@ -1,3 +1,13 @@
+CRUSHR_RECOVERY_MODEL_06 completion update (2026-03-23):
+- Hardened zip-family high-confidence boundaries by requiring `_rels/.rels` alongside OOXML content markers before classifying `docx`/`xlsx`/`pptx`; generic zip-like payloads now stay medium-confidence `zip`.
+- Added deterministic naming-collision regression coverage to lock unique assigned names for same payload across sequential recovery IDs.
+- Extended clean recover-mode contract checks to assert zero recovered files under both `recovered_named/` and `_crushr_recovery/anonymous/`, while keeping empty manifest entries for clean archives.
+
+CRUSHR_RECOVERY_MODEL_05 completion update (2026-03-23):
+- Recover-mode progress output now streams real phase checkpoints from execution (`archive open`, `metadata scan`, `canonical extraction`, `recovery analysis`, `recovery extraction`, `manifest/report finalization`) instead of a deferred static pre-run dump.
+- Recover final reporting now uses trust-class-aligned count labels (`recovered_named`, `recovered_anonymous`), keeps canonical/recovery completeness as separate status rows, and emits non-canonical notes only when recovery artifacts/unrecoverable loss are present.
+- Clean recover runs now stay calm (no false recovery warning text); damaged recover runs explicitly surface the recovery-manifest path (`_crushr_recovery/manifest.json`) for structured follow-up.
+
 CRUSHR_RECOVERY_MODEL_04 completion update (2026-03-23):
 - Added deterministic recovery-validation integration test `crates/crushr/tests/recovery_validation_corpus.rs` covering clean baseline, tail truncation, index metadata damage, payload-hash mismatch (named recovery), and mixed-outcome recovery extraction in one archive.
 - Added deterministic multi-block corpus generation to force anonymous recovery tiers (high/medium/low confidence naming) and explicit unrecoverable entries, with manifest-to-filesystem truth assertions.

@@ -3,6 +3,18 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
+## 2026-03-23 — CRUSHR_RECOVERY_MODEL_06
+- Hardened OOXML high-confidence classification boundaries: `docx`/`xlsx`/`pptx` now require `_rels/.rels` plus existing subtype markers, reducing generic-zip container misclassification risk.
+- Added deterministic naming collision coverage for repeated same-payload classification IDs to lock unique stable assigned names.
+- Strengthened clean recover contract checks to enforce zero recovery artifacts for clean archives (no files under `recovered_named/` or `_crushr_recovery/anonymous/`) with empty manifest entries.
+- Validation: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr recovery_classification::tests`, `cargo test -p crushr --test recovery_extract_contract`, `cargo test --workspace`.
+
+## 2026-03-23 — CRUSHR_RECOVERY_MODEL_05
+- Reworked `extract --recover` phase reporting to emit real incremental phase checkpoints through execution (`archive open`, `metadata scan`, `canonical extraction`, `recovery analysis`, `recovery extraction`, `manifest/report finalization`).
+- Refined recover final summary wording/labels to align with trust classes (`canonical files`, `recovered_named`, `recovered_anonymous`, `unrecoverable`) and separated canonical vs recovery completeness in an explicit extraction-status section.
+- Added precise recover notes behavior: no non-canonical warning text for clean archives, explicit non-canonical placement + manifest path guidance for damaged/mixed outcomes.
+- Validation: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, `cargo test --workspace`.
+
 ## 2026-03-23 — CRUSHR_RECOVERY_MODEL_04
 - Added deterministic end-to-end recovery corpus contract test (`crates/crushr/tests/recovery_validation_corpus.rs`) covering strict/recover extraction divergence across clean + controlled corruption scenarios.
 - Added deterministic corruption operators and mixed-outcome assertions for canonical/recovered_named/recovered_anonymous/unrecoverable in one archive, including anonymous naming tier checks and manifest truth validation.

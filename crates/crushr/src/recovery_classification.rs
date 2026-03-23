@@ -381,17 +381,18 @@ fn classify_with_structure(bytes: &[u8]) -> Option<ContentClassification> {
 
 fn classify_zip_family(bytes: &[u8]) -> ContentClassification {
     let has_content_types = contains_ascii(bytes, "[Content_Types].xml");
+    let has_root_relationships = contains_ascii(bytes, "_rels/.rels");
     let has_word = contains_ascii(bytes, "word/");
     let has_xl = contains_ascii(bytes, "xl/");
     let has_ppt = contains_ascii(bytes, "ppt/");
 
-    if has_content_types && has_word {
+    if has_content_types && has_root_relationships && has_word {
         return high("docx", ClassificationBasis::Structure, Some("zip"));
     }
-    if has_content_types && has_xl {
+    if has_content_types && has_root_relationships && has_xl {
         return high("xlsx", ClassificationBasis::Structure, Some("zip"));
     }
-    if has_content_types && has_ppt {
+    if has_content_types && has_root_relationships && has_ppt {
         return high("pptx", ClassificationBasis::Structure, Some("zip"));
     }
 
@@ -594,7 +595,7 @@ mod tests {
     #[test]
     fn docx_requires_zip_structure_markers() {
         let mut bytes = b"PK\x03\x04".to_vec();
-        bytes.extend_from_slice(b"[Content_Types].xml word/document.xml");
+        bytes.extend_from_slice(b"[Content_Types].xml _rels/.rels word/document.xml");
         let out = classify_and_name(&bytes, 3);
         assert!(matches!(
             out.classification.confidence,
@@ -602,6 +603,19 @@ mod tests {
         ));
         assert_eq!(out.classification.kind, "docx");
         assert_eq!(out.assigned_name, "file_000003.docx");
+    }
+
+    #[test]
+    fn docx_without_root_relationships_stays_zip_medium_confidence() {
+        let mut bytes = b"PK\x03\x04".to_vec();
+        bytes.extend_from_slice(b"[Content_Types].xml word/document.xml");
+        let out = classify_and_name(&bytes, 4);
+        assert!(matches!(
+            out.classification.confidence,
+            RecoveryConfidence::Medium
+        ));
+        assert_eq!(out.classification.kind, "zip");
+        assert_eq!(out.assigned_name, "file_000004.probable-zip.bin");
     }
 
     #[test]
@@ -630,5 +644,18 @@ mod tests {
         ));
         assert_eq!(out.classification.kind, "pe");
         assert_eq!(out.assigned_name, "file_000009.exe");
+    }
+
+    #[test]
+    fn naming_is_deterministic_and_collision_free_for_same_payload() {
+        let bytes = b"PK\x03\x04random zip body without subtype markers";
+        let first = classify_and_name(bytes, 11);
+        let second = classify_and_name(bytes, 12);
+
+        assert_eq!(first.classification.kind, "zip");
+        assert_eq!(second.classification.kind, "zip");
+        assert_ne!(first.assigned_name, second.assigned_name);
+        assert_eq!(first.assigned_name, "file_000011.probable-zip.bin");
+        assert_eq!(second.assigned_name, "file_000012.probable-zip.bin");
     }
 }
