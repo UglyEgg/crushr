@@ -157,3 +157,10 @@ CRUSHR-LAB-FIX-01 completion update (2026-03-19):
 - Repository licensing is now unified (MIT OR Apache-2.0 for code; CC-BY-4.0 for docs) and REUSE-compliant.
 - `zensical.toml` is now the canonical docs-site configuration; `mkdocs.yml` should be treated as transitional compatibility only.
 - Before benchmark-harness expansion, the intended next product-facing step is a unified CLI presentation contract (`CRUSHR-UI-01`) so pack/extract/verify/salvage share one operator-facing identity and consistent `--silent` behavior.
+
+## CRUSHR_PACK_SCALE_01 handoff
+- Production `crushr-pack` planning no longer loads/compresses every input file during `build_pack_layout_plan`; the layout now stores only file identity/path/size + metadata-plan toggles.
+- Payload bytes and compression artifacts are now produced per-file inside `emit_archive_from_layout`, reducing retained memory from O(sum(raw+compressed for all files)) toward bounded per-file working-set behavior.
+- A new deterministic safety check aborts with `input changed during pack planning` if file length changes between planning and emission (protects index/tail correctness after deferring reads).
+- Added unit regressions in `commands::pack` covering unreadable-file planning and change-between-plan/emit detection.
+- Measured synthetic scale evidence (20k files): max RSS pre-fix `177248 KiB` (`HEAD~1`) vs post-fix `76556 KiB` (current).
