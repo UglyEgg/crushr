@@ -15,6 +15,7 @@ use std::fmt;
 use std::fs::File;
 use std::path::PathBuf;
 
+use crate::recover_extract_impl;
 use crate::strict_extract_impl;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,7 +34,7 @@ impl RefusalExitPolicy {
     }
 }
 
-const USAGE: &str = "usage: crushr-extract <archive> -o <out-dir> [--all] [PATH ...] [--overwrite] [--refusal-exit <success|partial-failure>] [--json] [--silent]\n       crushr-extract --verify <archive> [--json] [--silent]";
+const USAGE: &str = "usage: crushr-extract <archive> -o <out-dir> [--all] [PATH ...] [--overwrite] [--recover] [--refusal-exit <success|partial-failure>] [--json] [--silent]\n       crushr-extract --verify <archive> [--json] [--silent]";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum CliMode {
@@ -48,6 +49,7 @@ struct CliOptions {
     out_dir: Option<PathBuf>,
     overwrite: bool,
     all: bool,
+    recover: bool,
     selected_paths: Vec<String>,
     refusal_exit: RefusalExitPolicy,
     json: bool,
@@ -130,6 +132,7 @@ fn parse_cli_options(raw_args: Vec<String>) -> Result<CliOptions, ExtractionClas
     let mut out_dir = None;
     let mut overwrite = false;
     let mut all = false;
+    let mut recover = false;
     let mut selected_paths: Vec<String> = Vec::new();
     let mut refusal_exit = RefusalExitPolicy::Success;
     let mut json = false;
@@ -151,6 +154,8 @@ fn parse_cli_options(raw_args: Vec<String>) -> Result<CliOptions, ExtractionClas
             silent = true;
         } else if arg == "--all" {
             all = true;
+        } else if arg == "--recover" {
+            recover = true;
         } else if arg == "--verify" {
             mode = CliMode::Verify;
         } else if arg == "--refusal-exit" {
@@ -183,6 +188,7 @@ fn parse_cli_options(raw_args: Vec<String>) -> Result<CliOptions, ExtractionClas
         out_dir,
         overwrite,
         all,
+        recover,
         selected_paths,
         refusal_exit,
         json,
@@ -205,6 +211,11 @@ impl CliOptions {
                 }
             }
             CliMode::Verify => {
+                if self.recover {
+                    return Err(ExtractionClassifiedError::usage(anyhow::anyhow!(
+                        "--verify cannot be combined with --recover"
+                    )));
+                }
                 if self.out_dir.is_some() {
                     return Err(ExtractionClassifiedError::usage(anyhow::anyhow!(
                         "--verify cannot be combined with -o/--output"
@@ -233,6 +244,25 @@ impl CliOptions {
 }
 
 fn run_extract(opts: &CliOptions) -> Result<ClassifiedRun> {
+    if opts.recover {
+        let recovered = recover_extract_impl::run_recover_extract(
+            &recover_extract_impl::RecoverExtractOptions {
+                archive: opts.archive.clone(),
+                out_dir: opts.out_dir.clone().expect("validated output dir"),
+                overwrite: opts.overwrite,
+                selected_paths: if opts.all || opts.selected_paths.is_empty() {
+                    None
+                } else {
+                    Some(opts.selected_paths.clone())
+                },
+            },
+        )?;
+        return Ok(ClassifiedRun {
+            outcome_kind: recovered.outcome_kind,
+            report: recovered.report,
+        });
+    }
+
     let strict =
         strict_extract_impl::run_strict_extract(&strict_extract_impl::StrictExtractOptions {
             archive: opts.archive.clone(),
@@ -353,6 +383,11 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                     presenter.kv("archive", opts.archive.display());
                     if let Some(out_dir) = &opts.out_dir {
                         presenter.kv("output dir", out_dir.display());
+                    }
+                    if opts.recover {
+                        presenter.kv("mode", "recover");
+                    } else {
+                        presenter.kv("mode", "strict");
                     }
                     presenter.section("Result");
                     presenter.kv(

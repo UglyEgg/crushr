@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "crushr recovery manifest v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "mode",
+    "entries"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "crushr-recovery-manifest.v1"
+    },
+    "mode": {
+      "type": "string",
+      "const": "recover_extract"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "required": [
+        "recovery_id",
+        "assigned_name",
+        "size",
+        "hash",
+        "classification",
+        "original_identity",
+        "recovery_reason"
+      ],
+      "properties": {
+        "recovery_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assigned_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "classification": {
+          "type": "object",
+          "required": [
+            "kind",
+            "confidence",
+            "basis"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "canonical",
+                "recovered_named",
+                "recovered_anonymous",
+                "unrecoverable"
+              ]
+            },
+            "confidence": {
+              "type": "string",
+              "enum": [
+                "high",
+                "medium",
+                "low"
+              ]
+            },
+            "basis": {
+              "type": "string",
+              "enum": [
+                "magic_bytes",
+                "structure",
+                "heuristic"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "original_identity": {
+          "type": "object",
+          "required": [
+            "path_status",
+            "name_status"
+          ],
+          "properties": {
+            "path_status": {
+              "type": "string",
+              "enum": [
+                "verified",
+                "untrusted",
+                "unknown",
+                "lost"
+              ]
+            },
+            "name_status": {
+              "type": "string",
+              "enum": [
+                "verified",
+                "untrusted",
+                "unknown",
+                "lost"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "recovery_reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
