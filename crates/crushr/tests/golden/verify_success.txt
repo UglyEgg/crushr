@@ -8,7 +8,7 @@ Progress
   manifest validation    RUNNING
   final result/report    COMPLETE
 
-Archive
+Target
   archive                <TMP>/sample.crushr
 
 Verification

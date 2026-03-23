@@ -14,6 +14,8 @@ pub enum VisualToken {
     WarningDegraded,
     FailureRefusal,
     InformationalNote,
+    WarningBanner,
+    FailureBanner,
     TrustCanonical,
     TrustRecoveredNamed,
     TrustRecoveredAnonymous,
@@ -64,6 +66,13 @@ pub enum StatusWord {
     Finalizing,
     Ok,
     Partial,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BannerLevel {
+    Info,
+    Warning,
+    Failure,
 }
 
 impl StatusWord {
@@ -120,15 +129,21 @@ impl CliPresenter {
     }
 
     pub fn header(&self) {
+        self.title_block(self.tool, Some(self.action));
+    }
+
+    pub fn title_block(&self, tool: &str, context: Option<&str>) {
         if self.silent {
             return;
         }
+        let title = if let Some(context) = context {
+            format!("{tool}  /  {context}")
+        } else {
+            tool.to_string()
+        };
         println!(
             "{}",
-            self.paint_token(
-                VisualToken::TitleProductLine,
-                &format!("{}  /  {}", self.tool, self.action)
-            )
+            self.paint_token(VisualToken::TitleProductLine, &title)
         );
         println!("{}", "-".repeat(72));
     }
@@ -171,6 +186,17 @@ impl CliPresenter {
         self.kv(stage, self.paint_status(status));
     }
 
+    pub fn phase(&self, phase: &str, status: StatusWord, detail: Option<&str>) {
+        if self.silent {
+            return;
+        }
+        let value = match detail {
+            Some(detail) => format!("{} ({detail})", self.paint_status(status)),
+            None => self.paint_status(status),
+        };
+        self.kv(phase, value);
+    }
+
     pub fn outcome(&self, status: StatusWord, message: &str) {
         if self.silent {
             return;
@@ -198,6 +224,33 @@ impl CliPresenter {
             "  - {}",
             self.paint_token(VisualToken::InformationalNote, message)
         );
+    }
+
+    pub fn banner(&self, level: BannerLevel, message: &str) {
+        if self.silent {
+            return;
+        }
+        let (token, label) = match level {
+            BannerLevel::Info => (VisualToken::InformationalNote, "INFO"),
+            BannerLevel::Warning => (VisualToken::WarningBanner, "WARNING"),
+            BannerLevel::Failure => (VisualToken::FailureBanner, "FAILURE"),
+        };
+        println!();
+        println!(
+            "  {}",
+            self.paint_token(token, &format!("{label}: {message}"))
+        );
+    }
+
+    pub fn result_summary(&self, status: StatusWord, message: &str, rows: &[(&str, String)]) {
+        if self.silent {
+            return;
+        }
+        self.section("Result");
+        for (key, value) in rows {
+            self.kv(key, value);
+        }
+        self.outcome(status, message);
     }
 
     pub fn silent_summary(&self, status: StatusWord, fields: &[(&str, String)]) {
@@ -242,6 +295,8 @@ impl VisualToken {
             Self::TrustRecoveredAnonymous => Some("\x1b[93m"),
             Self::FailureRefusal | Self::TrustUnrecoverable => Some("\x1b[31m"),
             Self::InformationalNote => Some("\x1b[94m"),
+            Self::WarningBanner => Some("\x1b[1;33m"),
+            Self::FailureBanner => Some("\x1b[1;31m"),
         }
     }
 }

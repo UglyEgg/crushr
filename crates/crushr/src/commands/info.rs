@@ -228,8 +228,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         group_u64(snapshot.payload.tail_frames.len() as u64),
     );
 
-    presenter.section("Result");
-    presenter.outcome(StatusWord::Complete, "archive inspection completed");
+    presenter.result_summary(StatusWord::Complete, "archive inspection completed", &[]);
     Ok(())
 }
 

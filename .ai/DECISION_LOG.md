@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-23 — CRUSHR_UI_POLISH_02 shared structural CLI presentation primitives
+
+- Decision:
+  - Extend `cli_presentation` with composable structural primitives (`title_block`, `phase`, `banner`, `result_summary`) and keep existing section/key-value/token behavior as the common base for all core commands.
+  - Migrate `pack`, `extract`, `extract --recover`, `verify`, and `info` presentation paths to these primitives so title/target/progress/result hierarchy is stable and warnings/failures use explicit shared banner framing.
+  - Keep progress tied to real execution boundaries (no redraw theater), and keep non-color output unchanged in readability.
+- Alternatives considered:
+  1. Keep command-local formatting helpers while only documenting preferred layout.
+  2. Add richer TUI-style live rendering/redraw behavior in this packet.
+- Rationale:
+  - Packet requires reusable layout building blocks before any animation work and forbids one-off command presentation drift.
+  - Shared primitives lower maintenance cost and reduce future contract/golden churn.
+- Blast radius:
+  - Human CLI output text/section naming changed in migrated commands (notably `Target` section usage and shared warning/failure banners).
+  - Golden presentation fixtures were updated to lock the new structure.
+  - No archive format, verification model truth, or machine JSON contracts changed.
+
 ## 2026-03-23 — CRUSHR_UI_POLISH_01 shared CLI visual semantics contract
 
 - Decision:

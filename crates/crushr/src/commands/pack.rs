@@ -613,21 +613,23 @@ fn pack_minimal_v1(
     presenter: &CliPresenter,
 ) -> Result<()> {
     presenter.section("Progress");
-    presenter.stage("input discovery", StatusWord::Scanning);
+    presenter.phase("input discovery", StatusWord::Scanning, None);
     let files = collect_files(inputs)?;
     if files.is_empty() {
         bail!("no input files to pack");
     }
     reject_duplicate_logical_paths(&files)?;
-    presenter.stage("planning", StatusWord::Running);
+    presenter.phase("planning", StatusWord::Running, None);
     let layout = build_pack_layout_plan(files, options)?;
     let file_count = layout.files.len();
-    presenter.stage("serialization", StatusWord::Writing);
+    presenter.phase("serialization", StatusWord::Writing, None);
     emit_archive_from_layout(layout, output, level, options)?;
-    presenter.stage("finalization", StatusWord::Finalizing);
-    presenter.section("Result");
-    presenter.kv("files packed", group_u64(file_count as u64));
-    presenter.outcome(StatusWord::Complete, "archive emitted");
+    presenter.phase("finalization", StatusWord::Finalizing, None);
+    presenter.result_summary(
+        StatusWord::Complete,
+        "archive emitted",
+        &[("files packed", group_u64(file_count as u64))],
+    );
     presenter.silent_summary(
         StatusWord::Complete,
         &[

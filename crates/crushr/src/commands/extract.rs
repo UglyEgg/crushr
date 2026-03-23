@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use crate::cli_presentation::{CliPresenter, StatusWord, TrustClass, group_u64};
+use crate::cli_presentation::{BannerLevel, CliPresenter, StatusWord, TrustClass, group_u64};
 use anyhow::{Context, Result};
 use crushr_core::extraction::ExtractionOutcomeKind;
 use crushr_core::{
@@ -277,6 +277,7 @@ where
         });
     }
 
+    recover_progress("strict extraction");
     let strict =
         strict_extract_impl::run_strict_extract(&strict_extract_impl::StrictExtractOptions {
             archive: opts.archive.clone(),
@@ -395,12 +396,12 @@ pub fn dispatch(args: Vec<String>) -> i32 {
         CliMode::Extract => {
             let presenter =
                 CliPresenter::new("crushr-extract", "extract", opts.silent && !opts.json);
-            if opts.recover && !opts.json && !opts.silent {
+            if !opts.json && !opts.silent {
                 presenter.header();
                 presenter.section("Progress");
             }
             match run_extract(&opts, |stage| {
-                if opts.recover && !opts.json && !opts.silent {
+                if !opts.json && !opts.silent {
                     let status = match stage {
                         "archive open" => StatusWord::Ok,
                         "metadata scan" => StatusWord::Scanning,
@@ -408,9 +409,10 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                         "recovery analysis" => StatusWord::Running,
                         "recovery extraction" => StatusWord::Finalizing,
                         "manifest/report finalization" => StatusWord::Complete,
+                        "strict extraction" => StatusWord::Running,
                         _ => StatusWord::Running,
                     };
-                    presenter.stage(stage, status);
+                    presenter.phase(stage, status, None);
                 }
             }) {
                 Ok(classified) => {
@@ -421,10 +423,7 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                                 .expect("serialize extraction report")
                         );
                     } else {
-                        if !opts.recover || opts.silent {
-                            presenter.header();
-                        }
-                        presenter.section("Archive");
+                        presenter.section("Target");
                         presenter.kv("archive", opts.archive.display());
                         if let Some(out_dir) = &opts.out_dir {
                             presenter.kv("output dir", out_dir.display());
@@ -434,38 +433,44 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                         } else {
                             presenter.kv("mode", "strict");
                         }
-                        presenter.section("Result");
                         if opts.recover {
                             let recovered_run = classified
                                 .recover_summary
                                 .as_ref()
                                 .expect("recover summary present in recover mode");
-                            presenter.kv(
-                                "canonical files",
-                                group_u64(recovered_run.canonical_count as u64),
-                            );
-                            presenter.kv(
-                                "recovered_named",
-                                group_u64(recovered_run.recovered_named_count as u64),
-                            );
-                            presenter.kv(
-                                "recovered_anonymous",
-                                group_u64(recovered_run.recovered_anonymous_count as u64),
-                            );
-                            presenter.kv(
-                                "unrecoverable",
-                                group_u64(recovered_run.unrecoverable_count as u64),
+                            let canonical_status =
+                                recovery_completeness_status(recovered_run.canonical_trust);
+                            let recovery_status =
+                                recovery_completeness_status(recovered_run.recovery_trust);
+                            presenter.result_summary(
+                                if classified.outcome_kind == ExtractionOutcomeKind::Success {
+                                    StatusWord::Complete
+                                } else {
+                                    StatusWord::Degraded
+                                },
+                                "recovery extraction completed",
+                                &[
+                                    (
+                                        "canonical files",
+                                        group_u64(recovered_run.canonical_count as u64),
+                                    ),
+                                    (
+                                        "recovered_named",
+                                        group_u64(recovered_run.recovered_named_count as u64),
+                                    ),
+                                    (
+                                        "recovered_anonymous",
+                                        group_u64(recovered_run.recovered_anonymous_count as u64),
+                                    ),
+                                    (
+                                        "unrecoverable",
+                                        group_u64(recovered_run.unrecoverable_count as u64),
+                                    ),
+                                ],
                             );
                             presenter.section("Extraction status");
-                            presenter.kv(
-                                "canonical extraction",
-                                recovery_completeness_status(recovered_run.canonical_trust)
-                                    .as_str(),
-                            );
-                            presenter.kv(
-                                "recovery extraction",
-                                recovery_completeness_status(recovered_run.recovery_trust).as_str(),
-                            );
+                            presenter.kv("canonical extraction", canonical_status.as_str());
+                            presenter.kv("recovery extraction", recovery_status.as_str());
                             presenter.section("Trust classes");
                             presenter.trust_kv("canonical", TrustClass::Canonical);
                             presenter.trust_kv("recovered_named", TrustClass::RecoveredNamed);
@@ -475,34 +480,33 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                             let non_canonical_count = recovered_run.recovered_named_count
                                 + recovered_run.recovered_anonymous_count;
                             if non_canonical_count > 0 || recovered_run.unrecoverable_count > 0 {
-                                presenter.section("Notes");
-                                presenter.info_note(
+                                presenter.section("Warnings");
+                                presenter.banner(
+                                    BannerLevel::Warning,
                                     "recovered output is non-canonical and kept under recovery paths",
                                 );
                                 presenter.kv("manifest", recovered_run.manifest_path.display());
                             }
                         } else {
-                            presenter.kv(
-                                "safe files",
-                                group_u64(classified.report.safe_file_count as u64),
-                            );
-                            presenter.kv(
-                                "refused files",
-                                group_u64(classified.report.refused_file_count as u64),
+                            presenter.result_summary(
+                                if classified.outcome_kind == ExtractionOutcomeKind::Success {
+                                    StatusWord::Complete
+                                } else {
+                                    StatusWord::Degraded
+                                },
+                                "strict extraction completed",
+                                &[
+                                    (
+                                        "safe files",
+                                        group_u64(classified.report.safe_file_count as u64),
+                                    ),
+                                    (
+                                        "refused files",
+                                        group_u64(classified.report.refused_file_count as u64),
+                                    ),
+                                ],
                             );
                         }
-                        presenter.outcome(
-                            if classified.outcome_kind == ExtractionOutcomeKind::Success {
-                                StatusWord::Complete
-                            } else {
-                                StatusWord::Degraded
-                            },
-                            if opts.recover {
-                                "recovery extraction completed"
-                            } else {
-                                "strict extraction completed"
-                            },
-                        );
                         presenter.silent_summary(
                             if classified.outcome_kind == ExtractionOutcomeKind::Success {
                                 StatusWord::Complete
@@ -562,7 +566,7 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                             serde_json::to_string_pretty(&report).expect("serialize verify report")
                         );
                     } else {
-                        presenter.section("Archive");
+                        presenter.section("Target");
                         presenter.kv("archive", &report.archive_path);
                         if report.safe_for_strict_extraction {
                             presenter.section("Verification");
@@ -582,9 +586,15 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                                 format!("{:?}", model.failure_domains.dictionary_resolution)
                                     .to_lowercase(),
                             );
-                            presenter.section("Result");
-                            presenter.outcome(StatusWord::Verified, "safe for strict extraction");
+                            presenter.result_summary(
+                                StatusWord::Verified,
+                                "safe for strict extraction",
+                                &[],
+                            );
                         } else {
+                            presenter.section("Warnings");
+                            presenter
+                                .banner(BannerLevel::Failure, "strict verification checks failed");
                             presenter.section("Failure domain");
                             presenter.kv("component", "strict verification");
                             presenter.kv("reason", "verification checks failed");
@@ -595,9 +605,11 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                             if let Some(first_reason) = report.refusal_reasons.first() {
                                 presenter.kv("first refusal", first_reason);
                             }
-                            presenter.section("Result");
-                            presenter
-                                .outcome(StatusWord::Refused, "not safe for strict extraction");
+                            presenter.result_summary(
+                                StatusWord::Refused,
+                                "not safe for strict extraction",
+                                &[],
+                            );
                         }
                         presenter.silent_summary(
                             if report.safe_for_strict_extraction {
@@ -625,15 +637,23 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                         if progress.is_none() {
                             presenter.header();
                         }
-                        presenter.section("Archive");
+                        presenter.section("Target");
                         presenter.kv("archive", opts.archive.display());
+                        presenter.section("Warnings");
+                        presenter.banner(
+                            BannerLevel::Failure,
+                            "archive structure could not be parsed for strict verification",
+                        );
                         presenter.section("Failure domain");
                         presenter.kv("component", "archive structure");
                         presenter.kv("reason", "failed to parse strict verification inputs");
                         presenter.kv("expected", "valid FTR4 footer, tail frame, and index");
                         presenter.kv("received", "invalid or unreadable archive structure");
-                        presenter.section("Result");
-                        presenter.outcome(StatusWord::Refused, "not safe for strict extraction");
+                        presenter.result_summary(
+                            StatusWord::Refused,
+                            "not safe for strict extraction",
+                            &[],
+                        );
                         presenter.silent_summary(
                             StatusWord::Refused,
                             &[
