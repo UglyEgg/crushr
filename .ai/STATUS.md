@@ -7,7 +7,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_UI_POLISH_01 complete** (shared CLI visual tokens + status semantics are now centralized, recovery trust classes are explicitly rendered, and presentation wording is consistent across core commands)
+Current Step: **CRUSHR_UI_POLISH_02 complete** (shared CLI presentation primitives now cover title/section/key-value/progress/banner/result blocks, and core command layouts use one coherent structure)
 
 
 
@@ -255,3 +255,8 @@ Once resilience and metadata pruning decisions settle, revisit distributed dicti
 
 - CRUSHR-HARDEN-03C introduced explicit schema files for active FORMAT-12/13/14A/15 comparison outputs and added schema-backed artifact checks in integration tests.
 - Remaining follow-up debt: pack/salvage typed metadata conversion is still open under CRUSHR-HARDEN-03G follow-through; no additional verify-boundary debt identified after CRUSHR-HARDEN-03H.
+Latest maintenance fix (2026-03-23):
+- **CRUSHR_UI_POLISH_02 complete**: expanded `cli_presentation` with reusable presentation primitives for phase/progress rows (`phase`), informational/warning/failure banners (`banner` + `BannerLevel`), and standardized result summaries (`result_summary`) while preserving no-color-safe output.
+- **CRUSHR_UI_POLISH_02 complete**: migrated core command presentation to shared primitives across `verify`, `extract`, `extract --recover`, `pack`, and `info`; result sections now render through one helper and verify/extract flows use explicit target/progress/result hierarchy.
+- **CRUSHR_UI_POLISH_02 complete**: added banner-based failure/warning framing for verify/refusal and recover non-canonical notes, and refreshed golden fixtures for shared output shape contracts.
+- **CRUSHR_UI_POLISH_02 validation**: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract`, `cargo test -p crushr --test recovery_extract_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.

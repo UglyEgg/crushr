@@ -5,6 +5,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-23 — CRUSHR_UI_POLISH_02
+- Added shared structural presentation primitives in `crates/crushr/src/cli_presentation.rs`: explicit phase/progress rows, banner framing (`INFO`/`WARNING`/`FAILURE`), and reusable result-summary rendering.
+- Migrated core command output (`crushr-pack`, `crushr-extract`, `crushr-extract --verify`, `crushr-info`) to shared primitives for consistent title/target/progress/result hierarchy and standardized warning/failure framing.
+- Removed duplicated per-command result-layout branches by routing result sections through `result_summary`, and updated golden fixtures for verify success/failure structure changes.
+- Validation: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract`, `cargo test -p crushr --test recovery_extract_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`.
+
 ## 2026-03-23 — CRUSHR_UI_POLISH_01
 - Introduced a shared semantic CLI visual token layer in `crates/crushr/src/cli_presentation.rs`, replacing command-local meaning/color drift with centralized token mapping and no-color-safe rendering.
 - Standardized user-facing status semantics to `PENDING`, `RUNNING`, `COMPLETE`, `DEGRADED`, `FAILED`, and `REFUSED`; retained bounded compatibility aliases and rendered legacy `PARTIAL` outcomes as `DEGRADED`.

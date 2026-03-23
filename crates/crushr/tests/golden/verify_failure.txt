@@ -4,8 +4,12 @@ crushr-extract  /  verify
 Progress
   archive open / header read OK
 
-Archive
+Target
   archive                <TMP>/bad.crushr
+
+Warnings
+
+  FAILURE: archive structure could not be parsed for strict verification
 
 Failure domain
   component              archive structure

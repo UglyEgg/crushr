@@ -91,6 +91,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # Handoff
 
+CRUSHR_UI_POLISH_02 completion update (2026-03-23):
+- Added reusable shared CLI structural primitives in `crates/crushr/src/cli_presentation.rs`: `phase` (progress row with optional detail), `banner` (`INFO`/`WARNING`/`FAILURE`), and `result_summary` for standardized final summaries.
+- Migrated core command presentation flows to those primitives: `pack`, `extract`, `extract --recover`, `verify`, and `info` now share stable title/target/progress/result layout and shared warning/failure framing.
+- Updated verify golden fixtures to lock the structural changes (`Target` section naming + failure banner block), and revalidated presentation/recovery/workspace gates.
+
 CRUSHR_RECOVERY_MODEL_02 completion update (2026-03-23):
 - `crushr-extract --recover` now runs salvage analysis as part of extract execution through shared salvage planning (`build_recovery_analysis`), avoiding duplicated planning logic in recover extract.
 - Human recover output now shows required phase progress and required Result/Trust summary rows (`canonical files`, `named recovered`, `anonymous recovered`, `unrecoverable`; trust COMPLETE|PARTIAL).
