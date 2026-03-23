@@ -1,3 +1,8 @@
+CRUSHR_RECOVERY_MODEL_04 completion update (2026-03-23):
+- Added deterministic recovery-validation integration test `crates/crushr/tests/recovery_validation_corpus.rs` covering clean baseline, tail truncation, index metadata damage, payload-hash mismatch (named recovery), and mixed-outcome recovery extraction in one archive.
+- Added deterministic multi-block corpus generation to force anonymous recovery tiers (high/medium/low confidence naming) and explicit unrecoverable entries, with manifest-to-filesystem truth assertions.
+- Added technical note `RECOVERY_VALIDATION_CORPUS.md` documenting corpus composition, corruption operations, and intended contract proof points.
+
 CRUSHR_RECOVERY_MODEL_03 completion update (2026-03-23):
 - Added `recovery_classification` module with data-driven signature table + structure validators and a strict confidence ladder (high/medium/low) used for recovered content typing.
 - Recover manifest now records trust class separately (`recovery_kind`) and content classification fields (`classification.kind`, `confidence`, `basis`, optional `subtype`), aligned to anonymous naming tiers.

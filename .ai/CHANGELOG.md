@@ -3,6 +3,12 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
+## 2026-03-23 — CRUSHR_RECOVERY_MODEL_04
+- Added deterministic end-to-end recovery corpus contract test (`crates/crushr/tests/recovery_validation_corpus.rs`) covering strict/recover extraction divergence across clean + controlled corruption scenarios.
+- Added deterministic corruption operators and mixed-outcome assertions for canonical/recovered_named/recovered_anonymous/unrecoverable in one archive, including anonymous naming tier checks and manifest truth validation.
+- Added technical note `RECOVERY_VALIDATION_CORPUS.md` documenting fixture composition, scenario intent, and proof scope.
+- Validation: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_validation_corpus`, `cargo test --workspace`.
+
 ## 2026-03-23 — CRUSHR_RECOVERY_MODEL_03
 - Added modular recovery content-classification engine (`crates/crushr/src/recovery_classification.rs`) with ordered magic/structure/heuristic detection and confidence-tiered naming decisions.
 - Integrated classification engine into recover extract flow and updated recovery manifest contract to separate trust class (`recovery_kind`) from content classification metadata (`kind`/`confidence`/`basis`/optional `subtype`).
