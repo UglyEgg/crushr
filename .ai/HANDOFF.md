@@ -1,3 +1,8 @@
+CRUSHR_RECOVERY_MODEL_03 completion update (2026-03-23):
+- Added `recovery_classification` module with data-driven signature table + structure validators and a strict confidence ladder (high/medium/low) used for recovered content typing.
+- Recover manifest now records trust class separately (`recovery_kind`) and content classification fields (`classification.kind`, `confidence`, `basis`, optional `subtype`), aligned to anonymous naming tiers.
+- Recovery contract tests were updated for the new manifest shape and classification metadata assertions; workspace fmt/clippy/tests are green.
+
 CRUSHR_RECOVERY_MODEL_02 completion update (2026-03-23):
 - `crushr-extract --recover` now runs salvage analysis as part of extract execution through shared salvage planning (`build_recovery_analysis`), avoiding duplicated planning logic in recover extract.
 - Human recover output now shows required phase progress and required Result/Trust summary rows (`canonical files`, `named recovered`, `anonymous recovered`, `unrecoverable`; trust COMPLETE|PARTIAL).
