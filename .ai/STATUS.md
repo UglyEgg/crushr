@@ -7,9 +7,21 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_RECOVERY_MODEL_04 complete** (deterministic recovery-validation corpus now proves strict/recover extraction behavior end to end across controlled corruption scenarios)
+Current Step: **CRUSHR_RECOVERY_MODEL_06 complete** (recovery classification high-confidence boundaries and clean-archive/no-artifact guarantees are now explicitly hardened by code + tests)
 
 
+
+Latest maintenance fix (2026-03-23):
+- **CRUSHR_RECOVERY_MODEL_06 complete**: zip-family high-confidence promotion now requires root OOXML relationship marker (`_rels/.rels`) in addition to prior content markers, preventing docx/xlsx/pptx over-promotion from generic zip-like payloads.
+- **CRUSHR_RECOVERY_MODEL_06 complete**: added deterministic naming-collision guard test for repeated same-payload classification IDs to lock unique anonymous naming progression.
+- **CRUSHR_RECOVERY_MODEL_06 complete**: strengthened clean recover-mode contract assertions so clean archives produce zero recovered artifacts (no files under `recovered_named/` or `_crushr_recovery/anonymous/`) and still emit empty manifest entries.
+- **CRUSHR_RECOVERY_MODEL_06 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr recovery_classification::tests`, `cargo test -p crushr --test recovery_extract_contract`, and `cargo test --workspace` are green.
+
+Latest maintenance fix (2026-03-23):
+- **CRUSHR_RECOVERY_MODEL_05 complete**: moved recover-mode progress emission onto real execution phases (`archive open`, `metadata scan`, `canonical extraction`, `recovery analysis`, `recovery extraction`, `manifest/report finalization`) so phase updates are emitted incrementally during `extract --recover`.
+- **CRUSHR_RECOVERY_MODEL_05 complete**: refined recover final summary to use trust-class-aligned count labels (`recovered_named`, `recovered_anonymous`) plus separate `Extraction status` rows for canonical vs recovery completeness.
+- **CRUSHR_RECOVERY_MODEL_05 complete**: added precise conditional notes: clean archives do not emit non-canonical warnings, while damaged/mixed recoveries explicitly report non-canonical placement and surface `_crushr_recovery/manifest.json`.
+- **CRUSHR_RECOVERY_MODEL_05 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, and `cargo test --workspace` are green.
 
 Latest maintenance fix (2026-03-23):
 - **CRUSHR_RECOVERY_MODEL_04 complete**: added deterministic end-to-end recovery corpus test (`recovery_validation_corpus`) that generates mixed fixture trees (structured text, binary signatures, office-container markers, nested/repeated paths, empty directory) and validates strict/recover behavior under clean and damaged archives.
@@ -21,7 +33,7 @@ Latest maintenance fix (2026-03-23):
 - **CRUSHR_RECOVERY_MODEL_03 complete**: added a modular, data-driven recovery classification engine (`recovery_classification`) with ordered detection pipeline (magic -> secondary header/structure checks -> confidence assignment) and broad coverage across document/archive/media/binary/system signatures.
 - **CRUSHR_RECOVERY_MODEL_03 complete**: recover manifest entries now separate trust class (`recovery_kind`) from content typing (`classification.kind/confidence/basis/subtype`) and anonymous naming policy now strictly follows high/medium/low tiered naming.
 - **CRUSHR_RECOVERY_MODEL_03 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, and `cargo test --workspace` are green.
-Immediate Next Step: continue top-level salvage UX demotion/presentation cleanup and then resume metadata-pruning evidence review plus benchmark harness preparation.
+Immediate Next Step: resume metadata-pruning evidence review and benchmark harness preparation now that recovery-model UX/correctness hardening packets are complete.
 
 
 Latest maintenance fix (2026-03-23):

@@ -117,6 +117,24 @@ fn recover_mode_writes_strict_structure_for_clean_archive() {
             .unwrap();
     assert_eq!(manifest["schema_version"], "crushr-recovery-manifest.v1");
     assert_eq!(manifest["entries"].as_array().unwrap().len(), 0);
+    let named_artifacts = fs::read_dir(out_dir.join("recovered_named"))
+        .unwrap()
+        .filter_map(|item| item.ok())
+        .filter(|item| item.path().is_file())
+        .count();
+    let anonymous_artifacts = fs::read_dir(out_dir.join("_crushr_recovery/anonymous"))
+        .unwrap()
+        .filter_map(|item| item.ok())
+        .filter(|item| item.path().is_file())
+        .count();
+    assert_eq!(
+        named_artifacts, 0,
+        "clean recover run emitted named artifacts"
+    );
+    assert_eq!(
+        anonymous_artifacts, 0,
+        "clean recover run emitted anonymous artifacts"
+    );
 
     let stdout = String::from_utf8_lossy(
         &run_bin(
@@ -138,7 +156,7 @@ fn recover_mode_writes_strict_structure_for_clean_archive() {
         "canonical extraction",
         "recovery analysis",
         "recovery extraction",
-        "finalization",
+        "manifest/report finalization",
     ] {
         assert!(
             stdout.contains(phase),
@@ -146,11 +164,12 @@ fn recover_mode_writes_strict_structure_for_clean_archive() {
         );
     }
     assert!(stdout.contains("canonical files"));
-    assert!(stdout.contains("named recovered"));
-    assert!(stdout.contains("anonymous recovered"));
+    assert!(stdout.contains("recovered_named"));
+    assert!(stdout.contains("recovered_anonymous"));
     assert!(stdout.contains("unrecoverable"));
     assert!(stdout.contains("canonical extraction"));
     assert!(stdout.contains("recovery extraction"));
+    assert!(!stdout.contains("recovered output is non-canonical"));
 }
 
 #[test]
@@ -188,6 +207,7 @@ fn recover_mode_emits_anonymous_artifact_and_manifest_for_damaged_archive() {
         String::from_utf8_lossy(&out.stdout),
         String::from_utf8_lossy(&out.stderr)
     );
+    let stdout = String::from_utf8_lossy(&out.stdout);
 
     let manifest: Value =
         serde_json::from_slice(&fs::read(out_dir.join("_crushr_recovery/manifest.json")).unwrap())
@@ -235,4 +255,6 @@ fn recover_mode_emits_anonymous_artifact_and_manifest_for_damaged_archive() {
             "unexpected named recovery path format: {assigned}"
         );
     }
+    assert!(stdout.contains("recovered output is non-canonical"));
+    assert!(stdout.contains("_crushr_recovery/manifest.json"));
 }
