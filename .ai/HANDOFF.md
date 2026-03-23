@@ -1,3 +1,8 @@
+CRUSHR_RECOVERY_MODEL_02 completion update (2026-03-23):
+- `crushr-extract --recover` now runs salvage analysis as part of extract execution through shared salvage planning (`build_recovery_analysis`), avoiding duplicated planning logic in recover extract.
+- Human recover output now shows required phase progress and required Result/Trust summary rows (`canonical files`, `named recovered`, `anonymous recovered`, `unrecoverable`; trust COMPLETE|PARTIAL).
+- Recover extraction now writes full refused-entry recovery to `recovered_named/` with manifest class `recovered_named`, keeps partial fallback anonymous output + manifest class `recovered_anonymous`, and retains `unrecoverable` manifest rows for zero-byte recoveries.
+
 CRUSHR_RECOVERY_MODEL_01-FIX1 completion update (2026-03-23):
 - Fixed rustfmt drift in `crates/crushr/tests/recovery_extract_contract.rs` reported by `cargo fmt --check`; no functional/runtime behavior change.
 
@@ -60,6 +65,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
 # Handoff
+
+CRUSHR_RECOVERY_MODEL_02 completion update (2026-03-23):
+- `crushr-extract --recover` now runs salvage analysis as part of extract execution through shared salvage planning (`build_recovery_analysis`), avoiding duplicated planning logic in recover extract.
+- Human recover output now shows required phase progress and required Result/Trust summary rows (`canonical files`, `named recovered`, `anonymous recovered`, `unrecoverable`; trust COMPLETE|PARTIAL).
+- Recover extraction now writes full refused-entry recovery to `recovered_named/` with manifest class `recovered_named`, keeps partial fallback anonymous output + manifest class `recovered_anonymous`, and retains `unrecoverable` manifest rows for zero-byte recoveries.
 
 CRUSHR_VERIFY_SCALE_01 completion update (2026-03-23):
 - `crushr-extract --verify` no longer routes through temp-directory strict extraction output; verify now executes strict validation in verify-only mode (no output materialization).

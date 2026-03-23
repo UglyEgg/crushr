@@ -106,6 +106,7 @@ impl ExtractionClassifiedError {
 struct ClassifiedRun {
     outcome_kind: ExtractionOutcomeKind,
     report: crushr_core::extraction::ExtractionReport,
+    recover_summary: Option<recover_extract_impl::RecoverExtractRun>,
 }
 
 #[derive(Debug)]
@@ -259,7 +260,8 @@ fn run_extract(opts: &CliOptions) -> Result<ClassifiedRun> {
         )?;
         return Ok(ClassifiedRun {
             outcome_kind: recovered.outcome_kind,
-            report: recovered.report,
+            report: recovered.report.clone(),
+            recover_summary: Some(recovered),
         });
     }
 
@@ -279,6 +281,7 @@ fn run_extract(opts: &CliOptions) -> Result<ClassifiedRun> {
     Ok(ClassifiedRun {
         outcome_kind: strict.outcome_kind,
         report: strict.report,
+        recover_summary: None,
     })
 }
 
@@ -367,83 +370,138 @@ pub fn dispatch(args: Vec<String>) -> i32 {
     };
 
     match opts.mode {
-        CliMode::Extract => match run_extract(&opts) {
-            Ok(classified) => {
-                let presenter =
-                    CliPresenter::new("crushr-extract", "extract", opts.silent && !opts.json);
-                if opts.json {
-                    println!(
-                        "{}",
-                        serde_json::to_string_pretty(&classified.report)
-                            .expect("serialize extraction report")
-                    );
-                } else {
-                    presenter.header();
-                    presenter.section("Archive");
-                    presenter.kv("archive", opts.archive.display());
-                    if let Some(out_dir) = &opts.out_dir {
-                        presenter.kv("output dir", out_dir.display());
+        CliMode::Extract => {
+            let presenter =
+                CliPresenter::new("crushr-extract", "extract", opts.silent && !opts.json);
+            if opts.recover && !opts.json && !opts.silent {
+                presenter.header();
+                presenter.section("Progress");
+                presenter.stage("archive open", StatusWord::Ok);
+                presenter.stage("metadata scan", StatusWord::Scanning);
+                presenter.stage("canonical extraction", StatusWord::Running);
+                match recover_extract_impl::run_recovery_analysis(&opts.archive) {
+                    Ok(analysis) => {
+                        let _ = (
+                            analysis.canonical_complete,
+                            analysis.recoverable_named,
+                            analysis.recoverable_anonymous,
+                            analysis.unrecoverable,
+                        );
+                        presenter.stage("recovery analysis", StatusWord::Running)
                     }
-                    if opts.recover {
-                        presenter.kv("mode", "recover");
+                    Err(_) => presenter.stage("recovery analysis", StatusWord::Partial),
+                }
+                presenter.stage("recovery extraction", StatusWord::Finalizing);
+                presenter.stage("finalization", StatusWord::Complete);
+            }
+            match run_extract(&opts) {
+                Ok(classified) => {
+                    if opts.json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&classified.report)
+                                .expect("serialize extraction report")
+                        );
                     } else {
-                        presenter.kv("mode", "strict");
+                        if !opts.recover || opts.silent {
+                            presenter.header();
+                        }
+                        presenter.section("Archive");
+                        presenter.kv("archive", opts.archive.display());
+                        if let Some(out_dir) = &opts.out_dir {
+                            presenter.kv("output dir", out_dir.display());
+                        }
+                        if opts.recover {
+                            presenter.kv("mode", "recover");
+                        } else {
+                            presenter.kv("mode", "strict");
+                        }
+                        presenter.section("Result");
+                        if opts.recover {
+                            let recovered_run = classified
+                                .recover_summary
+                                .as_ref()
+                                .expect("recover summary present in recover mode");
+                            presenter.kv(
+                                "canonical files",
+                                group_u64(recovered_run.canonical_count as u64),
+                            );
+                            presenter.kv(
+                                "named recovered",
+                                group_u64(recovered_run.recovered_named_count as u64),
+                            );
+                            presenter.kv(
+                                "anonymous recovered",
+                                group_u64(recovered_run.recovered_anonymous_count as u64),
+                            );
+                            presenter.kv(
+                                "unrecoverable",
+                                group_u64(recovered_run.unrecoverable_count as u64),
+                            );
+                            presenter.section("Trust");
+                            presenter.kv("canonical extraction", recovered_run.canonical_trust);
+                            presenter.kv("recovery extraction", recovered_run.recovery_trust);
+                        } else {
+                            presenter.kv(
+                                "safe files",
+                                group_u64(classified.report.safe_file_count as u64),
+                            );
+                            presenter.kv(
+                                "refused files",
+                                group_u64(classified.report.refused_file_count as u64),
+                            );
+                        }
+                        presenter.outcome(
+                            if classified.outcome_kind == ExtractionOutcomeKind::Success {
+                                StatusWord::Complete
+                            } else {
+                                StatusWord::Partial
+                            },
+                            if opts.recover {
+                                "recovery extraction completed"
+                            } else {
+                                "strict extraction completed"
+                            },
+                        );
+                        presenter.silent_summary(
+                            if classified.outcome_kind == ExtractionOutcomeKind::Success {
+                                StatusWord::Complete
+                            } else {
+                                StatusWord::Partial
+                            },
+                            &[
+                                ("archive", opts.archive.display().to_string()),
+                                ("safe_files", classified.report.safe_file_count.to_string()),
+                                (
+                                    "refused_files",
+                                    classified.report.refused_file_count.to_string(),
+                                ),
+                            ],
+                        );
                     }
-                    presenter.section("Result");
-                    presenter.kv(
-                        "safe files",
-                        group_u64(classified.report.safe_file_count as u64),
-                    );
-                    presenter.kv(
-                        "refused files",
-                        group_u64(classified.report.refused_file_count as u64),
-                    );
-                    presenter.outcome(
-                        if classified.outcome_kind == ExtractionOutcomeKind::Success {
-                            StatusWord::Complete
-                        } else {
-                            StatusWord::Partial
-                        },
-                        "strict extraction completed",
-                    );
-                    presenter.silent_summary(
-                        if classified.outcome_kind == ExtractionOutcomeKind::Success {
-                            StatusWord::Complete
-                        } else {
-                            StatusWord::Partial
-                        },
-                        &[
-                            ("archive", opts.archive.display().to_string()),
-                            ("safe_files", classified.report.safe_file_count.to_string()),
-                            (
-                                "refused_files",
-                                classified.report.refused_file_count.to_string(),
-                            ),
-                        ],
-                    );
+                    exit_code_for_outcome(classified.outcome_kind, opts.refusal_exit)
                 }
-                exit_code_for_outcome(classified.outcome_kind, opts.refusal_exit)
-            }
-            Err(err) => {
-                let classified_err = ExtractionClassifiedError::structural(err);
-                eprintln!("{classified_err}");
-                let msg = classified_err.message();
-                let code = exit_code_for_error(classified_err.kind);
+                Err(err) => {
+                    let classified_err = ExtractionClassifiedError::structural(err);
+                    eprintln!("{classified_err}");
+                    let msg = classified_err.message();
+                    let code = exit_code_for_error(classified_err.kind);
 
-                if opts.json {
-                    let json_err = ExtractionErrorReport {
-                        overall_status: "error",
-                        error: msg,
-                    };
-                    println!(
-                        "{}",
-                        serde_json::to_string_pretty(&json_err)
-                            .expect("serialize extraction error report")
-                    );
+                    if opts.json {
+                        let json_err = ExtractionErrorReport {
+                            overall_status: "error",
+                            error: msg,
+                        };
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&json_err)
+                                .expect("serialize extraction error report")
+                        );
+                    }
+                    code
                 }
-                code
             }
-        },
+        }
         CliMode::Verify => {
             let presenter =
                 CliPresenter::new("crushr-extract", "verify", opts.silent && !opts.json);

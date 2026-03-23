@@ -3,6 +3,12 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
+## 2026-03-23 — CRUSHR_RECOVERY_MODEL_02
+- Integrated salvage planning into recover extraction flow by reusing salvage engine analysis (`build_recovery_analysis`) from `extract --recover` execution path.
+- Added required recover progress phases and required Result/Trust summary output contract for human recover mode.
+- Added named-vs-anonymous recovery classification behavior for refused canonical entries and updated recover integration tests/docs accordingly.
+- Validation: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, `cargo test --workspace`.
+
 ## 2026-03-23 — CRUSHR_RECOVERY_MODEL_01-FIX1
 - Applied rustfmt-conformant import ordering and assertion wrapping in `crates/crushr/tests/recovery_extract_contract.rs` to restore `cargo fmt --check` pass.
 - Validation: `cargo fmt`, `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`.

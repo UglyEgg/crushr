@@ -117,6 +117,40 @@ fn recover_mode_writes_strict_structure_for_clean_archive() {
             .unwrap();
     assert_eq!(manifest["schema_version"], "crushr-recovery-manifest.v1");
     assert_eq!(manifest["entries"].as_array().unwrap().len(), 0);
+
+    let stdout = String::from_utf8_lossy(
+        &run_bin(
+            "crushr-extract",
+            &[
+                archive.to_str().unwrap(),
+                "-o",
+                out_dir.to_str().unwrap(),
+                "--recover",
+                "--overwrite",
+            ],
+        )
+        .stdout,
+    )
+    .to_string();
+    for phase in [
+        "archive open",
+        "metadata scan",
+        "canonical extraction",
+        "recovery analysis",
+        "recovery extraction",
+        "finalization",
+    ] {
+        assert!(
+            stdout.contains(phase),
+            "expected progress phase in output: {phase}\n{stdout}"
+        );
+    }
+    assert!(stdout.contains("canonical files"));
+    assert!(stdout.contains("named recovered"));
+    assert!(stdout.contains("anonymous recovered"));
+    assert!(stdout.contains("unrecoverable"));
+    assert!(stdout.contains("canonical extraction"));
+    assert!(stdout.contains("recovery extraction"));
 }
 
 #[test]
@@ -169,14 +203,32 @@ fn recover_mode_emits_anonymous_artifact_and_manifest_for_damaged_archive() {
         .filter_map(|item| item.ok())
         .filter(|item| item.path().is_file())
         .count();
-    assert!(anonymous >= 1, "expected anonymous recovered file artifact");
+    let named = fs::read_dir(out_dir.join("recovered_named"))
+        .unwrap()
+        .filter_map(|item| item.ok())
+        .filter(|item| item.path().is_file())
+        .count();
+    assert!(
+        anonymous + named >= 1,
+        "expected recovered artifact (named or anonymous)"
+    );
 
     let first = &entries[0];
-    assert_eq!(first["classification"]["kind"], "recovered_anonymous");
-    let assigned = first["assigned_name"].as_str().unwrap();
-    assert!(assigned.starts_with("file_"));
     assert!(
-        assigned.ends_with(".bin") || assigned.contains(".probable-") || assigned.contains('.'),
-        "unexpected recovery name format: {assigned}"
+        first["classification"]["kind"] == "recovered_anonymous"
+            || first["classification"]["kind"] == "recovered_named"
     );
+    let assigned = first["assigned_name"].as_str().unwrap();
+    if first["classification"]["kind"] == "recovered_anonymous" {
+        assert!(assigned.starts_with("file_"));
+        assert!(
+            assigned.ends_with(".bin") || assigned.contains(".probable-") || assigned.contains('.'),
+            "unexpected anonymous recovery name format: {assigned}"
+        );
+    } else {
+        assert!(
+            assigned.ends_with(".txt"),
+            "unexpected named recovery path format: {assigned}"
+        );
+    }
 }

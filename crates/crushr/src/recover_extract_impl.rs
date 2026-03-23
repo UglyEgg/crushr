@@ -18,6 +18,8 @@ use std::fs::{self, File};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
+use crate::commands::salvage::RecoveryAnalysis;
+
 struct FileReader {
     file: File,
 }
@@ -47,6 +49,12 @@ pub struct RecoverExtractOptions {
 pub struct RecoverExtractRun {
     pub outcome_kind: ExtractionOutcomeKind,
     pub report: crushr_core::extraction::ExtractionReport,
+    pub canonical_count: usize,
+    pub recovered_named_count: usize,
+    pub recovered_anonymous_count: usize,
+    pub unrecoverable_count: usize,
+    pub canonical_trust: &'static str,
+    pub recovery_trust: &'static str,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -205,6 +213,7 @@ pub fn run_recover_extract(opts: &RecoverExtractOptions) -> Result<RecoverExtrac
     }
 
     let mut manifest_entries = Vec::new();
+    let mut recovered_named_count = 0usize;
     let mut recovered_anonymous_count = 0usize;
 
     let refused_paths = refused_files
@@ -239,31 +248,59 @@ pub fn run_recover_extract(opts: &RecoverExtractOptions) -> Result<RecoverExtrac
             continue;
         }
 
-        let (confidence, basis, assigned_name) =
-            classify_and_name(&recovered, recovered_anonymous_count + 1);
-        let assigned_path = anonymous_dir.join(&assigned_name);
-        write_entry(assigned_path.as_path(), &recovered, opts.overwrite)?;
+        if recovered.len() as u64 == entry.size {
+            let destination = resolve_confined_path(&recovered_named_dir, &entry.path)?;
+            write_entry(destination.as_path(), &recovered, opts.overwrite)?;
+            recovered_named_count += 1;
+            manifest_entries.push(RecoveryManifestEntry {
+                recovery_id,
+                assigned_name: Some(entry.path.clone()),
+                size: recovered.len() as u64,
+                hash: Some(format!("blake3:{}", blake3::hash(&recovered).to_hex())),
+                classification: RecoveryClassification {
+                    kind: RecoveryKind::RecoveredNamed,
+                    confidence: RecoveryConfidence::Medium,
+                    basis: ClassificationBasis::Structure,
+                },
+                original_identity: OriginalIdentity {
+                    path_status: IdentityStatus::Untrusted,
+                    name_status: IdentityStatus::Untrusted,
+                },
+                recovery_reason:
+                    "canonical path refused; full payload recovered with untrusted identity"
+                        .to_string(),
+            });
+        } else {
+            let (confidence, basis, assigned_name) =
+                classify_and_name(&recovered, recovered_anonymous_count + 1);
+            let assigned_path = anonymous_dir.join(&assigned_name);
+            write_entry(assigned_path.as_path(), &recovered, opts.overwrite)?;
 
-        recovered_anonymous_count += 1;
-        manifest_entries.push(RecoveryManifestEntry {
-            recovery_id,
-            assigned_name: Some(assigned_name),
-            size: recovered.len() as u64,
-            hash: Some(format!("blake3:{}", blake3::hash(&recovered).to_hex())),
-            classification: RecoveryClassification {
-                kind: RecoveryKind::RecoveredAnonymous,
-                confidence,
-                basis,
-            },
-            original_identity: OriginalIdentity {
-                path_status: IdentityStatus::Lost,
-                name_status: IdentityStatus::Lost,
-            },
-            recovery_reason:
-                "canonical path refused; recovered verified extents without trusted identity"
-                    .to_string(),
-        });
+            recovered_anonymous_count += 1;
+            manifest_entries.push(RecoveryManifestEntry {
+                recovery_id,
+                assigned_name: Some(assigned_name),
+                size: recovered.len() as u64,
+                hash: Some(format!("blake3:{}", blake3::hash(&recovered).to_hex())),
+                classification: RecoveryClassification {
+                    kind: RecoveryKind::RecoveredAnonymous,
+                    confidence,
+                    basis,
+                },
+                original_identity: OriginalIdentity {
+                    path_status: IdentityStatus::Lost,
+                    name_status: IdentityStatus::Lost,
+                },
+                recovery_reason:
+                    "canonical path refused; recovered verified extents without trusted identity"
+                        .to_string(),
+            });
+        }
     }
+    let unrecoverable_count = manifest_entries
+        .iter()
+        .filter(|entry| matches!(entry.classification.kind, RecoveryKind::Unrecoverable))
+        .count();
 
     let manifest = RecoveryManifest {
         schema_version: "crushr-recovery-manifest.v1",
@@ -277,12 +314,32 @@ pub fn run_recover_extract(opts: &RecoverExtractOptions) -> Result<RecoverExtrac
     )
     .with_context(|| format!("write {}", recovery_root.join("manifest.json").display()))?;
 
+    let canonical_count = safe_files.len();
+    let canonical_trust = if refused_files.is_empty() {
+        "COMPLETE"
+    } else {
+        "PARTIAL"
+    };
     let (outcome_kind, report) = build_extraction_report(safe_files, refused_files);
 
     Ok(RecoverExtractRun {
         outcome_kind,
         report,
+        canonical_count,
+        recovered_named_count,
+        recovered_anonymous_count,
+        unrecoverable_count,
+        canonical_trust,
+        recovery_trust: if unrecoverable_count == 0 {
+            "COMPLETE"
+        } else {
+            "PARTIAL"
+        },
     })
+}
+
+pub fn run_recovery_analysis(archive: &Path) -> Result<RecoveryAnalysis> {
+    crate::commands::salvage::build_recovery_analysis(archive)
 }
 
 fn read_entry_bytes_strict(

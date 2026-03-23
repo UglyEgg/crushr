@@ -7,10 +7,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_RECOVERY_MODEL_01 complete** (recovery-aware extract mode, trust classification contract, and recovery manifest/output structure implemented)
+Current Step: **CRUSHR_RECOVERY_MODEL_02 complete** (recovery-aware extraction now integrates salvage analysis, phased progress reporting, and contract summary/trust output)
 
-Immediate Next Step: evaluate promote/demote boundary wording for top-level salvage UX now that `extract --recover` is primary recovery path, then continue metadata-pruning evidence review/benchmark harness preparation.
+Immediate Next Step: continue top-level salvage UX demotion/presentation cleanup and then resume metadata-pruning evidence review plus benchmark harness preparation.
 
+
+Latest maintenance fix (2026-03-23):
+- **CRUSHR_RECOVERY_MODEL_02 complete**: wired `extract --recover` to run salvage-plan analysis during extract execution and reused salvage engine planning (`build_recovery_analysis`) rather than adding a second recovery-planning implementation path.
+- **CRUSHR_RECOVERY_MODEL_02 complete**: recover output now reports required phased progress (`archive open`, `metadata scan`, `canonical extraction`, `recovery analysis`, `recovery extraction`, `finalization`) and emits the required Result/Trust summary rows (`canonical files`, `named recovered`, `anonymous recovered`, `unrecoverable`; canonical/recovery trust COMPLETE|PARTIAL).
+- **CRUSHR_RECOVERY_MODEL_02 complete**: recover extraction now emits named recovered files when full bytes are recoverable under untrusted identity, keeps anonymous fallback for partial recovery, and keeps recovery manifest classifications aligned (`recovered_named`, `recovered_anonymous`, `unrecoverable`).
+- **CRUSHR_RECOVERY_MODEL_02 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, and `cargo test --workspace` are green.
 
 Latest maintenance fix (2026-03-23):
 - **CRUSHR_RECOVERY_MODEL_01 complete**: added `crushr-extract --recover` mode that keeps strict default extraction unchanged while emitting recovery-aware outputs under `canonical/`, `recovered_named/`, and `_crushr_recovery/{manifest.json,anonymous/}`.
