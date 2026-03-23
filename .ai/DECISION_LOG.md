@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-23 — CRUSHR_RECOVERY_MODEL_03 confidence-tiered content typing contract
+
+- Decision:
+  - Introduce a dedicated modular recovery content-classification engine for recovered payloads, using ordered detection (magic signature, secondary header/structure checks, confidence assignment).
+  - Separate manifest trust class from content typing: add `recovery_kind` and redefine `classification` to represent detected content metadata (`kind`, `confidence`, `basis`, optional `subtype`).
+  - Keep fail-closed policy: unknown/weak evidence downgrades to medium/low confidence and never upgrades optimistically to high.
+- Alternatives considered:
+  1. Keep prior minimal extension heuristics with `classification.kind` overloaded as trust class.
+  2. Keep trust class only in manifest and skip structured content typing.
+- Rationale:
+  - Packet requires wide-format typing with explicit confidence boundaries and strict no-guessing behavior.
+  - Separating trust class and content classification removes semantic overloading and makes manifest automation unambiguous.
+- Blast radius:
+  - Recovery manifest schema and recover integration tests updated for new field semantics.
+  - Recover anonymous naming now derives from classification confidence tiers.
+  - No change to strict extraction default behavior outside `--recover` outputs.
+
 ## 2026-03-23 — CRUSHR_RECOVERY_MODEL_01 recovery-aware extract contract
 
 - Decision:

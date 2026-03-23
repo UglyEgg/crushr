@@ -7,8 +7,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_RECOVERY_MODEL_02 complete** (recovery-aware extraction now integrates salvage analysis, phased progress reporting, and contract summary/trust output)
+Current Step: **CRUSHR_RECOVERY_MODEL_03 complete** (recover-mode anonymous content classification now uses confidence-tiered magic/structure validation with schema-backed manifest fields)
 
+
+Latest maintenance fix (2026-03-23):
+- **CRUSHR_RECOVERY_MODEL_03 complete**: added a modular, data-driven recovery classification engine (`recovery_classification`) with ordered detection pipeline (magic -> secondary header/structure checks -> confidence assignment) and broad coverage across document/archive/media/binary/system signatures.
+- **CRUSHR_RECOVERY_MODEL_03 complete**: recover manifest entries now separate trust class (`recovery_kind`) from content typing (`classification.kind/confidence/basis/subtype`) and anonymous naming policy now strictly follows high/medium/low tiered naming.
+- **CRUSHR_RECOVERY_MODEL_03 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, and `cargo test --workspace` are green.
 Immediate Next Step: continue top-level salvage UX demotion/presentation cleanup and then resume metadata-pruning evidence review plus benchmark harness preparation.
 
 

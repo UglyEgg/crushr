@@ -215,11 +215,15 @@ fn recover_mode_emits_anonymous_artifact_and_manifest_for_damaged_archive() {
 
     let first = &entries[0];
     assert!(
-        first["classification"]["kind"] == "recovered_anonymous"
-            || first["classification"]["kind"] == "recovered_named"
+        first["recovery_kind"] == "recovered_anonymous"
+            || first["recovery_kind"] == "recovered_named"
     );
     let assigned = first["assigned_name"].as_str().unwrap();
-    if first["classification"]["kind"] == "recovered_anonymous" {
+    assert!(first["classification"]["kind"].is_string());
+    assert!(first["classification"]["confidence"].is_string());
+    assert!(first["classification"]["basis"].is_string());
+
+    if first["recovery_kind"] == "recovered_anonymous" {
         assert!(assigned.starts_with("file_"));
         assert!(
             assigned.ends_with(".bin") || assigned.contains(".probable-") || assigned.contains('.'),

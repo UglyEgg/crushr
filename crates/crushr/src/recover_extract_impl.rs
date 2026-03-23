@@ -13,6 +13,11 @@ use crushr_core::{
 };
 use crushr_format::blk3::read_blk3_header;
 use serde::Serialize;
+
+use crate::recovery_classification::{
+    ClassificationBasis, ContentClassification, RecoveryConfidence, classify_and_name,
+    classify_content,
+};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
 use std::io::Cursor;
@@ -68,22 +73,6 @@ enum RecoveryKind {
 
 #[derive(Debug, Clone, Copy, Serialize)]
 #[serde(rename_all = "snake_case")]
-enum RecoveryConfidence {
-    High,
-    Medium,
-    Low,
-}
-
-#[derive(Debug, Clone, Copy, Serialize)]
-#[serde(rename_all = "snake_case")]
-enum ClassificationBasis {
-    MagicBytes,
-    Structure,
-    Heuristic,
-}
-
-#[derive(Debug, Clone, Copy, Serialize)]
-#[serde(rename_all = "snake_case")]
 enum IdentityStatus {
     Verified,
     Untrusted,
@@ -118,16 +107,10 @@ struct RecoveryManifestEntry {
     assigned_name: Option<String>,
     size: u64,
     hash: Option<String>,
-    classification: RecoveryClassification,
+    recovery_kind: RecoveryKind,
+    classification: ContentClassification,
     original_identity: OriginalIdentity,
     recovery_reason: String,
-}
-
-#[derive(Debug, Serialize)]
-struct RecoveryClassification {
-    kind: RecoveryKind,
-    confidence: RecoveryConfidence,
-    basis: ClassificationBasis,
 }
 
 #[derive(Debug, Serialize)]
@@ -234,10 +217,12 @@ pub fn run_recover_extract(opts: &RecoverExtractOptions) -> Result<RecoverExtrac
                 assigned_name: None,
                 size: 0,
                 hash: None,
-                classification: RecoveryClassification {
-                    kind: RecoveryKind::Unrecoverable,
+                recovery_kind: RecoveryKind::Unrecoverable,
+                classification: ContentClassification {
+                    kind: "bin".to_string(),
                     confidence: RecoveryConfidence::Low,
-                    basis: ClassificationBasis::Structure,
+                    basis: ClassificationBasis::Heuristic,
+                    subtype: None,
                 },
                 original_identity: OriginalIdentity {
                     path_status: IdentityStatus::Lost,
@@ -257,11 +242,8 @@ pub fn run_recover_extract(opts: &RecoverExtractOptions) -> Result<RecoverExtrac
                 assigned_name: Some(entry.path.clone()),
                 size: recovered.len() as u64,
                 hash: Some(format!("blake3:{}", blake3::hash(&recovered).to_hex())),
-                classification: RecoveryClassification {
-                    kind: RecoveryKind::RecoveredNamed,
-                    confidence: RecoveryConfidence::Medium,
-                    basis: ClassificationBasis::Structure,
-                },
+                recovery_kind: RecoveryKind::RecoveredNamed,
+                classification: classify_content(&recovered),
                 original_identity: OriginalIdentity {
                     path_status: IdentityStatus::Untrusted,
                     name_status: IdentityStatus::Untrusted,
@@ -271,22 +253,18 @@ pub fn run_recover_extract(opts: &RecoverExtractOptions) -> Result<RecoverExtrac
                         .to_string(),
             });
         } else {
-            let (confidence, basis, assigned_name) =
-                classify_and_name(&recovered, recovered_anonymous_count + 1);
-            let assigned_path = anonymous_dir.join(&assigned_name);
+            let naming = classify_and_name(&recovered, recovered_anonymous_count + 1);
+            let assigned_path = anonymous_dir.join(&naming.assigned_name);
             write_entry(assigned_path.as_path(), &recovered, opts.overwrite)?;
 
             recovered_anonymous_count += 1;
             manifest_entries.push(RecoveryManifestEntry {
                 recovery_id,
-                assigned_name: Some(assigned_name),
+                assigned_name: Some(naming.assigned_name),
                 size: recovered.len() as u64,
                 hash: Some(format!("blake3:{}", blake3::hash(&recovered).to_hex())),
-                classification: RecoveryClassification {
-                    kind: RecoveryKind::RecoveredAnonymous,
-                    confidence,
-                    basis,
-                },
+                recovery_kind: RecoveryKind::RecoveredAnonymous,
+                classification: naming.classification,
                 original_identity: OriginalIdentity {
                     path_status: IdentityStatus::Lost,
                     name_status: IdentityStatus::Lost,
@@ -299,7 +277,7 @@ pub fn run_recover_extract(opts: &RecoverExtractOptions) -> Result<RecoverExtrac
     }
     let unrecoverable_count = manifest_entries
         .iter()
-        .filter(|entry| matches!(entry.classification.kind, RecoveryKind::Unrecoverable))
+        .filter(|entry| matches!(entry.recovery_kind, RecoveryKind::Unrecoverable))
         .count();
 
     let manifest = RecoveryManifest {
@@ -405,63 +383,6 @@ fn recover_partial_entry_bytes(
     }
 
     Ok(out)
-}
-
-fn classify_and_name(bytes: &[u8], id: usize) -> (RecoveryConfidence, ClassificationBasis, String) {
-    let id_text = format!("{id:06}");
-
-    if let Some(ext) = high_confidence_extension(bytes) {
-        return (
-            RecoveryConfidence::High,
-            ClassificationBasis::MagicBytes,
-            format!("file_{id_text}.{ext}"),
-        );
-    }
-
-    if looks_like_text(bytes) {
-        return (
-            RecoveryConfidence::Medium,
-            ClassificationBasis::Heuristic,
-            format!("file_{id_text}.probable-text.bin"),
-        );
-    }
-
-    (
-        RecoveryConfidence::Low,
-        ClassificationBasis::Heuristic,
-        format!("file_{id_text}.bin"),
-    )
-}
-
-fn high_confidence_extension(bytes: &[u8]) -> Option<&'static str> {
-    if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
-        return Some("png");
-    }
-    if bytes.starts_with(b"\xFF\xD8\xFF") {
-        return Some("jpg");
-    }
-    if bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a") {
-        return Some("gif");
-    }
-    if bytes.starts_with(b"%PDF-") {
-        return Some("pdf");
-    }
-    if bytes.starts_with(b"PK\x03\x04") {
-        return Some("zip");
-    }
-    None
-}
-
-fn looks_like_text(bytes: &[u8]) -> bool {
-    if bytes.is_empty() {
-        return false;
-    }
-
-    let printable = bytes
-        .iter()
-        .filter(|b| matches!(**b, b'\n' | b'\r' | b'\t' | 0x20..=0x7E))
-        .count();
-    printable * 100 / bytes.len() >= 90
 }
 
 fn block_raw_payload(reader: &FileReader, block: &BlockSpanV1) -> Result<Vec<u8>> {

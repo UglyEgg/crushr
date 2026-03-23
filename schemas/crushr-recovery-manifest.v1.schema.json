@@ -32,6 +32,7 @@
         "assigned_name",
         "size",
         "hash",
+        "recovery_kind",
         "classification",
         "original_identity",
         "recovery_reason"
@@ -67,12 +68,7 @@
           "properties": {
             "kind": {
               "type": "string",
-              "enum": [
-                "canonical",
-                "recovered_named",
-                "recovered_anonymous",
-                "unrecoverable"
-              ]
+              "minLength": 1
             },
             "confidence": {
               "type": "string",
@@ -88,6 +84,12 @@
                 "magic_bytes",
                 "structure",
                 "heuristic"
+              ]
+            },
+            "subtype": {
+              "type": [
+                "string",
+                "null"
               ]
             }
           },
@@ -124,6 +126,15 @@
         "recovery_reason": {
           "type": "string",
           "minLength": 1
+        },
+        "recovery_kind": {
+          "type": "string",
+          "enum": [
+            "canonical",
+            "recovered_named",
+            "recovered_anonymous",
+            "unrecoverable"
+          ]
         }
       },
       "additionalProperties": false

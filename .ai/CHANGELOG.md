@@ -3,6 +3,12 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
+## 2026-03-23 — CRUSHR_RECOVERY_MODEL_03
+- Added modular recovery content-classification engine (`crates/crushr/src/recovery_classification.rs`) with ordered magic/structure/heuristic detection and confidence-tiered naming decisions.
+- Integrated classification engine into recover extract flow and updated recovery manifest contract to separate trust class (`recovery_kind`) from content classification metadata (`kind`/`confidence`/`basis`/optional `subtype`).
+- Updated recovery manifest schema + recover integration tests for the new classification contract.
+- Validation: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, `cargo test --workspace`.
+
 ## 2026-03-23 — CRUSHR_RECOVERY_MODEL_02
 - Integrated salvage planning into recover extraction flow by reusing salvage engine analysis (`build_recovery_analysis`) from `extract --recover` execution path.
 - Added required recover progress phases and required Result/Trust summary output contract for human recover mode.
