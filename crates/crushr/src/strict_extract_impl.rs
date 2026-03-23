@@ -35,16 +35,12 @@ impl Len for FileReader {
 }
 
 #[derive(Debug, Clone)]
-struct BlockPayload {
-    raw: Vec<u8>,
-}
-
-#[derive(Debug, Clone)]
 pub struct StrictExtractOptions {
     pub archive: PathBuf,
     pub out_dir: PathBuf,
     pub overwrite: bool,
     pub selected_paths: Option<Vec<String>>,
+    pub verify_only: bool,
 }
 
 #[allow(dead_code)]
@@ -65,10 +61,11 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
     let index = decode_index(&opened.tail.idx3_bytes).context("decode IDX3")?;
     let corrupted = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
 
-    fs::create_dir_all(&opts.out_dir)
-        .with_context(|| format!("create {}", opts.out_dir.display()))?;
+    if !opts.verify_only {
+        fs::create_dir_all(&opts.out_dir)
+            .with_context(|| format!("create {}", opts.out_dir.display()))?;
+    }
 
-    let mut payload_cache = BTreeMap::<u32, BlockPayload>::new();
     let mut entries: Vec<Entry> = index.entries;
     entries.sort_by(|a, b| a.path.cmp(&b.path));
 
@@ -115,9 +112,13 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
             continue;
         }
 
-        let bytes = read_entry_bytes_strict(&reader, &entry, &blocks, &mut payload_cache)?;
-        let destination = resolve_confined_path(&opts.out_dir, &entry.path)?;
-        write_entry(destination.as_path(), &bytes, opts.overwrite)?;
+        if opts.verify_only {
+            validate_entry_bytes_strict(&reader, &entry, &blocks)?;
+        } else {
+            let bytes = read_entry_bytes_strict(&reader, &entry, &blocks)?;
+            let destination = resolve_confined_path(&opts.out_dir, &entry.path)?;
+            write_entry(destination.as_path(), &bytes, opts.overwrite)?;
+        }
     }
 
     let (outcome_kind, report) = build_extraction_report(safe_files, refused_files);
@@ -132,7 +133,6 @@ fn read_entry_bytes_strict(
     reader: &FileReader,
     entry: &Entry,
     blocks: &[crushr_core::verify::BlockSpanV1],
-    payload_cache: &mut BTreeMap<u32, BlockPayload>,
 ) -> Result<Vec<u8>> {
     let mut out = Vec::with_capacity(entry.size as usize);
 
@@ -141,7 +141,7 @@ fn read_entry_bytes_strict(
             .get(extent.block_id as usize)
             .with_context(|| format!("extent references missing block {}", extent.block_id))?;
 
-        let raw = block_raw_payload(reader, block, payload_cache)?;
+        let raw = block_raw_payload(reader, block)?;
 
         let begin = extent.offset as usize;
         let end = begin
@@ -165,15 +165,46 @@ fn read_entry_bytes_strict(
     Ok(out)
 }
 
+fn validate_entry_bytes_strict(
+    reader: &FileReader,
+    entry: &Entry,
+    blocks: &[crushr_core::verify::BlockSpanV1],
+) -> Result<()> {
+    let mut total = 0u64;
+
+    for extent in &entry.extents {
+        let block = blocks
+            .get(extent.block_id as usize)
+            .with_context(|| format!("extent references missing block {}", extent.block_id))?;
+
+        let raw = block_raw_payload(reader, block)?;
+        let begin = extent.offset as usize;
+        let end = begin
+            .checked_add(extent.len as usize)
+            .context("extent length overflow")?;
+        if end > raw.len() {
+            bail!(
+                "extent out of range for block {} while reading {}",
+                extent.block_id,
+                entry.path
+            );
+        }
+        total = total
+            .checked_add(extent.len)
+            .context("entry size overflow while validating extents")?;
+    }
+
+    if total != entry.size {
+        bail!("entry size mismatch while reading {}", entry.path);
+    }
+
+    Ok(())
+}
+
 fn block_raw_payload(
     reader: &FileReader,
     block: &crushr_core::verify::BlockSpanV1,
-    payload_cache: &mut BTreeMap<u32, BlockPayload>,
 ) -> Result<Vec<u8>> {
-    if let Some(payload) = payload_cache.get(&block.block_id) {
-        return Ok(payload.raw.clone());
-    }
-
     let header_len = (block.payload_offset - block.header_offset) as usize;
     let mut header_bytes = vec![0u8; header_len];
     read_exact_at(reader, block.header_offset, &mut header_bytes)?;
@@ -195,7 +226,6 @@ fn block_raw_payload(
         bail!("raw length mismatch for block {}", block.block_id);
     }
 
-    payload_cache.insert(block.block_id, BlockPayload { raw: raw.clone() });
     Ok(raw)
 }
 

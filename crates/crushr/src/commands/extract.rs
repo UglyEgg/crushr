@@ -243,6 +243,7 @@ fn run_extract(opts: &CliOptions) -> Result<ClassifiedRun> {
             } else {
                 Some(opts.selected_paths.clone())
             },
+            verify_only: false,
         })?;
 
     Ok(ClassifiedRun {
@@ -251,45 +252,49 @@ fn run_extract(opts: &CliOptions) -> Result<ClassifiedRun> {
     })
 }
 
-fn run_verify(opts: &CliOptions) -> Result<(VerificationModel, VerificationReportView)> {
+fn run_verify(
+    opts: &CliOptions,
+    progress: Option<&CliPresenter>,
+) -> Result<(VerificationModel, VerificationReportView)> {
     let reader = FileReader {
         file: File::open(&opts.archive)
             .with_context(|| format!("open {}", opts.archive.display()))?,
     };
-    let opened = open_archive_v1(&reader)?;
-    let verified_extent_count =
-        scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset)?.len();
-    let _ = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
+    if let Some(presenter) = progress {
+        presenter.stage("archive open / header read", StatusWord::Ok);
+    }
 
-    let verify_dir = create_verify_tempdir()?;
+    let opened = open_archive_v1(&reader)?;
+    let blocks = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset)?;
+    if let Some(presenter) = progress {
+        presenter.stage("metadata/index scan", StatusWord::Scanning);
+    }
+    let verified_extent_count = blocks.len();
+    let _ = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
+    if let Some(presenter) = progress {
+        presenter.stage("payload verification", StatusWord::Running);
+    }
+
     let strict =
         strict_extract_impl::run_strict_extract(&strict_extract_impl::StrictExtractOptions {
             archive: opts.archive.clone(),
-            out_dir: verify_dir.clone(),
+            out_dir: std::env::temp_dir(),
             overwrite: false,
             selected_paths: None,
+            verify_only: true,
         })?;
-    let _ = std::fs::remove_dir_all(&verify_dir);
+    if let Some(presenter) = progress {
+        presenter.stage("manifest validation", StatusWord::Finalizing);
+    }
 
     let model = VerificationModel::from_extraction_report(&strict.report, verified_extent_count);
+    if let Some(presenter) = progress {
+        presenter.stage("final result/report", StatusWord::Complete);
+    }
     Ok((
         model.clone(),
         model.to_report_view(opts.archive.display().to_string()),
     ))
-}
-
-fn create_verify_tempdir() -> Result<PathBuf> {
-    let mut dir = std::env::temp_dir();
-    dir.push(format!(
-        "crushr-extract-verify-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .context("read current time")?
-            .as_nanos()
-    ));
-    std::fs::create_dir_all(&dir).with_context(|| format!("create {}", dir.display()))?;
-    Ok(dir)
 }
 
 fn exit_code_for_outcome(kind: ExtractionOutcomeKind, refusal_exit: RefusalExitPolicy) -> i32 {
@@ -404,97 +409,110 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                 code
             }
         },
-        CliMode::Verify => match run_verify(&opts) {
-            Ok((model, report)) => {
-                let presenter =
-                    CliPresenter::new("crushr-extract", "verify", opts.silent && !opts.json);
-                if opts.json {
-                    println!(
-                        "{}",
-                        serde_json::to_string_pretty(&report).expect("serialize verify report")
-                    );
-                } else {
-                    presenter.header();
-                    presenter.section("Archive");
-                    presenter.kv("archive", &report.archive_path);
-                    if report.safe_for_strict_extraction {
-                        presenter.section("Verification");
-                        presenter.kv(
-                            "verified extents",
-                            group_u64(report.verified_extent_count as u64),
+        CliMode::Verify => {
+            let presenter =
+                CliPresenter::new("crushr-extract", "verify", opts.silent && !opts.json);
+            let progress = if opts.json || opts.silent {
+                None
+            } else {
+                Some(&presenter)
+            };
+            if progress.is_some() {
+                presenter.header();
+                presenter.section("Progress");
+            }
+            match run_verify(&opts, progress) {
+                Ok((model, report)) => {
+                    if opts.json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&report).expect("serialize verify report")
                         );
-                        presenter.kv("failed checks", group_u64(report.failed_check_count as u64));
-                        presenter.kv(
-                            "identity resolution",
-                            format!("{:?}", model.failure_domains.identity_resolution)
-                                .to_lowercase(),
-                        );
-                        presenter.kv(
-                            "dictionary resolution",
-                            format!("{:?}", model.failure_domains.dictionary_resolution)
-                                .to_lowercase(),
-                        );
-                        presenter.section("Result");
-                        presenter.outcome(StatusWord::Verified, "safe for strict extraction");
                     } else {
-                        presenter.section("Failure domain");
-                        presenter.kv("component", "strict verification");
-                        presenter.kv("reason", "verification checks failed");
-                        presenter.kv("expected", "archive passes all strict checks");
-                        presenter.kv("received", "failed checks detected");
-                        presenter.kv("failed checks", group_u64(report.failed_check_count as u64));
-                        if let Some(first_reason) = report.refusal_reasons.first() {
-                            presenter.kv("first refusal", first_reason);
+                        presenter.section("Archive");
+                        presenter.kv("archive", &report.archive_path);
+                        if report.safe_for_strict_extraction {
+                            presenter.section("Verification");
+                            presenter.kv(
+                                "verified extents",
+                                group_u64(report.verified_extent_count as u64),
+                            );
+                            presenter
+                                .kv("failed checks", group_u64(report.failed_check_count as u64));
+                            presenter.kv(
+                                "identity resolution",
+                                format!("{:?}", model.failure_domains.identity_resolution)
+                                    .to_lowercase(),
+                            );
+                            presenter.kv(
+                                "dictionary resolution",
+                                format!("{:?}", model.failure_domains.dictionary_resolution)
+                                    .to_lowercase(),
+                            );
+                            presenter.section("Result");
+                            presenter.outcome(StatusWord::Verified, "safe for strict extraction");
+                        } else {
+                            presenter.section("Failure domain");
+                            presenter.kv("component", "strict verification");
+                            presenter.kv("reason", "verification checks failed");
+                            presenter.kv("expected", "archive passes all strict checks");
+                            presenter.kv("received", "failed checks detected");
+                            presenter
+                                .kv("failed checks", group_u64(report.failed_check_count as u64));
+                            if let Some(first_reason) = report.refusal_reasons.first() {
+                                presenter.kv("first refusal", first_reason);
+                            }
+                            presenter.section("Result");
+                            presenter
+                                .outcome(StatusWord::Refused, "not safe for strict extraction");
                         }
+                        presenter.silent_summary(
+                            if report.safe_for_strict_extraction {
+                                StatusWord::Verified
+                            } else {
+                                StatusWord::Refused
+                            },
+                            &[
+                                ("archive", report.archive_path.clone()),
+                                ("failed_checks", report.failed_check_count.to_string()),
+                            ],
+                        );
+                    }
+                    if report.safe_for_strict_extraction {
+                        0
+                    } else {
+                        2
+                    }
+                }
+                Err(err) => {
+                    let classified_err = ExtractionClassifiedError::structural(err);
+                    if opts.json {
+                        eprintln!("{classified_err}");
+                    } else {
+                        if progress.is_none() {
+                            presenter.header();
+                        }
+                        presenter.section("Archive");
+                        presenter.kv("archive", opts.archive.display());
+                        presenter.section("Failure domain");
+                        presenter.kv("component", "archive structure");
+                        presenter.kv("reason", "failed to parse strict verification inputs");
+                        presenter.kv("expected", "valid FTR4 footer, tail frame, and index");
+                        presenter.kv("received", "invalid or unreadable archive structure");
                         presenter.section("Result");
                         presenter.outcome(StatusWord::Refused, "not safe for strict extraction");
+                        presenter.silent_summary(
+                            StatusWord::Refused,
+                            &[
+                                ("archive", opts.archive.display().to_string()),
+                                ("failed_checks", "1".to_string()),
+                            ],
+                        );
                     }
-                    presenter.silent_summary(
-                        if report.safe_for_strict_extraction {
-                            StatusWord::Verified
-                        } else {
-                            StatusWord::Refused
-                        },
-                        &[
-                            ("archive", report.archive_path.clone()),
-                            ("failed_checks", report.failed_check_count.to_string()),
-                        ],
-                    );
-                }
-                if report.safe_for_strict_extraction {
-                    0
-                } else {
-                    2
+                    exit_code_for_error(classified_err.kind)
                 }
             }
-            Err(err) => {
-                let classified_err = ExtractionClassifiedError::structural(err);
-                if opts.json {
-                    eprintln!("{classified_err}");
-                } else {
-                    let presenter =
-                        CliPresenter::new("crushr-extract", "verify", opts.silent && !opts.json);
-                    presenter.header();
-                    presenter.section("Archive");
-                    presenter.kv("archive", opts.archive.display());
-                    presenter.section("Failure domain");
-                    presenter.kv("component", "archive structure");
-                    presenter.kv("reason", "failed to parse strict verification inputs");
-                    presenter.kv("expected", "valid FTR4 footer, tail frame, and index");
-                    presenter.kv("received", "invalid or unreadable archive structure");
-                    presenter.section("Result");
-                    presenter.outcome(StatusWord::Refused, "not safe for strict extraction");
-                    presenter.silent_summary(
-                        StatusWord::Refused,
-                        &[
-                            ("archive", opts.archive.display().to_string()),
-                            ("failed_checks", "1".to_string()),
-                        ],
-                    );
-                }
-                exit_code_for_error(classified_err.kind)
-            }
-        },
+        }
     }
 }
 

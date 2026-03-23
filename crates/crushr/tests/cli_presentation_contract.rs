@@ -53,6 +53,12 @@ fn verify_output_is_deterministic_and_uses_shared_status_words() {
 
     assert_eq!(first, second);
     assert!(first.contains("crushr-extract  /  verify"));
+    assert!(first.contains("Progress"));
+    assert!(first.contains("archive open / header read"));
+    assert!(first.contains("metadata/index scan"));
+    assert!(first.contains("payload verification"));
+    assert!(first.contains("manifest validation"));
+    assert!(first.contains("final result/report"));
     assert!(first.contains("Verification"));
     assert!(first.contains("Result"));
 }

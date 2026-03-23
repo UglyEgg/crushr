@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-23 — CRUSHR_VERIFY_SCALE_01 bounded verify execution + phase progress visibility
+
+- Decision:
+  - Replace verify-time strict extraction temp-output workflow with a bounded verify-only strict pass that validates extents/decompression without writing files.
+  - Remove cross-run decompressed block payload caching from strict extraction so block payload bytes are not retained/cloned across the whole run.
+  - Add explicit user-visible verify progress stages (`archive open / header read`, `metadata/index scan`, `payload verification`, `manifest validation`, `final result/report`) to the human verify surface.
+- Alternatives considered:
+  1. Keep temp-directory extraction in verify and only add progress text.
+  2. Keep payload cache but cap size heuristically.
+- Rationale:
+  - Packet requires a production memory-scaling fix, not presentation-only changes.
+  - Verify should surface real execution phases while preserving strict refusal semantics and deterministic reporting.
+- Blast radius:
+  - `crushr-extract --verify` runtime now executes strict validation without materializing output files.
+  - CLI verify human output now includes a deterministic Progress section in success and structural-failure paths.
+  - Golden presentation fixtures/tests were updated; JSON/silent contracts remain unchanged.
+
 ## 2026-03-22 — CRUSHR_CLI_UNIFY_04 production-vs-lab pack surface boundary
 
 - Decision:

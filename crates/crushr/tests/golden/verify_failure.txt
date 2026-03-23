@@ -1,6 +1,9 @@
 crushr-extract  /  verify
 ------------------------------------------------------------------------
 
+Progress
+  archive open / header read OK
+
 Archive
   archive                <TMP>/bad.crushr
 

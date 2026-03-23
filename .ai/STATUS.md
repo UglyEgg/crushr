@@ -7,9 +7,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_CLI_UNIFY_04 complete** (public `pack` surface is now production-only; experimental format/layout controls were removed from production `pack` and relocated under `crushr lab pack-experimental`)
+Current Step: **CRUSHR_VERIFY_SCALE_01 complete** (production `verify` now runs bounded verify-only strict validation with explicit phase visibility and without temp extraction output materialization)
 
 Immediate Next Step: continue metadata-pruning evidence review/benchmark harness preparation with unified CLI contracts now test-enforced and production-vs-lab pack boundaries explicitly enforced.
+
+Latest maintenance fix (2026-03-23):
+- **CRUSHR_VERIFY_SCALE_01 complete**: removed verify-path temp-directory extraction/materialization by adding a verify-only strict pass that validates extents/decompression without writing extracted files.
+- **CRUSHR_VERIFY_SCALE_01 complete**: eliminated strict-extract decompressed block payload cache retention/cloning from active extraction paths, reducing whole-run payload residency pressure.
+- **CRUSHR_VERIFY_SCALE_01 complete**: added production verify progress stages (`archive open / header read`, `metadata/index scan`, `payload verification`, `manifest validation`, `final result/report`) with deterministic output coverage in `cli_presentation_contract` and golden fixtures.
+- **CRUSHR_VERIFY_SCALE_01 evidence**: large synthetic verify run (`12,000` files archive) now completes successfully with visible phase output and no OOM termination in this environment.
 
 Latest maintenance fix (2026-03-22):
 - **CRUSHR_PACK_SCALE_01 complete**: removed whole-run payload pre-materialization in `crushr-pack` planning by replacing `PackLayoutPlan` file payload storage with lightweight file descriptors (`abs_path`, logical path, planned size/id), so planning no longer retains raw+compressed bytes for every file simultaneously.
