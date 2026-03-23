@@ -7,9 +7,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_VERIFY_SCALE_01 complete** (production `verify` now runs bounded verify-only strict validation with explicit phase visibility and without temp extraction output materialization)
+Current Step: **CRUSHR_RECOVERY_MODEL_01 complete** (recovery-aware extract mode, trust classification contract, and recovery manifest/output structure implemented)
 
-Immediate Next Step: continue metadata-pruning evidence review/benchmark harness preparation with unified CLI contracts now test-enforced and production-vs-lab pack boundaries explicitly enforced.
+Immediate Next Step: evaluate promote/demote boundary wording for top-level salvage UX now that `extract --recover` is primary recovery path, then continue metadata-pruning evidence review/benchmark harness preparation.
+
+
+Latest maintenance fix (2026-03-23):
+- **CRUSHR_RECOVERY_MODEL_01 complete**: added `crushr-extract --recover` mode that keeps strict default extraction unchanged while emitting recovery-aware outputs under `canonical/`, `recovered_named/`, and `_crushr_recovery/{manifest.json,anonymous/}`.
+- **CRUSHR_RECOVERY_MODEL_01 complete**: integrated trust classifications (`canonical`, `recovered_named`, `recovered_anonymous`, `unrecoverable`) and locked anonymous naming policy (`file_<id>.<ext>`, `file_<id>.probable-<type>.bin`, `file_<id>.bin`).
+- **CRUSHR_RECOVERY_MODEL_01 complete**: introduced `crushr-recovery-manifest.v1` schema + generator with classification/original-identity/reason fields and added integration coverage for clean + damaged recover runs.
+- **CRUSHR_RECOVERY_MODEL_01-FIX1 complete**: resolved formatting drift in `recovery_extract_contract.rs` so `cargo fmt --check` is green again without behavioral changes.
 
 Latest maintenance fix (2026-03-23):
 - **CRUSHR_VERIFY_SCALE_01 complete**: removed verify-path temp-directory extraction/materialization by adding a verify-only strict pass that validates extents/decompression without writing extracted files.
@@ -104,7 +111,7 @@ Latest maintenance fix (2026-03-19):
 - Phase 2 execution is complete and frozen.
 - Phase 2 normalization is complete and frozen.
 - Phase 2 comparison analysis is complete and frozen.
-- `crushr-extract` remains strict-only as canonical extraction behavior, and now owns strict pre-extraction verification via `--verify`.
+- `crushr-extract` default mode remains strict for canonical extraction behavior, with explicit recovery-aware extraction via `--recover`; strict verification remains `crushr-extract --verify`.
 - Current experimental evidence says payload-adjacent file identity is the first major recovery direction that materially improved outcomes.
 - The architectural direction remains locked toward a **content-addressed recovery graph**.
 - The inversion principle remains active for resilience work: prefer verified payload-adjacent truth over centralized metadata authority.
@@ -162,7 +169,7 @@ Latest maintenance fix (2026-03-19):
 
 - Workspace crate policy is locked: resolver `3`, edition `2024`, MSRV `1.88`, publishable crates must carry crates.io-facing workspace metadata inheritance, and internal crates must set `publish = false`.
 - Unified policy gate baseline is active on PRs/pushes to `main`: secrets, dependency audit, MSRV, style (crate policy + clippy + fmt), and VERSION drift checks.
-- No speculative recovery/reconstruction/repair in `crushr-extract`.
+- No speculative reconstruction/repair in `crushr-extract`; `--recover` must preserve explicit trust segregation and no guessed naming/path claims.
 - `crushr-salvage` output is unverified research output and not canonical extraction.
 - No guessed mappings, guessed extents, speculative byte stitching, or archive mutation.
 - Comparison workflows remain bounded and storage-conscious; do not rerun the full Phase 2 matrix without explicit instruction.

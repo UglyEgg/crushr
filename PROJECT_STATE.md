@@ -11,16 +11,16 @@ crushr is an integrity-first archive system.
 
 Non-negotiable baseline:
 
-- strict extraction only for `crushr-extract`
+- strict extraction is default for `crushr-extract`; recovery-aware extraction is explicit opt-in (`crushr-extract --recover`)
 - deterministic verification and reporting
-- no speculative recovery/reconstruction in canonical extraction
+- no speculative recovery/reconstruction in canonical extraction outputs
 
 ## Active tool boundary
 
 - `crushr-pack` — archive creation
 - `crushr-info` — archive inspection/reporting
 - `crushr-extract --verify` — strict verification for canonical extraction safety
-- `crushr-extract` — strict verified extraction with deterministic refusal reporting
+- `crushr-extract` — strict verified extraction by default, with explicit trust-segregated recovery mode behind `--recover`
 - `crushr-lab` — controlled research harness
 - `crushr-salvage` — separate experimental salvage-planning executable (unverified research output only)
 - `crushr-lab` — deterministic research harness (not part of canonical extraction product surface)

@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-23 — CRUSHR_RECOVERY_MODEL_01 recovery-aware extract contract
+
+- Decision:
+  - Keep `crushr-extract` default behavior strict, and add explicit `--recover` mode for recovery-aware extraction.
+  - In recover mode, enforce segregated output directories (`canonical/`, `recovered_named/`, `_crushr_recovery/anonymous/`) and always emit `_crushr_recovery/manifest.json`.
+  - Lock trust-class vocabulary and anonymous naming policy in code/schema: `canonical`, `recovered_named`, `recovered_anonymous`, `unrecoverable`; high/medium/low confidence naming patterns.
+- Alternatives considered:
+  1. Keep recovery as a separate primary `salvage` UX path.
+  2. Mix recovered output into the canonical extraction directory.
+- Rationale:
+  - Packet explicitly requires recovery to be integrated into extraction while preventing silent canonical/recovered mixing.
+  - Deterministic directory and manifest contracts make trust boundaries explicit for operators and automation.
+- Blast radius:
+  - `crushr-extract` CLI usage now accepts `--recover` (extract-only; rejected with `--verify`).
+  - Recovery-mode extraction writes additional filesystem outputs and a recovery manifest schema contract.
+  - Added integration tests for clean and damaged recovery-mode runs.
+
 ## 2026-03-23 — CRUSHR_VERIFY_SCALE_01 bounded verify execution + phase progress visibility
 
 - Decision:

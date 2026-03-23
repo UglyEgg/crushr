@@ -1,3 +1,12 @@
+CRUSHR_RECOVERY_MODEL_01-FIX1 completion update (2026-03-23):
+- Fixed rustfmt drift in `crates/crushr/tests/recovery_extract_contract.rs` reported by `cargo fmt --check`; no functional/runtime behavior change.
+
+CRUSHR_RECOVERY_MODEL_01 completion update (2026-03-23):
+- Added `crushr-extract --recover` as the recovery-aware extraction mode while preserving strict extraction as the default behavior.
+- Recover mode now writes segregated trust-boundary output structure: `canonical/`, `recovered_named/`, `_crushr_recovery/anonymous/`, plus required `_crushr_recovery/manifest.json`.
+- Implemented manifest output contract (`crushr-recovery-manifest.v1`) with recovery classification, confidence/basis, original identity status, and recovery reason fields.
+- Added integration tests for clean and damaged archives to assert output structure, manifest emission, and anonymous naming behavior.
+
 CRUSHR-STYLE-FIX-01 completion update (2026-03-22):
 - Completed a full workspace Clippy cleanup pass under enforced gate (`cargo clippy --workspace --all-targets -- -D warnings`) and removed all currently surfaced warnings without adding blanket lint suppressions.
 - Primary cleanup class was `collapsible_if`; rewrites use Rust 1.88-compatible let-chains and preserve existing behavior.
