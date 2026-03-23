@@ -57,7 +57,7 @@ The canonical public tool boundary is:
 - `crushr-salvage` (experimental, separate from canonical extraction)
 - `crushr-lab` (research harness, not product surface)
 
-`crushr-extract` defaults to strict deterministic extraction. `crushr-extract --recover` enables recovery-aware extraction with explicit trust segregation (`canonical/`, `recovered_named/`, `_crushr_recovery/anonymous/` + `_crushr_recovery/manifest.json`).
+`crushr-extract` defaults to strict deterministic extraction. `crushr-extract --recover` enables recovery-aware extraction with explicit trust segregation (`canonical/`, `recovered_named/`, `_crushr_recovery/anonymous/` + `_crushr_recovery/manifest.json`), incremental recovery phases (`archive open` → `finalization`), and a deterministic recovery/trust summary.
 
 Wrapper entrypoints map to canonical `crushr` commands:
 
