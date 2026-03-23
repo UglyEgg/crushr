@@ -7,10 +7,10 @@ Target
   compression level      3
 
 Progress
-  input discovery        SCANNING
+  input discovery        RUNNING
   planning               RUNNING
-  serialization          WRITING
-  finalization           FINALIZING
+  serialization          RUNNING
+  finalization           RUNNING
 
 Result
   files packed           2

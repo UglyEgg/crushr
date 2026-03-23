@@ -1,3 +1,8 @@
+CRUSHR_UI_POLISH_01 completion update (2026-03-23):
+- Added a shared semantic visual token system in `crates/crushr/src/cli_presentation.rs` (title/section/label/muted/running/pending/success/degraded/failure/info + trust-class tokens).
+- Standardized user-facing status vocabulary to `PENDING|RUNNING|COMPLETE|DEGRADED|FAILED|REFUSED` (with compatibility aliases retained where needed), and mapped prior human-output `PARTIAL` surfaces to `DEGRADED`.
+- Added explicit recover-mode trust-class rendering (`CANONICAL`, `RECOVERED_NAMED`, `RECOVERED_ANONYMOUS`, `UNRECOVERABLE`) plus contract doc `.ai/contracts/CLI_VISUAL_SEMANTICS.md`; updated presentation goldens/tests accordingly.
+
 CRUSHR_RECOVERY_MODEL_06 completion update (2026-03-23):
 - Hardened zip-family high-confidence boundaries by requiring `_rels/.rels` alongside OOXML content markers before classifying `docx`/`xlsx`/`pptx`; generic zip-like payloads now stay medium-confidence `zip`.
 - Added deterministic naming-collision regression coverage to lock unique assigned names for same payload across sequential recovery IDs.

@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-23 — CRUSHR_UI_POLISH_01 shared CLI visual semantics contract
+
+- Decision:
+  - Centralize user-facing CLI visual semantics in one shared token system (`VisualToken`) and one shared status vocabulary (`PENDING`, `RUNNING`, `COMPLETE`, `DEGRADED`, `FAILED`, `REFUSED`) in `cli_presentation`.
+  - Treat prior human-output `PARTIAL` semantics as compatibility input only and render it as `DEGRADED` to avoid overloaded/ambiguous wording.
+  - Render recovery trust classes explicitly in recover-mode output (`CANONICAL`, `RECOVERED_NAMED`, `RECOVERED_ANONYMOUS`, `UNRECOVERABLE`) with distinct visual tokens.
+- Alternatives considered:
+  1. Keep command-local status wording and color decisions with only style-guide documentation.
+  2. Preserve `PARTIAL` as the primary degraded user-facing term.
+- Rationale:
+  - Packet requires one reusable semantic visual language before deeper motion/polish work and forbids per-command improvisation.
+  - `DEGRADED` communicates degraded-but-usable behavior more clearly than overloaded `PARTIAL` in recovery-aware contexts.
+- Blast radius:
+  - Human/silent CLI status strings changed where `PARTIAL` was previously presented.
+  - Golden presentation fixtures and recovery validation assertions were updated.
+  - No archive format, extraction safety policy, or machine JSON schema contracts changed.
+
 ## 2026-03-23 — CRUSHR_RECOVERY_MODEL_03 confidence-tiered content typing contract
 
 - Decision:
