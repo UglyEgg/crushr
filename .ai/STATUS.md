@@ -7,9 +7,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_RECOVERY_MODEL_06 complete** (recovery classification high-confidence boundaries and clean-archive/no-artifact guarantees are now explicitly hardened by code + tests)
+Current Step: **CRUSHR_UI_POLISH_01 complete** (shared CLI visual tokens + status semantics are now centralized, recovery trust classes are explicitly rendered, and presentation wording is consistent across core commands)
 
 
+
+
+Latest maintenance fix (2026-03-23):
+- **CRUSHR_UI_POLISH_01 complete**: replaced ad hoc CLI status/color handling with a shared semantic token layer (`VisualToken`) in `cli_presentation`, including required title/section/label/muted/running/pending/success/degraded/failure/info and trust-class tokens.
+- **CRUSHR_UI_POLISH_01 complete**: standardized user-facing status semantics around `PENDING`, `RUNNING`, `COMPLETE`, `DEGRADED`, `FAILED`, and `REFUSED` (with bounded compatibility/status aliases retained for existing call sites), and mapped prior `PARTIAL` presentation to `DEGRADED`.
+- **CRUSHR_UI_POLISH_01 complete**: updated recover-mode output to surface an explicit `Trust classes` section (`CANONICAL`, `RECOVERED_NAMED`, `RECOVERED_ANONYMOUS`, `UNRECOVERABLE`) and added a formal contract doc at `.ai/contracts/CLI_VISUAL_SEMANTICS.md`.
+- **CRUSHR_UI_POLISH_01 validation**: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract --test recovery_extract_contract`, `cargo test -p crushr --test recovery_validation_corpus`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
 
 Latest maintenance fix (2026-03-23):
 - **CRUSHR_RECOVERY_MODEL_06 complete**: zip-family high-confidence promotion now requires root OOXML relationship marker (`_rels/.rels`) in addition to prior content markers, preventing docx/xlsx/pptx over-promotion from generic zip-like payloads.

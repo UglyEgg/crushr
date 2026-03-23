@@ -342,7 +342,7 @@ fn deterministic_recovery_validation_corpus_covers_strict_and_recover_modes() {
     assert_ok(&strict_hash);
     let strict_hash_stdout = String::from_utf8_lossy(&strict_hash.stdout);
     assert!(strict_hash_stdout.contains("refused files"));
-    assert!(strict_hash_stdout.contains("PARTIAL"));
+    assert!(strict_hash_stdout.contains("DEGRADED"));
 
     let recover_hash_out = root.join("recover-payload-hash-damaged");
     assert_ok(&run_recover(&hash_archive, &recover_hash_out));
@@ -403,7 +403,7 @@ fn deterministic_recovery_validation_corpus_covers_strict_and_recover_modes() {
     assert_ok(&strict_mixed);
     let strict_mixed_stdout = String::from_utf8_lossy(&strict_mixed.stdout);
     assert!(strict_mixed_stdout.contains("refused files"));
-    assert!(strict_mixed_stdout.contains("PARTIAL"));
+    assert!(strict_mixed_stdout.contains("DEGRADED"));
 
     let recover_mixed_out = root.join("recover-mixed");
     assert_ok(&run_recover(&split_archive, &recover_mixed_out));

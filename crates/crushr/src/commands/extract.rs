@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use crate::cli_presentation::{CliPresenter, StatusWord, group_u64};
+use crate::cli_presentation::{CliPresenter, StatusWord, TrustClass, group_u64};
 use anyhow::{Context, Result};
 use crushr_core::extraction::ExtractionOutcomeKind;
 use crushr_core::{
@@ -342,6 +342,16 @@ fn run_verify(
     ))
 }
 
+fn recovery_completeness_status(value: &str) -> StatusWord {
+    match value {
+        "COMPLETE" => StatusWord::Complete,
+        "PARTIAL" => StatusWord::Degraded,
+        "FAILED" => StatusWord::Failed,
+        "REFUSED" => StatusWord::Refused,
+        _ => StatusWord::Running,
+    }
+}
+
 fn exit_code_for_outcome(kind: ExtractionOutcomeKind, refusal_exit: RefusalExitPolicy) -> i32 {
     match (kind, refusal_exit) {
         (ExtractionOutcomeKind::PartialRefusal, RefusalExitPolicy::PartialFailure) => 3,
@@ -447,14 +457,26 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                                 group_u64(recovered_run.unrecoverable_count as u64),
                             );
                             presenter.section("Extraction status");
-                            presenter.kv("canonical extraction", recovered_run.canonical_trust);
-                            presenter.kv("recovery extraction", recovered_run.recovery_trust);
+                            presenter.kv(
+                                "canonical extraction",
+                                recovery_completeness_status(recovered_run.canonical_trust)
+                                    .as_str(),
+                            );
+                            presenter.kv(
+                                "recovery extraction",
+                                recovery_completeness_status(recovered_run.recovery_trust).as_str(),
+                            );
+                            presenter.section("Trust classes");
+                            presenter.trust_kv("canonical", TrustClass::Canonical);
+                            presenter.trust_kv("recovered_named", TrustClass::RecoveredNamed);
+                            presenter
+                                .trust_kv("recovered_anonymous", TrustClass::RecoveredAnonymous);
+                            presenter.trust_kv("unrecoverable", TrustClass::Unrecoverable);
                             let non_canonical_count = recovered_run.recovered_named_count
                                 + recovered_run.recovered_anonymous_count;
                             if non_canonical_count > 0 || recovered_run.unrecoverable_count > 0 {
                                 presenter.section("Notes");
-                                presenter.item(
-                                    StatusWord::Ok,
+                                presenter.info_note(
                                     "recovered output is non-canonical and kept under recovery paths",
                                 );
                                 presenter.kv("manifest", recovered_run.manifest_path.display());
@@ -473,7 +495,7 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                             if classified.outcome_kind == ExtractionOutcomeKind::Success {
                                 StatusWord::Complete
                             } else {
-                                StatusWord::Partial
+                                StatusWord::Degraded
                             },
                             if opts.recover {
                                 "recovery extraction completed"
@@ -485,7 +507,7 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                             if classified.outcome_kind == ExtractionOutcomeKind::Success {
                                 StatusWord::Complete
                             } else {
-                                StatusWord::Partial
+                                StatusWord::Degraded
                             },
                             &[
                                 ("archive", opts.archive.display().to_string()),

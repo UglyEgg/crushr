@@ -17,5 +17,5 @@ Evidence
   rejected/unresolved    0
 
 Result
-  status                 PARTIAL
+  status                 DEGRADED
   message                research salvage output; not canonical extraction

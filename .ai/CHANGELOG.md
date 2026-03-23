@@ -3,6 +3,15 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
+# .ai/CHANGELOG.md
+
+## 2026-03-23 — CRUSHR_UI_POLISH_01
+- Introduced a shared semantic CLI visual token layer in `crates/crushr/src/cli_presentation.rs`, replacing command-local meaning/color drift with centralized token mapping and no-color-safe rendering.
+- Standardized user-facing status semantics to `PENDING`, `RUNNING`, `COMPLETE`, `DEGRADED`, `FAILED`, and `REFUSED`; retained bounded compatibility aliases and rendered legacy `PARTIAL` outcomes as `DEGRADED`.
+- Added recover-mode trust-class presentation section in `crushr-extract` and documented token/status/trust contract in `.ai/contracts/CLI_VISUAL_SEMANTICS.md` (+ contracts index update).
+- Updated presentation/recovery tests and goldens for consistent semantics (`cli_presentation_contract`, `recovery_validation_corpus`).
+- Validation: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract --test recovery_extract_contract`, `cargo test -p crushr --test recovery_validation_corpus`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`.
+
 ## 2026-03-23 — CRUSHR_RECOVERY_MODEL_06
 - Hardened OOXML high-confidence classification boundaries: `docx`/`xlsx`/`pptx` now require `_rels/.rels` plus existing subtype markers, reducing generic-zip container misclassification risk.
 - Added deterministic naming collision coverage for repeated same-payload classification IDs to lock unique stable assigned names.

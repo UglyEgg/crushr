@@ -2,45 +2,96 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 use std::io::IsTerminal;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VisualToken {
+    TitleProductLine,
+    SectionHeader,
+    PrimaryLabel,
+    SecondaryText,
+    ActiveRunning,
+    Pending,
+    CompleteSuccess,
+    WarningDegraded,
+    FailureRefusal,
+    InformationalNote,
+    TrustCanonical,
+    TrustRecoveredNamed,
+    TrustRecoveredAnonymous,
+    TrustUnrecoverable,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrustClass {
+    Canonical,
+    RecoveredNamed,
+    RecoveredAnonymous,
+    Unrecoverable,
+}
+
+impl TrustClass {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Canonical => "CANONICAL",
+            Self::RecoveredNamed => "RECOVERED_NAMED",
+            Self::RecoveredAnonymous => "RECOVERED_ANONYMOUS",
+            Self::Unrecoverable => "UNRECOVERABLE",
+        }
+    }
+
+    fn token(self) -> VisualToken {
+        match self {
+            Self::Canonical => VisualToken::TrustCanonical,
+            Self::RecoveredNamed => VisualToken::TrustRecoveredNamed,
+            Self::RecoveredAnonymous => VisualToken::TrustRecoveredAnonymous,
+            Self::Unrecoverable => VisualToken::TrustUnrecoverable,
+        }
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StatusWord {
-    Verified,
-    Ok,
-    Complete,
-    Partial,
-    Refused,
-    Failed,
+    Pending,
     Running,
+    Complete,
+    Degraded,
+    Failed,
+    Refused,
+    Verified,
     Scanning,
     Writing,
     Finalizing,
+    Ok,
+    Partial,
 }
 
 impl StatusWord {
     pub fn as_str(self) -> &'static str {
         match self {
+            Self::Pending => "PENDING",
+            Self::Running => "RUNNING",
+            Self::Complete => "COMPLETE",
+            Self::Degraded | Self::Partial => "DEGRADED",
+            Self::Failed => "FAILED",
+            Self::Refused => "REFUSED",
             Self::Verified => "VERIFIED",
             Self::Ok => "OK",
-            Self::Complete => "COMPLETE",
-            Self::Partial => "PARTIAL",
-            Self::Refused => "REFUSED",
-            Self::Failed => "FAILED",
-            Self::Running => "RUNNING",
-            Self::Scanning => "SCANNING",
-            Self::Writing => "WRITING",
-            Self::Finalizing => "FINALIZING",
+            Self::Scanning => "RUNNING",
+            Self::Writing => "RUNNING",
+            Self::Finalizing => "RUNNING",
         }
     }
-}
 
-impl StatusWord {
-    fn color_code(self) -> Option<&'static str> {
+    fn token(self) -> VisualToken {
         match self {
-            Self::Verified | Self::Complete => Some("\x1b[32m"),
-            Self::Partial => Some("\x1b[33m"),
-            Self::Refused | Self::Failed => Some("\x1b[31m"),
-            _ => None,
+            Self::Pending => VisualToken::Pending,
+            Self::Running | Self::Scanning | Self::Writing | Self::Finalizing => {
+                VisualToken::ActiveRunning
+            }
+            Self::Complete | Self::Verified | Self::Ok => VisualToken::CompleteSuccess,
+            Self::Degraded | Self::Partial => VisualToken::WarningDegraded,
+            Self::Failed | Self::Refused => VisualToken::FailureRefusal,
         }
     }
 }
@@ -72,7 +123,13 @@ impl CliPresenter {
         if self.silent {
             return;
         }
-        println!("{}  /  {}", self.tool, self.action);
+        println!(
+            "{}",
+            self.paint_token(
+                VisualToken::TitleProductLine,
+                &format!("{}  /  {}", self.tool, self.action)
+            )
+        );
         println!("{}", "-".repeat(72));
     }
 
@@ -81,14 +138,26 @@ impl CliPresenter {
             return;
         }
         println!();
-        println!("{title}");
+        println!("{}", self.paint_token(VisualToken::SectionHeader, title));
     }
 
     pub fn kv(&self, key: &str, value: impl std::fmt::Display) {
         if self.silent {
             return;
         }
-        println!("  {:<width$} {}", key, value, width = self.label_width);
+        println!(
+            "  {:<width$} {}",
+            self.paint_token(VisualToken::PrimaryLabel, key),
+            value,
+            width = self.label_width
+        );
+    }
+
+    pub fn kv_muted(&self, key: &str, value: impl std::fmt::Display) {
+        self.kv(
+            key,
+            self.paint_token(VisualToken::SecondaryText, &value.to_string()),
+        );
     }
 
     pub fn kv_number(&self, key: &str, value: u64) {
@@ -110,11 +179,25 @@ impl CliPresenter {
         self.kv("message", message);
     }
 
+    pub fn trust_kv(&self, key: &str, trust: TrustClass) {
+        self.kv(key, self.paint_token(trust.token(), trust.as_str()));
+    }
+
     pub fn item(&self, status: StatusWord, message: &str) {
         if self.silent {
             return;
         }
         println!("  - {} {}", self.paint_status(status), message);
+    }
+
+    pub fn info_note(&self, message: &str) {
+        if self.silent {
+            return;
+        }
+        println!(
+            "  - {}",
+            self.paint_token(VisualToken::InformationalNote, message)
+        );
     }
 
     pub fn silent_summary(&self, status: StatusWord, fields: &[(&str, String)]) {
@@ -132,12 +215,34 @@ impl CliPresenter {
     }
 
     fn paint_status(&self, status: StatusWord) -> String {
+        self.paint_token(status.token(), status.as_str())
+    }
+
+    fn paint_token(&self, token: VisualToken, value: &str) -> String {
         if self.use_color
-            && let Some(code) = status.color_code()
+            && let Some(code) = token.color_code()
         {
-            return format!("{code}{}\x1b[0m", status.as_str());
+            return format!("{code}{value}\x1b[0m");
         }
-        status.as_str().to_string()
+        value.to_string()
+    }
+}
+
+impl VisualToken {
+    fn color_code(self) -> Option<&'static str> {
+        match self {
+            Self::TitleProductLine => Some("\x1b[1;37m"),
+            Self::SectionHeader => Some("\x1b[1;36m"),
+            Self::PrimaryLabel => Some("\x1b[37m"),
+            Self::SecondaryText => Some("\x1b[90m"),
+            Self::ActiveRunning => Some("\x1b[36m"),
+            Self::Pending => Some("\x1b[90m"),
+            Self::CompleteSuccess | Self::TrustCanonical => Some("\x1b[32m"),
+            Self::WarningDegraded | Self::TrustRecoveredNamed => Some("\x1b[33m"),
+            Self::TrustRecoveredAnonymous => Some("\x1b[93m"),
+            Self::FailureRefusal | Self::TrustUnrecoverable => Some("\x1b[31m"),
+            Self::InformationalNote => Some("\x1b[94m"),
+        }
     }
 }
 

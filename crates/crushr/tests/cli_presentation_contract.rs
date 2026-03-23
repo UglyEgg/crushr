@@ -107,7 +107,7 @@ fn silent_mode_emits_one_line_summary_for_public_commands() {
             .arg("--silent"),
     );
     assert_eq!(salvage_out.lines().count(), 1);
-    assert!(salvage_out.contains("status=PARTIAL"));
+    assert!(salvage_out.contains("status=DEGRADED"));
 
     let salvage_human =
         run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-salvage"))).arg(&archive));
