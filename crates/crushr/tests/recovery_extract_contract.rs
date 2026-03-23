@@ -9,8 +9,8 @@ use crushr_core::{
 };
 use crushr_format::blk3::read_blk3_header;
 use serde_json::Value;
-use std::io::Cursor;
 use std::fs;
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -72,7 +72,10 @@ fn corrupt_first_block_payload_hash_only(archive: &Path) {
     let header = read_blk3_header(Cursor::new(&bytes[header_start..header_end])).unwrap();
 
     let fixed_prefix = 4 + 2 + 2 + 4 + 4 + 4 + 8 + 8;
-    assert!(header.payload_hash.is_some(), "expected payload hash in block");
+    assert!(
+        header.payload_hash.is_some(),
+        "expected payload hash in block"
+    );
     let payload_hash_offset = header_start + fixed_prefix;
     bytes[payload_hash_offset] ^= 0x01;
     fs::write(archive, bytes).unwrap();

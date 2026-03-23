@@ -16,6 +16,7 @@ Latest maintenance fix (2026-03-23):
 - **CRUSHR_RECOVERY_MODEL_01 complete**: added `crushr-extract --recover` mode that keeps strict default extraction unchanged while emitting recovery-aware outputs under `canonical/`, `recovered_named/`, and `_crushr_recovery/{manifest.json,anonymous/}`.
 - **CRUSHR_RECOVERY_MODEL_01 complete**: integrated trust classifications (`canonical`, `recovered_named`, `recovered_anonymous`, `unrecoverable`) and locked anonymous naming policy (`file_<id>.<ext>`, `file_<id>.probable-<type>.bin`, `file_<id>.bin`).
 - **CRUSHR_RECOVERY_MODEL_01 complete**: introduced `crushr-recovery-manifest.v1` schema + generator with classification/original-identity/reason fields and added integration coverage for clean + damaged recover runs.
+- **CRUSHR_RECOVERY_MODEL_01-FIX1 complete**: resolved formatting drift in `recovery_extract_contract.rs` so `cargo fmt --check` is green again without behavioral changes.
 
 Latest maintenance fix (2026-03-23):
 - **CRUSHR_VERIFY_SCALE_01 complete**: removed verify-path temp-directory extraction/materialization by adding a verify-only strict pass that validates extents/decompression without writing extracted files.

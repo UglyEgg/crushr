@@ -3,6 +3,10 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
+## 2026-03-23 — CRUSHR_RECOVERY_MODEL_01-FIX1
+- Applied rustfmt-conformant import ordering and assertion wrapping in `crates/crushr/tests/recovery_extract_contract.rs` to restore `cargo fmt --check` pass.
+- Validation: `cargo fmt`, `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`.
+
 ## 2026-03-23 — CRUSHR_RECOVERY_MODEL_01
 - Added internal recovery extraction engine (`recover_extract_impl`) and wired `crushr-extract --recover` while preserving strict default extraction semantics.
 - Implemented required recovery output layout and manifest generation (`canonical/`, `recovered_named/`, `_crushr_recovery/manifest.json`, `_crushr_recovery/anonymous/`) with locked trust classes and anonymous naming policy.
