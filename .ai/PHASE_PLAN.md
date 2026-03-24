@@ -81,6 +81,7 @@ Deliverables
 - [x] CRUSHR_UI_POLISH_02 — add shared title/section/key-value/progress/banner/result presentation primitives and migrate verify/extract/recover/pack/info to one stable structural hierarchy.
 - [x] CRUSHR_UI_POLISH_03 — define restrained motion contract and implement shared active-phase animation/state-settlement primitives for pack/extract/verify with TTY-safe no-motion fallbacks.
 - [x] CRUSHR_UI_POLISH_04 — apply motion polish to core commands by adding live pack serialization detail updates, enforcing non-TTY motion cleanliness checks, and settling progress rows into stable final summaries.
+- [x] CRUSHR_UI_POLISH_06 — finalize CLI visual consistency (about color/style/divider/newline/alignment) and expand `info` into a product-grade archive inspection summary with user-facing dictionary/compression reporting.
 - [ ] CRUSHR-BENCH-01 — implement benchmark harness foundation using manifest-driven deterministic corpus/variant/corruption execution and schema-backed raw/summary output.
 - [ ] CRUSHR-BENCH-02 — initial canonical corpus generation, baseline runs, and first quantitative benchmark artifacts.
 - [ ] CRUSHR-BENCH-03 — benchmark result review, compression/performance tuning priorities, and whitepaper/data-surface integration.
@@ -269,7 +270,7 @@ Exit criteria
 
 Latest priority doctrine
 
-- Finish acceptance of the unified CLI/operator surface.
+- Unified CLI/operator surface acceptance (including v0.3.x polish through CRUSHR_UI_POLISH_06) is complete.
 - Start benchmark harness implementation immediately after.
 - Use benchmark data to steer compression and performance work.
 - Keep evidence/custody features on the long-range roadmap rather than inside the current 0.x core.

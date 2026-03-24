@@ -5,6 +5,7 @@ use crate::cli_presentation::{CliPresenter, StatusWord, group_u64};
 use crate::format::{EntryKind, IDX_MAGIC_V3};
 use crate::index_codec::decode_index;
 use anyhow::{Context, Result, bail};
+use crushr_core::verify::scan_blocks_v1;
 use crushr_core::{
     io::{Len, ReadAt},
     open::open_archive_v1,
@@ -15,6 +16,7 @@ use crushr_core::{
     snapshot::{info_envelope_from_open_archive, serialize_snapshot_json},
     verify::verify_block_payloads_v1,
 };
+use crushr_format::blk3::{BLK3_MAGIC, read_blk3_header};
 use crushr_format::ftr4::{FTR4_LEN, Ftr4};
 use crushr_format::tailframe::parse_tail_frame;
 use std::collections::BTreeSet;
@@ -64,6 +66,70 @@ fn dependencies_from_index_bytes(idx3_bytes: &[u8]) -> Option<Vec<FileDependency
         });
     }
     Some(deps)
+}
+
+struct IndexSummary {
+    regular_file_count: u64,
+    extent_count: u64,
+    logical_bytes: u64,
+}
+
+fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
+    let index = decode_index(idx3_bytes).ok()?;
+    let mut regular_file_count = 0u64;
+    let mut extent_count = 0u64;
+    let mut logical_bytes = 0u64;
+
+    for entry in index.entries {
+        if entry.kind != EntryKind::Regular {
+            continue;
+        }
+        regular_file_count += 1;
+        extent_count += entry.extents.len() as u64;
+        logical_bytes = logical_bytes.saturating_add(entry.size);
+    }
+
+    Some(IndexSummary {
+        regular_file_count,
+        extent_count,
+        logical_bytes,
+    })
+}
+
+fn compression_levels_from_blocks<R: ReadAt + Len>(
+    reader: &R,
+    blocks_end_offset: u64,
+) -> Result<Option<String>> {
+    let blocks = scan_blocks_v1(reader, blocks_end_offset)?;
+    if blocks.is_empty() {
+        return Ok(None);
+    }
+
+    let mut levels = BTreeSet::new();
+    for block in blocks {
+        let mut header_prefix = [0u8; 6];
+        read_exact_at(reader, block.header_offset, &mut header_prefix)?;
+        if header_prefix[..4] != BLK3_MAGIC {
+            bail!("invalid BLK3 magic while reading compression levels");
+        }
+        let header_len = u16::from_le_bytes([header_prefix[4], header_prefix[5]]) as usize;
+        let mut header_bytes = vec![0u8; header_len];
+        read_exact_at(reader, block.header_offset, &mut header_bytes)?;
+        let header = read_blk3_header(Cursor::new(&header_bytes))
+            .context("parse BLK3 header for compression levels")?;
+        levels.insert(header.level);
+    }
+
+    if levels.len() == 1 {
+        return Ok(levels.iter().next().map(|value| value.to_string()));
+    }
+
+    let merged = levels
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ");
+    Ok(Some(format!("mixed ({merged})")))
 }
 
 fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> Result<String> {
@@ -218,15 +284,61 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         group_u64(snapshot.payload.summary.archive_len),
     );
     presenter.kv("blake3", archive_blake3);
+    presenter.kv("format markers", "FTR4 + IDX3");
 
     presenter.section("Structure");
     presenter.kv("has footer", snapshot.payload.summary.has_footer);
-    presenter.kv("has dct1", snapshot.payload.summary.has_dct1);
-    presenter.kv("has ldg1", snapshot.payload.summary.has_ldg1);
     presenter.kv(
         "tail frames",
         group_u64(snapshot.payload.tail_frames.len() as u64),
     );
+    let index_summary = summarize_index(&opened.tail.idx3_bytes);
+    presenter.kv(
+        "regular files",
+        index_summary.as_ref().map_or_else(
+            || "unavailable".to_string(),
+            |s| group_u64(s.regular_file_count),
+        ),
+    );
+    presenter.kv(
+        "extents referenced",
+        index_summary
+            .as_ref()
+            .map_or_else(|| "unavailable".to_string(), |s| group_u64(s.extent_count)),
+    );
+    presenter.kv(
+        "logical bytes",
+        index_summary
+            .as_ref()
+            .map_or_else(|| "unavailable".to_string(), |s| group_u64(s.logical_bytes)),
+    );
+    let payload_blocks = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset)
+        .map(|blocks| group_u64(blocks.len() as u64))
+        .unwrap_or_else(|_| "unavailable".to_string());
+    presenter.kv("payload blocks", payload_blocks);
+    let dictionary_summary = if snapshot.payload.summary.has_dct1 {
+        format!(
+            "present ({} entries)",
+            group_u64(snapshot.payload.dicts.count as u64)
+        )
+    } else {
+        "not present".to_string()
+    };
+    presenter.kv("dictionary table", dictionary_summary);
+    presenter.kv(
+        "dictionary ledger",
+        if snapshot.payload.summary.has_ldg1 {
+            "present"
+        } else {
+            "not present"
+        },
+    );
+    let compression_level =
+        compression_levels_from_blocks(&reader, opened.tail.footer.blocks_end_offset)
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| "unavailable".to_string());
+    presenter.kv("compression level", compression_level);
 
     presenter.result_summary(StatusWord::Complete, "archive inspection completed", &[]);
     Ok(())

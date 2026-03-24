@@ -5,6 +5,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-24 — CRUSHR_UI_POLISH_06 (v0.3.5)
+- Finalized shared CLI visual consistency: commands now begin with a leading blank line, use one canonical double-line divider, and keep right-column key/value alignment stable even with colorized labels.
+- Reworked `crushr about` to the same product presentation contract (shared color semantics, canonical divider, aligned key/value rows) so it matches pack/verify/extract/info output style.
+- Upgraded `crushr-info` human inspection summary: removed raw internal `has dct1` exposure, translated dictionary state into product language, and added compact archive-structure detail rows (regular files, extents, logical bytes, payload blocks, dictionary table/ledger, compression level or explicit unavailable).
+- Bumped product version to `0.3.5` (`VERSION` + workspace package version sync) and refreshed CLI presentation golden fixtures.
+- Validation: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`.
+
 ## 2026-03-24 — CRUSHR_UI_POLISH_04
 - Polished `crushr-pack` live progress by feeding shared active-phase detail updates during serialization (`files=<done>/<total>`) and settling the final serialization row with stable file-count truth.
 - Added non-TTY motion cleanliness contract coverage in `cli_presentation_contract` to assert pack/verify/extract/extract-recover outputs never emit carriage-return or clear-line control artifacts when output is piped.

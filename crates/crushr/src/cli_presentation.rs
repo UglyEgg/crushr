@@ -8,6 +8,9 @@ use std::sync::{
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
+pub const CANONICAL_DIVIDER_WIDTH: usize = 72;
+pub const KV_LABEL_WIDTH: usize = 22;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VisualToken {
     TitleProductLine,
@@ -141,7 +144,7 @@ impl CliPresenter {
             silent,
             is_tty,
             use_color,
-            label_width: 22,
+            label_width: KV_LABEL_WIDTH,
             motion_mode: MotionMode::from_env(),
         }
     }
@@ -154,6 +157,7 @@ impl CliPresenter {
         if self.silent {
             return;
         }
+        println!();
         let title = if let Some(context) = context {
             format!("{tool}  /  {context}")
         } else {
@@ -163,7 +167,7 @@ impl CliPresenter {
             "{}",
             self.paint_token(VisualToken::TitleProductLine, &title)
         );
-        println!("{}", "-".repeat(72));
+        println!("{}", canonical_divider());
     }
 
     pub fn section(&self, title: &str) {
@@ -178,11 +182,11 @@ impl CliPresenter {
         if self.silent {
             return;
         }
+        let padded_key = format!("{key:<width$}", width = self.label_width);
         println!(
-            "  {:<width$} {}",
-            self.paint_token(VisualToken::PrimaryLabel, key),
+            "  {} {}",
+            self.paint_token(VisualToken::PrimaryLabel, &padded_key),
             value,
-            width = self.label_width
         );
     }
 
@@ -486,4 +490,22 @@ pub fn group_u64(value: u64) -> String {
         out.push(ch);
     }
     out.chars().rev().collect()
+}
+
+pub fn canonical_divider() -> String {
+    "═".repeat(CANONICAL_DIVIDER_WIDTH)
+}
+
+pub fn paint_for_stdout(token: VisualToken, value: &str) -> String {
+    let use_color = stdout_uses_color();
+    if use_color && let Some(code) = token.color_code() {
+        return format!("{code}{value}\x1b[0m");
+    }
+    value.to_string()
+}
+
+pub fn stdout_uses_color() -> bool {
+    #[allow(clippy::disallowed_methods)]
+    let is_tty = std::io::stdout().is_terminal();
+    is_tty && std::env::var_os("NO_COLOR").is_none()
 }

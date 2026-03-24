@@ -1,3 +1,9 @@
+CRUSHR_UI_POLISH_06 completion update (2026-03-24):
+- Shared CLI presentation now enforces one canonical title treatment: leading blank line before command output, UTF-8 double-line divider, and stable key/value column alignment even under ANSI color (padding applied before coloring).
+- `crushr about` was rebuilt onto the same visual contract (colorized title/section/labels, canonical divider, shared key width), eliminating prior bespoke style drift.
+- `crushr-info` human mode now reports product-grade inspection fields (regular file count, extents, logical bytes, payload block count, dictionary table/ledger, compression level when recoverable), and no longer leaks raw internal label `has dct1`.
+- Version milestone advanced to `0.3.5` for this v0.3.x CLI/inspection polish pass; presentation goldens were refreshed and full fmt/clippy/workspace tests are green.
+
 CRUSHR_UI_POLISH_04 completion update (2026-03-24):
 - Refined shared-motion progress behavior for `crushr-pack` by wiring live serialization detail updates through `ActivePhase::set_detail` and settling the phase with stable final file-count truth.
 - Added non-TTY cleanliness integration coverage for `pack`, `verify`, `extract`, and `extract --recover` with `CRUSHR_MOTION=full` to lock no residual carriage-control/spinner artifacts in piped output.
@@ -101,6 +107,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
 # Handoff
+
+CRUSHR_UI_POLISH_06 completion update (2026-03-24):
+- Shared CLI presentation now enforces one canonical title treatment: leading blank line before command output, UTF-8 double-line divider, and stable key/value column alignment even under ANSI color (padding applied before coloring).
+- `crushr about` was rebuilt onto the same visual contract (colorized title/section/labels, canonical divider, shared key width), eliminating prior bespoke style drift.
+- `crushr-info` human mode now reports product-grade inspection fields (regular file count, extents, logical bytes, payload block count, dictionary table/ledger, compression level when recoverable), and no longer leaks raw internal label `has dct1`.
+- Version milestone advanced to `0.3.5` for this v0.3.x CLI/inspection polish pass; presentation goldens were refreshed and full fmt/clippy/workspace tests are green.
 
 CRUSHR_UI_POLISH_03 completion update (2026-03-23):
 - Added a shared active-phase motion layer in `crates/crushr/src/cli_presentation.rs` (`begin_active_phase` + `ActivePhase`) with centralized animation lifecycle, bounded cadence, and stable phase settlement/freeze behavior.

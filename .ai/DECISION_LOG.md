@@ -5,6 +5,26 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-24 — CRUSHR_UI_POLISH_06 canonical divider/alignment lock + product-grade info summary
+
+- Decision:
+  - Standardize shared presenter title rows on one canonical style: leading blank line + double-line divider + shared color semantics, and route key/value alignment through padding-before-colorization so ANSI output does not shift the value column.
+  - Rework `about` to use the same shared visual contract (title spacing/divider, token-based color semantics, and aligned key/value widths) instead of a bespoke formatter.
+  - Promote `info` human mode from sparse/internal fields to product-facing archive inspection: surface regular file count, extent references, logical bytes, payload block count, dictionary table/ledger presence, and compression-level summary derived from block headers when available.
+  - Remove raw internal label leakage (`has dct1`) from primary `info` output; translate to dictionary-table language.
+- Alternatives considered:
+  1. Keep `about` as a separate plain-text layout and only tweak wording.
+  2. Leave colorized alignment drift unresolved and rely on no-color output for clean columns.
+  3. Keep `info` minimal/internal and push richer inspection to a future verbose mode only.
+- Rationale:
+  - Packet requires suite-wide visual consistency and explicit removal of internal jargon from user-facing inspection.
+  - Padding labels before token coloring prevents right-column drift in color-enabled terminals without changing no-color/non-TTY behavior.
+  - Block-header scan enables truthful compression-level reporting; when unavailable, output explicitly says so rather than inventing values.
+- Blast radius:
+  - Human CLI output shape changed across core command goldens due canonical divider/newline policy.
+  - `about` and `info` human outputs changed; `info --json` contract remains unchanged.
+  - Version advanced to `0.3.5` for v0.3.x CLI/inspection product-surface milestone.
+
 ## 2026-03-24 — CRUSHR_UI_POLISH_04 pack live-detail polish + non-TTY artifact lock
 
 - Decision:
