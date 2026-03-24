@@ -5,6 +5,22 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-24 — CRUSHR_UI_POLISH_04 pack live-detail polish + non-TTY artifact lock
+
+- Decision:
+  - Keep command-specific motion refinements routed through shared `cli_presentation::ActivePhase` primitives; for `pack`, expose real serialization progress detail via `set_detail(files=<done>/<total>)` and settle with a final stable count detail.
+  - Add explicit integration coverage asserting non-TTY command output remains artifact-free (no `\r` redraw control or clear-line escape remnants) even with `CRUSHR_MOTION=full`.
+- Alternatives considered:
+  1. Leave pack serialization as a detail-free running phase to avoid minor output drift.
+  2. Rely only on manual checks for non-TTY cleanliness.
+- Rationale:
+  - Packet requires practical refinement on real command UX while preserving shared motion ownership and copy/paste-safe final output.
+  - Contract-level non-TTY checks prevent regressions where future motion changes leak terminal-control noise into logs/pipes.
+- Blast radius:
+  - Human pack progress output now includes stabilized serialization detail in final settled row.
+  - `cli_presentation_contract` gained a non-TTY artifact guard for pack/verify/extract/recover flows.
+  - No archive semantics, JSON contracts, or public CLI flag surface changes.
+
 ## 2026-03-23 — CRUSHR_UI_POLISH_03 restrained shared CLI motion policy + active-phase animation layer
 
 - Decision:

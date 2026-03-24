@@ -647,11 +647,16 @@ fn pack_minimal_v1(
     };
     let file_count = layout.files.len();
     let serialization = presenter.begin_active_phase("serialization", None);
-    if let Err(err) = emit_archive_from_layout(layout, output, level, options) {
+    if let Err(err) = emit_archive_from_layout(layout, output, level, options, |done, total| {
+        serialization.set_detail(format!("files={}/{}", group_u64(done), group_u64(total)));
+    }) {
         serialization.settle(StatusWord::Failed, None);
         return Err(err);
     }
-    serialization.settle(StatusWord::Complete, None);
+    serialization.settle(
+        StatusWord::Complete,
+        Some(&format!("files={}", group_u64(file_count as u64))),
+    );
     let finalization = presenter.begin_active_phase("finalization", None);
     finalization.settle(StatusWord::Complete, None);
     presenter.result_summary(
@@ -766,6 +771,7 @@ fn emit_archive_from_layout(
     output: &Path,
     level: i32,
     options: PackExperimentalOptions,
+    mut progress: impl FnMut(u64, u64),
 ) -> Result<()> {
     let total_files = layout.files.len();
 
@@ -991,6 +997,7 @@ fn emit_archive_from_layout(
             link_target: None,
             xattrs: Vec::new(),
         });
+        progress((ordinal + 1) as u64, total_files as u64);
     }
 
     if layout.metadata.dictionary.tail_copy_required {
@@ -1753,7 +1760,7 @@ mod tests {
         std::fs::write(&input, b"changed-content").expect("mutate file");
 
         let output = td.path().join("out.crs");
-        let err = emit_archive_from_layout(layout, &output, 3, baseline_options())
+        let err = emit_archive_from_layout(layout, &output, 3, baseline_options(), |_, _| {})
             .expect_err("emit should fail");
         assert!(
             err.to_string()

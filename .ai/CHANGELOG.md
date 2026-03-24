@@ -5,6 +5,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-24 — CRUSHR_UI_POLISH_04
+- Polished `crushr-pack` live progress by feeding shared active-phase detail updates during serialization (`files=<done>/<total>`) and settling the final serialization row with stable file-count truth.
+- Added non-TTY motion cleanliness contract coverage in `cli_presentation_contract` to assert pack/verify/extract/extract-recover outputs never emit carriage-return or clear-line control artifacts when output is piped.
+- Updated pack presentation golden output to lock the refined final serialization detail and reran formatting/lint/tests (`cargo fmt --all`, focused UI/recovery integration tests, clippy, full workspace tests).
+
 ## 2026-03-23 — CRUSHR_UI_POLISH_03
 - Added shared active-phase motion primitives in `crates/crushr/src/cli_presentation.rs` with centralized animation controls, bounded redraw cadence (full/reduced), stable completion/failure freeze behavior, and non-TTY-safe fallback rendering.
 - Migrated core long-running progress paths (`crushr-pack`, `crushr-extract`, `crushr-extract --verify`, including recover-phase callbacks) to the shared motion layer and removed command-local phase-status improvisation.

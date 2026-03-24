@@ -80,6 +80,7 @@ Deliverables
 - [x] CRUSHR_UI_POLISH_01 — centralize CLI visual token semantics + calm status vocabulary across pack/extract/verify/info/salvage and document trust-class visual semantics contract.
 - [x] CRUSHR_UI_POLISH_02 — add shared title/section/key-value/progress/banner/result presentation primitives and migrate verify/extract/recover/pack/info to one stable structural hierarchy.
 - [x] CRUSHR_UI_POLISH_03 — define restrained motion contract and implement shared active-phase animation/state-settlement primitives for pack/extract/verify with TTY-safe no-motion fallbacks.
+- [x] CRUSHR_UI_POLISH_04 — apply motion polish to core commands by adding live pack serialization detail updates, enforcing non-TTY motion cleanliness checks, and settling progress rows into stable final summaries.
 - [ ] CRUSHR-BENCH-01 — implement benchmark harness foundation using manifest-driven deterministic corpus/variant/corruption execution and schema-backed raw/summary output.
 - [ ] CRUSHR-BENCH-02 — initial canonical corpus generation, baseline runs, and first quantitative benchmark artifacts.
 - [ ] CRUSHR-BENCH-03 — benchmark result review, compression/performance tuning priorities, and whitepaper/data-surface integration.
