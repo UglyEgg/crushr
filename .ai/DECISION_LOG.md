@@ -5,6 +5,29 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-24 — CRUSHR_UI_POLISH_07 help/extension/progress/metrics/info compression truth lock
+
+- Decision:
+  - Route help output for core product commands (`crushr`, `crushr-pack`, `crushr-extract`, `crushr-info`) through shared `CliPresenter` sections/tokens so help colorization follows the same semantic palette as runtime command output.
+  - Normalize pack output archive paths by appending `.crs` only when the user-supplied `-o/--output` has no extension; preserve explicit user extensions unchanged.
+  - Split pack progress truth into explicit `compression` and `serialization` phases that both settle at `files=N/N`, then show a visible `finalizing` phase before result emission.
+  - Expand pack final result rows with truthful runtime/compression metrics computed from real run values (input logical bytes, emitted archive bytes, measured elapsed duration).
+  - Expand `info` human output with a dedicated `Compression` section (`method`, `level`) derived from parsed BLK3 headers; fall back to `unavailable` when data cannot be recovered.
+- Alternatives considered:
+  1. Keep static/plain help strings and colorize only command runtime output.
+  2. Keep single `serialization` progress phase and rely on implicit tail closeout without explicit `finalizing`.
+  3. Report only `files packed` in pack results and defer runtime/compression metrics to later packet work.
+- Rationale:
+  - Packet requires user-facing truth improvements, not cosmetic-only updates; hidden finalization and N-1/N end-state were trust regressions.
+  - Shared help rendering avoids per-command style drift and keeps no-color/non-TTY behavior clean by reusing presenter gating.
+  - `.crs` defaulting improves consistency without overriding intentional operator-specified extensions.
+  - Compression metadata and metrics are now derived from real archive/runtime data, preventing fabricated values.
+- Blast radius:
+  - Human help output text layout changed for core commands; wrapper equivalence/behavior remains intact.
+  - Human `pack` and `info` output shapes changed; updated CLI golden fixtures and harness expectations accordingly.
+  - Lab harness identity-archive ordering expectation updated for extensionless output normalization (`c` -> `c.crs`).
+
+
 ## 2026-03-24 — CRUSHR_UI_POLISH_06 canonical divider/alignment lock + product-grade info summary
 
 - Decision:

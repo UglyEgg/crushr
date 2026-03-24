@@ -549,7 +549,7 @@ fn harness_accepts_identity_archives_and_stable_ordering() {
         .iter()
         .map(|row| row["archive_path"].as_str().unwrap().to_string())
         .collect::<Vec<_>>();
-    assert_eq!(runs, vec!["a.crushr", "b.crs", "c"]);
+    assert_eq!(runs, vec!["a.crushr", "b.crs", "c.crs"]);
 }
 
 #[test]

@@ -17,7 +17,10 @@ Structure
   payload blocks         2
   dictionary table       not present
   dictionary ledger      present
-  compression level      3
+
+Compression
+  method                 zstd
+  level                  3
 
 Result
   status                 COMPLETE

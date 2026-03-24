@@ -7,9 +7,20 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_UI_POLISH_06 complete** (about/info visual + inspection polish finalized for v0.3.5 product surface)
+Current Step: **CRUSHR_UI_POLISH_07 maintenance** (version bump follow-up finalized for v0.3.7)
 
 
+
+Latest maintenance fix (2026-03-24):
+- **CRUSHR_UI_POLISH_07 maintenance**: bumped product version from `0.3.5` to `0.3.7` via canonical version workflow (`VERSION` + workspace package version sync).
+- **CRUSHR_UI_POLISH_07 maintenance validation**: `./scripts/check-version-sync.sh` and `cargo test -p crushr --test version_contract` are green.
+
+Latest maintenance fix (2026-03-24):
+- **CRUSHR_UI_POLISH_07 complete**: colorized help surfaces (`crushr`, `crushr-pack`, `crushr-extract`, `crushr-info`) now route through shared CLI presentation tokens/sections instead of ad hoc plain help text.
+- **CRUSHR_UI_POLISH_07 complete**: standardized pack output extension behavior to append `.crs` when `-o/--output` has no extension while preserving explicit user-provided extensions.
+- **CRUSHR_UI_POLISH_07 complete**: corrected pack progress truth to show explicit `compression` and `serialization` phases reaching `N/N`, followed by visible `finalizing`; added result metrics (`archive`, size totals, compression ratio, reduction, processing time).
+- **CRUSHR_UI_POLISH_07 complete**: expanded `info` human output with a dedicated `Compression` section exposing method + level from parsed BLK3 headers (with unavailable fallback when data is missing).
+- **CRUSHR_UI_POLISH_07 validation**: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract --test cli_contract_surface`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
 
 Latest maintenance fix (2026-03-24):
 - **CRUSHR_UI_POLISH_06 complete**: standardized shared CLI title rendering with a leading blank line, canonical double-line divider, and color-safe key/value alignment that remains consistent with ANSI color enabled.
@@ -58,7 +69,7 @@ Latest maintenance fix (2026-03-23):
 - **CRUSHR_RECOVERY_MODEL_03 complete**: added a modular, data-driven recovery classification engine (`recovery_classification`) with ordered detection pipeline (magic -> secondary header/structure checks -> confidence assignment) and broad coverage across document/archive/media/binary/system signatures.
 - **CRUSHR_RECOVERY_MODEL_03 complete**: recover manifest entries now separate trust class (`recovery_kind`) from content typing (`classification.kind/confidence/basis/subtype`) and anonymous naming policy now strictly follows high/medium/low tiered naming.
 - **CRUSHR_RECOVERY_MODEL_03 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, and `cargo test --workspace` are green.
-Immediate Next Step: begin CRUSHR-BENCH-01 benchmark harness foundation now that the v0.3.x CLI polish surface is complete through CRUSHR_UI_POLISH_06.
+Immediate Next Step: begin CRUSHR-BENCH-01 benchmark harness foundation now that the v0.3.x CLI polish surface is complete through CRUSHR_UI_POLISH_07.
 
 
 Latest maintenance fix (2026-03-23):

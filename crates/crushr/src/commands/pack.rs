@@ -13,6 +13,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 const ZSTD_CODEC: u32 = 1;
 const PRODUCTION_USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
@@ -68,6 +69,53 @@ impl PackCliSurface {
     fn allows_experimental_flags(self) -> bool {
         matches!(self, Self::LabExperimental)
     }
+}
+
+fn print_help(surface: PackCliSurface) {
+    let presenter = CliPresenter::new("crushr-pack", "help", false);
+    presenter.header();
+    presenter.section("Usage");
+    match surface {
+        PackCliSurface::Production => presenter.kv(
+            "command",
+            "usage: crushr-pack <input>... -o <archive> [--level <n>] [--silent]",
+        ),
+        PackCliSurface::LabExperimental => presenter.kv(
+            "command",
+            "usage: crushr lab pack-experimental <input>... -o <archive> [--level <n>] [experimental flags] [--silent]",
+        ),
+    }
+    presenter.section("Flags");
+    presenter.kv("-o, --output <archive>", "output archive path");
+    presenter.kv("--level <n>", "zstd compression level (default: 3)");
+    if matches!(surface, PackCliSurface::LabExperimental) {
+        presenter.kv(
+            "--experimental-self-describing-extents",
+            "emit self-describing extent + checkpoint metadata",
+        );
+        presenter.kv(
+            "--experimental-file-identity-extents",
+            "emit file-identity extent + verified path-map metadata + distributed bootstrap anchors",
+        );
+        presenter.kv(
+            "--experimental-self-identifying-blocks",
+            "emit payload block identity + repeated verified path checkpoints",
+        );
+        presenter.kv(
+            "--experimental-file-manifest-checkpoints",
+            "emit distributed file-manifest checkpoints for recovery verification",
+        );
+        presenter.kv(
+            "--metadata-profile <name>",
+            "experimental metadata pruning profile",
+        );
+        presenter.kv(
+            "--placement-strategy <name>",
+            "metadata checkpoint placement strategy (experimental only)",
+        );
+    }
+    presenter.kv("--silent", "emit deterministic one-line summary output");
+    presenter.kv("-h, --help", "print this help text");
 }
 
 impl PlacementStrategy {
@@ -211,6 +259,20 @@ struct MetadataPlan {
 struct PackLayoutPlan {
     files: Vec<PlannedFileModel>,
     metadata: MetadataPlan,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum PackProgressPhase {
+    Compression,
+    Serialization,
+}
+
+#[derive(Debug)]
+struct PackRunMetrics {
+    files_packed: u64,
+    total_size_bytes: u64,
+    compressed_size_bytes: u64,
+    elapsed: Duration,
 }
 
 struct PayloadIdentityInput<'a> {
@@ -503,7 +565,7 @@ fn run(raw_args: Vec<String>, surface: PackCliSurface) -> Result<()> {
     let mut args = raw_args.into_iter();
     while let Some(arg) = args.next() {
         if inputs.is_empty() && output.is_none() && (arg == "--help" || arg == "-h") {
-            println!("{}", surface.usage());
+            print_help(surface);
             return Ok(());
         }
         if arg == "-o" || arg == "--output" {
@@ -557,7 +619,7 @@ fn run(raw_args: Vec<String>, surface: PackCliSurface) -> Result<()> {
         }
     }
 
-    let output = output.context(surface.usage())?;
+    let output = normalize_archive_output_path(output.context(surface.usage())?);
     if inputs.is_empty() {
         bail!(surface.usage());
     }
@@ -645,30 +707,73 @@ fn pack_minimal_v1(
             return Err(err);
         }
     };
+    let start = Instant::now();
     let file_count = layout.files.len();
+    let total_size_bytes = layout.files.iter().map(|file| file.raw_len).sum::<u64>();
+    let compression = presenter.begin_active_phase("compression", None);
     let serialization = presenter.begin_active_phase("serialization", None);
-    if let Err(err) = emit_archive_from_layout(layout, output, level, options, |done, total| {
-        serialization.set_detail(format!("files={}/{}", group_u64(done), group_u64(total)));
-    }) {
+    if let Err(err) =
+        emit_archive_from_layout(layout, output, level, options, |phase, done, total| {
+            let detail = format!("files={}/{}", group_u64(done), group_u64(total));
+            match phase {
+                PackProgressPhase::Compression => compression.set_detail(detail),
+                PackProgressPhase::Serialization => serialization.set_detail(detail),
+            }
+        })
+    {
+        compression.settle(StatusWord::Failed, None);
         serialization.settle(StatusWord::Failed, None);
         return Err(err);
     }
+    compression.settle(
+        StatusWord::Complete,
+        Some(&format!(
+            "files={}/{}",
+            group_u64(file_count as u64),
+            group_u64(file_count as u64)
+        )),
+    );
     serialization.settle(
         StatusWord::Complete,
-        Some(&format!("files={}", group_u64(file_count as u64))),
+        Some(&format!(
+            "files={}/{}",
+            group_u64(file_count as u64),
+            group_u64(file_count as u64)
+        )),
     );
-    let finalization = presenter.begin_active_phase("finalization", None);
+    let finalization = presenter.begin_active_phase("finalizing", None);
+    let compressed_size_bytes = std::fs::metadata(output)
+        .with_context(|| format!("stat {}", output.display()))?
+        .len();
+    let elapsed = start.elapsed();
     finalization.settle(StatusWord::Complete, None);
+    let metrics = PackRunMetrics {
+        files_packed: file_count as u64,
+        total_size_bytes,
+        compressed_size_bytes,
+        elapsed,
+    };
+    let (ratio, reduction) =
+        compression_metrics(metrics.total_size_bytes, metrics.compressed_size_bytes);
     presenter.result_summary(
         StatusWord::Complete,
         "archive emitted",
-        &[("files packed", group_u64(file_count as u64))],
+        &[
+            ("archive", output.display().to_string()),
+            ("files packed", group_u64(metrics.files_packed)),
+            ("total size", human_size(metrics.total_size_bytes)),
+            ("compressed size", human_size(metrics.compressed_size_bytes)),
+            ("compression ratio", format!("{ratio:.2}x")),
+            ("reduction", format!("{reduction:.1}%")),
+            ("processing time", format_elapsed(metrics.elapsed)),
+        ],
     );
     presenter.silent_summary(
         StatusWord::Complete,
         &[
             ("archive", output.display().to_string()),
             ("files", file_count.to_string()),
+            ("time", format_elapsed(metrics.elapsed)),
         ],
     );
     Ok(())
@@ -771,7 +876,7 @@ fn emit_archive_from_layout(
     output: &Path,
     level: i32,
     options: PackExperimentalOptions,
-    mut progress: impl FnMut(u64, u64),
+    mut progress: impl FnMut(PackProgressPhase, u64, u64),
 ) -> Result<()> {
     let total_files = layout.files.len();
 
@@ -809,6 +914,11 @@ fn emit_archive_from_layout(
         }
         let compressed = compress_deterministic(&raw, level)
             .with_context(|| format!("compress {}", file.abs_path.display()))?;
+        progress(
+            PackProgressPhase::Compression,
+            (ordinal + 1) as u64,
+            total_files as u64,
+        );
         let block_scan_offset = out.stream_position()?;
         let payload_hash = *blake3::hash(&compressed).as_bytes();
         let raw_hash = *blake3::hash(&raw).as_bytes();
@@ -997,7 +1107,11 @@ fn emit_archive_from_layout(
             link_target: None,
             xattrs: Vec::new(),
         });
-        progress((ordinal + 1) as u64, total_files as u64);
+        progress(
+            PackProgressPhase::Serialization,
+            (ordinal + 1) as u64,
+            total_files as u64,
+        );
     }
 
     if layout.metadata.dictionary.tail_copy_required {
@@ -1086,6 +1200,54 @@ fn emit_archive_from_layout(
     )?;
 
     Ok(())
+}
+
+fn normalize_archive_output_path(mut output: PathBuf) -> PathBuf {
+    if output.extension().is_none_or(|ext| ext.is_empty()) {
+        output.set_extension("crs");
+    }
+    output
+}
+
+fn human_size(bytes: u64) -> String {
+    const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
+    if bytes < 1024 {
+        return format!("{bytes} B");
+    }
+    let mut value = bytes as f64;
+    let mut unit = 0usize;
+    while value >= 1024.0 && unit < UNITS.len() - 1 {
+        value /= 1024.0;
+        unit += 1;
+    }
+    format!("{value:.1} {}", UNITS[unit])
+}
+
+fn compression_metrics(total_size: u64, compressed_size: u64) -> (f64, f64) {
+    if total_size == 0 || compressed_size == 0 {
+        return (0.0, 0.0);
+    }
+    let ratio = total_size as f64 / compressed_size as f64;
+    let reduction = (1.0 - (compressed_size as f64 / total_size as f64)) * 100.0;
+    (ratio, reduction)
+}
+
+fn format_elapsed(elapsed: Duration) -> String {
+    let secs = elapsed.as_secs();
+    if secs >= 3600 {
+        let hours = secs / 3600;
+        let minutes = (secs % 3600) / 60;
+        return format!("{hours}h {minutes}m");
+    }
+    if secs >= 60 {
+        let minutes = secs / 60;
+        let seconds = secs % 60;
+        return format!("{minutes}m {seconds}s");
+    }
+    if secs >= 1 {
+        return format!("{secs}s");
+    }
+    "<1s".to_string()
 }
 
 fn build_self_describing_extent_record(
@@ -1760,7 +1922,7 @@ mod tests {
         std::fs::write(&input, b"changed-content").expect("mutate file");
 
         let output = td.path().join("out.crs");
-        let err = emit_archive_from_layout(layout, &output, 3, baseline_options(), |_, _| {})
+        let err = emit_archive_from_layout(layout, &output, 3, baseline_options(), |_, _, _| {})
             .expect_err("emit should fail");
         assert!(
             err.to_string()

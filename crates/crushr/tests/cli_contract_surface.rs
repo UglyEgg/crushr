@@ -23,6 +23,10 @@ fn run_ok(cmd: &mut Command) -> String {
 #[test]
 fn canonical_command_surface_is_locked() {
     let help = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("--help"));
+    assert!(
+        !help.contains('\u{1b}'),
+        "help output should not emit ANSI escape codes in non-tty mode"
+    );
 
     for command in [
         "pack", "extract", "verify", "info", "about", "salvage", "lab",
@@ -52,6 +56,33 @@ fn canonical_command_surface_is_locked() {
             "expected unknown command for {legacy}"
         );
     }
+}
+
+#[test]
+fn pack_defaults_to_crs_extension_when_output_has_none() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    std::fs::create_dir_all(&input_dir).expect("create input");
+    std::fs::write(input_dir.join("a.txt"), b"alpha").expect("write file");
+    let archive_without_ext = tmp.path().join("sample");
+    let expected_archive = tmp.path().join("sample.crs");
+
+    let out = run(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+            input_dir.to_str().expect("utf8"),
+            "-o",
+            archive_without_ext.to_str().expect("utf8"),
+        ]),
+    );
+    assert!(out.status.success(), "pack failed");
+    assert!(
+        expected_archive.exists(),
+        "expected .crs archive to be created"
+    );
+    assert!(
+        !archive_without_ext.exists(),
+        "output path without extension should not be used directly"
+    );
 }
 
 #[test]

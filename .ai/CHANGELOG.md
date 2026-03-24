@@ -863,3 +863,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Moved file read/compress/hash to emission-time processing and added fail-closed detection for file-size mutation between planning and serialization.
 - Added unit regressions for unreadable-file planning behavior and plan/emit mutation detection to guard bounded-memory pipeline behavior.
 - Synthetic 20,000-file memory evidence: max RSS reduced from `177248 KiB` (pre-fix `HEAD~1`) to `76556 KiB` (current).
+
+
+## 2026-03-24 — CRUSHR_UI_POLISH_07
+- Migrated root/canonical help output to shared CLI presentation sections and tokenized color semantics for `crushr`, `crushr-pack`, `crushr-extract`, and `crushr-info`, while keeping non-TTY/help piping free of ANSI control codes.
+- Standardized pack archive extension handling so `-o/--output` paths without an extension are normalized to `.crs`; explicit user extensions remain untouched.
+- Corrected pack phase rendering to show `compression` and `serialization` phases reaching `files=N/N`, followed by explicit visible `finalizing`; removed misleading `N-1/N` terminal states.
+- Added pack Result metrics derived from real run data: archive path, files packed, total size, compressed size, compression ratio, reduction percentage, and processing time.
+- Expanded `crushr-info` human output with a dedicated `Compression` section showing method and level from BLK3 headers (`unavailable` fallback when not recoverable).
+- Validation evidence: `cargo fmt --all`; `cargo test -p crushr --test cli_presentation_contract --test cli_contract_surface`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
+## 2026-03-24 — CRUSHR_UI_POLISH_07 maintenance (v0.3.7)
+- Bumped canonical product version to `0.3.7` by updating root `VERSION` and syncing `workspace.package.version` in `Cargo.toml`.
+- Validation evidence: `./scripts/check-version-sync.sh`; `cargo test -p crushr --test version_contract`.
