@@ -13,6 +13,7 @@ The **Chronicles** are a historical record of crushr’s evolution.
 These are not formal specifications, and they are not canonical documentation.
 
 They are snapshots of:
+
 - what was being explored
 - what decisions were made
 - how the system changed over time
@@ -46,6 +47,7 @@ For current behavior and guarantees, see the formal docs and project control doc
 - [2026-03-15 — Corruption Trials](./2026-03-15-corruption-trials.md)
 - [2026-03-16 — We Have Recoverability](./2026-03-16-we-have-recoverability.md)
 - [2026-03-18 — Speed Comes From Killing Bad Ideas Faster](./2026-03-18-speed.md)
+- [2026-03-24 — Feels Like a Real Tool](./2026-03-24-real-tool.md)
 
 ## Why this exists
 
