@@ -11,6 +11,21 @@ Current Step: **CRUSHR_UI_POLISH_08 complete** (pack/info truth polish finalized
 
 
 
+
+Latest maintenance fix (2026-03-24):
+- **CRUSHR_INTROSPECTION_01-FIX2 complete**: omission-only list cases now remain `COMPLETE` and are surfaced as informational notes, not structural degradation.
+- **CRUSHR_INTROSPECTION_01-FIX2 complete**: `omitted entries` result row is shown only when non-zero; degraded structural proof failures still show salvage guidance.
+
+Latest maintenance fix (2026-03-24):
+- **CRUSHR_INTROSPECTION_01-FIX1 complete**: `info --list` now reports omitted non-regular index entries explicitly and keeps regular-file listing semantics transparent.
+- **CRUSHR_INTROSPECTION_01-FIX1 complete**: degraded listing-proof warnings now include explicit `crushr salvage <archive>` guidance while preserving fail-closed no-guess behavior.
+- **CRUSHR_INTROSPECTION_01-FIX1 complete**: canonical version advanced to `0.4.1` (`VERSION` + workspace package version sync).
+
+Latest maintenance fix (2026-03-24):
+- **CRUSHR_INTROSPECTION_01 complete**: added `crushr info --list` archive introspection path (tree default + `--flat`) driven strictly from metadata/index (`IDX3`) without extraction.
+- **CRUSHR_INTROSPECTION_01 complete**: added corruption-aware listing fallback that shows only provable index-backed paths and degrades with explicit warnings when listing proof is unavailable.
+- **CRUSHR_INTROSPECTION_01 validation**: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
+
 Latest maintenance fix (2026-03-24):
 - **CRUSHR_UI_POLISH_08 complete**: confirmed `pack` progress retains stable, separate `compression` + `serialization` rows with shared active-phase rendering and explicit `finalizing` phase transition after both rows settle.
 - **CRUSHR_UI_POLISH_08 complete**: updated `info` Structure terminology to user-truthful file-level labels (`files`, `compressed units`, `file mappings`) and added explicit `block model` line (`file-level (1:1 file → unit)`) without changing index/block calculations.

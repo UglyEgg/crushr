@@ -84,6 +84,9 @@ Deliverables
 - [x] CRUSHR_UI_POLISH_06 — finalize CLI visual consistency (about color/style/divider/newline/alignment) and expand `info` into a product-grade archive inspection summary with user-facing dictionary/compression reporting.
 - [x] CRUSHR_UI_POLISH_07 — finalize CLI trust polish: shared-token help colorization, default `.crs` output extension behavior, truthful pack phase progression (`compression`/`serialization`/`finalizing`) with N/N completion, pack runtime/compression metrics, and `info` compression method/level inspection rows.
 - [x] CRUSHR_UI_POLISH_08 — lock stable pack phase row identity (`compression` + `serialization` persistent rows, explicit `finalizing` transition) and correct `info` Structure terminology to file-level truth (`files`, `compressed units`, `file mappings`, `block model`).
+- [x] CRUSHR_INTROSPECTION_01 — implement `crushr info --list` archive content introspection (tree + `--flat`) with corruption-aware, index-proven listing semantics.
+- [x] CRUSHR_INTROSPECTION_01-FIX1 — expose omitted non-regular entry counts in list output, add degraded-path salvage guidance, and align version to `0.4.1`.
+- [x] CRUSHR_INTROSPECTION_01-FIX2 — treat omission-only list behavior as informational/complete while keeping structural-proof failures degraded.
 - [ ] CRUSHR-BENCH-01 — implement benchmark harness foundation using manifest-driven deterministic corpus/variant/corruption execution and schema-backed raw/summary output.
 - [ ] CRUSHR-BENCH-02 — initial canonical corpus generation, baseline runs, and first quantitative benchmark artifacts.
 - [ ] CRUSHR-BENCH-03 — benchmark result review, compression/performance tuning priorities, and whitepaper/data-surface integration.
