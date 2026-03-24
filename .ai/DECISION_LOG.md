@@ -5,6 +5,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-23 — CRUSHR_UI_POLISH_03 restrained shared CLI motion policy + active-phase animation layer
+
+- Decision:
+  - Add one shared active-phase motion layer in `cli_presentation` (`begin_active_phase` / `ActivePhase`) with centralized motion policy, TTY gating, and stable phase settlement behavior.
+  - Lock restrained animation to active progress rows only and keep final/settled sections static.
+  - Introduce explicit motion controls (`CRUSHR_MOTION=full|reduced|off`, `CRUSHR_NO_MOTION=1`) and ensure non-TTY output never emits spinner carriage-control noise.
+  - Apply the shared active-phase flow to `pack`, `extract`, and `verify` progress rendering; keep `info` static.
+- Alternatives considered:
+  1. Keep command-local phase animation logic.
+  2. Add richer full-screen TUI redraw loops for progress.
+- Rationale:
+  - Packet requires semantic, calm motion centralized in shared presentation code with no fake progress and no command-by-command drift.
+  - TTY-gated single-line active updates preserve readability and keep logs/pipes clean.
+- Blast radius:
+  - Human progress section rows in non-interactive output now settle as stable completion/failure rows instead of long-lived `RUNNING` placeholders.
+  - Added new contract doc `.ai/contracts/CLI_MOTION_POLICY.md` and refreshed progress goldens.
+  - No archive format, extraction semantics, or machine JSON contract changes.
+
 ## 2026-03-23 — CRUSHR_UI_POLISH_02 shared structural CLI presentation primitives
 
 - Decision:

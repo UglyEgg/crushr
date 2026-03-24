@@ -17,3 +17,4 @@ These documents define the non-negotiable boundaries for crushr.
 - `PERFORMANCE_BUDGETS.md` — initial performance budgets and regression posture
 - `QUALITY_GATES.md` — required local, CI, and release gates
 - `CLI_VISUAL_SEMANTICS.md` — shared CLI visual token and status-semantics contract
+- `CLI_MOTION_POLICY.md` — shared restrained motion/animation contract for active CLI phases

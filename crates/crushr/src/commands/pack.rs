@@ -613,18 +613,47 @@ fn pack_minimal_v1(
     presenter: &CliPresenter,
 ) -> Result<()> {
     presenter.section("Progress");
-    presenter.phase("input discovery", StatusWord::Scanning, None);
-    let files = collect_files(inputs)?;
+    let input_discovery = presenter.begin_active_phase("input discovery", None);
+    let files = match collect_files(inputs) {
+        Ok(files) => {
+            input_discovery.settle(
+                StatusWord::Complete,
+                Some(&format!("files={}", group_u64(files.len() as u64))),
+            );
+            files
+        }
+        Err(err) => {
+            input_discovery.settle(StatusWord::Failed, None);
+            return Err(err);
+        }
+    };
     if files.is_empty() {
         bail!("no input files to pack");
     }
-    reject_duplicate_logical_paths(&files)?;
-    presenter.phase("planning", StatusWord::Running, None);
-    let layout = build_pack_layout_plan(files, options)?;
+    let planning = presenter.begin_active_phase("planning", None);
+    if let Err(err) = reject_duplicate_logical_paths(&files) {
+        planning.settle(StatusWord::Failed, Some("duplicate logical paths"));
+        return Err(err);
+    }
+    let layout = match build_pack_layout_plan(files, options) {
+        Ok(layout) => {
+            planning.settle(StatusWord::Complete, None);
+            layout
+        }
+        Err(err) => {
+            planning.settle(StatusWord::Failed, None);
+            return Err(err);
+        }
+    };
     let file_count = layout.files.len();
-    presenter.phase("serialization", StatusWord::Writing, None);
-    emit_archive_from_layout(layout, output, level, options)?;
-    presenter.phase("finalization", StatusWord::Finalizing, None);
+    let serialization = presenter.begin_active_phase("serialization", None);
+    if let Err(err) = emit_archive_from_layout(layout, output, level, options) {
+        serialization.settle(StatusWord::Failed, None);
+        return Err(err);
+    }
+    serialization.settle(StatusWord::Complete, None);
+    let finalization = presenter.begin_active_phase("finalization", None);
+    finalization.settle(StatusWord::Complete, None);
     presenter.result_summary(
         StatusWord::Complete,
         "archive emitted",

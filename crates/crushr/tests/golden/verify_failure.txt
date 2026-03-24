@@ -2,7 +2,7 @@ crushr-extract  /  verify
 ------------------------------------------------------------------------
 
 Progress
-  archive open / header read OK
+  archive open / header read FAILED
 
 Target
   archive                <TMP>/bad.crushr
