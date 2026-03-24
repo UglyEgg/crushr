@@ -5,6 +5,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-24 — CRUSHR_UI_POLISH_08 (v0.3.5)
+- Confirmed `crushr-pack` progress truth remains stable through shared active-phase rows: `compression` and `serialization` are persistent labels in fixed order, both settle to `COMPLETE (files=N/N)`, then `finalizing` runs as a distinct closeout phase.
+- Updated `crushr-info` Structure presentation labels to align with the current file-level model: `regular files` → `files`, `payload blocks` → `compressed units`, `extents referenced` → `file mappings`; added explicit `block model` row (`file-level (1:1 file → unit)`).
+- Kept `info` changes presentation-only (no archive format or internal count-derivation logic changes) and refreshed the info golden contract fixture.
+- Re-aligned canonical version to `0.3.5` (`VERSION` + workspace package version sync) per this UI-polish packet.
+- Validation: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`.
+
 ## 2026-03-24 — CRUSHR_UI_POLISH_06 (v0.3.5)
 - Finalized shared CLI visual consistency: commands now begin with a leading blank line, use one canonical double-line divider, and keep right-column key/value alignment stable even with colorized labels.
 - Reworked `crushr about` to the same product presentation contract (shared color semantics, canonical divider, aligned key/value rows) so it matches pack/verify/extract/info output style.

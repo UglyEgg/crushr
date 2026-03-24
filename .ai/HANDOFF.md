@@ -1,8 +1,14 @@
+CRUSHR_UI_POLISH_08 complete (2026-03-24):
+- Pack progress rows are now explicitly stable for operators: persistent `compression` and `serialization` phases (no alternating labels) with explicit handoff into `finalizing` after both settle.
+- Info structure terms now reflect the actual file-level 1:1 model: `files`, `compressed units`, `file mappings`, plus explicit `block model` line (`file-level (1:1 file → unit)`).
+- This info change is presentation-only (no internal format/counting logic change).
+- Canonical product version is aligned to `0.3.5` (`VERSION` + workspace package version synchronized).
+
 CRUSHR_UI_POLISH_07 complete (2026-03-24):
 - Help output now uses shared presentation/visual tokens; non-TTY remains ANSI-clean.
 - Pack now defaults extensionless `-o` targets to `.crs`, reports truthful `compression`/`serialization` N/N + visible `finalizing`, and emits runtime/compression metrics.
 - Info now includes `Compression` section with method + level from archive block headers.
-- Version follow-up: canonical product version is now `0.3.7` (`VERSION` + workspace package version synchronized).
+- Version follow-up (superseded by UI_POLISH_08): canonical product version is now `0.3.5` (`VERSION` + workspace package version synchronized).
 
 CRUSHR_UI_POLISH_06 completion update (2026-03-24):
 - Shared CLI presentation now enforces one canonical title treatment: leading blank line before command output, UTF-8 double-line divider, and stable key/value column alignment even under ANSI color (padding applied before coloring).

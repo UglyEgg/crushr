@@ -343,35 +343,36 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     presenter.kv("format markers", "FTR4 + IDX3");
 
     presenter.section("Structure");
-    presenter.kv("has footer", snapshot.payload.summary.has_footer);
-    presenter.kv(
-        "tail frames",
-        group_u64(snapshot.payload.tail_frames.len() as u64),
-    );
     let index_summary = summarize_index(&opened.tail.idx3_bytes);
     presenter.kv(
-        "regular files",
+        "files",
         index_summary.as_ref().map_or_else(
             || "unavailable".to_string(),
             |s| group_u64(s.regular_file_count),
         ),
     );
+    let payload_units = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset)
+        .map(|blocks| group_u64(blocks.len() as u64))
+        .unwrap_or_else(|_| "unavailable".to_string());
+    presenter.kv("compressed units", payload_units);
     presenter.kv(
-        "extents referenced",
+        "file mappings",
         index_summary
             .as_ref()
             .map_or_else(|| "unavailable".to_string(), |s| group_u64(s.extent_count)),
     );
+    presenter.kv("block model", "file-level (1:1 file → unit)");
     presenter.kv(
         "logical bytes",
         index_summary
             .as_ref()
             .map_or_else(|| "unavailable".to_string(), |s| group_u64(s.logical_bytes)),
     );
-    let payload_blocks = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset)
-        .map(|blocks| group_u64(blocks.len() as u64))
-        .unwrap_or_else(|_| "unavailable".to_string());
-    presenter.kv("payload blocks", payload_blocks);
+    presenter.kv("has footer", snapshot.payload.summary.has_footer);
+    presenter.kv(
+        "tail frames",
+        group_u64(snapshot.payload.tail_frames.len() as u64),
+    );
     let dictionary_summary = if snapshot.payload.summary.has_dct1 {
         format!(
             "present ({} entries)",

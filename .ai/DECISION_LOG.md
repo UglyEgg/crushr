@@ -5,6 +5,25 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-24 — CRUSHR_UI_POLISH_08 pack phase-row identity + info file-level terminology lock
+
+- Decision:
+  - Keep `pack` progress row identity stable by rendering `compression` and `serialization` as persistent shared active-phase rows (no alternating label multiplexing) and preserve explicit `finalizing` phase transition after both rows complete.
+  - Update `info` human Structure labels to file-level model wording: `files`, `compressed units`, `file mappings`, and explicit `block model = file-level (1:1 file → unit)`.
+  - Treat `info` terminology update as presentation-only; do not alter internal index/block counting or archive format behavior.
+  - Align canonical product version to `0.3.5` for this packet.
+- Alternatives considered:
+  1. Keep alternating/multiplexed row identity for compression/serialization under one active row.
+  2. Keep internal jargon labels (`regular files`, `payload blocks`, `extents referenced`) despite user confusion in file-level mode.
+- Rationale:
+  - Stable labels are required for operator trust in live phase tracking.
+  - Current archive behavior is file-level 1:1, so user-facing terms must reflect that model directly to avoid misleading mental models.
+  - Packet explicitly scopes changes to UI correctness and clarity without format/runtime model redesign.
+- Blast radius:
+  - Human `info` output shape changed; golden fixture updated.
+  - Pack runtime behavior remains same execution path but row-identity stability remains explicit and locked through shared active-phase usage.
+  - VERSION/workspace package versions changed to `0.3.5`.
+
 ## 2026-03-24 — CRUSHR_UI_POLISH_07 help/extension/progress/metrics/info compression truth lock
 
 - Decision:
