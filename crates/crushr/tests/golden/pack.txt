@@ -9,7 +9,7 @@ Target
 Progress
   input discovery        COMPLETE (files=2)
   planning               COMPLETE
-  serialization          COMPLETE
+  serialization          COMPLETE (files=2)
   finalization           COMPLETE
 
 Result

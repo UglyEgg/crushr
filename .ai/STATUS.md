@@ -7,9 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_UI_POLISH_03 complete** (shared restrained motion policy + active-phase animation primitives now drive long-running CLI progress with stable non-TTY/no-motion behavior)
+Current Step: **CRUSHR_UI_POLISH_04 complete** (core command progress now includes stable live detail polish + enforced non-TTY artifact cleanliness under shared motion primitives)
 
 
+
+Latest maintenance fix (2026-03-24):
+- **CRUSHR_UI_POLISH_04 complete**: refined shared motion application on `pack` by reporting live serialization file progress via shared active-phase details and settling to stable final file-count output.
+- **CRUSHR_UI_POLISH_04 complete**: added explicit non-TTY cleanliness contract checks ensuring `pack`, `verify`, `extract`, and `extract --recover` outputs contain no spinner carriage-control artifacts even when motion mode is set to `full`.
+- **CRUSHR_UI_POLISH_04 complete**: refreshed pack progress golden output to lock the stabilized serialization row and reran fmt/focused integration/workspace validation.
 
 
 Latest maintenance fix (2026-03-23):

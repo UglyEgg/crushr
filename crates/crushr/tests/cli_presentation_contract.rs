@@ -255,3 +255,62 @@ fn section_layout_matches_goldens() {
     assert_eq!(normalize_paths(info_out, tmp.path()), expected_info);
     assert_eq!(normalize_paths(salvage_out, tmp.path()), expected_salvage);
 }
+
+#[test]
+fn non_tty_output_has_no_motion_control_artifacts() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    fs::create_dir_all(&input_dir).expect("create input");
+    fs::write(input_dir.join("a.txt"), b"alpha").expect("write file");
+    fs::write(input_dir.join("b.txt"), b"beta").expect("write file");
+    let archive = tmp.path().join("sample.crushr");
+    let extract_out = tmp.path().join("extract");
+    let recover_out = tmp.path().join("recover");
+
+    run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+            .arg(&input_dir)
+            .arg("-o")
+            .arg(&archive),
+    );
+
+    for output in [
+        run_ok(
+            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+                .env("CRUSHR_MOTION", "full")
+                .arg(&input_dir)
+                .arg("-o")
+                .arg(tmp.path().join("second.crushr")),
+        ),
+        run_ok(
+            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+                .env("CRUSHR_MOTION", "full")
+                .arg("--verify")
+                .arg(&archive),
+        ),
+        run_ok(
+            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+                .env("CRUSHR_MOTION", "full")
+                .arg(&archive)
+                .arg("-o")
+                .arg(&extract_out),
+        ),
+        run_ok(
+            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+                .env("CRUSHR_MOTION", "full")
+                .arg(&archive)
+                .arg("-o")
+                .arg(&recover_out)
+                .arg("--recover"),
+        ),
+    ] {
+        assert!(
+            !output.contains('\r'),
+            "non-tty output contained carriage return: {output:?}"
+        );
+        assert!(
+            !output.contains("\u{1b}[2K"),
+            "non-tty output contained clear-line ANSI: {output:?}"
+        );
+    }
+}

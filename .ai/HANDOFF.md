@@ -1,3 +1,8 @@
+CRUSHR_UI_POLISH_04 completion update (2026-03-24):
+- Refined shared-motion progress behavior for `crushr-pack` by wiring live serialization detail updates through `ActivePhase::set_detail` and settling the phase with stable final file-count truth.
+- Added non-TTY cleanliness integration coverage for `pack`, `verify`, `extract`, and `extract --recover` with `CRUSHR_MOTION=full` to lock no residual carriage-control/spinner artifacts in piped output.
+- Updated `crates/crushr/tests/golden/pack.txt` for the stabilized serialization detail row and validated with fmt + focused integration tests + workspace clippy/tests.
+
 CRUSHR_UI_POLISH_03 completion update (2026-03-23):
 - Added a shared active-phase motion layer in `crates/crushr/src/cli_presentation.rs` (`begin_active_phase` + `ActivePhase`) with centralized animation lifecycle, bounded cadence, and stable settle/freeze behavior.
 - Added explicit motion controls (`CRUSHR_MOTION=full|reduced|off`, `CRUSHR_NO_MOTION=1`) plus strict TTY gating so non-interactive logs/pipes never receive spinner control sequences.
