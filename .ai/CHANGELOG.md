@@ -5,6 +5,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-23 — CRUSHR_UI_POLISH_03
+- Added shared active-phase motion primitives in `crates/crushr/src/cli_presentation.rs` with centralized animation controls, bounded redraw cadence (full/reduced), stable completion/failure freeze behavior, and non-TTY-safe fallback rendering.
+- Migrated core long-running progress paths (`crushr-pack`, `crushr-extract`, `crushr-extract --verify`, including recover-phase callbacks) to the shared motion layer and removed command-local phase-status improvisation.
+- Added motion policy contract `.ai/contracts/CLI_MOTION_POLICY.md` and contracts index entry; updated progress golden fixtures (`pack`, `verify success`, `verify failure`) to lock settled non-interactive output shape.
+- Validation: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract --test recovery_extract_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`.
+
 ## 2026-03-23 — CRUSHR_UI_POLISH_02
 - Added shared structural presentation primitives in `crates/crushr/src/cli_presentation.rs`: explicit phase/progress rows, banner framing (`INFO`/`WARNING`/`FAILURE`), and reusable result-summary rendering.
 - Migrated core command output (`crushr-pack`, `crushr-extract`, `crushr-extract --verify`, `crushr-info`) to shared primitives for consistent title/target/progress/result hierarchy and standardized warning/failure framing.

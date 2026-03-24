@@ -1,3 +1,9 @@
+CRUSHR_UI_POLISH_03 completion update (2026-03-23):
+- Added a shared active-phase motion layer in `crates/crushr/src/cli_presentation.rs` (`begin_active_phase` + `ActivePhase`) with centralized animation lifecycle, bounded cadence, and stable settle/freeze behavior.
+- Added explicit motion controls (`CRUSHR_MOTION=full|reduced|off`, `CRUSHR_NO_MOTION=1`) plus strict TTY gating so non-interactive logs/pipes never receive spinner control sequences.
+- Migrated `pack`, `extract`, and `verify` progress rendering to shared active-phase transitions (including recover callbacks) and updated progress goldens for settled non-interactive phase output.
+- Added `.ai/contracts/CLI_MOTION_POLICY.md` and updated continuity docs (`STATUS`, `PHASE_PLAN`, `DECISION_LOG`, `CHANGELOG`) for step closeout.
+
 CRUSHR_UI_POLISH_01 completion update (2026-03-23):
 - Added a shared semantic visual token system in `crates/crushr/src/cli_presentation.rs` (title/section/label/muted/running/pending/success/degraded/failure/info + trust-class tokens).
 - Standardized user-facing status vocabulary to `PENDING|RUNNING|COMPLETE|DEGRADED|FAILED|REFUSED` (with compatibility aliases retained where needed), and mapped prior human-output `PARTIAL` surfaces to `DEGRADED`.
@@ -90,6 +96,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
 # Handoff
+
+CRUSHR_UI_POLISH_03 completion update (2026-03-23):
+- Added a shared active-phase motion layer in `crates/crushr/src/cli_presentation.rs` (`begin_active_phase` + `ActivePhase`) with centralized animation lifecycle, bounded cadence, and stable phase settlement/freeze behavior.
+- Added explicit motion policy controls (`CRUSHR_MOTION=full|reduced|off`, `CRUSHR_NO_MOTION=1`) with strict TTY gating so pipes/logs stay free of spinner control characters.
+- Migrated `pack`, `extract`, and `verify` progress rendering to shared phase transitions through the new primitives (including recover-mode incremental phases), and refreshed CLI presentation goldens for the settled phase-row model.
+- Added `.ai/contracts/CLI_MOTION_POLICY.md` and contracts index entry to lock semantic/anti-noise motion behavior.
 
 CRUSHR_UI_POLISH_02 completion update (2026-03-23):
 - Added reusable shared CLI structural primitives in `crates/crushr/src/cli_presentation.rs`: `phase` (progress row with optional detail), `banner` (`INFO`/`WARNING`/`FAILURE`), and `result_summary` for standardized final summaries.

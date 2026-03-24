@@ -306,21 +306,33 @@ fn run_verify(
         file: File::open(&opts.archive)
             .with_context(|| format!("open {}", opts.archive.display()))?,
     };
-    if let Some(presenter) = progress {
-        presenter.stage("archive open / header read", StatusWord::Ok);
-    }
-
+    let archive_open =
+        progress.map(|presenter| presenter.begin_active_phase("archive open / header read", None));
     let opened = open_archive_v1(&reader)?;
-    let blocks = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset)?;
-    if let Some(presenter) = progress {
-        presenter.stage("metadata/index scan", StatusWord::Scanning);
-    }
-    let verified_extent_count = blocks.len();
-    let _ = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
-    if let Some(presenter) = progress {
-        presenter.stage("payload verification", StatusWord::Running);
+    if let Some(phase) = archive_open {
+        phase.settle(StatusWord::Ok, None);
     }
 
+    let metadata_scan =
+        progress.map(|presenter| presenter.begin_active_phase("metadata/index scan", None));
+    let blocks = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset)?;
+    if let Some(phase) = metadata_scan {
+        phase.settle(
+            StatusWord::Complete,
+            Some(&format!("extents={}", group_u64(blocks.len() as u64))),
+        );
+    }
+
+    let verified_extent_count = blocks.len();
+    let payload_verification =
+        progress.map(|presenter| presenter.begin_active_phase("payload verification", None));
+    let _ = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
+    if let Some(phase) = payload_verification {
+        phase.settle(StatusWord::Complete, None);
+    }
+
+    let manifest_validation =
+        progress.map(|presenter| presenter.begin_active_phase("manifest validation", None));
     let strict =
         strict_extract_impl::run_strict_extract(&strict_extract_impl::StrictExtractOptions {
             archive: opts.archive.clone(),
@@ -329,13 +341,14 @@ fn run_verify(
             selected_paths: None,
             verify_only: true,
         })?;
-    if let Some(presenter) = progress {
-        presenter.stage("manifest validation", StatusWord::Finalizing);
+    if let Some(phase) = manifest_validation {
+        phase.settle(StatusWord::Complete, None);
     }
 
     let model = VerificationModel::from_extraction_report(&strict.report, verified_extent_count);
     if let Some(presenter) = progress {
-        presenter.stage("final result/report", StatusWord::Complete);
+        let finalization = presenter.begin_active_phase("final result/report", None);
+        finalization.settle(StatusWord::Complete, None);
     }
     Ok((
         model.clone(),
@@ -396,26 +409,23 @@ pub fn dispatch(args: Vec<String>) -> i32 {
         CliMode::Extract => {
             let presenter =
                 CliPresenter::new("crushr-extract", "extract", opts.silent && !opts.json);
+            let mut active_phase: Option<crate::cli_presentation::ActivePhase<'_>> = None;
             if !opts.json && !opts.silent {
                 presenter.header();
                 presenter.section("Progress");
             }
             match run_extract(&opts, |stage| {
                 if !opts.json && !opts.silent {
-                    let status = match stage {
-                        "archive open" => StatusWord::Ok,
-                        "metadata scan" => StatusWord::Scanning,
-                        "canonical extraction" => StatusWord::Running,
-                        "recovery analysis" => StatusWord::Running,
-                        "recovery extraction" => StatusWord::Finalizing,
-                        "manifest/report finalization" => StatusWord::Complete,
-                        "strict extraction" => StatusWord::Running,
-                        _ => StatusWord::Running,
-                    };
-                    presenter.phase(stage, status, None);
+                    if let Some(phase) = active_phase.take() {
+                        phase.settle(StatusWord::Complete, None);
+                    }
+                    active_phase = Some(presenter.begin_active_phase(stage, None));
                 }
             }) {
                 Ok(classified) => {
+                    if let Some(phase) = active_phase.take() {
+                        phase.settle(StatusWord::Complete, None);
+                    }
                     if opts.json {
                         println!(
                             "{}",
@@ -526,6 +536,9 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                     exit_code_for_outcome(classified.outcome_kind, opts.refusal_exit)
                 }
                 Err(err) => {
+                    if let Some(phase) = active_phase.take() {
+                        phase.settle(StatusWord::Failed, None);
+                    }
                     let classified_err = ExtractionClassifiedError::structural(err);
                     eprintln!("{classified_err}");
                     let msg = classified_err.message();

@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
-use std::io::IsTerminal;
+use std::io::{IsTerminal, Write};
+use std::sync::{
+    Arc, Mutex,
+    atomic::{AtomicBool, Ordering},
+};
+use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VisualToken {
@@ -110,21 +116,33 @@ pub struct CliPresenter {
     tool: &'static str,
     action: &'static str,
     silent: bool,
+    is_tty: bool,
     use_color: bool,
     label_width: usize,
+    motion_mode: MotionMode,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MotionMode {
+    Off,
+    Reduced,
+    Full,
 }
 
 #[allow(dead_code)]
 impl CliPresenter {
     pub fn new(tool: &'static str, action: &'static str, silent: bool) -> Self {
         #[allow(clippy::disallowed_methods)]
-        let use_color = std::io::stdout().is_terminal() && std::env::var_os("NO_COLOR").is_none();
+        let is_tty = std::io::stdout().is_terminal();
+        let use_color = is_tty && std::env::var_os("NO_COLOR").is_none();
         Self {
             tool,
             action,
             silent,
+            is_tty,
             use_color,
             label_width: 22,
+            motion_mode: MotionMode::from_env(),
         }
     }
 
@@ -267,6 +285,18 @@ impl CliPresenter {
         println!("{out}");
     }
 
+    pub fn begin_active_phase(&self, phase: &str, detail: Option<&str>) -> ActivePhase<'_> {
+        if self.silent {
+            return ActivePhase::disabled(self, phase);
+        }
+
+        if self.motion_mode.should_animate(self.is_tty) {
+            ActivePhase::animated(self, phase, detail.map(ToOwned::to_owned))
+        } else {
+            ActivePhase::static_running(self, phase)
+        }
+    }
+
     fn paint_status(&self, status: StatusWord) -> String {
         self.paint_token(status.token(), status.as_str())
     }
@@ -278,6 +308,115 @@ impl CliPresenter {
             return format!("{code}{value}\x1b[0m");
         }
         value.to_string()
+    }
+}
+
+pub struct ActivePhase<'a> {
+    presenter: &'a CliPresenter,
+    phase: String,
+    detail: Arc<Mutex<Option<String>>>,
+    running: Option<Arc<AtomicBool>>,
+    handle: Option<JoinHandle<()>>,
+    rendered_running_row: bool,
+}
+
+impl<'a> ActivePhase<'a> {
+    fn disabled(presenter: &'a CliPresenter, phase: &str) -> Self {
+        Self {
+            presenter,
+            phase: phase.to_string(),
+            detail: Arc::new(Mutex::new(None)),
+            running: None,
+            handle: None,
+            rendered_running_row: false,
+        }
+    }
+
+    fn static_running(presenter: &'a CliPresenter, phase: &str) -> Self {
+        Self {
+            presenter,
+            phase: phase.to_string(),
+            detail: Arc::new(Mutex::new(None)),
+            running: None,
+            handle: None,
+            rendered_running_row: false,
+        }
+    }
+
+    fn animated(presenter: &'a CliPresenter, phase: &str, detail: Option<String>) -> Self {
+        let running = Arc::new(AtomicBool::new(true));
+        let running_for_thread = Arc::clone(&running);
+        let detail_state = Arc::new(Mutex::new(detail));
+        let detail_for_thread = Arc::clone(&detail_state);
+        let line_label = presenter.paint_token(VisualToken::PrimaryLabel, phase);
+        let status = presenter.paint_status(StatusWord::Running);
+        let width = presenter.label_width;
+        let frames = presenter.motion_mode.frames();
+        let cadence = presenter.motion_mode.cadence();
+        let handle = thread::spawn(move || {
+            let mut frame_idx = 0usize;
+            while running_for_thread.load(Ordering::Relaxed) {
+                let frame = frames[frame_idx % frames.len()];
+                frame_idx = frame_idx.wrapping_add(1);
+                let detail_suffix = detail_for_thread
+                    .lock()
+                    .ok()
+                    .and_then(|value| value.clone())
+                    .map(|value| format!(" ({value})"))
+                    .unwrap_or_default();
+                print!(
+                    "\r  {:<width$} {} {frame}{detail_suffix}\x1b[K",
+                    line_label,
+                    status,
+                    width = width
+                );
+                #[allow(clippy::disallowed_methods)]
+                let _ = std::io::stdout().flush();
+                thread::sleep(cadence);
+            }
+        });
+
+        Self {
+            presenter,
+            phase: phase.to_string(),
+            detail: detail_state,
+            running: Some(running),
+            handle: Some(handle),
+            rendered_running_row: false,
+        }
+    }
+
+    pub fn set_detail(&self, detail: impl Into<String>) {
+        if let Ok(mut slot) = self.detail.lock() {
+            *slot = Some(detail.into());
+        }
+    }
+
+    pub fn settle(mut self, status: StatusWord, detail: Option<&str>) {
+        self.stop_animation();
+        self.presenter.phase(&self.phase, status, detail);
+        self.rendered_running_row = true;
+    }
+
+    fn stop_animation(&mut self) {
+        if let Some(running) = self.running.take() {
+            running.store(false, Ordering::Relaxed);
+        }
+        if let Some(handle) = self.handle.take() {
+            let _ = handle.join();
+            print!("\r\x1b[2K");
+            #[allow(clippy::disallowed_methods)]
+            let _ = std::io::stdout().flush();
+        }
+    }
+}
+
+impl Drop for ActivePhase<'_> {
+    fn drop(&mut self) {
+        self.stop_animation();
+        if !self.rendered_running_row && !self.presenter.silent {
+            self.presenter.phase(&self.phase, StatusWord::Failed, None);
+        }
     }
 }
 
@@ -297,6 +436,43 @@ impl VisualToken {
             Self::InformationalNote => Some("\x1b[94m"),
             Self::WarningBanner => Some("\x1b[1;33m"),
             Self::FailureBanner => Some("\x1b[1;31m"),
+        }
+    }
+}
+
+impl MotionMode {
+    fn from_env() -> Self {
+        if std::env::var_os("CRUSHR_NO_MOTION").is_some() {
+            return Self::Off;
+        }
+        let Some(value) = std::env::var_os("CRUSHR_MOTION") else {
+            return Self::Full;
+        };
+        match value.to_string_lossy().trim().to_ascii_lowercase().as_str() {
+            "off" | "none" | "0" => Self::Off,
+            "reduced" | "minimal" | "min" => Self::Reduced,
+            "full" | "on" | "1" => Self::Full,
+            _ => Self::Full,
+        }
+    }
+
+    fn should_animate(self, is_tty: bool) -> bool {
+        is_tty && !matches!(self, Self::Off)
+    }
+
+    fn cadence(self) -> Duration {
+        match self {
+            Self::Off => Duration::from_millis(0),
+            Self::Reduced => Duration::from_millis(240),
+            Self::Full => Duration::from_millis(120),
+        }
+    }
+
+    fn frames(self) -> &'static [&'static str] {
+        match self {
+            Self::Off => &[""],
+            Self::Reduced => &[".", " "],
+            Self::Full => &[".  ", ".. ", "...", " .."],
         }
     }
 }

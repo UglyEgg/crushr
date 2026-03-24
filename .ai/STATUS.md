@@ -7,10 +7,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_UI_POLISH_02 complete** (shared CLI presentation primitives now cover title/section/key-value/progress/banner/result blocks, and core command layouts use one coherent structure)
+Current Step: **CRUSHR_UI_POLISH_03 complete** (shared restrained motion policy + active-phase animation primitives now drive long-running CLI progress with stable non-TTY/no-motion behavior)
 
 
 
+
+Latest maintenance fix (2026-03-23):
+- **CRUSHR_UI_POLISH_03 complete**: added shared active-phase motion primitives in `cli_presentation` (`begin_active_phase` / `ActivePhase`) with centralized animation state, bounded redraw cadence, and stable phase freeze behavior on completion/failure.
+- **CRUSHR_UI_POLISH_03 complete**: applied shared motion/state transitions to core long-running progress surfaces (`pack`, `extract`, `extract --recover`, `verify`) and kept `info` static; progress rows now settle as stable phase outcomes in non-interactive output.
+- **CRUSHR_UI_POLISH_03 complete**: formalized motion policy contract in `.ai/contracts/CLI_MOTION_POLICY.md` including anti-goals, redraw rates, no-motion controls, and non-TTY guarantees; refreshed progress goldens accordingly.
+- **CRUSHR_UI_POLISH_03 validation**: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract --test recovery_extract_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
 
 Latest maintenance fix (2026-03-23):
 - **CRUSHR_UI_POLISH_01 complete**: replaced ad hoc CLI status/color handling with a shared semantic token layer (`VisualToken`) in `cli_presentation`, including required title/section/label/muted/running/pending/success/degraded/failure/info and trust-class tokens.

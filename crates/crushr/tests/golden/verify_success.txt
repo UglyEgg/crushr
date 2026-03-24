@@ -3,9 +3,9 @@ crushr-extract  /  verify
 
 Progress
   archive open / header read OK
-  metadata/index scan    RUNNING
-  payload verification   RUNNING
-  manifest validation    RUNNING
+  metadata/index scan    COMPLETE (extents=2)
+  payload verification   COMPLETE
+  manifest validation    COMPLETE
   final result/report    COMPLETE
 
 Target
