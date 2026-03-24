@@ -21,7 +21,6 @@ nav = [
     { "Experimental evaluation" = "whitepaper/evaluation.md" },
     { "Applicability and roadmap" = "whitepaper/applicability.md" },
   ] },
-  { "Format evolution" = "format-evolution.md" },
   { "Technical reference" = [
     { "Overview" = "reference/index.md" },
     { "Archive format boundary" = "reference/archive-format.md" },
@@ -29,6 +28,14 @@ nav = [
     { "Dictionary system" = "reference/dictionary-system.md" },
     { "Salvage model" = "reference/salvage-model.md" },
   ] },
+  { "Chronicles" = [
+    { "Overview" = "chronicles/index.md" },
+    { "03/13/2006 - It Begins" = "chronicles/2026-03-13-it-begins.md" },
+    { "03/15/2026 - Corruption Trials" = "chronicles/2026-03-15-corruption-trials.md" },
+    { "03/16/2026 - We Have Recoverability" = "chronicles/2026-03-16-we-have-recoverability.md" },
+    { "03/18/2026 - Speed" = "chronicles/2026-03-18-speed.md" },
+  ] },
+  { "Format evolution" = "format-evolution.md" },
 ]
 
 [project.extra]
@@ -81,3 +88,6 @@ name = "Richard Majewski on LinkedIn"
 icon = "fontawesome/solid/paper-plane"
 link = "mailto:crushr@entropy.quest"
 name = "Email Richard"
+
+[project.extra.status]
+historical = "Historical milestone"
