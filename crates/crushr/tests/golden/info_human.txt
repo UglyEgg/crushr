@@ -1,16 +1,23 @@
+
 crushr-info  /  info
-------------------------------------------------------------------------
+════════════════════════════════════════════════════════════════════════
 
 Archive
   path                   <TMP>/sample.crushr
   size bytes             1,090
   blake3                 23bbc1c1c5778a6a4141c4c03120d3a741bfe92cd5b8c68d7727c31089a0e4c3
+  format markers         FTR4 + IDX3
 
 Structure
   has footer             true
-  has dct1               false
-  has ldg1               true
   tail frames            1
+  regular files          2
+  extents referenced     2
+  logical bytes          9
+  payload blocks         2
+  dictionary table       not present
+  dictionary ledger      present
+  compression level      3
 
 Result
   status                 COMPLETE

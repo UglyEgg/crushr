@@ -3,6 +3,8 @@
 
 use std::fmt::Write;
 
+use crate::cli_presentation::{KV_LABEL_WIDTH, VisualToken, canonical_divider, paint_for_stdout};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildMetadata {
     pub version: String,
@@ -51,20 +53,26 @@ impl BuildMetadata {
 pub fn render_about(metadata: &BuildMetadata) -> String {
     let mut out = String::new();
 
-    out.push_str("crushr / about\n");
-    out.push_str(
-        "══════════════════════════════════════════════════════════════════════════════\n\n",
+    out.push('\n');
+    line(&mut out, VisualToken::TitleProductLine, "crushr  /  about");
+    out.push_str(&canonical_divider());
+    out.push_str("\n\n");
+    line(
+        &mut out,
+        VisualToken::SecondaryText,
+        "  Deterministic archives with verifiable structure and explicit outcomes.",
     );
-    out.push_str("  Deterministic archives with verifiable structure and explicit outcomes.\n\n");
+    out.push('\n');
 
-    out.push_str("Build\n");
+    line(&mut out, VisualToken::SectionHeader, "Build");
     kv_line(&mut out, "version", &metadata.version);
     kv_line(&mut out, "commit", &metadata.commit);
     kv_line(&mut out, "built", &metadata.built);
     kv_line(&mut out, "target", &metadata.target);
     kv_line(&mut out, "rust", &metadata.rust);
 
-    out.push_str("\nBehavior\n");
+    out.push('\n');
+    line(&mut out, VisualToken::SectionHeader, "Behavior");
     kv_line(&mut out, "pack", "deterministic archive creation");
     kv_line(
         &mut out,
@@ -78,27 +86,68 @@ pub fn render_about(metadata: &BuildMetadata) -> String {
         "research-mode recovery planning (non-canonical)",
     );
 
-    out.push_str("\nData Model\n");
-    out.push_str("  tail-framed archive layout\n");
-    out.push_str("  index + ledger backed structure\n");
-    out.push_str("  optional dictionary support\n");
-    out.push_str("  deterministic output contracts\n");
+    out.push('\n');
+    line(&mut out, VisualToken::SectionHeader, "Data Model");
+    line(
+        &mut out,
+        VisualToken::SecondaryText,
+        "  tail-framed archive layout",
+    );
+    line(
+        &mut out,
+        VisualToken::SecondaryText,
+        "  index + ledger backed structure",
+    );
+    line(
+        &mut out,
+        VisualToken::SecondaryText,
+        "  optional dictionary support",
+    );
+    line(
+        &mut out,
+        VisualToken::SecondaryText,
+        "  deterministic output contracts",
+    );
 
-    out.push_str("\nBuilt with\n");
-    out.push_str("  Rust • clap • serde • zstd • blake3\n");
+    out.push('\n');
+    line(&mut out, VisualToken::SectionHeader, "Built with");
+    line(
+        &mut out,
+        VisualToken::SecondaryText,
+        "  Rust • clap • serde • zstd • blake3",
+    );
     kv_line(&mut out, "Notices", "THIRD_PARTY_NOTICES.md");
     kv_line(&mut out, "Source", "https://github.com/UglyEgg/crushr");
 
-    out.push_str("\nSupport\n");
-    out.push_str("  If something looks wrong, attach:\n");
-    out.push_str("    crushr info <archive> --json\n");
-    out.push_str("    crushr extract --verify <archive>\n");
+    out.push('\n');
+    line(&mut out, VisualToken::SectionHeader, "Support");
+    line(
+        &mut out,
+        VisualToken::SecondaryText,
+        "  If something looks wrong, attach:",
+    );
+    line(
+        &mut out,
+        VisualToken::SecondaryText,
+        "    crushr info <archive> --json",
+    );
+    line(
+        &mut out,
+        VisualToken::SecondaryText,
+        "    crushr extract --verify <archive>",
+    );
 
     out
 }
 
 fn kv_line(out: &mut String, label: &str, value: &str) {
-    let _ = writeln!(out, "  {:<16} {}", label, value);
+    let padded = format!("{label:<width$}", width = KV_LABEL_WIDTH);
+    let painted = paint_for_stdout(VisualToken::PrimaryLabel, &padded);
+    let _ = writeln!(out, "  {} {}", painted, value);
+}
+
+fn line(out: &mut String, token: VisualToken, text: &str) {
+    let _ = writeln!(out, "{}", paint_for_stdout(token, text));
 }
 
 #[cfg(test)]
@@ -125,7 +174,11 @@ mod tests {
         let rendered = render_about(&metadata);
 
         for label in ["commit", "built", "target", "rust"] {
-            assert!(rendered.contains(&format!("  {:<16} unknown", label)));
+            assert!(rendered.contains(&format!(
+                "  {:<width$} unknown",
+                label,
+                width = super::KV_LABEL_WIDTH
+            )));
         }
     }
 }

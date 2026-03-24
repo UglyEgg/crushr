@@ -173,16 +173,20 @@ fn verify_invalid_archive_uses_operator_surface_without_parser_leakage() {
 fn about_command_matches_locked_output_shape() {
     let out = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("about"));
 
-    assert!(out.contains("crushr / about"));
+    assert!(out.contains("crushr  /  about"));
     assert!(out.contains("Build"));
     assert!(out.contains("Behavior"));
     assert!(out.contains("Data Model"));
     assert!(out.contains("Built with"));
     assert!(out.contains("Support"));
-    assert!(out.contains("pack             deterministic archive creation"));
-    assert!(out.contains("extract          strict extraction (verification-gated)"));
-    assert!(out.contains("verify           structural and integrity validation"));
-    assert!(out.contains("salvage          research-mode recovery planning (non-canonical)"));
+    assert!(out.contains("pack"));
+    assert!(out.contains("deterministic archive creation"));
+    assert!(out.contains("extract"));
+    assert!(out.contains("strict extraction (verification-gated)"));
+    assert!(out.contains("verify"));
+    assert!(out.contains("structural and integrity validation"));
+    assert!(out.contains("salvage"));
+    assert!(out.contains("research-mode recovery planning (non-canonical)"));
     assert!(out.contains("crushr info <archive> --json"));
     assert!(out.contains("crushr extract --verify <archive>"));
 }
