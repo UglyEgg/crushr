@@ -5,6 +5,54 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-24 — CRUSHR_INTROSPECTION_01-FIX2 non-regular omission semantics
+
+- Decision:
+  - Treat non-regular entry omissions in `info --list` as informational visibility, not as structural degradation.
+  - Keep `DEGRADED` status scoped to structural/listing-proof failures only.
+  - Emit `omitted entries` result rows only when non-zero.
+- Alternatives considered:
+  1. Keep omission warnings contributing to `DEGRADED` status.
+  2. Always emit omission count row, including `0`.
+- Rationale:
+  - Preserves honest structural health signaling while still making omission behavior explicit.
+- Blast radius:
+  - `crushr-info --list` output semantics changed for omission-only archives (informational note + `COMPLETE`).
+
+## 2026-03-24 — CRUSHR_INTROSPECTION_01-FIX1 omitted-entry and degraded-guidance lock
+
+- Decision:
+  - Keep `info --list` output focused on regular file paths but make omitted non-regular IDX3 entries explicit in results/warnings.
+  - When IDX3 proof is unavailable, keep fail-closed listing behavior and add explicit operator guidance toward `crushr salvage <archive>` for recovery-oriented evidence.
+  - Align canonical version to `0.4.1` for this follow-up fix.
+- Alternatives considered:
+  1. Keep silent omission of non-regular entries.
+  2. Attempt salvage-style inferred listing in `info --list` when IDX3 is unavailable.
+- Rationale:
+  - Explicit omission counts avoid hidden behavior when index entry kinds evolve.
+  - `info --list` remains integrity-first and non-speculative while still giving users a clear next action for degraded archives.
+- Blast radius:
+  - `crushr-info` list output gains `omitted entries` result row and degraded warning guidance line.
+  - CLI presentation contract test updated for degraded guidance text.
+
+## 2026-03-24 — CRUSHR_INTROSPECTION_01 info listing contract lock
+
+- Decision:
+  - Add `crushr info --list` as a metadata/index-only introspection path that never extracts payload bytes.
+  - Default listing mode is directory-aware tree output; `--flat` emits deterministic full-path listing.
+  - Degrade fail-closed on corruption: show only IDX3-proven paths and emit warning banners when archive structure is damaged or listing proof is unavailable.
+  - Keep trust labeling scoped to degraded/introspection warnings rather than annotating every listed line.
+- Alternatives considered:
+  1. Keep listing unavailable unless full `open_archive_v1` succeeds.
+  2. Guess missing directories/paths from partial metadata fragments under corruption.
+- Rationale:
+  - Packet requires pre-extraction visibility with strict no-guess semantics.
+  - IDX3-backed paths provide a provable logical content view while preserving integrity-first behavior under partial damage.
+- Blast radius:
+  - `crushr-info` help/flag surface now includes `--list` and `--flat`.
+  - Added CLI integration coverage for tree/flat listing and degraded proof-unavailable behavior.
+  - Existing `crushr info` default and `--json` snapshot behavior remain unchanged.
+
 ## 2026-03-24 — CRUSHR_UI_POLISH_08 pack phase-row identity + info file-level terminology lock
 
 - Decision:

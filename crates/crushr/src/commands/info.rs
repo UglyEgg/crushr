@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use crate::cli_presentation::{CliPresenter, StatusWord, group_u64};
+use crate::cli_presentation::{BannerLevel, CliPresenter, StatusWord, group_u64};
 use crate::format::{EntryKind, IDX_MAGIC_V3};
 use crate::index_codec::decode_index;
 use anyhow::{Context, Result, bail};
@@ -19,7 +19,7 @@ use crushr_core::{
 use crushr_format::blk3::{BLK3_MAGIC, read_blk3_header};
 use crushr_format::ftr4::{FTR4_LEN, Ftr4};
 use crushr_format::tailframe::parse_tail_frame;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io::Cursor;
 
@@ -169,10 +169,12 @@ fn print_help() {
     presenter.section("Usage");
     presenter.kv(
         "command",
-        "crushr-info <archive> [--json] [--report propagation]",
+        "crushr-info <archive> [--json] [--list] [--flat] [--report propagation]",
     );
     presenter.section("Flags");
     presenter.kv("--json", "emit machine-readable output");
+    presenter.kv("--list", "list archive contents without extraction");
+    presenter.kv("--flat", "list full paths (requires --list)");
     presenter.kv("--report propagation", "emit propagation/dependency report");
     presenter.kv("-h, --help", "print this help text");
     presenter.kv("--version, -V", "print version");
@@ -269,6 +271,205 @@ fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> R
     Ok(serialize_snapshot_json(&report)?)
 }
 
+#[derive(Default)]
+struct TreeNode {
+    dirs: BTreeMap<String, TreeNode>,
+    files: BTreeSet<String>,
+}
+
+fn split_path_components(path: &str) -> Vec<&str> {
+    path.split('/')
+        .filter(|segment| !segment.is_empty() && *segment != ".")
+        .collect()
+}
+
+fn insert_tree_path(tree: &mut TreeNode, path: &str) {
+    let components = split_path_components(path);
+    if components.is_empty() {
+        return;
+    }
+    let mut current = tree;
+    for part in &components[..components.len().saturating_sub(1)] {
+        current = current.dirs.entry((*part).to_string()).or_default();
+    }
+    if let Some(last) = components.last() {
+        current.files.insert((*last).to_string());
+    }
+}
+
+fn render_tree_lines(tree: &TreeNode) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut roots = Vec::new();
+    roots.extend(tree.dirs.keys().map(|name| (name.clone(), true)));
+    roots.extend(tree.files.iter().map(|name| (name.clone(), false)));
+
+    for (idx, (name, is_dir)) in roots.iter().enumerate() {
+        let is_last = idx + 1 == roots.len();
+        let connector = if is_last { "└──" } else { "├──" };
+        if *is_dir {
+            lines.push(format!("{connector} {name}/"));
+            if let Some(child) = tree.dirs.get(name) {
+                render_tree_children(child, &mut lines, if is_last { "    " } else { "│   " });
+            }
+        } else {
+            lines.push(format!("{connector} {name}"));
+        }
+    }
+
+    lines
+}
+
+fn render_tree_children(tree: &TreeNode, lines: &mut Vec<String>, prefix: &str) {
+    let mut items = Vec::new();
+    items.extend(tree.dirs.keys().map(|name| (name.clone(), true)));
+    items.extend(tree.files.iter().map(|name| (name.clone(), false)));
+
+    for (idx, (name, is_dir)) in items.iter().enumerate() {
+        let is_last = idx + 1 == items.len();
+        let connector = if is_last { "└──" } else { "├──" };
+        if *is_dir {
+            lines.push(format!("{prefix}{connector} {name}/"));
+            if let Some(child) = tree.dirs.get(name) {
+                let next_prefix = if is_last {
+                    format!("{prefix}    ")
+                } else {
+                    format!("{prefix}│   ")
+                };
+                render_tree_children(child, lines, &next_prefix);
+            }
+        } else {
+            lines.push(format!("{prefix}{connector} {name}"));
+        }
+    }
+}
+
+fn build_flat_listing(paths: &[String]) -> Vec<String> {
+    let mut directories = BTreeSet::new();
+    for path in paths {
+        let components = split_path_components(path);
+        for idx in 1..components.len() {
+            directories.insert(format!("{}/", components[..idx].join("/")));
+        }
+    }
+
+    let mut out = Vec::new();
+    out.extend(directories);
+    out.extend(paths.iter().cloned());
+    out
+}
+
+struct ListingLoad {
+    paths: Vec<String>,
+    omitted_non_regular_entries: u64,
+    warnings: Vec<String>,
+    degraded: bool,
+}
+
+fn listing_paths_from_index_bytes(idx3_bytes: &[u8]) -> Result<(Vec<String>, u64)> {
+    let index = decode_index(idx3_bytes).context("decode IDX3 index")?;
+    let mut paths = Vec::new();
+    let mut omitted_non_regular_entries = 0u64;
+    for entry in index.entries {
+        if entry.kind == EntryKind::Regular {
+            paths.push(entry.path);
+        } else {
+            omitted_non_regular_entries = omitted_non_regular_entries.saturating_add(1);
+        }
+    }
+    paths.sort();
+    Ok((paths, omitted_non_regular_entries))
+}
+
+fn read_idx3_bytes_from_footer<R: ReadAt + Len>(reader: &R) -> Result<Vec<u8>> {
+    let archive_len = reader.len().context("read archive length")?;
+    if archive_len < FTR4_LEN as u64 {
+        bail!("archive too small for FTR4 footer");
+    }
+
+    let footer_offset = archive_len - FTR4_LEN as u64;
+    let mut footer_bytes = vec![0u8; FTR4_LEN];
+    read_exact_at(reader, footer_offset, &mut footer_bytes)
+        .context("read FTR4 footer for index listing")?;
+    let footer = Ftr4::read_from(Cursor::new(&footer_bytes)).context("parse FTR4 footer")?;
+
+    if footer.index_len == 0 {
+        bail!("index length is zero");
+    }
+    if footer.index_offset.saturating_add(footer.index_len) > archive_len {
+        bail!("index range exceeds archive length");
+    }
+
+    let mut idx3_bytes = vec![0u8; footer.index_len as usize];
+    read_exact_at(reader, footer.index_offset, &mut idx3_bytes)
+        .context("read IDX3 index bytes for listing")?;
+
+    if !idx3_bytes.starts_with(IDX_MAGIC_V3) {
+        bail!("IDX3 magic mismatch");
+    }
+    if *blake3::hash(&idx3_bytes).as_bytes() != footer.index_hash {
+        bail!("IDX3 hash mismatch");
+    }
+
+    Ok(idx3_bytes)
+}
+
+fn load_listing_paths<R: ReadAt + Len>(reader: &R) -> Result<ListingLoad> {
+    match open_archive_v1(reader) {
+        Ok(opened) => {
+            let (paths, omitted_non_regular_entries) =
+                listing_paths_from_index_bytes(&opened.tail.idx3_bytes)?;
+            let mut warnings = Vec::new();
+            if omitted_non_regular_entries > 0 {
+                warnings.push(format!(
+                    "{omitted_non_regular_entries} non-regular index entries omitted from --list output"
+                ));
+            }
+            Ok(ListingLoad {
+                paths,
+                omitted_non_regular_entries,
+                warnings,
+                degraded: false,
+            })
+        }
+        Err(open_err) => {
+            let idx3_bytes = match read_idx3_bytes_from_footer(reader) {
+                Ok(value) => value,
+                Err(idx_err) => {
+                    return Ok(ListingLoad {
+                        paths: Vec::new(),
+                        omitted_non_regular_entries: 0,
+                        warnings: vec![
+                            format!(
+                                "archive structure is degraded; listing unavailable ({open_err:#})"
+                            ),
+                            format!("IDX3 could not be proven for listing ({idx_err:#})"),
+                            "for recovery-oriented evidence, run `crushr salvage <archive>`"
+                                .to_string(),
+                        ],
+                        degraded: true,
+                    });
+                }
+            };
+            let (paths, omitted_non_regular_entries) = listing_paths_from_index_bytes(&idx3_bytes)?;
+            let mut warnings = vec![
+                "archive has structural damage outside IDX3; listing shows only CANONICAL index-proven paths".to_string(),
+            ];
+            if omitted_non_regular_entries > 0 {
+                warnings.push(format!(
+                    "{omitted_non_regular_entries} non-regular index entries omitted from --list output"
+                ));
+            }
+
+            Ok(ListingLoad {
+                paths,
+                omitted_non_regular_entries,
+                warnings,
+                degraded: true,
+            })
+        }
+    }
+}
+
 fn run(raw_args: Vec<String>) -> Result<()> {
     let early_args = raw_args.clone();
     if matches!(
@@ -289,11 +490,17 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     let mut archive = None;
     let mut json = false;
     let mut report = None;
+    let mut list = false;
+    let mut flat = false;
 
     let mut args = raw_args.into_iter();
     while let Some(arg) = args.next() {
         if arg == "--json" {
             json = true;
+        } else if arg == "--list" {
+            list = true;
+        } else if arg == "--flat" {
+            flat = true;
         } else if arg == "--report" {
             report = Some(args.next().context("missing value for --report")?);
         } else if arg.starts_with('-') {
@@ -305,8 +512,19 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         }
     }
 
-    let archive =
-        archive.context("usage: crushr-info <archive> [--json] [--report propagation]")?;
+    if flat && !list {
+        bail!("--flat requires --list");
+    }
+    if list && json {
+        bail!("--json cannot be combined with --list");
+    }
+    if list && report.is_some() {
+        bail!("--report cannot be combined with --list");
+    }
+
+    let archive = archive.context(
+        "usage: crushr-info <archive> [--json] [--list] [--flat] [--report propagation]",
+    )?;
 
     let reader = FileReader {
         file: File::open(&archive).with_context(|| format!("open {archive}"))?,
@@ -317,6 +535,69 @@ fn run(raw_args: Vec<String>) -> Result<()> {
             bail!("unsupported report: {report_kind} (expected propagation)");
         }
         println!("{}", propagation_report_with_structural_fallback(&reader)?);
+        return Ok(());
+    }
+
+    if list {
+        let listing = load_listing_paths(&reader)?;
+        let presenter = CliPresenter::new("crushr-info", "list", false);
+        presenter.header();
+        presenter.section("Archive");
+        presenter.kv("path", &archive);
+        presenter.kv("mode", if flat { "flat" } else { "tree" });
+
+        presenter.section("Contents");
+        if listing.paths.is_empty() {
+            println!("  (no provable paths)");
+        } else if flat {
+            for path in build_flat_listing(&listing.paths) {
+                println!("  {path}");
+            }
+        } else {
+            let mut tree = TreeNode::default();
+            for path in &listing.paths {
+                insert_tree_path(&mut tree, path);
+            }
+            for line in render_tree_lines(&tree) {
+                println!("  {line}");
+            }
+        }
+
+        for warning in &listing.warnings {
+            presenter.banner(BannerLevel::Warning, warning);
+        }
+
+        if listing.omitted_non_regular_entries > 0 {
+            presenter.info_note(&format!(
+                "omitted {} non-regular index entries",
+                group_u64(listing.omitted_non_regular_entries)
+            ));
+        }
+
+        let status = if listing.degraded {
+            StatusWord::Degraded
+        } else {
+            StatusWord::Complete
+        };
+
+        let mut rows = vec![("listed files", group_u64(listing.paths.len() as u64))];
+        if listing.omitted_non_regular_entries > 0 {
+            rows.push((
+                "omitted entries",
+                group_u64(listing.omitted_non_regular_entries),
+            ));
+        }
+
+        presenter.result_summary(
+            status,
+            if listing.degraded {
+                "content listing completed with degraded coverage"
+            } else {
+                "content listing completed"
+            },
+            &rows,
+        );
+
         return Ok(());
     }
 
@@ -416,6 +697,9 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                 || msg.contains("unsupported report")
                 || msg.contains("unsupported flag")
                 || msg.contains("unexpected argument")
+                || msg.contains("--flat requires --list")
+                || msg.contains("--json cannot be combined with --list")
+                || msg.contains("--report cannot be combined with --list")
             {
                 1
             } else {

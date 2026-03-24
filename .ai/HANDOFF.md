@@ -1,3 +1,17 @@
+CRUSHR_INTROSPECTION_01-FIX2 complete (2026-03-24):
+- `info --list` now keeps omission-only cases as informational (`COMPLETE`) and reserves `DEGRADED` for structural proof issues.
+- `omitted entries` result row now appears only when count > 0.
+
+CRUSHR_INTROSPECTION_01-FIX1 complete (2026-03-24):
+- `crushr info --list` now surfaces an explicit omitted-entry count for non-regular IDX3 entries so future entry-kind growth is visible instead of silent.
+- Degraded proof-unavailable list output now includes explicit operator guidance to run `crushr salvage <archive>` for recovery-oriented evidence.
+- Canonical version is now `0.4.1`.
+
+CRUSHR_INTROSPECTION_01 complete (2026-03-24):
+- Added `crushr info --list` for pre-extraction archive content inspection using metadata/index proof only.
+- Default output is hierarchical tree; `--flat` emits deterministic full-path listing.
+- Corruption handling is fail-closed: only IDX3-proven paths are shown, warnings are emitted when full structure or listing proof is degraded/unavailable.
+
 CRUSHR_UI_POLISH_08 complete (2026-03-24):
 - Pack progress rows are now explicitly stable for operators: persistent `compression` and `serialization` phases (no alternating labels) with explicit handoff into `finalizing` after both settle.
 - Info structure terms now reflect the actual file-level 1:1 model: `files`, `compressed units`, `file mappings`, plus explicit `block model` line (`file-level (1:1 file → unit)`).

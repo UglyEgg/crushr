@@ -318,3 +318,77 @@ fn non_tty_output_has_no_motion_control_artifacts() {
         );
     }
 }
+
+#[test]
+fn info_list_tree_and_flat_are_deterministic() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    fs::create_dir_all(input_dir.join("docs/nested")).expect("create dirs");
+    fs::write(input_dir.join("alpha.txt"), b"alpha").expect("write file");
+    fs::write(input_dir.join("docs/readme.md"), b"readme").expect("write file");
+    fs::write(input_dir.join("docs/nested/deep.txt"), b"deep").expect("write file");
+    let archive = tmp.path().join("sample.crushr");
+
+    run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+            .arg(&input_dir)
+            .arg("-o")
+            .arg(&archive),
+    );
+
+    let tree_out = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+            .arg(&archive)
+            .arg("--list"),
+    );
+    assert!(tree_out.contains("crushr-info  /  list"));
+    assert!(tree_out.contains("├── docs/"));
+    assert!(tree_out.contains("│   ├── nested/"));
+    assert!(tree_out.contains("│   │   └── deep.txt"));
+    assert!(tree_out.contains("│   └── readme.md"));
+    assert!(tree_out.contains("└── alpha.txt"));
+
+    let flat_out = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+            .arg(&archive)
+            .arg("--list")
+            .arg("--flat"),
+    );
+    assert!(flat_out.contains("  docs/\n"));
+    assert!(flat_out.contains("  docs/nested/\n"));
+    assert!(flat_out.contains("  alpha.txt\n"));
+    assert!(flat_out.contains("  docs/nested/deep.txt\n"));
+    assert!(flat_out.contains("  docs/readme.md\n"));
+}
+
+#[test]
+fn info_list_degrades_honestly_when_listing_proof_is_unavailable() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    fs::create_dir_all(input_dir.join("keep")).expect("create dirs");
+    fs::write(input_dir.join("keep/provable.txt"), b"provable").expect("write file");
+    let archive = tmp.path().join("sample.crushr");
+
+    run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+            .arg(&input_dir)
+            .arg("-o")
+            .arg(&archive),
+    );
+
+    let mut archive_bytes = fs::read(&archive).expect("read archive");
+    archive_bytes.truncate(archive_bytes.len().saturating_sub(8));
+    fs::write(&archive, archive_bytes).expect("rewrite archive");
+
+    let out = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+            .arg(&archive)
+            .arg("--list"),
+    );
+
+    assert!(out.contains("WARNING:"));
+    assert!(out.contains("IDX3 could not be proven"));
+    assert!(out.contains("crushr salvage"));
+    assert!(out.contains("(no provable paths)"));
+    assert!(out.contains("status                 DEGRADED"));
+}

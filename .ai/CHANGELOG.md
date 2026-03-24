@@ -5,6 +5,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-24 — CRUSHR_INTROSPECTION_01-FIX2
+- Adjusted `info --list` status semantics so omitted non-regular entries are informational (not structural degradation) while structural proof failures still produce `DEGRADED`.
+- Made `omitted entries` result-row emission conditional (shown only when non-zero) and kept explicit salvage guidance for proof-unavailable cases.
+- Validation: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract --test version_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`.
+
+## 2026-03-24 — CRUSHR_INTROSPECTION_01-FIX1 (v0.4.1)
+- Refined `crushr info --list` introspection behavior to report omitted non-regular index entries explicitly instead of silently dropping them.
+- Added explicit degraded-path operator guidance to run `crushr salvage <archive>` when IDX3 listing proof is unavailable.
+- Bumped product version to `0.4.1` (`VERSION` + workspace package version sync) and extended listing contract coverage accordingly.
+- Validation: `cargo fmt --all`, `./scripts/check-version-sync.sh`, `cargo test -p crushr --test version_contract --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`.
+
+## 2026-03-24 — CRUSHR_INTROSPECTION_01 (v0.4.0)
+- Added `crushr-info --list` archive introspection path with deterministic tree output by default and optional `--flat` full-path mode.
+- Listing is derived from archive metadata/index (`IDX3`) only; no extraction/materialization is required for content inspection.
+- Added corruption-aware degradation behavior: when archive opening fails, listing falls back to IDX3 proof when available, otherwise emits explicit warnings and prints no fabricated paths.
+- Added integration coverage for tree/flat listing output and degraded proof-unavailable listing behavior in `cli_presentation_contract`.
+- Validation: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`.
+
 ## 2026-03-24 — CRUSHR_UI_POLISH_08 (v0.3.5)
 - Confirmed `crushr-pack` progress truth remains stable through shared active-phase rows: `compression` and `serialization` are persistent labels in fixed order, both settle to `COMPLETE (files=N/N)`, then `finalizing` runs as a distinct closeout phase.
 - Updated `crushr-info` Structure presentation labels to align with the current file-level model: `regular files` → `files`, `payload blocks` → `compressed units`, `extents referenced` → `file mappings`; added explicit `block model` row (`file-level (1:1 file → unit)`).
