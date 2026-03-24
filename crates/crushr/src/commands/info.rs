@@ -96,15 +96,22 @@ fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
     })
 }
 
-fn compression_levels_from_blocks<R: ReadAt + Len>(
+#[derive(Debug)]
+struct CompressionSummary {
+    method: String,
+    level: Option<String>,
+}
+
+fn compression_summary_from_blocks<R: ReadAt + Len>(
     reader: &R,
     blocks_end_offset: u64,
-) -> Result<Option<String>> {
+) -> Result<Option<CompressionSummary>> {
     let blocks = scan_blocks_v1(reader, blocks_end_offset)?;
     if blocks.is_empty() {
         return Ok(None);
     }
 
+    let mut codecs = BTreeSet::new();
     let mut levels = BTreeSet::new();
     for block in blocks {
         let mut header_prefix = [0u8; 6];
@@ -117,19 +124,68 @@ fn compression_levels_from_blocks<R: ReadAt + Len>(
         read_exact_at(reader, block.header_offset, &mut header_bytes)?;
         let header = read_blk3_header(Cursor::new(&header_bytes))
             .context("parse BLK3 header for compression levels")?;
+        codecs.insert(header.codec);
         levels.insert(header.level);
     }
 
-    if levels.len() == 1 {
-        return Ok(levels.iter().next().map(|value| value.to_string()));
-    }
+    let level = if levels.len() == 1 {
+        levels.iter().next().map(|value| value.to_string())
+    } else {
+        Some(format!(
+            "mixed ({})",
+            levels
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))
+    };
+    let method = if codecs.len() == 1 {
+        codec_name(*codecs.iter().next().unwrap_or(&0)).to_string()
+    } else {
+        format!(
+            "mixed ({})",
+            codecs
+                .iter()
+                .map(|codec| codec_name(*codec))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    };
 
-    let merged = levels
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(", ");
-    Ok(Some(format!("mixed ({merged})")))
+    Ok(Some(CompressionSummary { method, level }))
+}
+
+fn codec_name(codec: u32) -> &'static str {
+    match codec {
+        1 => "zstd",
+        _ => "unknown",
+    }
+}
+
+fn print_help() {
+    let presenter = CliPresenter::new("crushr-info", "help", false);
+    presenter.header();
+    presenter.section("Usage");
+    presenter.kv(
+        "command",
+        "crushr-info <archive> [--json] [--report propagation]",
+    );
+    presenter.section("Flags");
+    presenter.kv("--json", "emit machine-readable output");
+    presenter.kv("--report propagation", "emit propagation/dependency report");
+    presenter.kv("-h, --help", "print this help text");
+    presenter.kv("--version, -V", "print version");
+}
+
+fn compression_level_display(level: Option<String>) -> String {
+    level.unwrap_or_else(|| "unavailable".to_string())
+}
+
+fn compression_method_display(summary: Option<&CompressionSummary>) -> String {
+    summary
+        .map(|value| value.method.clone())
+        .unwrap_or_else(|| "unavailable".to_string())
 }
 
 fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> Result<String> {
@@ -219,7 +275,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         early_args.first().map(String::as_str),
         Some("--help" | "-h")
     ) {
-        println!("usage: crushr-info <archive> [--json] [--report propagation]");
+        print_help();
         return Ok(());
     }
     if matches!(
@@ -333,12 +389,16 @@ fn run(raw_args: Vec<String>) -> Result<()> {
             "not present"
         },
     );
-    let compression_level =
-        compression_levels_from_blocks(&reader, opened.tail.footer.blocks_end_offset)
+    let compression =
+        compression_summary_from_blocks(&reader, opened.tail.footer.blocks_end_offset)
             .ok()
-            .flatten()
-            .unwrap_or_else(|| "unavailable".to_string());
-    presenter.kv("compression level", compression_level);
+            .flatten();
+    presenter.section("Compression");
+    presenter.kv("method", compression_method_display(compression.as_ref()));
+    presenter.kv(
+        "level",
+        compression_level_display(compression.and_then(|summary| summary.level)),
+    );
 
     presenter.result_summary(StatusWord::Complete, "archive inspection completed", &[]);
     Ok(())

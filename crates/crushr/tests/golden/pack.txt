@@ -10,10 +10,17 @@ Target
 Progress
   input discovery        COMPLETE (files=2)
   planning               COMPLETE
-  serialization          COMPLETE (files=2)
-  finalization           COMPLETE
+  compression            COMPLETE (files=2/2)
+  serialization          COMPLETE (files=2/2)
+  finalizing             COMPLETE
 
 Result
+  archive                <TMP>/sample.crushr
   files packed           2
+  total size             9 B
+  compressed size        1.1 KiB
+  compression ratio      0.01x
+  reduction              -12011.1%
+  processing time        <1s
   status                 COMPLETE
   message                archive emitted

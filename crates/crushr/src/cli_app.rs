@@ -2,24 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use anyhow::{Result, bail};
-
-const HELP: &str = r#"crushr — integrity-first preservation archive suite
-
-Usage:
-  crushr <command> [args...]
-  crushr --help
-
-Canonical product commands:
-  pack      create an archive
-  extract   strict extraction
-  verify    strict verification alias (extract --verify)
-  info      inspect archive metadata/reporting
-  about     product identity and build metadata
-
-Bounded non-primary commands:
-  salvage   experimental salvage planner
-  lab       research harness
-"#;
+use crushr::cli_presentation::CliPresenter;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum AppCommand {
@@ -59,12 +42,12 @@ pub fn run_env() -> i32 {
 
 fn run(args: Vec<String>) -> Result<i32> {
     let Some(first) = args.first() else {
-        print!("{HELP}");
+        print_help();
         return Ok(1);
     };
 
     if first == "--help" || first == "-h" {
-        print!("{HELP}");
+        print_help();
         return Ok(0);
     }
     if first == "--version" || first == "-V" {
@@ -104,4 +87,31 @@ fn run(args: Vec<String>) -> Result<i32> {
     };
 
     Ok(code)
+}
+
+fn print_help() {
+    let presenter = CliPresenter::new("crushr", "help", false);
+    presenter.header();
+    presenter.section("Usage");
+    presenter.kv("command", "crushr <command> [args...]");
+    presenter.kv("help", "crushr --help");
+
+    presenter.section("Canonical product commands");
+    for (command, description) in [
+        ("pack", "create an archive"),
+        ("extract", "strict extraction"),
+        ("verify", "strict verification alias (extract --verify)"),
+        ("info", "inspect archive metadata/reporting"),
+        ("about", "product identity and build metadata"),
+    ] {
+        presenter.kv(command, description);
+    }
+
+    presenter.section("Bounded non-primary commands");
+    for (command, description) in [
+        ("salvage", "experimental salvage planner"),
+        ("lab", "research harness"),
+    ] {
+        presenter.kv(command, description);
+    }
 }

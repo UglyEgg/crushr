@@ -36,6 +36,33 @@ impl RefusalExitPolicy {
 
 const USAGE: &str = "usage: crushr-extract <archive> -o <out-dir> [--all] [PATH ...] [--overwrite] [--recover] [--refusal-exit <success|partial-failure>] [--json] [--silent]\n       crushr-extract --verify <archive> [--json] [--silent]";
 
+fn print_help() {
+    let presenter = CliPresenter::new("crushr-extract", "help", false);
+    presenter.header();
+    presenter.section("Usage");
+    presenter.kv(
+        "extract",
+        "usage: crushr-extract <archive> -o <out-dir> [--all] [PATH ...] [--overwrite] [--recover] [--refusal-exit <success|partial-failure>] [--json] [--silent]",
+    );
+    presenter.kv(
+        "verify",
+        "usage: crushr-extract --verify <archive> [--json] [--silent]",
+    );
+    presenter.section("Flags");
+    presenter.kv("-o, --output <out-dir>", "extraction destination");
+    presenter.kv("--all", "extract all files");
+    presenter.kv("--overwrite", "allow overwriting existing files");
+    presenter.kv("--recover", "enable recovery-aware extraction mode");
+    presenter.kv(
+        "--refusal-exit <success|partial-failure>",
+        "set refusal exit policy",
+    );
+    presenter.kv("--verify", "run strict verification without extraction");
+    presenter.kv("--json", "emit machine-readable output");
+    presenter.kv("--silent", "emit deterministic one-line summary output");
+    presenter.kv("-h, --help", "print this help text");
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum CliMode {
     Extract,
@@ -386,7 +413,7 @@ pub fn dispatch(args: Vec<String>) -> i32 {
         early_args.first().map(String::as_str),
         Some("--help" | "-h")
     ) {
-        println!("{USAGE}");
+        print_help();
         return 0;
     }
     if matches!(

@@ -1,3 +1,9 @@
+CRUSHR_UI_POLISH_07 complete (2026-03-24):
+- Help output now uses shared presentation/visual tokens; non-TTY remains ANSI-clean.
+- Pack now defaults extensionless `-o` targets to `.crs`, reports truthful `compression`/`serialization` N/N + visible `finalizing`, and emits runtime/compression metrics.
+- Info now includes `Compression` section with method + level from archive block headers.
+- Version follow-up: canonical product version is now `0.3.7` (`VERSION` + workspace package version synchronized).
+
 CRUSHR_UI_POLISH_06 completion update (2026-03-24):
 - Shared CLI presentation now enforces one canonical title treatment: leading blank line before command output, UTF-8 double-line divider, and stable key/value column alignment even under ANSI color (padding applied before coloring).
 - `crushr about` was rebuilt onto the same visual contract (colorized title/section/labels, canonical divider, shared key width), eliminating prior bespoke style drift.
