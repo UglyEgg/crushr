@@ -7,12 +7,19 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_UI_POLISH_07 maintenance** (version bump follow-up finalized for v0.3.7)
+Current Step: **CRUSHR_UI_POLISH_08 complete** (pack/info truth polish finalized for v0.3.5)
 
 
 
 Latest maintenance fix (2026-03-24):
-- **CRUSHR_UI_POLISH_07 maintenance**: bumped product version from `0.3.5` to `0.3.7` via canonical version workflow (`VERSION` + workspace package version sync).
+- **CRUSHR_UI_POLISH_08 complete**: confirmed `pack` progress retains stable, separate `compression` + `serialization` rows with shared active-phase rendering and explicit `finalizing` phase transition after both rows settle.
+- **CRUSHR_UI_POLISH_08 complete**: updated `info` Structure terminology to user-truthful file-level labels (`files`, `compressed units`, `file mappings`) and added explicit `block model` line (`file-level (1:1 file → unit)`) without changing index/block calculations.
+- **CRUSHR_UI_POLISH_08 complete**: synchronized v0.3.x version target back to `0.3.5` (`VERSION` + workspace package version sync) and refreshed info presentation golden output.
+- **CRUSHR_UI_POLISH_08 validation**: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
+
+
+Latest maintenance fix (2026-03-24):
+- **CRUSHR_UI_POLISH_07 maintenance**: temporary version bump to `0.3.7` was superseded by CRUSHR_UI_POLISH_08 packet alignment back to `0.3.5` via canonical version workflow (`VERSION` + workspace package version sync).
 - **CRUSHR_UI_POLISH_07 maintenance validation**: `./scripts/check-version-sync.sh` and `cargo test -p crushr --test version_contract` are green.
 
 Latest maintenance fix (2026-03-24):
