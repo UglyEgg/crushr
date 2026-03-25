@@ -21,6 +21,9 @@ pub enum EntryKind {
     Regular = 0,
     Symlink = 1,
     Directory = 2,
+    Fifo = 3,
+    CharDevice = 4,
+    BlockDevice = 5,
 }
 
 #[derive(Debug, Clone)]
@@ -43,6 +46,9 @@ pub struct Entry {
     pub uname: Option<String>,
     pub gname: Option<String>,
     pub hardlink_group_id: Option<u64>,
+    pub sparse: bool,
+    pub device_major: Option<u32>,
+    pub device_minor: Option<u32>,
 }
 
 #[derive(Debug, Clone)]
@@ -50,6 +56,7 @@ pub struct Extent {
     pub block_id: u32,
     pub offset: u64,
     pub len: u64,
+    pub logical_offset: u64,
 }
 
 #[derive(Debug, Clone)]

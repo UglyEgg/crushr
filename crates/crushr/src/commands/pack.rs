@@ -232,6 +232,9 @@ struct InputFile {
     gname: Option<String>,
     hardlink_key: Option<(u64, u64)>,
     xattrs: Vec<Xattr>,
+    sparse_chunks: Vec<SparseChunk>,
+    device_major: Option<u32>,
+    device_minor: Option<u32>,
 }
 
 #[derive(Debug)]
@@ -250,6 +253,13 @@ struct PlannedFileModel {
     uname: Option<String>,
     gname: Option<String>,
     xattrs: Vec<Xattr>,
+    sparse_chunks: Vec<SparseChunk>,
+}
+
+#[derive(Debug, Clone)]
+struct SparseChunk {
+    logical_offset: u64,
+    len: u64,
 }
 
 #[derive(Debug)]
@@ -910,6 +920,7 @@ fn build_pack_layout_plan(
             uname: file.uname.clone(),
             gname: file.gname.clone(),
             xattrs: file.xattrs.clone(),
+            sparse_chunks: file.sparse_chunks.clone(),
         });
     }
 
@@ -967,10 +978,40 @@ fn emit_archive_from_layout(
     for (ordinal, file) in layout.files.into_iter().enumerate() {
         let (raw_len, compressed_len, payload_hash, raw_hash, block_scan_offset, raw_for_manifest) =
             if file.write_payload {
-                let raw = std::fs::read(&file.abs_path)
-                    .with_context(|| format!("read {}", file.abs_path.display()))?;
+                let raw = if file.sparse_chunks.is_empty() {
+                    std::fs::read(&file.abs_path)
+                        .with_context(|| format!("read {}", file.abs_path.display()))?
+                } else {
+                    use std::os::unix::fs::FileExt;
+                    let source = std::fs::File::open(&file.abs_path)
+                        .with_context(|| format!("open {}", file.abs_path.display()))?;
+                    let mut packed = Vec::new();
+                    for chunk in &file.sparse_chunks {
+                        let mut left = chunk.len;
+                        let mut src_off = chunk.logical_offset;
+                        while left > 0 {
+                            let step = left.min(1024 * 1024) as usize;
+                            let mut buf = vec![0u8; step];
+                            let n = source.read_at(&mut buf, src_off).with_context(|| {
+                                format!("read {} at {}", file.abs_path.display(), src_off)
+                            })?;
+                            if n == 0 {
+                                bail!("unexpected EOF while reading sparse chunk");
+                            }
+                            packed.extend_from_slice(&buf[..n]);
+                            left -= n as u64;
+                            src_off += n as u64;
+                        }
+                    }
+                    packed
+                };
                 let raw_len = raw.len() as u64;
-                if raw_len != file.raw_len {
+                let expected_len = if file.sparse_chunks.is_empty() {
+                    file.raw_len
+                } else {
+                    file.sparse_chunks.iter().map(|chunk| chunk.len).sum()
+                };
+                if raw_len != expected_len {
                     bail!(
                         "input changed during pack planning: {}",
                         file.abs_path.display()
@@ -1201,17 +1242,34 @@ fn emit_archive_from_layout(
             }
         }
 
+        let extents = if file.sparse_chunks.is_empty() {
+            vec![Extent {
+                block_id: file.block_id,
+                offset: 0,
+                len: raw_len,
+                logical_offset: 0,
+            }]
+        } else {
+            let mut block_offset = 0u64;
+            let mut out = Vec::with_capacity(file.sparse_chunks.len());
+            for chunk in &file.sparse_chunks {
+                out.push(Extent {
+                    block_id: file.block_id,
+                    offset: block_offset,
+                    len: chunk.len,
+                    logical_offset: chunk.logical_offset,
+                });
+                block_offset += chunk.len;
+            }
+            out
+        };
         entries.push(Entry {
             path: file.rel_path,
             kind: EntryKind::Regular,
             mode: file.mode,
             mtime: file.mtime,
-            size: raw_len,
-            extents: vec![Extent {
-                block_id: file.block_id,
-                offset: 0,
-                len: raw_len,
-            }],
+            size: file.raw_len,
+            extents,
             link_target: None,
             xattrs: file.xattrs,
             uid: file.uid,
@@ -1219,6 +1277,9 @@ fn emit_archive_from_layout(
             uname: file.uname,
             gname: file.gname,
             hardlink_group_id: file.hardlink_group_id,
+            sparse: !file.sparse_chunks.is_empty(),
+            device_major: None,
+            device_minor: None,
         });
         progress(
             PackProgressPhase::Serialization,
@@ -1255,6 +1316,9 @@ fn emit_archive_from_layout(
             uname: input.uname.clone(),
             gname: input.gname.clone(),
             hardlink_group_id: None,
+            sparse: false,
+            device_major: input.device_major,
+            device_minor: input.device_minor,
         });
     }
     entries.sort_by(|a, b| a.path.cmp(&b.path));
@@ -1962,9 +2026,17 @@ fn capture_xattrs(path: &Path) -> Vec<Xattr> {
     }
 }
 
-fn capture_mode_mtime_uid_gid(
-    meta: &std::fs::Metadata,
-) -> (u32, i64, u32, u32, Option<(u64, u64)>) {
+struct CapturedMeta {
+    mode: u32,
+    mtime: i64,
+    uid: u32,
+    gid: u32,
+    hardlink_key: Option<(u64, u64)>,
+    device_major: Option<u32>,
+    device_minor: Option<u32>,
+}
+
+fn capture_mode_mtime_uid_gid(meta: &std::fs::Metadata) -> CapturedMeta {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
@@ -1973,19 +2045,137 @@ fn capture_mode_mtime_uid_gid(
         } else {
             None
         };
-        (
-            meta.mode() & 0o7777,
-            meta.mtime(),
-            meta.uid(),
-            meta.gid(),
+        let file_kind = meta.mode() & libc_s_ifmt();
+        let (device_major, device_minor) =
+            if file_kind == libc_s_ifchr() || file_kind == libc_s_ifblk() {
+                let rdev = meta.rdev();
+                (Some(libc_major(rdev) as u32), Some(libc_minor(rdev) as u32))
+            } else {
+                (None, None)
+            };
+        CapturedMeta {
+            mode: meta.mode() & 0o7777,
+            mtime: meta.mtime(),
+            uid: meta.uid(),
+            gid: meta.gid(),
             hardlink_key,
-        )
+            device_major,
+            device_minor,
+        }
     }
     #[cfg(not(unix))]
     {
         let _ = meta;
-        (0, 0, 0, 0, None)
+        CapturedMeta {
+            mode: 0,
+            mtime: 0,
+            uid: 0,
+            gid: 0,
+            hardlink_key: None,
+            device_major: None,
+            device_minor: None,
+        }
     }
+}
+
+#[cfg(unix)]
+fn capture_ownership_names(uid: u32, gid: u32) -> (Option<String>, Option<String>) {
+    use std::ffi::CStr;
+    #[repr(C)]
+    struct Passwd {
+        pw_name: *const std::os::raw::c_char,
+        pw_passwd: *const std::os::raw::c_char,
+        pw_uid: u32,
+        pw_gid: u32,
+        pw_gecos: *const std::os::raw::c_char,
+        pw_dir: *const std::os::raw::c_char,
+        pw_shell: *const std::os::raw::c_char,
+    }
+    #[repr(C)]
+    struct Group {
+        gr_name: *const std::os::raw::c_char,
+        gr_passwd: *const std::os::raw::c_char,
+        gr_gid: u32,
+        gr_mem: *mut *mut std::os::raw::c_char,
+    }
+    unsafe extern "C" {
+        fn getpwuid(uid: u32) -> *mut Passwd;
+        fn getgrgid(gid: u32) -> *mut Group;
+    }
+
+    let uname = unsafe {
+        let ptr = getpwuid(uid);
+        if ptr.is_null() || (*ptr).pw_name.is_null() {
+            None
+        } else {
+            Some(CStr::from_ptr((*ptr).pw_name).to_string_lossy().to_string())
+        }
+    };
+    let gname = unsafe {
+        let ptr = getgrgid(gid);
+        if ptr.is_null() || (*ptr).gr_name.is_null() {
+            None
+        } else {
+            Some(CStr::from_ptr((*ptr).gr_name).to_string_lossy().to_string())
+        }
+    };
+    (uname, gname)
+}
+
+#[cfg(not(unix))]
+fn capture_ownership_names(_uid: u32, _gid: u32) -> (Option<String>, Option<String>) {
+    (None, None)
+}
+
+#[cfg(unix)]
+fn capture_sparse_chunks(path: &Path, size: u64) -> Vec<SparseChunk> {
+    use std::os::unix::fs::FileExt;
+    use std::os::unix::io::AsRawFd;
+    if size == 0 {
+        return Vec::new();
+    }
+    let Ok(file) = File::open(path) else {
+        return Vec::new();
+    };
+    let mut chunks = Vec::new();
+    let mut cursor = 0u64;
+    while cursor < size {
+        let Some(data_off) = sparse_lseek(file.as_raw_fd(), cursor, libc_seek_data()) else {
+            break;
+        };
+        if data_off >= size {
+            break;
+        }
+        let hole_off = sparse_lseek(file.as_raw_fd(), data_off, libc_seek_hole()).unwrap_or(size);
+        let end = hole_off.min(size);
+        if end <= data_off {
+            break;
+        }
+        chunks.push(SparseChunk {
+            logical_offset: data_off,
+            len: end - data_off,
+        });
+        cursor = end;
+    }
+    if chunks.is_empty() {
+        let mut probe = [0u8; 1];
+        let has_data = file.read_at(&mut probe, 0).ok().unwrap_or(0) > 0;
+        if has_data {
+            vec![SparseChunk {
+                logical_offset: 0,
+                len: size,
+            }]
+        } else {
+            Vec::new()
+        }
+    } else {
+        chunks
+    }
+}
+
+#[cfg(not(unix))]
+fn capture_sparse_chunks(_path: &Path, _size: u64) -> Vec<SparseChunk> {
+    Vec::new()
 }
 
 fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
@@ -2007,19 +2197,24 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 .context("input file has no file name")?
                 .to_string_lossy()
                 .to_string();
-            let (mode, mtime, uid, gid, hardlink_key) = capture_mode_mtime_uid_gid(&meta);
+            let captured = capture_mode_mtime_uid_gid(&meta);
+            let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
+            let size = meta.len();
             files.push(InputFile {
                 rel_path: normalize_logical_path(&name),
                 abs_path: abs,
                 kind: EntryKind::Regular,
-                mode,
-                mtime,
-                uid,
-                gid,
-                uname: None,
-                gname: None,
-                hardlink_key,
+                mode: captured.mode,
+                mtime: captured.mtime,
+                uid: captured.uid,
+                gid: captured.gid,
+                uname,
+                gname,
+                hardlink_key: captured.hardlink_key,
                 xattrs: capture_xattrs(input),
+                sparse_chunks: capture_sparse_chunks(input, size),
+                device_major: None,
+                device_minor: None,
             });
             continue;
         }
@@ -2030,21 +2225,66 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 .context("input symlink has no file name")?
                 .to_string_lossy()
                 .to_string();
-            let (mode, mtime, uid, gid, hardlink_key) = capture_mode_mtime_uid_gid(&meta);
+            let captured = capture_mode_mtime_uid_gid(&meta);
+            let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
             files.push(InputFile {
                 rel_path: normalize_logical_path(&name),
                 abs_path: input.clone(),
                 kind: EntryKind::Symlink,
-                mode,
-                mtime,
-                uid,
-                gid,
-                uname: None,
-                gname: None,
-                hardlink_key,
+                mode: captured.mode,
+                mtime: captured.mtime,
+                uid: captured.uid,
+                gid: captured.gid,
+                uname,
+                gname,
+                hardlink_key: captured.hardlink_key,
                 xattrs: Vec::new(),
+                sparse_chunks: Vec::new(),
+                device_major: None,
+                device_minor: None,
             });
             continue;
+        }
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::FileTypeExt;
+            let captured = capture_mode_mtime_uid_gid(&meta);
+            let ft = meta.file_type();
+            let kind = if ft.is_fifo() {
+                Some(EntryKind::Fifo)
+            } else if ft.is_char_device() {
+                Some(EntryKind::CharDevice)
+            } else if ft.is_block_device() {
+                Some(EntryKind::BlockDevice)
+            } else {
+                None
+            };
+            if let Some(kind) = kind {
+                let name = abs
+                    .file_name()
+                    .context("input special file has no file name")?
+                    .to_string_lossy()
+                    .to_string();
+                let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
+                files.push(InputFile {
+                    rel_path: normalize_logical_path(&name),
+                    abs_path: abs,
+                    kind,
+                    mode: captured.mode,
+                    mtime: captured.mtime,
+                    uid: captured.uid,
+                    gid: captured.gid,
+                    uname,
+                    gname,
+                    hardlink_key: captured.hardlink_key,
+                    xattrs: Vec::new(),
+                    sparse_chunks: Vec::new(),
+                    device_major: captured.device_major,
+                    device_minor: captured.device_minor,
+                });
+                continue;
+            }
         }
 
         if !meta.is_dir() {
@@ -2067,13 +2307,22 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
             let rel_path = normalize_logical_path(&rel);
             let entry_meta = std::fs::symlink_metadata(entry.path())
                 .with_context(|| format!("stat {}", entry.path().display()))?;
-            let (mode, mtime, uid, gid, hardlink_key) = capture_mode_mtime_uid_gid(&entry_meta);
+            let captured = capture_mode_mtime_uid_gid(&entry_meta);
+            let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
+            #[cfg(unix)]
+            use std::os::unix::fs::FileTypeExt;
             let kind = if entry.file_type().is_file() {
                 EntryKind::Regular
             } else if entry.file_type().is_symlink() {
                 EntryKind::Symlink
             } else if entry.file_type().is_dir() {
                 EntryKind::Directory
+            } else if entry_meta.file_type().is_fifo() {
+                EntryKind::Fifo
+            } else if entry_meta.file_type().is_char_device() {
+                EntryKind::CharDevice
+            } else if entry_meta.file_type().is_block_device() {
+                EntryKind::BlockDevice
             } else {
                 continue;
             };
@@ -2082,22 +2331,30 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 rel_path,
                 abs_path: entry.path().to_path_buf(),
                 kind,
-                mode,
-                mtime,
-                uid,
-                gid,
-                uname: None,
-                gname: None,
-                hardlink_key,
+                mode: captured.mode,
+                mtime: captured.mtime,
+                uid: captured.uid,
+                gid: captured.gid,
+                uname,
+                gname,
+                hardlink_key: captured.hardlink_key,
                 xattrs: if kind == EntryKind::Regular || kind == EntryKind::Directory {
                     capture_xattrs(entry.path())
                 } else {
                     Vec::new()
                 },
+                sparse_chunks: if kind == EntryKind::Regular {
+                    capture_sparse_chunks(entry.path(), entry_meta.len())
+                } else {
+                    Vec::new()
+                },
+                device_major: captured.device_major,
+                device_minor: captured.device_minor,
             });
         }
         if !saw_child {
-            let (mode, mtime, uid, gid, hardlink_key) = capture_mode_mtime_uid_gid(&meta);
+            let captured = capture_mode_mtime_uid_gid(&meta);
+            let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
             let name = abs
                 .file_name()
                 .context("input directory has no file name")?
@@ -2107,14 +2364,17 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 rel_path: normalize_logical_path(&name),
                 abs_path: abs,
                 kind: EntryKind::Directory,
-                mode,
-                mtime,
-                uid,
-                gid,
-                uname: None,
-                gname: None,
-                hardlink_key,
+                mode: captured.mode,
+                mtime: captured.mtime,
+                uid: captured.uid,
+                gid: captured.gid,
+                uname,
+                gname,
+                hardlink_key: captured.hardlink_key,
                 xattrs: capture_xattrs(input),
+                sparse_chunks: Vec::new(),
+                device_major: None,
+                device_minor: None,
             });
         }
     }
@@ -2129,6 +2389,55 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
 
 fn normalize_logical_path(path: &str) -> String {
     path.replace('\\', "/")
+}
+
+#[cfg(unix)]
+fn libc_s_ifmt() -> u32 {
+    0o170000
+}
+#[cfg(not(unix))]
+fn libc_s_ifmt() -> u32 {
+    0
+}
+#[cfg(unix)]
+fn libc_s_ifchr() -> u32 {
+    0o020000
+}
+#[cfg(not(unix))]
+fn libc_s_ifchr() -> u32 {
+    0
+}
+#[cfg(unix)]
+fn libc_s_ifblk() -> u32 {
+    0o060000
+}
+#[cfg(not(unix))]
+fn libc_s_ifblk() -> u32 {
+    0
+}
+#[cfg(unix)]
+fn libc_seek_data() -> i32 {
+    3
+}
+#[cfg(unix)]
+fn libc_seek_hole() -> i32 {
+    4
+}
+#[cfg(unix)]
+fn libc_major(dev: u64) -> u64 {
+    ((dev >> 8) & 0xfff) | ((dev >> 32) & !0xfff)
+}
+#[cfg(unix)]
+fn libc_minor(dev: u64) -> u64 {
+    (dev & 0xff) | ((dev >> 12) & !0xff)
+}
+#[cfg(unix)]
+fn sparse_lseek(fd: std::os::unix::io::RawFd, off: u64, whence: i32) -> Option<u64> {
+    unsafe extern "C" {
+        fn lseek(fd: std::os::unix::io::RawFd, offset: i64, whence: i32) -> i64;
+    }
+    let value = unsafe { lseek(fd, off as i64, whence) };
+    if value < 0 { None } else { Some(value as u64) }
 }
 
 fn reject_duplicate_logical_paths(files: &[InputFile]) -> Result<()> {

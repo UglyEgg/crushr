@@ -3,6 +3,7 @@
 
 use crate::cli_presentation::{BannerLevel, CliPresenter, StatusWord, group_u64};
 use crate::format::{EntryKind, IDX_MAGIC_V3, IDX_MAGIC_V4};
+const IDX_MAGIC_V5: &[u8; 4] = b"IDX5";
 use crate::index_codec::decode_index;
 use anyhow::{Context, Result, bail};
 use crushr_core::verify::scan_blocks_v1;
@@ -77,10 +78,13 @@ struct IndexSummary {
     has_xattrs: bool,
     has_ownership: bool,
     has_hardlinks: bool,
+    has_sparse: bool,
+    has_special: bool,
 }
 
 fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
-    let ownership_supported = idx3_bytes.starts_with(IDX_MAGIC_V4);
+    let ownership_supported =
+        idx3_bytes.starts_with(IDX_MAGIC_V4) || idx3_bytes.starts_with(IDX_MAGIC_V5);
     let index = decode_index(idx3_bytes).ok()?;
     let mut regular_file_count = 0u64;
     let mut extent_count = 0u64;
@@ -88,11 +92,18 @@ fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
     let mut has_xattrs = false;
     let mut has_hardlinks = false;
     let mut has_ownership = false;
+    let mut has_sparse = false;
+    let mut has_special = false;
 
     for entry in index.entries {
         has_xattrs |= !entry.xattrs.is_empty();
         has_hardlinks |= entry.hardlink_group_id.is_some();
         has_ownership |= ownership_supported;
+        has_sparse |= entry.sparse;
+        has_special |= matches!(
+            entry.kind,
+            EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice
+        );
         if entry.kind != EntryKind::Regular {
             continue;
         }
@@ -110,6 +121,8 @@ fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
         has_xattrs,
         has_ownership,
         has_hardlinks,
+        has_sparse,
+        has_special,
     })
 }
 
@@ -265,8 +278,9 @@ fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> R
             corrupted_structures.insert(STRUCTURE_IDX3.to_string());
         } else {
             let hash_ok = *blake3::hash(&idx3_bytes).as_bytes() == footer.index_hash;
-            let magic_ok =
-                idx3_bytes.starts_with(IDX_MAGIC_V3) || idx3_bytes.starts_with(IDX_MAGIC_V4);
+            let magic_ok = idx3_bytes.starts_with(IDX_MAGIC_V3)
+                || idx3_bytes.starts_with(IDX_MAGIC_V4)
+                || idx3_bytes.starts_with(IDX_MAGIC_V5);
             if !hash_ok || !magic_ok {
                 corrupted_structures.insert(STRUCTURE_IDX3.to_string());
             }
@@ -421,7 +435,10 @@ fn read_idx3_bytes_from_footer<R: ReadAt + Len>(reader: &R) -> Result<Vec<u8>> {
     read_exact_at(reader, footer.index_offset, &mut idx3_bytes)
         .context("read IDX3 index bytes for listing")?;
 
-    if !idx3_bytes.starts_with(IDX_MAGIC_V3) && !idx3_bytes.starts_with(IDX_MAGIC_V4) {
+    if !idx3_bytes.starts_with(IDX_MAGIC_V3)
+        && !idx3_bytes.starts_with(IDX_MAGIC_V4)
+        && !idx3_bytes.starts_with(IDX_MAGIC_V5)
+    {
         bail!("IDX magic mismatch");
     }
     if *blake3::hash(&idx3_bytes).as_bytes() != footer.index_hash {
@@ -639,7 +656,9 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         group_u64(snapshot.payload.summary.archive_len),
     );
     presenter.kv("blake3", archive_blake3);
-    let idx_marker = if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V4) {
+    let idx_marker = if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V5) {
+        "IDX5"
+    } else if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V4) {
         "IDX4"
     } else if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V3) {
         "IDX3"
@@ -742,6 +761,30 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         if index_summary
             .as_ref()
             .map(|s| s.has_hardlinks)
+            .unwrap_or(false)
+        {
+            "present"
+        } else {
+            "absent"
+        },
+    );
+    presenter.kv(
+        "sparse files",
+        if index_summary
+            .as_ref()
+            .map(|s| s.has_sparse)
+            .unwrap_or(false)
+        {
+            "present"
+        } else {
+            "absent"
+        },
+    );
+    presenter.kv(
+        "special files",
+        if index_summary
+            .as_ref()
+            .map(|s| s.has_special)
             .unwrap_or(false)
         {
             "present"

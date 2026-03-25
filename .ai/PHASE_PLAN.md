@@ -156,6 +156,7 @@ Milestone packets
 
 - [x] CRUSHR_PRESERVATION_01 — baseline Linux-first filesystem metadata preservation (`regular`/`directory`/`symlink`, mode, mtime, empty directories, xattrs) in pack/extract with deterministic round-trip coverage.
 - [x] CRUSHR_PRESERVATION_02 — preserve ownership (`uid`/`gid`) + hard-link semantics, restore best-effort ownership with explicit warnings, and expose metadata-class presence in `info`.
+- [x] CRUSHR_PRESERVATION_03 — extend Linux tar-class preservation with sparse regular files, FIFO/device-node entry kinds, best-effort special-file restore warnings, and ownership-name enrichment (`uname`/`gname`) while keeping numeric uid/gid authoritative.
 
 Constraints
 

@@ -11,7 +11,8 @@ use crushr_core::{
 use crushr_format::ftr4::{FTR4_LEN, Ftr4};
 use std::ffi::OsStr;
 use std::fs;
-use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
+use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt, symlink};
+use std::os::unix::prelude::FileExt;
 use std::path::Path;
 use std::process::Command;
 use tempfile::TempDir;
@@ -215,7 +216,12 @@ fn extraction_warns_when_ownership_restore_is_not_permitted() {
         .args([archive.to_str().unwrap(), "-o", output.to_str().unwrap()])
         .output()
         .expect("run extract");
-    assert!(out.status.success());
+    assert!(
+        out.status.success(),
+        "extract failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(stderr.contains("WARNING[ownership-restore]"));
 }
@@ -231,4 +237,135 @@ fn nix_like_euid_is_root() -> bool {
         status = text.trim() == "0";
     }
     status
+}
+
+#[test]
+fn sparse_and_fifo_roundtrip_preserve_entry_kinds() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    let output = td.path().join("output");
+    fs::create_dir_all(&input).unwrap();
+
+    let sparse_path = input.join("sparse.bin");
+    let file = fs::File::create(&sparse_path).unwrap();
+    file.set_len(8 * 1024 * 1024).unwrap();
+    file.write_at(b"start", 0).unwrap();
+    file.write_at(b"end", (8 * 1024 * 1024) - 3).unwrap();
+
+    let fifo_path = input.join("named.pipe");
+    run(Command::new("mkfifo").arg(&fifo_path));
+
+    let archive = td.path().join("specials.crs");
+    run(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+            input.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--level",
+            "3",
+        ]),
+    );
+    run(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract"))).args([
+            archive.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ]),
+    );
+
+    let src_sparse_meta = fs::metadata(&sparse_path).unwrap();
+    let out_sparse_meta = fs::metadata(output.join("sparse.bin")).unwrap();
+    assert_eq!(out_sparse_meta.len(), src_sparse_meta.len());
+    if src_sparse_meta.blocks() < src_sparse_meta.len().div_ceil(512) {
+        assert!(out_sparse_meta.blocks() < out_sparse_meta.len().div_ceil(512));
+    }
+
+    let fifo_meta = fs::symlink_metadata(output.join("named.pipe")).unwrap();
+    assert!(fifo_meta.file_type().is_fifo());
+}
+
+#[test]
+fn device_node_restore_is_truthful_when_unprivileged() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    let device_path = input.join("null.device");
+    let mknod = Command::new("mknod")
+        .args([device_path.to_str().unwrap(), "c", "1", "3"])
+        .output()
+        .expect("run mknod");
+    if !mknod.status.success() {
+        eprintln!(
+            "skipping device-node test: {}",
+            String::from_utf8_lossy(&mknod.stderr)
+        );
+        return;
+    }
+    fs::write(input.join("seed.txt"), b"seed").unwrap();
+
+    let archive = td.path().join("device.crs");
+    run(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+            input.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--level",
+            "3",
+        ]),
+    );
+    let output = td.path().join("output");
+    let out = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+        .args([archive.to_str().unwrap(), "-o", output.to_str().unwrap()])
+        .output()
+        .expect("run extract");
+    assert!(
+        out.status.success(),
+        "extract failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    let restored_path = output.join("null.device");
+    let restored_meta = fs::symlink_metadata(&restored_path).ok();
+    let restored_char = restored_meta
+        .as_ref()
+        .map(|m| m.file_type().is_char_device())
+        .unwrap_or(false);
+    assert!(restored_char || stderr.contains("WARNING[special-restore]"));
+}
+
+#[test]
+fn ownership_name_enrichment_is_captured_without_placeholders() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    fs::write(input.join("file.txt"), b"payload").unwrap();
+
+    let archive = td.path().join("owners.crs");
+    run(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+            input.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--level",
+            "3",
+        ]),
+    );
+
+    let reader = FileReader {
+        file: fs::File::open(&archive).unwrap(),
+    };
+    let open = open_archive_v1(&reader).unwrap();
+    let index = decode_index(&open.tail.idx3_bytes).unwrap();
+    let entry = index
+        .entries
+        .iter()
+        .find(|entry| entry.path.ends_with("file.txt"))
+        .unwrap();
+    if let Some(uname) = &entry.uname {
+        assert!(!uname.trim().is_empty());
+    }
+    if let Some(gname) = &entry.gname {
+        assert!(!gname.trim().is_empty());
+    }
 }

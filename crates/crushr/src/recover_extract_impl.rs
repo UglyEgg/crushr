@@ -224,10 +224,28 @@ where
                                 )
                             })?;
                         } else {
-                            let bytes = read_entry_bytes_strict(&reader, entry, &blocks)?;
-                            write_entry(destination.as_path(), &bytes, opts.overwrite)?;
+                            if entry.sparse {
+                                write_sparse_entry(
+                                    &reader,
+                                    entry,
+                                    destination.as_path(),
+                                    &blocks,
+                                    opts.overwrite,
+                                )?;
+                            } else {
+                                let bytes = read_entry_bytes_strict(&reader, entry, &blocks)?;
+                                write_entry(destination.as_path(), &bytes, opts.overwrite)?;
+                            }
                             hardlink_roots.insert(group_id, destination.clone());
                         }
+                    } else if entry.sparse {
+                        write_sparse_entry(
+                            &reader,
+                            entry,
+                            destination.as_path(),
+                            &blocks,
+                            opts.overwrite,
+                        )?;
                     } else {
                         let bytes = read_entry_bytes_strict(&reader, entry, &blocks)?;
                         write_entry(destination.as_path(), &bytes, opts.overwrite)?;
@@ -250,6 +268,26 @@ where
                 #[cfg(unix)]
                 std::os::unix::fs::symlink(&target, &destination)
                     .with_context(|| format!("symlink {} -> {}", destination.display(), target))?;
+                restore_ownership(destination.as_path(), entry)?;
+            }
+            EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice => {
+                if let Some(parent) = destination.parent() {
+                    fs::create_dir_all(parent)
+                        .with_context(|| format!("create {}", parent.display()))?;
+                }
+                if destination.exists() {
+                    if opts.overwrite {
+                        fs::remove_file(&destination)
+                            .or_else(|_| fs::remove_dir_all(&destination))
+                            .ok();
+                    } else {
+                        bail!(
+                            "destination exists (use --overwrite): {}",
+                            destination.display()
+                        );
+                    }
+                }
+                restore_special(destination.as_path(), entry)?;
                 restore_ownership(destination.as_path(), entry)?;
             }
         }
@@ -389,7 +427,8 @@ fn read_entry_bytes_strict(
     entry: &Entry,
     blocks: &[BlockSpanV1],
 ) -> Result<Vec<u8>> {
-    let mut out = Vec::with_capacity(entry.size as usize);
+    let mut out = vec![0u8; entry.size as usize];
+    let mut write_cursor = 0u64;
 
     for extent in &entry.extents {
         let block = blocks
@@ -410,10 +449,24 @@ fn read_entry_bytes_strict(
             );
         }
 
-        out.extend_from_slice(&raw[begin..end]);
+        let target_off = if entry.sparse {
+            extent.logical_offset as usize
+        } else {
+            write_cursor as usize
+        };
+        let target_end = target_off
+            .checked_add(extent.len as usize)
+            .context("target extent overflow")?;
+        if target_end > out.len() {
+            bail!("entry size mismatch while reading {}", entry.path);
+        }
+        out[target_off..target_end].copy_from_slice(&raw[begin..end]);
+        write_cursor = write_cursor
+            .checked_add(extent.len)
+            .context("entry size overflow while reading")?;
     }
 
-    if out.len() as u64 != entry.size {
+    if !entry.sparse && write_cursor != entry.size {
         bail!("entry size mismatch while reading {}", entry.path);
     }
 
@@ -425,7 +478,11 @@ fn recover_partial_entry_bytes(
     entry: &Entry,
     blocks: &[BlockSpanV1],
 ) -> Result<Vec<u8>> {
-    let mut out = Vec::new();
+    let mut out = if entry.sparse {
+        vec![0u8; entry.size as usize]
+    } else {
+        Vec::new()
+    };
 
     for extent in &entry.extents {
         let Some(block) = blocks.get(extent.block_id as usize) else {
@@ -443,7 +500,17 @@ fn recover_partial_entry_bytes(
             continue;
         }
 
-        out.extend_from_slice(&raw[begin..end]);
+        if entry.sparse {
+            let target_off = extent.logical_offset as usize;
+            let Some(target_end) = target_off.checked_add(extent.len as usize) else {
+                continue;
+            };
+            if target_end <= out.len() {
+                out[target_off..target_end].copy_from_slice(&raw[begin..end]);
+            }
+        } else {
+            out.extend_from_slice(&raw[begin..end]);
+        }
     }
 
     Ok(out)
@@ -484,6 +551,98 @@ fn write_entry(path: &Path, bytes: &[u8], overwrite: bool) -> Result<()> {
     }
 
     fs::write(path, bytes).with_context(|| format!("write {}", path.display()))?;
+    Ok(())
+}
+
+fn write_sparse_entry(
+    reader: &FileReader,
+    entry: &Entry,
+    path: &Path,
+    blocks: &[BlockSpanV1],
+    overwrite: bool,
+) -> Result<()> {
+    use std::os::unix::fs::FileExt;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
+    }
+    if path.exists() && !overwrite {
+        bail!("destination exists (use --overwrite): {}", path.display());
+    }
+    let out = fs::File::create(path).with_context(|| format!("create {}", path.display()))?;
+    out.set_len(entry.size)
+        .with_context(|| format!("set_len {}", path.display()))?;
+    for extent in &entry.extents {
+        let block = blocks
+            .get(extent.block_id as usize)
+            .with_context(|| format!("extent references missing block {}", extent.block_id))?;
+        let raw = block_raw_payload(reader, block)?;
+        let begin = extent.offset as usize;
+        let end = begin
+            .checked_add(extent.len as usize)
+            .context("extent length overflow")?;
+        if end > raw.len() {
+            bail!("extent out of range for sparse write {}", entry.path);
+        }
+        out.write_at(&raw[begin..end], extent.logical_offset)
+            .with_context(|| format!("write sparse extent {}", path.display()))?;
+    }
+    Ok(())
+}
+
+fn restore_special(path: &Path, entry: &Entry) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::ffi::CString;
+        use std::os::unix::ffi::OsStrExt;
+        unsafe extern "C" {
+            fn mkfifo(pathname: *const std::os::raw::c_char, mode: u32) -> std::os::raw::c_int;
+            fn mknod(
+                pathname: *const std::os::raw::c_char,
+                mode: u32,
+                dev: u64,
+            ) -> std::os::raw::c_int;
+        }
+        let c_path = CString::new(path.as_os_str().as_bytes())
+            .with_context(|| format!("invalid path for special restore: {}", path.display()))?;
+        let rc = match entry.kind {
+            EntryKind::Fifo => unsafe { mkfifo(c_path.as_ptr(), entry.mode) },
+            EntryKind::CharDevice | EntryKind::BlockDevice => {
+                let mode = entry.mode
+                    | if entry.kind == EntryKind::CharDevice {
+                        0o020000
+                    } else {
+                        0o060000
+                    };
+                let major = entry.device_major.unwrap_or(0) as u64;
+                let minor = entry.device_minor.unwrap_or(0) as u64;
+                let dev = ((major & 0xfffff000) << 32)
+                    | ((major & 0xfff) << 8)
+                    | ((minor & 0xffffff00) << 12)
+                    | (minor & 0xff);
+                unsafe { mknod(c_path.as_ptr(), mode, dev) }
+            }
+            _ => 0,
+        };
+        if rc != 0 {
+            eprintln!(
+                "WARNING[special-restore]: could not restore '{}' at '{}': {}",
+                entry.path,
+                path.display(),
+                std::io::Error::last_os_error()
+            );
+        } else {
+            restore_mtime(path, entry.mtime)?;
+            restore_xattrs(path, entry)?;
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        eprintln!(
+            "WARNING[special-restore]: skipped '{}' at '{}' (unsupported platform)",
+            entry.path,
+            path.display()
+        );
+    }
     Ok(())
 }
 

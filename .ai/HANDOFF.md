@@ -1,3 +1,10 @@
+CRUSHR_PRESERVATION_03 complete (2026-03-25):
+- Production index format is now IDX5 (IDX3/IDX4 decode compatibility retained) with new entry-kind coverage for FIFO + character/block device files, sparse-file logical extent mapping, and optional device major/minor metadata.
+- Pack now captures sparse extents (Linux hole/data probing), ownership names (`uname`/`gname`) as enrichment, FIFO/device node kinds, and preserves numeric uid/gid as authoritative ownership truth.
+- Strict/recover extraction now restore sparse files hole-aware, recreate FIFO/device nodes when supported/permitted, and emit explicit `WARNING[special-restore]` degradation when special restoration is blocked.
+- `crushr info` metadata visibility now includes `sparse files` and `special files`; format marker now reports IDX5 when present.
+- Validation run in this packet: `cargo test -p crushr --test metadata_preservation`, `cargo test -p crushr --test deterministic_pack --test mvp --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`.
+
 CRUSHR_PRESERVATION_02 complete (2026-03-25):
 - Pack/index now preserve ownership + hard-link semantics in IDX4: entries include `uid/gid` (optional names) and regular-file hard-link group identity with shared payload blocks.
 - Strict/recover canonical extraction now restores ownership best-effort with explicit `WARNING[ownership-restore]` on permission/platform failures; extraction continues without silent metadata drop.

@@ -52,6 +52,7 @@ fn regular_entry(path: &str, len: u64) -> Entry {
             block_id: 0,
             offset: 0,
             len,
+            logical_offset: 0,
         }],
         link_target: None,
         xattrs: vec![],
@@ -60,6 +61,9 @@ fn regular_entry(path: &str, len: u64) -> Entry {
         uname: None,
         gname: None,
         hardlink_group_id: None,
+        sparse: false,
+        device_major: None,
+        device_minor: None,
     }
 }
 
