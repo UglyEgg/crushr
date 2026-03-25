@@ -3,9 +3,9 @@
 
 use crate::format::{
     Entry, EntryKind, Extent, IDX_MAGIC_V1, IDX_MAGIC_V2, IDX_MAGIC_V3, IDX_MAGIC_V4, IDX_MAGIC_V5,
-    IDX_MAGIC_V6, Index, Xattr,
+    IDX_MAGIC_V6, IDX_MAGIC_V7, Index, PreservationProfile, Xattr,
 };
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 
 fn put_u8(out: &mut Vec<u8>, v: u8) {
     out.push(v);
@@ -83,7 +83,8 @@ fn get_opt_string(input: &[u8], off: &mut usize) -> Result<Option<String>> {
     }
 }
 pub fn encode_index(idx: &Index) -> Vec<u8> {
-    // Current stable encoding (IDX6) includes ACL/SELinux/capability metadata.
+    // Current stable encoding (IDX7) includes ACL/SELinux/capability metadata
+    // plus preservation profile contract tagging.
     // magic(4) entry_count(u32)
     // entries:
     //   path (len+bytes)
@@ -93,7 +94,8 @@ pub fn encode_index(idx: &Index) -> Vec<u8> {
     //   link_target (len+bytes; 0 for regular)
     //   xattr_count(u32) + xattrs: name(len+bytes) value(len+bytes)
     let mut out = Vec::new();
-    out.extend_from_slice(IDX_MAGIC_V6);
+    out.extend_from_slice(IDX_MAGIC_V7);
+    put_u8(&mut out, idx.preservation_profile.disk_tag());
     put_u32(&mut out, idx.entries.len() as u32);
 
     for e in &idx.entries {
@@ -174,7 +176,9 @@ pub fn decode_index(bytes: &[u8]) -> Result<Index> {
     }
     let magic = &bytes[0..4];
 
-    if magic == IDX_MAGIC_V6 {
+    if magic == IDX_MAGIC_V7 {
+        decode_idx7(bytes)
+    } else if magic == IDX_MAGIC_V6 {
         decode_idx6(bytes)
     } else if magic == IDX_MAGIC_V5 {
         decode_idx5(bytes)
@@ -284,7 +288,10 @@ fn decode_idx4(bytes: &[u8]) -> Result<Index> {
         bail!("index has trailing bytes");
     }
 
-    Ok(Index { entries })
+    Ok(Index {
+        preservation_profile: PreservationProfile::Full,
+        entries,
+    })
 }
 
 fn decode_idx5(bytes: &[u8]) -> Result<Index> {
@@ -403,7 +410,10 @@ fn decode_idx5(bytes: &[u8]) -> Result<Index> {
         bail!("index has trailing bytes");
     }
 
-    Ok(Index { entries })
+    Ok(Index {
+        preservation_profile: PreservationProfile::Full,
+        entries,
+    })
 }
 
 fn decode_idx6(bytes: &[u8]) -> Result<Index> {
@@ -554,7 +564,10 @@ fn decode_idx6(bytes: &[u8]) -> Result<Index> {
         bail!("index has trailing bytes");
     }
 
-    Ok(Index { entries })
+    Ok(Index {
+        preservation_profile: PreservationProfile::Full,
+        entries,
+    })
 }
 
 fn decode_idx3(bytes: &[u8]) -> Result<Index> {
@@ -640,7 +653,10 @@ fn decode_idx3(bytes: &[u8]) -> Result<Index> {
         bail!("index has trailing bytes");
     }
 
-    Ok(Index { entries })
+    Ok(Index {
+        preservation_profile: PreservationProfile::Full,
+        entries,
+    })
 }
 
 fn decode_idx2(bytes: &[u8]) -> Result<Index> {
@@ -715,7 +731,10 @@ fn decode_idx2(bytes: &[u8]) -> Result<Index> {
         bail!("index has trailing bytes");
     }
 
-    Ok(Index { entries })
+    Ok(Index {
+        preservation_profile: PreservationProfile::Full,
+        entries,
+    })
 }
 
 fn decode_idx1(bytes: &[u8]) -> Result<Index> {
@@ -772,5 +791,158 @@ fn decode_idx1(bytes: &[u8]) -> Result<Index> {
         bail!("index has trailing bytes");
     }
 
-    Ok(Index { entries })
+    Ok(Index {
+        preservation_profile: PreservationProfile::Full,
+        entries,
+    })
+}
+
+fn decode_idx7(bytes: &[u8]) -> Result<Index> {
+    let mut off = 4usize;
+    let preservation_profile = PreservationProfile::from_disk_tag(get_u8(bytes, &mut off)?)
+        .context("unknown preservation profile tag in IDX7")?;
+    let count = get_u32(bytes, &mut off)? as usize;
+    let mut entries = Vec::with_capacity(count);
+
+    for _ in 0..count {
+        let path = std::str::from_utf8(get_len_bytes(bytes, &mut off)?)?.to_string();
+        let kind_u8 = get_u8(bytes, &mut off)?;
+        let kind = match kind_u8 {
+            0 => EntryKind::Regular,
+            1 => EntryKind::Symlink,
+            2 => EntryKind::Directory,
+            3 => EntryKind::Fifo,
+            4 => EntryKind::CharDevice,
+            5 => EntryKind::BlockDevice,
+            _ => bail!("unknown entry kind {}", kind_u8),
+        };
+        let mode = get_u32(bytes, &mut off)?;
+        let mtime = get_i64(bytes, &mut off)?;
+        let size = get_u64(bytes, &mut off)?;
+        let ex_count = get_u32(bytes, &mut off)? as usize;
+
+        let mut extents = Vec::with_capacity(ex_count);
+        for _ in 0..ex_count {
+            let block_id = get_u32(bytes, &mut off)?;
+            let offset = get_u64(bytes, &mut off)?;
+            let len = get_u64(bytes, &mut off)?;
+            let logical_offset = get_u64(bytes, &mut off)?;
+            extents.push(Extent {
+                block_id,
+                offset,
+                len,
+                logical_offset,
+            });
+        }
+
+        let link_target_bytes = get_len_bytes(bytes, &mut off)?;
+        let link_target = if link_target_bytes.is_empty() {
+            None
+        } else {
+            Some(std::str::from_utf8(link_target_bytes)?.to_string())
+        };
+
+        let xa_count = get_u32(bytes, &mut off)? as usize;
+        let mut xattrs = Vec::with_capacity(xa_count);
+        for _ in 0..xa_count {
+            let name = std::str::from_utf8(get_len_bytes(bytes, &mut off)?)?.to_string();
+            let val = get_len_bytes(bytes, &mut off)?.to_vec();
+            xattrs.push(Xattr { name, value: val });
+        }
+
+        let uid = get_u32(bytes, &mut off)?;
+        let gid = get_u32(bytes, &mut off)?;
+        let uname = get_opt_string(bytes, &mut off)?;
+        let gname = get_opt_string(bytes, &mut off)?;
+        let hardlink_group_id = if get_u8(bytes, &mut off)? == 0 {
+            None
+        } else {
+            Some(get_u64(bytes, &mut off)?)
+        };
+        let sparse = get_u8(bytes, &mut off)? != 0;
+        let (device_major, device_minor) = if get_u8(bytes, &mut off)? == 0 {
+            (None, None)
+        } else {
+            (
+                Some(get_u32(bytes, &mut off)?),
+                Some(get_u32(bytes, &mut off)?),
+            )
+        };
+        let acl_access = {
+            let bytes = get_len_bytes(bytes, &mut off)?;
+            if bytes.is_empty() {
+                None
+            } else {
+                Some(bytes.to_vec())
+            }
+        };
+        let acl_default = {
+            let bytes = get_len_bytes(bytes, &mut off)?;
+            if bytes.is_empty() {
+                None
+            } else {
+                Some(bytes.to_vec())
+            }
+        };
+        let selinux_label = {
+            let bytes = get_len_bytes(bytes, &mut off)?;
+            if bytes.is_empty() {
+                None
+            } else {
+                Some(bytes.to_vec())
+            }
+        };
+        let linux_capability = {
+            let bytes = get_len_bytes(bytes, &mut off)?;
+            if bytes.is_empty() {
+                None
+            } else {
+                Some(bytes.to_vec())
+            }
+        };
+
+        if kind == EntryKind::Symlink && !extents.is_empty() {
+            bail!("symlink entry has extents");
+        }
+        if (kind == EntryKind::Directory
+            || kind == EntryKind::Fifo
+            || kind == EntryKind::CharDevice
+            || kind == EntryKind::BlockDevice)
+            && (!extents.is_empty() || size != 0)
+        {
+            bail!("non-regular entry must have no extents and zero size");
+        }
+
+        entries.push(Entry {
+            path,
+            kind,
+            mode,
+            mtime,
+            size,
+            extents,
+            link_target,
+            xattrs,
+            uid,
+            gid,
+            uname,
+            gname,
+            hardlink_group_id,
+            sparse,
+            device_major,
+            device_minor,
+            acl_access,
+            acl_default,
+            selinux_label,
+            linux_capability,
+        });
+    }
+
+    if off != bytes.len() {
+        bail!("index has trailing bytes");
+    }
+
+    Ok(Index {
+        preservation_profile,
+        entries,
+    })
 }

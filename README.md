@@ -51,6 +51,14 @@ The canonical default extension is:
 
 If no extension is supplied for `pack -o`, `.crs` is appended automatically.
 
+`crushr pack` now also supports explicit preservation contracts:
+
+- `--preservation full` (default)
+- `--preservation basic`
+- `--preservation payload-only`
+
+The selected preservation profile is recorded in archive metadata and shown by `crushr info`.
+
 ## Documentation
 
 Public product, reference, and historical material lives under `docs/`.
@@ -177,6 +185,14 @@ The current Linux-first preservation set includes:
 Optional ownership names (`uname` / `gname`) may be present when available, but numeric ownership is authoritative.
 
 Where preservation or restoration cannot be applied due to platform or permission constraints (for example ACL/SELinux/capability restore in restricted environments), crushr should degrade honestly and warn rather than silently pretend success.
+
+### Preservation profiles
+
+- `full` preserves the complete Linux-first set listed above.
+- `basic` preserves regular/directory/symlink/hard-link semantics plus mode/mtime/sparse semantics, and intentionally omits ownership, xattrs, ACL/SELinux/capability metadata, and FIFO/device entries.
+- `payload-only` preserves only regular-file payload bytes plus logical tree reconstruction directories; link semantics, sparse semantics, and metadata classes are intentionally omitted.
+
+For profiles that exclude entry kinds, crushr emits explicit warnings and omits those entries rather than fabricating alternate representations.
 
 ### Long-term preservation goal
 

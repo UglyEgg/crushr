@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use crushr::format::{Entry, EntryKind, Extent, Index};
+use crushr::format::{Entry, EntryKind, Extent, Index, PreservationProfile};
 use crushr::index_codec::{decode_index, encode_index};
 
 #[test]
 fn idx1_roundtrip() {
     let idx = Index {
+        preservation_profile: PreservationProfile::Basic,
         entries: vec![
             Entry {
                 path: "a.txt".to_string(),
@@ -67,6 +68,7 @@ fn idx1_roundtrip() {
 
     let bytes = encode_index(&idx);
     let dec = decode_index(&bytes).unwrap();
+    assert_eq!(dec.preservation_profile, PreservationProfile::Basic);
     assert_eq!(dec.entries.len(), 2);
     assert_eq!(dec.entries[0].path, "a.txt");
     assert_eq!(dec.entries[1].path, "sub/b.json");

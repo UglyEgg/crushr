@@ -4,9 +4,12 @@ crushr-info  /  info
 
 Archive
   path                   <TMP>/sample.crushr
-  size bytes             1,192
+  size bytes             1,193
   blake3                 <DYNAMIC>
-  format markers         FTR4 + IDX6
+  format markers         FTR4 + IDX7
+
+Preservation
+  profile                full
 
 Structure
   files                  2

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-use crushr::format::{BLK_MAGIC_V2, CODEC_ZSTD, Entry, EntryKind, Extent, FTR_MAGIC_V2, Index};
+use crushr::format::{
+    BLK_MAGIC_V2, CODEC_ZSTD, Entry, EntryKind, Extent, FTR_MAGIC_V2, Index, PreservationProfile,
+};
 use crushr::index_codec::encode_index;
 use std::fs;
 use std::io::Write;
@@ -22,6 +24,7 @@ fn build_archive(archive: &Path, entry: Entry, payload: &[u8]) {
 
     let blocks_end_offset = 4 + 4 + 8 + 8 + comp.len() as u64;
     let index = Index {
+        preservation_profile: PreservationProfile::Full,
         entries: vec![entry],
     };
     let idx_bytes = encode_index(&index);

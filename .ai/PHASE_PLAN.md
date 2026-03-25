@@ -159,6 +159,7 @@ Milestone packets
 - [x] CRUSHR_PRESERVATION_02 — preserve ownership (`uid`/`gid`) + hard-link semantics, restore best-effort ownership with explicit warnings, and expose metadata-class presence in `info`.
 - [x] CRUSHR_PRESERVATION_03 — extend Linux tar-class preservation with sparse regular files, FIFO/device-node entry kinds, best-effort special-file restore warnings, and ownership-name enrichment (`uname`/`gname`) while keeping numeric uid/gid authoritative.
 - [x] CRUSHR_PRESERVATION_04 — add explicit preservation/restore envelope for POSIX ACL metadata, SELinux label metadata, and Linux capability metadata with truthful warning-based degradation plus `info` metadata-presence visibility.
+- [x] CRUSHR_PRESERVATION_05 — add explicit `--preservation <full|basic|payload-only>` profile contract, record profile in archive metadata, make strict/recover canonical semantics profile-aware, and show profile in `info`.
 
 Constraints
 

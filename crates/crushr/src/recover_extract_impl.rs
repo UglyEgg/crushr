@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::extraction_path::resolve_confined_path;
-use crate::format::{Entry, EntryKind};
+use crate::format::{Entry, EntryKind, PreservationProfile};
 use crate::index_codec::decode_index;
 use anyhow::{Context, Result, bail};
 use crushr_core::{
@@ -158,6 +158,7 @@ where
     progress("metadata scan");
     let blocks = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset)?;
     let index = decode_index(&opened.tail.idx3_bytes).context("decode IDX3")?;
+    let preservation_profile = index.preservation_profile;
     let corrupted = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
 
     let canonical_dir = opts.out_dir.join("canonical");
@@ -277,7 +278,12 @@ where
                         let bytes = read_entry_bytes_strict(&reader, entry, &blocks)?;
                         write_entry(destination.as_path(), &bytes, opts.overwrite)?;
                     }
-                    let failed_metadata = restore_regular_metadata(destination.as_path(), entry)?;
+                    let failed_metadata = restore_regular_metadata(destination.as_path(), entry)?
+                        .into_iter()
+                        .filter(|class| {
+                            metadata_required_by_profile(preservation_profile, entry, *class)
+                        })
+                        .collect::<Vec<_>>();
                     if failed_metadata.is_empty() {
                         canonical_count += 1;
                     } else {
@@ -497,6 +503,28 @@ where
             "PARTIAL"
         },
     })
+}
+
+fn metadata_required_by_profile(
+    profile: PreservationProfile,
+    entry: &Entry,
+    class: MetadataClass,
+) -> bool {
+    match profile {
+        PreservationProfile::Full => true,
+        PreservationProfile::Basic => match class {
+            MetadataClass::SpecialFile => !matches!(
+                entry.kind,
+                EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice
+            ),
+            MetadataClass::Xattr
+            | MetadataClass::Ownership
+            | MetadataClass::Acl
+            | MetadataClass::Selinux
+            | MetadataClass::Capability => false,
+        },
+        PreservationProfile::PayloadOnly => false,
+    }
 }
 
 pub fn run_recovery_analysis(archive: &Path) -> Result<RecoveryAnalysis> {

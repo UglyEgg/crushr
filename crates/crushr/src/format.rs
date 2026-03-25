@@ -17,6 +17,50 @@ pub const IDX_MAGIC_V3: &[u8; 4] = b"IDX3";
 pub const IDX_MAGIC_V4: &[u8; 4] = b"IDX4";
 pub const IDX_MAGIC_V5: &[u8; 4] = b"IDX5";
 pub const IDX_MAGIC_V6: &[u8; 4] = b"IDX6";
+pub const IDX_MAGIC_V7: &[u8; 4] = b"IDX7";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PreservationProfile {
+    Full,
+    Basic,
+    PayloadOnly,
+}
+
+impl PreservationProfile {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Full => "full",
+            Self::Basic => "basic",
+            Self::PayloadOnly => "payload-only",
+        }
+    }
+
+    pub fn parse_name(value: &str) -> Option<Self> {
+        match value {
+            "full" => Some(Self::Full),
+            "basic" => Some(Self::Basic),
+            "payload-only" => Some(Self::PayloadOnly),
+            _ => None,
+        }
+    }
+
+    pub fn from_disk_tag(tag: u8) -> Option<Self> {
+        match tag {
+            0 => Some(Self::Full),
+            1 => Some(Self::Basic),
+            2 => Some(Self::PayloadOnly),
+            _ => None,
+        }
+    }
+
+    pub fn disk_tag(self) -> u8 {
+        match self {
+            Self::Full => 0,
+            Self::Basic => 1,
+            Self::PayloadOnly => 2,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EntryKind {
@@ -30,6 +74,7 @@ pub enum EntryKind {
 
 #[derive(Debug, Clone)]
 pub struct Index {
+    pub preservation_profile: PreservationProfile,
     pub entries: Vec<Entry>,
 }
 

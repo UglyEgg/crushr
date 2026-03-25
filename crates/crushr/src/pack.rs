@@ -3,7 +3,8 @@
 
 use crate::dict;
 use crate::format::{
-    classify_group, Entry, EntryKind, Extent, Index, Xattr, BLK_MAGIC_V2, CODEC_ZSTD, FTR_MAGIC_V2,
+    BLK_MAGIC_V2, CODEC_ZSTD, FTR_MAGIC_V2, Entry, EntryKind, Extent, Index,
+    PreservationProfile, Xattr, classify_group,
 };
 use crate::index_codec::encode_index;
 use crate::progress::{ProgressEvent, ProgressOp, ProgressPhase, SharedSink};
@@ -181,6 +182,7 @@ pub fn pack_paths_with_dict_with_xattrs_progress(
 
     let mut out = File::create(output).with_context(|| format!("create {}", output.display()))?;
     let mut index = Index {
+        preservation_profile: PreservationProfile::Full,
         entries: Vec::new(),
     };
 
