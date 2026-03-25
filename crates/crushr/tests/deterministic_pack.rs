@@ -106,12 +106,31 @@ fn crushr_pack_index_order_and_metadata_are_normalized() {
 
     let entries = read_index_entries(&archive);
     let paths: Vec<&str> = entries.iter().map(|e| e.path.as_str()).collect();
-    assert_eq!(paths, vec!["a/one.txt", "a/two.txt", "b/sub/three.txt"]);
+    assert_eq!(
+        paths,
+        vec![
+            "a",
+            "a/one.txt",
+            "a/two.txt",
+            "b",
+            "b/sub",
+            "b/sub/three.txt"
+        ]
+    );
 
     for entry in entries {
-        assert_eq!(entry.mode, 0, "mode should be normalized to 0");
-        assert_eq!(entry.mtime, 0, "mtime should be normalized to 0");
-        assert!(entry.xattrs.is_empty(), "xattrs should be empty");
+        assert_ne!(
+            entry.mode, 0,
+            "mode should be preserved from source metadata"
+        );
+        assert_ne!(
+            entry.mtime, 0,
+            "mtime should be preserved from source metadata"
+        );
+        assert!(
+            entry.xattrs.is_empty(),
+            "fixture has no xattrs so archive xattrs should be empty"
+        );
     }
 }
 

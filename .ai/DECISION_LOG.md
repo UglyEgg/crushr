@@ -5,6 +5,25 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-24 — CRUSHR_PRESERVATION_01 baseline Linux-first metadata preservation lock
+
+- Decision:
+  - Extend IDX3 entry-kind model to include explicit `directory` records (kind `2`) while preserving compatibility with existing regular/symlink decode behavior.
+  - Preserve baseline Linux-first metadata in production pack/extract: entry kind (`regular`/`directory`/`symlink`), link target for symlinks, mode, mtime, empty-directory paths, and xattrs.
+  - Keep uid/gid out of this packet (deferred) to avoid widening on-disk contract scope beyond the locked baseline.
+  - On extract, surface xattr restore failures explicitly as warnings (no silent drop), and keep non-Linux behavior as honest degradation.
+- Alternatives considered:
+  1. Keep regular-only strict extraction and defer directory/symlink materialization to a later packet.
+  2. Add uid/gid and broader Unix metadata envelope immediately.
+- Rationale:
+  - Packet requires tar-class baseline semantics for practical Linux workflows now, including empty directories and xattrs.
+  - Explicit directory entry kinds avoid flattening behavior and preserve deterministic, inspectable archive semantics.
+  - Deferring uid/gid keeps scope bounded while still delivering the locked baseline preservation contract.
+- Blast radius:
+  - `pack`/`extract`/`recover extract` semantics changed for non-regular entries and metadata restoration.
+  - IDX3 encode/decode now accepts/emits directory entry kind.
+  - Deterministic output tests and CLI info golden normalization updated for metadata-aware archive hashes.
+
 ## 2026-03-24 — CRUSHR_INTROSPECTION_01-FIX2 non-regular omission semantics
 
 - Decision:

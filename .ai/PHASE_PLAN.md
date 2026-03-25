@@ -152,6 +152,10 @@ Key work
 - stable machine-readable verify/report contracts
 - post-recovery preservation workflow documentation
 
+Milestone packets
+
+- [x] CRUSHR_PRESERVATION_01 — baseline Linux-first filesystem metadata preservation (`regular`/`directory`/`symlink`, mode, mtime, empty directories, xattrs) in pack/extract with deterministic round-trip coverage.
+
 Constraints
 
 - metadata support must not weaken salvage guarantees

@@ -71,7 +71,7 @@ pub fn encode_index(idx: &Index) -> Vec<u8> {
     // magic(4) entry_count(u32)
     // entries:
     //   path (len+bytes)
-    //   kind(u8) 0=regular,1=symlink
+    //   kind(u8) 0=regular,1=symlink,2=directory
     //   mode(u32) mtime(i64) size(u64)
     //   extent_count(u32) + extents
     //   link_target (len+bytes; 0 for regular)
@@ -86,6 +86,7 @@ pub fn encode_index(idx: &Index) -> Vec<u8> {
         let kind = match e.kind {
             EntryKind::Regular => 0u8,
             EntryKind::Symlink => 1u8,
+            EntryKind::Directory => 2u8,
         };
         put_u8(&mut out, kind);
 
@@ -106,6 +107,7 @@ pub fn encode_index(idx: &Index) -> Vec<u8> {
                 let t = e.link_target.as_deref().unwrap_or("");
                 put_len_bytes(&mut out, t.as_bytes());
             }
+            EntryKind::Directory => put_u32(&mut out, 0),
         }
 
         put_u32(&mut out, e.xattrs.len() as u32);
@@ -146,6 +148,7 @@ fn decode_idx3(bytes: &[u8]) -> Result<Index> {
         let kind = match kind_u8 {
             0 => EntryKind::Regular,
             1 => EntryKind::Symlink,
+            2 => EntryKind::Directory,
             _ => bail!("unknown entry kind {}", kind_u8),
         };
 
@@ -183,6 +186,9 @@ fn decode_idx3(bytes: &[u8]) -> Result<Index> {
 
         if kind == EntryKind::Symlink && !extents.is_empty() {
             bail!("symlink entry has extents");
+        }
+        if kind == EntryKind::Directory && (!extents.is_empty() || size != 0) {
+            bail!("directory entry must have no extents and zero size");
         }
 
         entries.push(Entry {

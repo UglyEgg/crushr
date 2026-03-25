@@ -1,3 +1,10 @@
+CRUSHR_PRESERVATION_01 complete (2026-03-24):
+- Baseline Linux-first metadata preservation is now wired in production pack/extract: directories and symlinks are retained in IDX3, and regular entries preserve mode/mtime/xattrs.
+- Strict extraction now materializes directory/symlink entries and restores mode/mtime/xattrs for regular files/directories (with explicit xattr restore warnings on failure rather than silent drop).
+- Recover extraction no longer fails on non-regular index entries; it preserves canonical directory/symlink structure while maintaining existing recovery behavior for refused regular payloads.
+- New regression coverage: `metadata_preservation.rs` (mode/mtime/symlink/empty-dir/xattr round-trip) plus deterministic/golden updates for metadata-aware archives.
+- Deferred/known limits: uid/gid is intentionally deferred; permission-denied xattr-restore warning paths are implemented but not deterministically CI-covered in all environments.
+
 CRUSHR_INTROSPECTION_01-FIX2 complete (2026-03-24):
 - `info --list` now keeps omission-only cases as informational (`COMPLETE`) and reserves `DEGRADED` for structural proof issues.
 - `omitted entries` result row now appears only when count > 0.
