@@ -13,6 +13,11 @@ use anyhow::{Context, Result, ensure};
 use std::io::Cursor;
 
 pub const IDX3_MAGIC: [u8; 4] = *b"IDX3";
+pub const IDX4_MAGIC: [u8; 4] = *b"IDX4";
+
+fn is_supported_index_magic(bytes: &[u8]) -> bool {
+    bytes.starts_with(&IDX3_MAGIC) || bytes.starts_with(&IDX4_MAGIC)
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TailFrameParts {
@@ -40,7 +45,7 @@ pub fn assemble_tail_frame(
     idx3_bytes: &[u8],
     ldg1: Option<&LedgerBlob>,
 ) -> Result<Vec<u8>> {
-    ensure!(idx3_bytes.starts_with(&IDX3_MAGIC), "IDX3: bad magic");
+    ensure!(is_supported_index_magic(idx3_bytes), "IDX: bad magic");
 
     let mut frame = Vec::new();
 
@@ -141,7 +146,7 @@ pub fn parse_tail_frame(frame_bytes: &[u8]) -> Result<TailFrameParts> {
     );
 
     let idx3_bytes = frame_bytes[idx_rel as usize..idx_end as usize].to_vec();
-    ensure!(idx3_bytes.starts_with(&IDX3_MAGIC), "IDX3: bad magic");
+    ensure!(is_supported_index_magic(&idx3_bytes), "IDX: bad magic");
     ensure!(
         blake3::hash(&idx3_bytes).as_bytes() == &footer.index_hash,
         "IDX3 hash mismatch"

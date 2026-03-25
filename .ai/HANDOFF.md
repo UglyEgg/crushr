@@ -1,3 +1,11 @@
+CRUSHR_PRESERVATION_02 complete (2026-03-25):
+- Pack/index now preserve ownership + hard-link semantics in IDX4: entries include `uid/gid` (optional names) and regular-file hard-link group identity with shared payload blocks.
+- Strict/recover canonical extraction now restores ownership best-effort with explicit `WARNING[ownership-restore]` on permission/platform failures; extraction continues without silent metadata drop.
+- Hard links now round-trip as hard links (shared inode/dev) instead of duplicated payload materialization.
+- `crushr info` now includes a concise `Metadata` section showing presence/absence for modes, mtime, xattrs, ownership, and hard links.
+- Added deterministic metadata regression coverage for hard-link round-trip and ownership-restore warning path; updated golden outputs for pack/info IDX4 semantics.
+- Exact reproducible validation commands + observed outputs are recorded in `.ai/COMPLETION_NOTES_CRUSHR_PRESERVATION_02.md`.
+
 CRUSHR_PRESERVATION_01 complete (2026-03-24):
 - Baseline Linux-first metadata preservation is now wired in production pack/extract: directories and symlinks are retained in IDX3, and regular entries preserve mode/mtime/xattrs.
 - Strict extraction now materializes directory/symlink entries and restores mode/mtime/xattrs for regular files/directories (with explicit xattr restore warnings on failure rather than silent drop).

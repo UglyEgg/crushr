@@ -4,9 +4,9 @@ crushr-info  /  info
 
 Archive
   path                   <TMP>/sample.crushr
-  size bytes             1,090
+  size bytes             1,124
   blake3                 <DYNAMIC>
-  format markers         FTR4 + IDX3
+  format markers         FTR4 + IDX4
 
 Structure
   files                  2
@@ -18,6 +18,13 @@ Structure
   tail frames            1
   dictionary table       not present
   dictionary ledger      present
+
+Metadata
+  modes                  present
+  mtime                  present
+  xattrs                 absent
+  ownership              present
+  hard links             absent
 
 Compression
   method                 zstd

@@ -204,6 +204,11 @@ pub fn pack_paths_with_dict_with_xattrs_progress(
                 extents: Vec::new(),
                 link_target: Some(target),
                 xattrs: Vec::new(),
+                uid: 0,
+                gid: 0,
+                uname: None,
+                gname: None,
+                hardlink_group_id: None,
             });
             continue;
         }
@@ -262,6 +267,11 @@ pub fn pack_paths_with_dict_with_xattrs_progress(
             extents,
             link_target: None,
             xattrs,
+            uid: 0,
+            gid: 0,
+            uname: None,
+            gname: None,
+            hardlink_group_id: None,
         });
     }
 

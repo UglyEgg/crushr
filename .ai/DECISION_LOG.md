@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-25 — CRUSHR_PRESERVATION_02 ownership + hard-link + info metadata visibility lock
+
+- Decision:
+  - Advance index encoding to IDX4 for production archives to store ownership (`uid`/`gid`, optional `uname`/`gname`) and hard-link group identity explicitly.
+  - Preserve hard-linked regular files as one payload block with multiple file mappings that reference the shared block and hard-link group.
+  - Restore ownership best-effort during strict/recover extraction; failures are surfaced as `WARNING[ownership-restore]` and extraction continues.
+  - Add `info` metadata visibility section with presence/absence rows only (`modes`, `mtime`, `xattrs`, `ownership`, `hard links`).
+- Alternatives considered:
+  1. Keep IDX3 and infer ownership/hard links heuristically at extract-time.
+  2. Preserve ownership but keep hard links as duplicated payload units.
+- Rationale:
+  - Packet requires truthful, inspectable preservation semantics approaching tar-class Linux behavior.
+  - Explicit on-disk representation avoids silent metadata loss and removes extract-time guesswork.
+- Blast radius:
+  - Pack/index encoding, strict/recover extraction metadata restoration, and info human output contracts changed.
+  - Tail-frame and salvage/index-magic compatibility paths now accept IDX3/IDX4.
+
 ## 2026-03-24 — CRUSHR_PRESERVATION_01 baseline Linux-first metadata preservation lock
 
 - Decision:

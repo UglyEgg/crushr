@@ -120,7 +120,8 @@ pub(super) fn is_archive_bytes(bytes: &[u8]) -> bool {
         return false;
     }
 
-    bytes[index_offset..index_offset + 4] == *b"IDX3"
+    let magic = &bytes[index_offset..index_offset + 4];
+    magic == b"IDX3" || magic == b"IDX4"
 }
 
 pub(super) fn resolve_salvage_bin() -> Result<PathBuf> {

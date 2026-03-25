@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::cli_presentation::{BannerLevel, CliPresenter, StatusWord, group_u64};
-use crate::format::{EntryKind, IDX_MAGIC_V3};
+use crate::format::{EntryKind, IDX_MAGIC_V3, IDX_MAGIC_V4};
 use crate::index_codec::decode_index;
 use anyhow::{Context, Result, bail};
 use crushr_core::verify::scan_blocks_v1;
@@ -72,15 +72,27 @@ struct IndexSummary {
     regular_file_count: u64,
     extent_count: u64,
     logical_bytes: u64,
+    has_modes: bool,
+    has_mtime: bool,
+    has_xattrs: bool,
+    has_ownership: bool,
+    has_hardlinks: bool,
 }
 
 fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
+    let ownership_supported = idx3_bytes.starts_with(IDX_MAGIC_V4);
     let index = decode_index(idx3_bytes).ok()?;
     let mut regular_file_count = 0u64;
     let mut extent_count = 0u64;
     let mut logical_bytes = 0u64;
+    let mut has_xattrs = false;
+    let mut has_hardlinks = false;
+    let mut has_ownership = false;
 
     for entry in index.entries {
+        has_xattrs |= !entry.xattrs.is_empty();
+        has_hardlinks |= entry.hardlink_group_id.is_some();
+        has_ownership |= ownership_supported;
         if entry.kind != EntryKind::Regular {
             continue;
         }
@@ -93,6 +105,11 @@ fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
         regular_file_count,
         extent_count,
         logical_bytes,
+        has_modes: regular_file_count > 0,
+        has_mtime: regular_file_count > 0,
+        has_xattrs,
+        has_ownership,
+        has_hardlinks,
     })
 }
 
@@ -248,7 +265,8 @@ fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> R
             corrupted_structures.insert(STRUCTURE_IDX3.to_string());
         } else {
             let hash_ok = *blake3::hash(&idx3_bytes).as_bytes() == footer.index_hash;
-            let magic_ok = idx3_bytes.starts_with(IDX_MAGIC_V3);
+            let magic_ok =
+                idx3_bytes.starts_with(IDX_MAGIC_V3) || idx3_bytes.starts_with(IDX_MAGIC_V4);
             if !hash_ok || !magic_ok {
                 corrupted_structures.insert(STRUCTURE_IDX3.to_string());
             }
@@ -403,11 +421,11 @@ fn read_idx3_bytes_from_footer<R: ReadAt + Len>(reader: &R) -> Result<Vec<u8>> {
     read_exact_at(reader, footer.index_offset, &mut idx3_bytes)
         .context("read IDX3 index bytes for listing")?;
 
-    if !idx3_bytes.starts_with(IDX_MAGIC_V3) {
-        bail!("IDX3 magic mismatch");
+    if !idx3_bytes.starts_with(IDX_MAGIC_V3) && !idx3_bytes.starts_with(IDX_MAGIC_V4) {
+        bail!("IDX magic mismatch");
     }
     if *blake3::hash(&idx3_bytes).as_bytes() != footer.index_hash {
-        bail!("IDX3 hash mismatch");
+        bail!("IDX hash mismatch");
     }
 
     Ok(idx3_bytes)
@@ -621,7 +639,14 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         group_u64(snapshot.payload.summary.archive_len),
     );
     presenter.kv("blake3", archive_blake3);
-    presenter.kv("format markers", "FTR4 + IDX3");
+    let idx_marker = if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V4) {
+        "IDX4"
+    } else if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V3) {
+        "IDX3"
+    } else {
+        "IDX?"
+    };
+    presenter.kv("format markers", format!("FTR4 + {idx_marker}"));
 
     presenter.section("Structure");
     let index_summary = summarize_index(&opened.tail.idx3_bytes);
@@ -669,6 +694,59 @@ fn run(raw_args: Vec<String>) -> Result<()> {
             "present"
         } else {
             "not present"
+        },
+    );
+    presenter.section("Metadata");
+    presenter.kv(
+        "modes",
+        if index_summary.as_ref().map(|s| s.has_modes).unwrap_or(false) {
+            "present"
+        } else {
+            "absent"
+        },
+    );
+    presenter.kv(
+        "mtime",
+        if index_summary.as_ref().map(|s| s.has_mtime).unwrap_or(false) {
+            "present"
+        } else {
+            "absent"
+        },
+    );
+    presenter.kv(
+        "xattrs",
+        if index_summary
+            .as_ref()
+            .map(|s| s.has_xattrs)
+            .unwrap_or(false)
+        {
+            "present"
+        } else {
+            "absent"
+        },
+    );
+    presenter.kv(
+        "ownership",
+        if index_summary
+            .as_ref()
+            .map(|s| s.has_ownership)
+            .unwrap_or(false)
+        {
+            "present"
+        } else {
+            "absent"
+        },
+    );
+    presenter.kv(
+        "hard links",
+        if index_summary
+            .as_ref()
+            .map(|s| s.has_hardlinks)
+            .unwrap_or(false)
+        {
+            "present"
+        } else {
+            "absent"
         },
     );
     let compression =
