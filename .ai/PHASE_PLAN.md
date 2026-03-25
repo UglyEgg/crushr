@@ -78,6 +78,7 @@ Deliverables
 - [x] CRUSHR_RECOVERY_MODEL_05 — polish recover-mode user presentation so phased progress, final summary labels, and trust/notes clearly separate canonical extraction, recovered outputs, and unrecoverable loss without salvage/lab jargon.
 - [x] CRUSHR_RECOVERY_MODEL_06 — harden recovery classification correctness boundaries (zip-family high-confidence gating), deterministic naming collision guarantees, and clean-archive zero-recovery-artifact assertions.
 - [x] CRUSHR_RECOVERY_MODEL_07 — add explicit `metadata_degraded` trust class across strict/recover classification, output layout, manifest schema, and recover CLI summaries; strict mode now refuses metadata-degraded outcomes.
+- [x] CRUSHR_RECOVERY_MODEL_08 — complete profile-aware metadata-degraded + strict fail-closed semantics for non-regular canonical entry kinds (directory/symlink/FIFO/char-device/block-device) and align recover manifest/report truth.
 - [x] CRUSHR_UI_POLISH_01 — centralize CLI visual token semantics + calm status vocabulary across pack/extract/verify/info/salvage and document trust-class visual semantics contract.
 - [x] CRUSHR_UI_POLISH_02 — add shared title/section/key-value/progress/banner/result presentation primitives and migrate verify/extract/recover/pack/info to one stable structural hierarchy.
 - [x] CRUSHR_UI_POLISH_03 — define restrained motion contract and implement shared active-phase animation/state-settlement primitives for pack/extract/verify with TTY-safe no-motion fallbacks.

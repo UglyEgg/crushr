@@ -258,6 +258,162 @@ fn extraction_refuses_when_ownership_restore_is_not_permitted() {
 }
 
 #[test]
+fn non_regular_entries_fail_closed_and_recover_as_metadata_degraded() {
+    if nix_like_euid_is_root() {
+        return;
+    }
+
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(input.join("dir/sub")).unwrap();
+    fs::write(input.join("dir/sub/file.txt"), b"payload").unwrap();
+    symlink("dir/sub/file.txt", input.join("file.link")).unwrap();
+    run(Command::new("mkfifo").arg(input.join("named.pipe")));
+
+    let archive = td.path().join("nonregular.crs");
+    run(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+            input.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--level",
+            "3",
+        ]),
+    );
+
+    mutate_index_in_place(&archive, |index| {
+        for entry in &mut index.entries {
+            if entry.kind != crushr::format::EntryKind::Regular {
+                entry.uid = 0;
+                entry.gid = 0;
+            }
+        }
+    });
+
+    let strict_out = td.path().join("strict-out");
+    let strict = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+        .args([
+            archive.to_str().unwrap(),
+            "-o",
+            strict_out.to_str().unwrap(),
+        ])
+        .output()
+        .expect("run strict extract");
+    assert!(
+        !strict.status.success(),
+        "strict extract unexpectedly succeeded\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&strict.stdout),
+        String::from_utf8_lossy(&strict.stderr)
+    );
+    let strict_stderr = String::from_utf8_lossy(&strict.stderr);
+    assert!(strict_stderr.contains("metadata restoration failed"));
+    assert!(strict_stderr.contains("ownership"));
+
+    let recover_out = td.path().join("recover-out");
+    let recover = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+        .args([
+            archive.to_str().unwrap(),
+            "-o",
+            recover_out.to_str().unwrap(),
+            "--recover",
+        ])
+        .output()
+        .expect("run recover extract");
+    assert!(
+        recover.status.success(),
+        "recover extract failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&recover.stdout),
+        String::from_utf8_lossy(&recover.stderr)
+    );
+
+    assert!(recover_out.join("metadata_degraded/dir").is_dir());
+    assert!(recover_out.join("metadata_degraded/file.link").exists());
+    assert!(recover_out.join("metadata_degraded/named.pipe").exists());
+
+    let manifest: serde_json::Value = serde_json::from_slice(
+        &fs::read(recover_out.join("_crushr_recovery/manifest.json")).unwrap(),
+    )
+    .unwrap();
+    let entries = manifest["entries"].as_array().unwrap();
+    assert!(entries.iter().any(|entry| {
+        entry["assigned_name"] == "dir"
+            && entry["recovery_kind"] == "metadata_degraded"
+            && entry["failed_metadata_classes"]
+                .as_array()
+                .is_some_and(|arr| arr.iter().any(|v| v == "ownership"))
+    }));
+    assert!(entries.iter().any(|entry| {
+        entry["assigned_name"] == "file.link" && entry["recovery_kind"] == "metadata_degraded"
+    }));
+    assert!(entries.iter().any(|entry| {
+        entry["assigned_name"] == "named.pipe" && entry["recovery_kind"] == "metadata_degraded"
+    }));
+}
+
+#[test]
+fn basic_profile_omitted_metadata_does_not_trigger_non_regular_degradation() {
+    if nix_like_euid_is_root() {
+        return;
+    }
+
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(input.join("dir/sub")).unwrap();
+    fs::write(input.join("dir/sub/file.txt"), b"payload").unwrap();
+    symlink("dir/sub/file.txt", input.join("file.link")).unwrap();
+    run(Command::new("mkfifo").arg(input.join("named.pipe")));
+
+    let archive = td.path().join("basic.crs");
+    run(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+            input.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--level",
+            "3",
+            "--preservation",
+            "basic",
+        ]),
+    );
+
+    mutate_index_in_place(&archive, |index| {
+        for entry in &mut index.entries {
+            if entry.kind != crushr::format::EntryKind::Regular {
+                entry.uid = 0;
+                entry.gid = 0;
+            }
+        }
+    });
+
+    let recover_out = td.path().join("recover-out");
+    let recover = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+        .args([
+            archive.to_str().unwrap(),
+            "-o",
+            recover_out.to_str().unwrap(),
+            "--recover",
+        ])
+        .output()
+        .expect("run recover extract");
+    assert!(
+        recover.status.success(),
+        "recover extract failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&recover.stdout),
+        String::from_utf8_lossy(&recover.stderr)
+    );
+    assert!(recover_out.join("canonical/dir").is_dir());
+    assert!(recover_out.join("canonical/file.link").exists());
+    assert!(!recover_out.join("metadata_degraded/dir").exists());
+    assert!(!recover_out.join("metadata_degraded/file.link").exists());
+
+    let manifest: serde_json::Value = serde_json::from_slice(
+        &fs::read(recover_out.join("_crushr_recovery/manifest.json")).unwrap(),
+    )
+    .unwrap();
+    assert!(manifest["entries"].as_array().unwrap().is_empty());
+}
+
+#[test]
 fn info_reports_acl_presence_when_acl_is_captured() {
     let td = TempDir::new().unwrap();
     let input = td.path().join("input");

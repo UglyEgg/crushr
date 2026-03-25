@@ -325,16 +325,27 @@ fn write_entry(
     match entry.kind {
         EntryKind::Directory => {
             fs::create_dir_all(path).with_context(|| format!("create {}", path.display()))?;
+            let mut failed = Vec::new();
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
-                fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).ok();
+                if fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).is_err() {
+                    failed.push(MetadataClass::SpecialFile);
+                }
             }
-            restore_mtime(path, entry.mtime)?;
-            let _ = restore_xattrs(path, entry)?;
-            let _ = restore_ownership(path, entry)?;
-            let _ = restore_security_metadata(path, entry);
-            Ok(Vec::new())
+            if restore_mtime(path, entry.mtime).is_err() {
+                failed.push(MetadataClass::SpecialFile);
+            }
+            if restore_xattrs(path, entry)? {
+                failed.push(MetadataClass::Xattr);
+            }
+            if restore_ownership(path, entry)? {
+                failed.push(MetadataClass::Ownership);
+            }
+            failed.extend(restore_security_metadata(path, entry));
+            failed.sort();
+            failed.dedup();
+            Ok(failed)
         }
         EntryKind::Symlink => {
             if path.exists() {
@@ -443,9 +454,7 @@ fn write_entry(
                 }
             }
             let mut failed = Vec::new();
-            if restore_special(path, entry)? {
-                failed.push(MetadataClass::SpecialFile);
-            }
+            failed.extend(restore_special(path, entry)?);
             if restore_ownership(path, entry)? {
                 failed.push(MetadataClass::Ownership);
             }
@@ -489,7 +498,8 @@ fn write_sparse_entry(
     Ok(())
 }
 
-fn restore_special(path: &Path, entry: &Entry) -> Result<bool> {
+fn restore_special(path: &Path, entry: &Entry) -> Result<Vec<MetadataClass>> {
+    let mut failed = Vec::new();
     #[cfg(unix)]
     {
         use std::ffi::CString;
@@ -530,10 +540,14 @@ fn restore_special(path: &Path, entry: &Entry) -> Result<bool> {
                 path.display(),
                 std::io::Error::last_os_error()
             );
-            return Ok(true);
+            failed.push(MetadataClass::SpecialFile);
         } else {
-            restore_mtime(path, entry.mtime)?;
-            let _ = restore_xattrs(path, entry)?;
+            if restore_mtime(path, entry.mtime).is_err() {
+                failed.push(MetadataClass::SpecialFile);
+            }
+            if restore_xattrs(path, entry)? {
+                failed.push(MetadataClass::Xattr);
+            }
         }
     }
     #[cfg(not(unix))]
@@ -543,9 +557,9 @@ fn restore_special(path: &Path, entry: &Entry) -> Result<bool> {
             entry.path,
             path.display()
         );
-        return Ok(true);
+        failed.push(MetadataClass::SpecialFile);
     }
-    Ok(false)
+    Ok(failed)
 }
 
 fn restore_ownership(path: &Path, entry: &Entry) -> Result<bool> {

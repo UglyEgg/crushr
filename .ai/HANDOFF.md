@@ -1,3 +1,12 @@
+CRUSHR_RECOVERY_MODEL_08 complete (2026-03-25):
+- Strict extraction fail-closed metadata restoration semantics now cover non-regular canonical outputs too (directories, symlinks, FIFOs, char devices, block devices) when metadata classes required by recorded preservation profile fail to restore.
+- Recover extraction now routes non-regular canonical outputs into `metadata_degraded/` (with manifest entries) when profile-required metadata restoration fails; they no longer remain warning-only canonical.
+- Recover manifest metadata degradation fields (`trust_class`, `failed_metadata_classes`, `degradation_reason`) are now populated consistently for non-regular metadata-degraded outcomes.
+- Profile-aware omission behavior remains intact for non-regular outputs: omitted-by-profile metadata classes (e.g., ownership under `basic`) do not trigger false degradation.
+- Added deterministic coverage in `metadata_preservation.rs` for strict refusal + recover metadata_degraded routing/manifest truth for directory/symlink/FIFO plus basic-profile omission non-degradation behavior.
+- Version advanced to `0.4.11` (`VERSION` + workspace package version).
+- Validation in packet: `cargo fmt --all`; `cargo test -p crushr --test metadata_preservation --test recovery_extract_contract`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo test -p crushr --test version_contract`.
+
 CRUSHR_PRESERVATION_05 complete (2026-03-25):
 - Production pack now exposes explicit preservation contract flag `--preservation <full|basic|payload-only>` (default `full`), with explicit warn-and-omit behavior for excluded entry kinds and no flattening fallback.
 - Index encoding advanced to IDX7 with structured preservation-profile recording; legacy IDX3/IDX4/IDX5/IDX6 decode paths default to `full` profile.
