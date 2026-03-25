@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-25 — CRUSHR_RECOVERY_MODEL_08 (v0.4.11)
+- Extended strict extraction fail-closed metadata semantics to non-regular canonical entries so profile-required metadata restore failures for directories, symlinks, FIFOs, and device nodes no longer remain warning-only canonical outcomes.
+- Extended recover extraction metadata-degraded routing to non-regular canonical entries and aligned manifest truth fields (`trust_class`, `failed_metadata_classes`, `degradation_reason`) for those outcomes.
+- Preserved profile-aware omission correctness across entry kinds (`basic`/`payload-only` omitted metadata classes are not treated as metadata degradation).
+- Added deterministic metadata-preservation coverage for strict refusal + recover metadata_degraded placement/manifest assertions on mixed non-regular trees, plus omission-profile non-degradation assertions.
+- Bumped canonical product version to `0.4.11` (`VERSION` + workspace package version sync).
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test metadata_preservation --test recovery_extract_contract`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo test -p crushr --test version_contract`.
+
 ## 2026-03-25 — CRUSHR_PRESERVATION_05 (v0.4.10)
 - Added explicit production preservation profiles via `crushr-pack --preservation <full|basic|payload-only>` with default `full`; no `--strip` alias.
 - Added warn-and-omit semantics for profile-excluded entry kinds (e.g., FIFO/device under `basic`/`payload-only`, symlink under `payload-only`) with no silent flattening/fabrication fallback.

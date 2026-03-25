@@ -7,7 +7,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_PRESERVATION_05 complete** (explicit preservation profiles + profile-aware canonical extraction semantics)
+Current Step: **CRUSHR_RECOVERY_MODEL_08 complete** (profile-aware metadata-degraded handling aligned across non-regular canonical entry kinds)
+
+Latest maintenance fix (2026-03-25):
+- **CRUSHR_RECOVERY_MODEL_08 complete**: strict extraction now fail-closes on profile-required metadata restoration failures for non-regular canonical entries (directories, symlinks, FIFOs, char devices, block devices) instead of leaving warning-only canonical gaps.
+- **CRUSHR_RECOVERY_MODEL_08 complete**: recover extraction now applies profile-aware metadata-degraded routing/manifest truth consistently across non-regular canonical outputs; non-regular metadata failures no longer remain implicitly canonical.
+- **CRUSHR_RECOVERY_MODEL_08 complete**: profile omission semantics remain honest (`basic`/`payload-only` omitted metadata classes are not misclassified as degradation), including non-regular canonical outputs.
+- **CRUSHR_RECOVERY_MODEL_08 complete**: deterministic coverage now includes strict refusal + recover metadata_degraded placement/manifest assertions for directory/symlink/FIFO paths and basic-profile omission non-degradation behavior.
+- **CRUSHR_RECOVERY_MODEL_08 complete**: canonical version advanced to `0.4.11` (`VERSION` + workspace package version sync).
+- **CRUSHR_RECOVERY_MODEL_08 validation**: `cargo fmt --all`, `cargo test -p crushr --test metadata_preservation --test recovery_extract_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, and `cargo test -p crushr --test version_contract` are green.
 
 Latest maintenance fix (2026-03-25):
 - **CRUSHR_PRESERVATION_05 complete**: production pack now supports explicit `--preservation <full|basic|payload-only>` (default `full`) with deterministic warn-and-omit behavior for excluded entry kinds; no `--strip` alias was added.
