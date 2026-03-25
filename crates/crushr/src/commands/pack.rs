@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::cli_presentation::{CliPresenter, StatusWord, group_u64};
-use crate::format::{Entry, EntryKind, Extent, Index};
+use crate::format::{Entry, EntryKind, Extent, Index, Xattr};
 use crate::index_codec::encode_index;
 use anyhow::{Context, Result, bail};
 use crushr_format::blk3::{Blk3Flags, Blk3Header, write_blk3_header};
@@ -223,6 +223,10 @@ fn compress_deterministic(raw: &[u8], level: i32) -> Result<Vec<u8>> {
 struct InputFile {
     rel_path: String,
     abs_path: PathBuf,
+    kind: EntryKind,
+    mode: u32,
+    mtime: i64,
+    xattrs: Vec<Xattr>,
 }
 
 #[derive(Debug)]
@@ -231,6 +235,9 @@ struct PlannedFileModel {
     rel_path: String,
     abs_path: PathBuf,
     raw_len: u64,
+    mode: u32,
+    mtime: i64,
+    xattrs: Vec<Xattr>,
 }
 
 #[derive(Debug)]
@@ -257,6 +264,7 @@ struct MetadataPlan {
 
 #[derive(Debug)]
 struct PackLayoutPlan {
+    inputs: Vec<InputFile>,
     files: Vec<PlannedFileModel>,
     metadata: MetadataPlan,
 }
@@ -780,9 +788,13 @@ fn pack_minimal_v1(
 }
 
 fn build_pack_layout_plan(
-    files: Vec<InputFile>,
+    inputs: Vec<InputFile>,
     options: PackExperimentalOptions,
 ) -> Result<PackLayoutPlan> {
+    let files: Vec<&InputFile> = inputs
+        .iter()
+        .filter(|entry| entry.kind == EntryKind::Regular)
+        .collect();
     let total_files = files.len();
     let placement_seed = compute_file_identity_archive_id(&files);
     let file_identity_archive_id = if options.file_identity_extents {
@@ -848,13 +860,17 @@ fn build_pack_layout_plan(
             .len();
         planned_files.push(PlannedFileModel {
             file_id: idx as u32,
-            rel_path: file.rel_path,
-            abs_path: file.abs_path,
+            rel_path: file.rel_path.clone(),
+            abs_path: file.abs_path.clone(),
             raw_len,
+            mode: file.mode,
+            mtime: file.mtime,
+            xattrs: file.xattrs.clone(),
         });
     }
 
     Ok(PackLayoutPlan {
+        inputs,
         files: planned_files,
         metadata: MetadataPlan {
             emit_payload_identity,
@@ -1096,8 +1112,8 @@ fn emit_archive_from_layout(
         entries.push(Entry {
             path: file.rel_path,
             kind: EntryKind::Regular,
-            mode: 0,
-            mtime: 0,
+            mode: file.mode,
+            mtime: file.mtime,
             size: raw_len,
             extents: vec![Extent {
                 block_id: file.file_id,
@@ -1105,7 +1121,7 @@ fn emit_archive_from_layout(
                 len: raw_len,
             }],
             link_target: None,
-            xattrs: Vec::new(),
+            xattrs: file.xattrs,
         });
         progress(
             PackProgressPhase::Serialization,
@@ -1113,6 +1129,33 @@ fn emit_archive_from_layout(
             total_files as u64,
         );
     }
+
+    for input in &layout.inputs {
+        if input.kind == EntryKind::Regular {
+            continue;
+        }
+        let link_target = if input.kind == EntryKind::Symlink {
+            Some(
+                std::fs::read_link(&input.abs_path)
+                    .with_context(|| format!("readlink {}", input.abs_path.display()))?
+                    .to_string_lossy()
+                    .to_string(),
+            )
+        } else {
+            None
+        };
+        entries.push(Entry {
+            path: input.rel_path.clone(),
+            kind: input.kind,
+            mode: input.mode,
+            mtime: input.mtime,
+            size: 0,
+            extents: Vec::new(),
+            link_target,
+            xattrs: input.xattrs.clone(),
+        });
+    }
+    entries.sort_by(|a, b| a.path.cmp(&b.path));
 
     if layout.metadata.dictionary.tail_copy_required {
         let mut copy = layout
@@ -1518,7 +1561,7 @@ fn build_redundant_file_map(
 }
 
 fn build_dictionary_plan(
-    files: &[InputFile],
+    files: &[&InputFile],
     path_id_by_path: &BTreeMap<String, u32>,
     placement_seed: &str,
     metadata_profile: Option<MetadataProfile>,
@@ -1674,7 +1717,7 @@ fn to_hex(bytes: &[u8; 32]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-fn compute_file_identity_archive_id(files: &[InputFile]) -> String {
+fn compute_file_identity_archive_id(files: &[&InputFile]) -> String {
     let mut hasher = blake3::Hasher::new();
     for file in files {
         hasher.update(file.rel_path.as_bytes());
@@ -1795,12 +1838,51 @@ fn write_experimental_metadata_block<T: Serialize>(
     Ok(())
 }
 
+fn capture_xattrs(path: &Path) -> Vec<Xattr> {
+    #[cfg(unix)]
+    {
+        let mut out = Vec::new();
+        if let Ok(names) = xattr::list(path) {
+            for name_os in names {
+                let name = name_os.to_string_lossy().to_string();
+                if let Ok(Some(value)) = xattr::get(path, &name_os) {
+                    out.push(Xattr { name, value });
+                }
+            }
+        }
+        out.sort_by(|a, b| a.name.cmp(&b.name));
+        out
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+        Vec::new()
+    }
+}
+
+fn capture_mode_mtime(meta: &std::fs::Metadata) -> (u32, i64) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        (meta.mode() & 0o7777, meta.mtime())
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = meta;
+        (0, 0)
+    }
+}
+
 fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
     let mut files = Vec::new();
+    let cwd = std::env::current_dir().context("read current working directory")?;
 
     for input in inputs {
-        let abs = std::fs::canonicalize(input)
-            .with_context(|| format!("canonicalize {}", input.display()))?;
+        let abs = if input.is_absolute() {
+            input.clone()
+        } else {
+            cwd.join(input)
+        };
         let meta =
             std::fs::symlink_metadata(&abs).with_context(|| format!("stat {}", input.display()))?;
 
@@ -1810,9 +1892,32 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 .context("input file has no file name")?
                 .to_string_lossy()
                 .to_string();
+            let (mode, mtime) = capture_mode_mtime(&meta);
             files.push(InputFile {
                 rel_path: normalize_logical_path(&name),
                 abs_path: abs,
+                kind: EntryKind::Regular,
+                mode,
+                mtime,
+                xattrs: capture_xattrs(input),
+            });
+            continue;
+        }
+
+        if meta.file_type().is_symlink() {
+            let name = abs
+                .file_name()
+                .context("input symlink has no file name")?
+                .to_string_lossy()
+                .to_string();
+            let (mode, mtime) = capture_mode_mtime(&meta);
+            files.push(InputFile {
+                rel_path: normalize_logical_path(&name),
+                abs_path: input.clone(),
+                kind: EntryKind::Symlink,
+                mode,
+                mtime,
+                xattrs: Vec::new(),
             });
             continue;
         }
@@ -1821,22 +1926,60 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
             bail!("unsupported input type: {}", input.display());
         }
 
+        let mut saw_child = false;
         for entry in walkdir::WalkDir::new(&abs).follow_links(false) {
             let entry = entry?;
-            if !entry.file_type().is_file() {
-                continue;
-            }
-
             let rel = entry
                 .path()
                 .strip_prefix(&abs)
                 .context("strip input prefix")?
                 .to_string_lossy()
                 .to_string();
+            if rel.is_empty() {
+                continue;
+            }
+            saw_child = true;
+            let rel_path = normalize_logical_path(&rel);
+            let entry_meta = std::fs::symlink_metadata(entry.path())
+                .with_context(|| format!("stat {}", entry.path().display()))?;
+            let (mode, mtime) = capture_mode_mtime(&entry_meta);
+            let kind = if entry.file_type().is_file() {
+                EntryKind::Regular
+            } else if entry.file_type().is_symlink() {
+                EntryKind::Symlink
+            } else if entry.file_type().is_dir() {
+                EntryKind::Directory
+            } else {
+                continue;
+            };
 
             files.push(InputFile {
-                rel_path: normalize_logical_path(&rel),
+                rel_path,
                 abs_path: entry.path().to_path_buf(),
+                kind,
+                mode,
+                mtime,
+                xattrs: if kind == EntryKind::Regular || kind == EntryKind::Directory {
+                    capture_xattrs(entry.path())
+                } else {
+                    Vec::new()
+                },
+            });
+        }
+        if !saw_child {
+            let (mode, mtime) = capture_mode_mtime(&meta);
+            let name = abs
+                .file_name()
+                .context("input directory has no file name")?
+                .to_string_lossy()
+                .to_string();
+            files.push(InputFile {
+                rel_path: normalize_logical_path(&name),
+                abs_path: abs,
+                kind: EntryKind::Directory,
+                mode,
+                mtime,
+                xattrs: capture_xattrs(input),
             });
         }
     }
@@ -1854,21 +1997,28 @@ fn normalize_logical_path(path: &str) -> String {
 }
 
 fn reject_duplicate_logical_paths(files: &[InputFile]) -> Result<()> {
-    let mut path_sources: BTreeMap<&str, Vec<String>> = BTreeMap::new();
+    let mut path_sources: BTreeMap<&str, Vec<(EntryKind, String)>> = BTreeMap::new();
 
     for file in files {
         path_sources
             .entry(file.rel_path.as_str())
             .or_default()
-            .push(file.abs_path.display().to_string());
+            .push((file.kind, file.abs_path.display().to_string()));
     }
 
     for (logical_path, mut sources) in path_sources {
-        if sources.len() > 1 {
-            sources.sort();
+        let all_dirs = sources
+            .iter()
+            .all(|(kind, _)| *kind == EntryKind::Directory);
+        if sources.len() > 1 && !all_dirs {
+            let mut source_paths = sources
+                .drain(..)
+                .map(|(_, source)| source)
+                .collect::<Vec<_>>();
+            source_paths.sort();
             bail!(
                 "duplicate logical archive path '{logical_path}' from inputs: {}",
-                sources.join(", ")
+                source_paths.join(", ")
             );
         }
     }

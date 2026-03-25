@@ -97,6 +97,24 @@ Anonymous recovered files follow a deterministic naming policy:
 
 The recovery manifest preserves structured classification and identity metadata for all recovered outputs.
 
+## Linux-first filesystem preservation
+
+`crushr pack` / `crushr extract` now preserve baseline Linux filesystem metadata for canonical paths:
+
+- regular files and directory paths
+- symlink entries and link targets
+- mode/permission bits
+- modification time (`mtime`)
+- empty directories
+- extended attributes (xattrs)
+
+Current scope is intentionally Linux-first. Non-Linux platforms may degrade with explicit warnings for unsupported metadata restoration (especially xattrs) rather than silent metadata fabrication.
+
+Current limitations in this baseline packet:
+
+- uid/gid numeric ownership preservation is intentionally deferred.
+- Permission-denied xattr restore warning paths are implemented, but deterministic CI coverage for that specific denied-path scenario is not guaranteed in every environment.
+
 ## Product boundary
 
 Current boundary classes:

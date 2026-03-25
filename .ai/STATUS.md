@@ -10,6 +10,12 @@ Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 Current Step: **CRUSHR_UI_POLISH_08 complete** (pack/info truth polish finalized for v0.3.5)
 
 
+Latest maintenance fix (2026-03-24):
+- **CRUSHR_PRESERVATION_01 complete**: production `pack` now captures baseline Linux-first metadata (`directory`/`symlink` entries, mode, mtime, and xattrs) and stores it in IDX3 using explicit entry kinds.
+- **CRUSHR_PRESERVATION_01 complete**: strict and recover extraction paths now materialize directories/symlinks and restore mode/mtime/xattrs with explicit warning surfacing when xattrs cannot be restored.
+- **CRUSHR_PRESERVATION_01 validation**: `cargo fmt --all`, `cargo test -p crushr --test deterministic_pack --test mvp --test metadata_preservation`, `cargo test -p crushr --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
+
+
 
 
 Latest maintenance fix (2026-03-24):

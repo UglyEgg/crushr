@@ -25,6 +25,22 @@ fn normalize_paths(text: String, tmp: &Path) -> String {
     text.replace(&tmp.display().to_string(), "<TMP>")
 }
 
+fn normalize_info_output(text: String, tmp: &Path) -> String {
+    let normalized = normalize_paths(text, tmp);
+    normalized
+        .lines()
+        .map(|line| {
+            if line.trim_start().starts_with("blake3") {
+                "  blake3                 <DYNAMIC>".to_string()
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n"
+}
+
 #[test]
 fn verify_output_is_deterministic_and_uses_shared_status_words() {
     let tmp = tempfile::tempdir().expect("tempdir");
@@ -256,7 +272,7 @@ fn section_layout_matches_goldens() {
         normalize_paths(verify_bad_out, tmp.path()),
         expected_verify_failure
     );
-    assert_eq!(normalize_paths(info_out, tmp.path()), expected_info);
+    assert_eq!(normalize_info_output(info_out, tmp.path()), expected_info);
     assert_eq!(normalize_paths(salvage_out, tmp.path()), expected_salvage);
 }
 

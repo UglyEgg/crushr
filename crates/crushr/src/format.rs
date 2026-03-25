@@ -19,6 +19,7 @@ pub const IDX_MAGIC_V3: &[u8; 4] = b"IDX3";
 pub enum EntryKind {
     Regular = 0,
     Symlink = 1,
+    Directory = 2,
 }
 
 #[derive(Debug, Clone)]

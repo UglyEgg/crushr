@@ -82,16 +82,12 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
             continue;
         }
 
-        if entry.kind != EntryKind::Regular {
-            bail!(
-                "unsupported entry kind for strict extraction: {}",
-                entry.path
+        if entry.kind == EntryKind::Regular {
+            required_blocks_by_path.insert(
+                entry.path.clone(),
+                entry.extents.iter().map(|extent| extent.block_id).collect(),
             );
         }
-        required_blocks_by_path.insert(
-            entry.path.clone(),
-            entry.extents.iter().map(|extent| extent.block_id).collect(),
-        );
     }
 
     let candidate_paths = required_blocks_by_path.keys().cloned().collect::<Vec<_>>();
@@ -108,16 +104,21 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
         .collect::<BTreeSet<_>>();
 
     for entry in entries {
-        if !safe_paths.contains(entry.path.as_str()) {
+        if entry.kind == EntryKind::Regular && !safe_paths.contains(entry.path.as_str()) {
             continue;
         }
 
         if opts.verify_only {
             validate_entry_bytes_strict(&reader, &entry, &blocks)?;
         } else {
-            let bytes = read_entry_bytes_strict(&reader, &entry, &blocks)?;
             let destination = resolve_confined_path(&opts.out_dir, &entry.path)?;
-            write_entry(destination.as_path(), &bytes, opts.overwrite)?;
+            write_entry(
+                &reader,
+                &entry,
+                destination.as_path(),
+                &blocks,
+                opts.overwrite,
+            )?;
         }
     }
 
@@ -229,16 +230,146 @@ fn block_raw_payload(
     Ok(raw)
 }
 
-fn write_entry(path: &Path, bytes: &[u8], overwrite: bool) -> Result<()> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
+fn write_entry(
+    reader: &FileReader,
+    entry: &Entry,
+    path: &Path,
+    blocks: &[crushr_core::verify::BlockSpanV1],
+    overwrite: bool,
+) -> Result<()> {
+    match entry.kind {
+        EntryKind::Directory => {
+            fs::create_dir_all(path).with_context(|| format!("create {}", path.display()))?;
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).ok();
+            }
+            restore_mtime(path, entry.mtime)?;
+            restore_xattrs(path, entry)?;
+            Ok(())
+        }
+        EntryKind::Symlink => {
+            if path.exists() {
+                if overwrite {
+                    fs::remove_file(path)
+                        .or_else(|_| fs::remove_dir_all(path))
+                        .ok();
+                } else {
+                    bail!("destination exists (use --overwrite): {}", path.display());
+                }
+            }
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent)
+                    .with_context(|| format!("create {}", parent.display()))?;
+            }
+            let target = entry.link_target.clone().unwrap_or_default();
+            crate::extraction_path::validate_symlink_target(&target)?;
+            #[cfg(unix)]
+            std::os::unix::fs::symlink(&target, path)
+                .with_context(|| format!("symlink {} -> {}", path.display(), target))?;
+            #[cfg(not(unix))]
+            bail!("symlink extraction is unsupported on this platform");
+            Ok(())
+        }
+        EntryKind::Regular => {
+            let bytes = read_entry_bytes_strict(reader, entry, blocks)?;
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent)
+                    .with_context(|| format!("create {}", parent.display()))?;
+            }
+            if path.exists() && !overwrite {
+                bail!("destination exists (use --overwrite): {}", path.display());
+            }
+            fs::write(path, &bytes).with_context(|| format!("write {}", path.display()))?;
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).ok();
+            }
+            restore_mtime(path, entry.mtime)?;
+            restore_xattrs(path, entry)?;
+            Ok(())
+        }
     }
+}
 
-    if path.exists() && !overwrite {
-        bail!("destination exists (use --overwrite): {}", path.display());
+fn restore_mtime(path: &Path, mtime_secs: i64) -> Result<()> {
+    #[cfg(unix)]
+    {
+        if mtime_secs < 0 {
+            return Ok(());
+        }
+        use std::ffi::CString;
+        use std::os::unix::ffi::OsStrExt;
+        use std::os::unix::io::RawFd;
+
+        #[repr(C)]
+        struct Timespec {
+            tv_sec: i64,
+            tv_nsec: i64,
+        }
+
+        unsafe extern "C" {
+            fn utimensat(
+                dirfd: RawFd,
+                pathname: *const std::os::raw::c_char,
+                times: *const Timespec,
+                flags: std::os::raw::c_int,
+            ) -> std::os::raw::c_int;
+        }
+
+        const AT_FDCWD: RawFd = -100;
+        const UTIME_OMIT: i64 = 1_073_741_822;
+
+        let c_path = CString::new(path.as_os_str().as_bytes())
+            .with_context(|| format!("invalid path for mtime restore: {}", path.display()))?;
+        let times = [
+            Timespec {
+                tv_sec: 0,
+                tv_nsec: UTIME_OMIT,
+            },
+            Timespec {
+                tv_sec: mtime_secs,
+                tv_nsec: 0,
+            },
+        ];
+        let rc = unsafe { utimensat(AT_FDCWD, c_path.as_ptr(), times.as_ptr(), 0) };
+        if rc != 0 {
+            return Err(std::io::Error::last_os_error())
+                .with_context(|| format!("set mtime {}", path.display()));
+        }
     }
+    #[cfg(not(unix))]
+    {
+        let _ = (path, mtime_secs);
+    }
+    Ok(())
+}
 
-    fs::write(path, bytes).with_context(|| format!("write {}", path.display()))?;
+fn restore_xattrs(path: &Path, entry: &Entry) -> Result<()> {
+    #[cfg(unix)]
+    {
+        for xa in &entry.xattrs {
+            if let Err(err) = xattr::set(path, &xa.name, &xa.value) {
+                eprintln!(
+                    "WARNING[xattr-restore]: could not restore '{}' on '{}': {err}",
+                    xa.name,
+                    path.display()
+                );
+            }
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        if !entry.xattrs.is_empty() {
+            eprintln!(
+                "WARNING[xattr-restore]: skipped {} xattrs on '{}' (unsupported platform)",
+                entry.xattrs.len(),
+                path.display()
+            );
+        }
+    }
     Ok(())
 }
 

@@ -169,16 +169,12 @@ where
         {
             continue;
         }
-        if entry.kind != EntryKind::Regular {
-            bail!(
-                "unsupported entry kind for strict extraction: {}",
-                entry.path
+        if entry.kind == EntryKind::Regular {
+            required_blocks_by_path.insert(
+                entry.path.clone(),
+                entry.extents.iter().map(|extent| extent.block_id).collect(),
             );
         }
-        required_blocks_by_path.insert(
-            entry.path.clone(),
-            entry.extents.iter().map(|extent| extent.block_id).collect(),
-        );
         selected_entries.push(entry);
     }
 
@@ -196,13 +192,31 @@ where
         .collect::<BTreeSet<_>>();
 
     progress("canonical extraction");
-    for entry in selected_entries
-        .iter()
-        .filter(|entry| safe_paths.contains(entry.path.as_str()))
-    {
-        let bytes = read_entry_bytes_strict(&reader, entry, &blocks)?;
+    for entry in &selected_entries {
         let destination = resolve_confined_path(&canonical_dir, &entry.path)?;
-        write_entry(destination.as_path(), &bytes, opts.overwrite)?;
+        match entry.kind {
+            EntryKind::Regular => {
+                if safe_paths.contains(entry.path.as_str()) {
+                    let bytes = read_entry_bytes_strict(&reader, entry, &blocks)?;
+                    write_entry(destination.as_path(), &bytes, opts.overwrite)?;
+                }
+            }
+            EntryKind::Directory => {
+                fs::create_dir_all(&destination)
+                    .with_context(|| format!("create {}", destination.display()))?;
+            }
+            EntryKind::Symlink => {
+                let target = entry.link_target.clone().unwrap_or_default();
+                crate::extraction_path::validate_symlink_target(&target)?;
+                if let Some(parent) = destination.parent() {
+                    fs::create_dir_all(parent)
+                        .with_context(|| format!("create {}", parent.display()))?;
+                }
+                #[cfg(unix)]
+                std::os::unix::fs::symlink(&target, &destination)
+                    .with_context(|| format!("symlink {} -> {}", destination.display(), target))?;
+            }
+        }
     }
 
     let mut manifest_entries = Vec::new();

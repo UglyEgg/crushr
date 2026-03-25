@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-24 — CRUSHR_PRESERVATION_01
+- Extended IDX3 metadata model for baseline filesystem preservation by adding explicit directory entry-kind support alongside existing regular/symlink semantics; pack now records mode, mtime, and xattrs from Linux filesystem metadata.
+- Upgraded production pack collection to retain directory paths (including empty directories), symlink targets, and per-entry metadata while keeping deterministic ordering and duplicate-path safeguards.
+- Upgraded strict and recover extraction flows to handle non-regular entries without refusal, create directories/symlinks during canonical extraction, and restore mode/mtime/xattrs with explicit warning surfacing when xattr restore is unsupported/denied.
+- Added deterministic round-trip coverage in `metadata_preservation.rs` for mode, mtime, symlink, empty directory, and xattr behavior; updated pack determinism and CLI presentation goldens for metadata-aware archives.
+- Recorded packet limits explicitly: uid/gid remains deferred and permission-denied xattr restore is warning-covered but not deterministically CI-forced in every environment.
+- Validation: `cargo fmt --all`, `cargo test -p crushr --test deterministic_pack --test mvp --test metadata_preservation`, `cargo test -p crushr --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`.
+
 ## 2026-03-24 — CRUSHR_INTROSPECTION_01-FIX2
 - Adjusted `info --list` status semantics so omitted non-regular entries are informational (not structural degradation) while structural proof failures still produce `DEGRADED`.
 - Made `omitted entries` result-row emission conditional (shown only when non-zero) and kept explicit salvage guidance for proof-unavailable cases.
