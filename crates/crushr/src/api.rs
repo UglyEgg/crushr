@@ -148,6 +148,7 @@ mod tests {
                     block_id: 0,
                     offset: 0,
                     len: payload.len() as u64,
+                    logical_offset: 0,
                 }],
                 link_target: None,
                 xattrs: vec![],
@@ -156,6 +157,13 @@ mod tests {
                 uname: None,
                 gname: None,
                 hardlink_group_id: None,
+                sparse: false,
+                device_major: None,
+                device_minor: None,
+                acl_access: None,
+                acl_default: None,
+                selinux_label: None,
+                linux_capability: None,
             }],
         };
         let idx_bytes = encode_index(&index);

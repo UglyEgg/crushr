@@ -272,6 +272,7 @@ fn write_entry(
             restore_mtime(path, entry.mtime)?;
             restore_xattrs(path, entry)?;
             restore_ownership(path, entry)?;
+            restore_security_metadata(path, entry);
             Ok(())
         }
         EntryKind::Symlink => {
@@ -296,6 +297,7 @@ fn write_entry(
             #[cfg(not(unix))]
             bail!("symlink extraction is unsupported on this platform");
             restore_ownership(path, entry)?;
+            restore_security_metadata(path, entry);
             Ok(())
         }
         EntryKind::Regular => {
@@ -347,6 +349,7 @@ fn write_entry(
             restore_mtime(path, entry.mtime)?;
             restore_xattrs(path, entry)?;
             restore_ownership(path, entry)?;
+            restore_security_metadata(path, entry);
             Ok(())
         }
         EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice => {
@@ -365,6 +368,7 @@ fn write_entry(
             }
             restore_special(path, entry)?;
             restore_ownership(path, entry)?;
+            restore_security_metadata(path, entry);
             Ok(())
         }
     }
@@ -573,6 +577,69 @@ fn restore_xattrs(path: &Path, entry: &Entry) -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn restore_security_metadata(path: &Path, entry: &Entry) {
+    #[cfg(unix)]
+    {
+        restore_single_xattr(
+            path,
+            "acl-restore",
+            "system.posix_acl_access",
+            entry.acl_access.as_deref(),
+        );
+        restore_single_xattr(
+            path,
+            "acl-restore",
+            "system.posix_acl_default",
+            entry.acl_default.as_deref(),
+        );
+        restore_single_xattr(
+            path,
+            "selinux-restore",
+            "security.selinux",
+            entry.selinux_label.as_deref(),
+        );
+        restore_single_xattr(
+            path,
+            "capability-restore",
+            "security.capability",
+            entry.linux_capability.as_deref(),
+        );
+    }
+    #[cfg(not(unix))]
+    {
+        if entry.acl_access.is_some() || entry.acl_default.is_some() {
+            eprintln!(
+                "WARNING[acl-restore]: skipped ACL metadata on '{}' (unsupported platform)",
+                path.display()
+            );
+        }
+        if entry.selinux_label.is_some() {
+            eprintln!(
+                "WARNING[selinux-restore]: skipped SELinux label on '{}' (unsupported platform)",
+                path.display()
+            );
+        }
+        if entry.linux_capability.is_some() {
+            eprintln!(
+                "WARNING[capability-restore]: skipped Linux capabilities on '{}' (unsupported platform)",
+                path.display()
+            );
+        }
+    }
+}
+
+#[cfg(unix)]
+fn restore_single_xattr(path: &Path, warning_code: &str, name: &str, value: Option<&[u8]>) {
+    if let Some(value) = value
+        && let Err(err) = xattr::set(path, name, value)
+    {
+        eprintln!(
+            "WARNING[{warning_code}]: could not restore '{name}' on '{}': {err}",
+            path.display()
+        );
+    }
 }
 
 fn read_exact_at<R: ReadAt>(reader: &R, mut offset: u64, mut dst: &mut [u8]) -> Result<()> {

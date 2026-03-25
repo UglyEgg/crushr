@@ -18,9 +18,9 @@ Result
   archive                <TMP>/sample.crushr
   files packed           2
   total size             9 B
-  compressed size        1.1 KiB
+  compressed size        1.2 KiB
   compression ratio      0.01x
-  reduction              -12788.9%
+  reduction              -13144.4%
   processing time        <1s
   status                 COMPLETE
   message                archive emitted

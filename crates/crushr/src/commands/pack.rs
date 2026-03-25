@@ -232,6 +232,10 @@ struct InputFile {
     gname: Option<String>,
     hardlink_key: Option<(u64, u64)>,
     xattrs: Vec<Xattr>,
+    acl_access: Option<Vec<u8>>,
+    acl_default: Option<Vec<u8>>,
+    selinux_label: Option<Vec<u8>>,
+    linux_capability: Option<Vec<u8>>,
     sparse_chunks: Vec<SparseChunk>,
     device_major: Option<u32>,
     device_minor: Option<u32>,
@@ -253,6 +257,10 @@ struct PlannedFileModel {
     uname: Option<String>,
     gname: Option<String>,
     xattrs: Vec<Xattr>,
+    acl_access: Option<Vec<u8>>,
+    acl_default: Option<Vec<u8>>,
+    selinux_label: Option<Vec<u8>>,
+    linux_capability: Option<Vec<u8>>,
     sparse_chunks: Vec<SparseChunk>,
 }
 
@@ -920,6 +928,10 @@ fn build_pack_layout_plan(
             uname: file.uname.clone(),
             gname: file.gname.clone(),
             xattrs: file.xattrs.clone(),
+            acl_access: file.acl_access.clone(),
+            acl_default: file.acl_default.clone(),
+            selinux_label: file.selinux_label.clone(),
+            linux_capability: file.linux_capability.clone(),
             sparse_chunks: file.sparse_chunks.clone(),
         });
     }
@@ -1280,6 +1292,10 @@ fn emit_archive_from_layout(
             sparse: !file.sparse_chunks.is_empty(),
             device_major: None,
             device_minor: None,
+            acl_access: file.acl_access,
+            acl_default: file.acl_default,
+            selinux_label: file.selinux_label,
+            linux_capability: file.linux_capability,
         });
         progress(
             PackProgressPhase::Serialization,
@@ -1319,6 +1335,10 @@ fn emit_archive_from_layout(
             sparse: false,
             device_major: input.device_major,
             device_minor: input.device_minor,
+            acl_access: input.acl_access.clone(),
+            acl_default: input.acl_default.clone(),
+            selinux_label: input.selinux_label.clone(),
+            linux_capability: input.linux_capability.clone(),
         });
     }
     entries.sort_by(|a, b| a.path.cmp(&b.path));
@@ -2004,25 +2024,45 @@ fn write_experimental_metadata_block<T: Serialize>(
     Ok(())
 }
 
-fn capture_xattrs(path: &Path) -> Vec<Xattr> {
+const POSIX_ACL_ACCESS_XATTR: &str = "system.posix_acl_access";
+const POSIX_ACL_DEFAULT_XATTR: &str = "system.posix_acl_default";
+const SELINUX_LABEL_XATTR: &str = "security.selinux";
+const LINUX_CAPABILITY_XATTR: &str = "security.capability";
+
+#[derive(Debug, Default, Clone)]
+struct CapturedSecurityMetadata {
+    acl_access: Option<Vec<u8>>,
+    acl_default: Option<Vec<u8>>,
+    selinux_label: Option<Vec<u8>>,
+    linux_capability: Option<Vec<u8>>,
+}
+
+fn capture_xattrs(path: &Path) -> (Vec<Xattr>, CapturedSecurityMetadata) {
     #[cfg(unix)]
     {
         let mut out = Vec::new();
+        let mut security = CapturedSecurityMetadata::default();
         if let Ok(names) = xattr::list(path) {
             for name_os in names {
                 let name = name_os.to_string_lossy().to_string();
                 if let Ok(Some(value)) = xattr::get(path, &name_os) {
-                    out.push(Xattr { name, value });
+                    match name.as_str() {
+                        POSIX_ACL_ACCESS_XATTR => security.acl_access = Some(value),
+                        POSIX_ACL_DEFAULT_XATTR => security.acl_default = Some(value),
+                        SELINUX_LABEL_XATTR => security.selinux_label = Some(value),
+                        LINUX_CAPABILITY_XATTR => security.linux_capability = Some(value),
+                        _ => out.push(Xattr { name, value }),
+                    }
                 }
             }
         }
         out.sort_by(|a, b| a.name.cmp(&b.name));
-        out
+        (out, security)
     }
     #[cfg(not(unix))]
     {
         let _ = path;
-        Vec::new()
+        (Vec::new(), CapturedSecurityMetadata::default())
     }
 }
 
@@ -2200,6 +2240,7 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
             let captured = capture_mode_mtime_uid_gid(&meta);
             let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
             let size = meta.len();
+            let (xattrs, security) = capture_xattrs(input);
             files.push(InputFile {
                 rel_path: normalize_logical_path(&name),
                 abs_path: abs,
@@ -2211,7 +2252,11 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 uname,
                 gname,
                 hardlink_key: captured.hardlink_key,
-                xattrs: capture_xattrs(input),
+                xattrs,
+                acl_access: security.acl_access,
+                acl_default: security.acl_default,
+                selinux_label: security.selinux_label,
+                linux_capability: security.linux_capability,
                 sparse_chunks: capture_sparse_chunks(input, size),
                 device_major: None,
                 device_minor: None,
@@ -2239,6 +2284,10 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 gname,
                 hardlink_key: captured.hardlink_key,
                 xattrs: Vec::new(),
+                acl_access: None,
+                acl_default: None,
+                selinux_label: None,
+                linux_capability: None,
                 sparse_chunks: Vec::new(),
                 device_major: None,
                 device_minor: None,
@@ -2279,6 +2328,10 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                     gname,
                     hardlink_key: captured.hardlink_key,
                     xattrs: Vec::new(),
+                    acl_access: None,
+                    acl_default: None,
+                    selinux_label: None,
+                    linux_capability: None,
                     sparse_chunks: Vec::new(),
                     device_major: captured.device_major,
                     device_minor: captured.device_minor,
@@ -2326,6 +2379,11 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
             } else {
                 continue;
             };
+            let (xattrs, security) = if kind == EntryKind::Regular || kind == EntryKind::Directory {
+                capture_xattrs(entry.path())
+            } else {
+                (Vec::new(), CapturedSecurityMetadata::default())
+            };
 
             files.push(InputFile {
                 rel_path,
@@ -2338,11 +2396,11 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 uname,
                 gname,
                 hardlink_key: captured.hardlink_key,
-                xattrs: if kind == EntryKind::Regular || kind == EntryKind::Directory {
-                    capture_xattrs(entry.path())
-                } else {
-                    Vec::new()
-                },
+                xattrs,
+                acl_access: security.acl_access,
+                acl_default: security.acl_default,
+                selinux_label: security.selinux_label,
+                linux_capability: security.linux_capability,
                 sparse_chunks: if kind == EntryKind::Regular {
                     capture_sparse_chunks(entry.path(), entry_meta.len())
                 } else {
@@ -2355,6 +2413,7 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
         if !saw_child {
             let captured = capture_mode_mtime_uid_gid(&meta);
             let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
+            let (xattrs, security) = capture_xattrs(input);
             let name = abs
                 .file_name()
                 .context("input directory has no file name")?
@@ -2371,7 +2430,11 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 uname,
                 gname,
                 hardlink_key: captured.hardlink_key,
-                xattrs: capture_xattrs(input),
+                xattrs,
+                acl_access: security.acl_access,
+                acl_default: security.acl_default,
+                selinux_label: security.selinux_label,
+                linux_capability: security.linux_capability,
                 sparse_chunks: Vec::new(),
                 device_major: None,
                 device_minor: None,

@@ -7,7 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_PRESERVATION_03 complete** (sparse/FIFO/device-node preservation + ownership-name enrichment)
+Current Step: **CRUSHR_PRESERVATION_04 complete** (POSIX ACL + SELinux label + Linux capability preservation envelope)
+
+Latest maintenance fix (2026-03-25):
+- **CRUSHR_PRESERVATION_04 complete**: production index encoding advanced to IDX6 with explicit fields for POSIX ACL access/default metadata, SELinux label metadata, and Linux capability metadata.
+- **CRUSHR_PRESERVATION_04 complete**: pack now captures ACL/SELinux/capability xattrs as structured security metadata (without silently dropping supported Linux metadata classes), and strict/recover extraction restores them best-effort with explicit `WARNING[acl-restore]`, `WARNING[selinux-restore]`, and `WARNING[capability-restore]` when blocked.
+- **CRUSHR_PRESERVATION_04 complete**: `crushr info` metadata visibility now includes `ACLs`, `SELinux labels`, and `capabilities`, and format marker reflects IDX3/IDX4/IDX5/IDX6 truth.
+- **CRUSHR_PRESERVATION_04 manual validation**: exact operator commands + observed outcomes for ACL/SELinux/capability/info/degraded/backward-compat/recovery-model checks are recorded at `.ai/COMPLETION_NOTES_CRUSHR_PRESERVATION_04.md`.
+- **CRUSHR_PRESERVATION_04 validation**: `cargo fmt --all`, `cargo test -p crushr --test index_codec --test metadata_preservation`, `cargo test -p crushr --test deterministic_pack --test mvp --test cli_presentation_contract`, and `cargo clippy --workspace --all-targets -- -D warnings` are green.
 
 
 Latest maintenance fix (2026-03-25):
