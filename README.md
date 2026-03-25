@@ -9,11 +9,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
 [![REUSE status](https://api.reuse.software/badge/github.com/UglyEgg/crushr)](https://api.reuse.software/info/github.com/UglyEgg/crushr)
 
-Failure-aware archival and recovery tooling with deterministic verification semantics.
+Failure-aware archival, recovery, and inspection tooling with deterministic verification semantics.
 
 Its core design question is simple:
 
 > When an archive is damaged, what can still be proven and recovered without guessing?
+
+That is the foundation.
+
+Tar-class preservation, archive introspection, future layout visibility, benchmarking, and compression analysis all sit on top of that core principle rather than replacing it.
 
 crushr is built around:
 
@@ -23,6 +27,29 @@ crushr is built around:
 - fail-closed naming semantics
 - anonymous fallback when original identity cannot be proven
 - recovery outputs that preserve evidence without pretending certainty
+- Linux-first archival behavior for real-world filesystem workflows
+
+## What crushr is now
+
+crushr has moved beyond a format experiment.
+
+Today, the project provides:
+
+- strict archive creation with `crushr pack`
+- strict verification with `crushr verify`
+- strict extraction with `crushr extract`
+- recovery-aware extraction with `crushr extract --recover`
+- archive inspection with `crushr info`
+- pre-extraction archive listing with `crushr info --list`
+- a shared, product-grade CLI surface across the canonical commands
+
+crushr archives are identified by crushr format markers, not by filename extension.
+
+The canonical default extension is:
+
+- `.crs`
+
+If no extension is supplied for `pack -o`, `.crs` is appended automatically.
 
 ## Documentation
 
@@ -56,6 +83,7 @@ The canonical public tool surface is:
 - `crushr extract`
 - `crushr extract --recover`
 - `crushr info`
+- `crushr info --list`
 - `crushr about`
 
 Thin wrapper binaries are retained for convenience and map to the canonical `crushr` commands:
@@ -65,6 +93,35 @@ Thin wrapper binaries are retained for convenience and map to the canonical `cru
 - `crushr-info` → `crushr info ...`
 
 Each wrapper provides the same baseline control mechanics: `--help`, `--version`, and `about`.
+
+## Core design principles
+
+### Prove, don't guess
+
+If a path, file identity, or recovery outcome cannot be proven from surviving archive evidence, crushr does not invent certainty.
+
+### Separate trust classes explicitly
+
+Recovery output distinguishes between:
+
+- `canonical`
+- `recovered_named`
+- `recovered_anonymous`
+- `unrecoverable`
+
+This prevents non-canonical recovery output from being confused with verified extraction.
+
+### Fail closed by default
+
+Strict commands refuse clearly when canonical guarantees cannot be met. Recovery is explicit.
+
+### Linux-first honesty
+
+crushr is designed first for real Linux archival workflows. Other platforms may be supported later, but they are not allowed to redefine the core metadata model.
+
+### Product behavior must be inspectable
+
+Archives should not remain opaque until extraction. Listing, structural inspection, metadata visibility, and later spatial introspection are part of the product direction.
 
 ## Recovery model
 
@@ -97,36 +154,53 @@ Anonymous recovered files follow a deterministic naming policy:
 
 The recovery manifest preserves structured classification and identity metadata for all recovered outputs.
 
-## Linux-first filesystem preservation
+## Linux-first preservation model
 
-`crushr pack` / `crushr extract` now preserve baseline Linux filesystem metadata for canonical paths:
+crushr's foundational philosophy is recoverability and truthful inspection. Tar-style preservation is a secondary but increasingly important capability layered onto that foundation.
 
-- regular files and directory paths
-- symlink entries and link targets
-- mode/permission bits
-- modification time (`mtime`)
-- uid/gid ownership
+The current Linux-first preservation set includes:
+
+- regular files
+- directories
 - empty directories
-- extended attributes (xattrs)
-- hard-link relationships
-- sparse regular files (hole-aware round trip where supported)
-- FIFO entries
-- character/block device node entries (restore is best-effort and privilege-gated)
-- ownership-name enrichment (`uname` / `gname`) when available
+- symlinks and link targets
+- hard links
+- file mode / permissions
+- modification time (`mtime`)
+- extended attributes (`xattrs`)
+- numeric ownership (`uid` / `gid`)
 
-Current scope is intentionally Linux-first. Non-Linux platforms may degrade with explicit warnings for unsupported metadata restoration (especially xattrs) rather than silent metadata fabrication.
+Optional ownership names (`uname` / `gname`) may be present when available, but numeric ownership is authoritative.
 
-Current limitations in this baseline packet:
+Where preservation or restoration cannot be applied due to platform or permission constraints, crushr should degrade honestly and warn rather than silently pretend success.
 
-- ownership names (`uname`/`gname`) are enrichment-only; numeric uid/gid remain authoritative.
-- device restoration may emit explicit warnings in unprivileged environments (`WARNING[special-restore]`) and continue extraction without silent type-faking.
-- Permission-denied xattr restore warning paths are implemented, but deterministic CI coverage for that specific denied-path scenario is not guaranteed in every environment.
+### Long-term preservation goal
+
+crushr's long-term preservation goal is broad Linux-first archive fidelity suitable for serious tar-based workflows.
+
+That means, over time, supporting as much tar-class behavior as is practical and honest, including metadata and entry classes beyond simple payload preservation.
+
+This is a staged roadmap goal, not a claim that crushr already has full tar parity.
+
+## Archive introspection
+
+crushr archives are no longer black boxes.
+
+`crushr info --list` provides pre-extraction logical archive listing using archive metadata rather than payload extraction.
+
+Current behavior is intentionally fail-closed:
+
+- if archive structure can be proven, crushr lists it
+- if metadata needed for listing is unavailable, crushr does not invent structure
+- directories in listing output are derived from stored logical paths rather than treated as independent authoritative archive objects
+
+This introspection line is expected to expand further in the 0.4.x series, including deeper archive/layout visibility.
 
 ## Product boundary
 
 Current boundary classes:
 
-- **Stable product surface:** user-facing CLI behavior and machine-readable outputs of `crushr pack`, `crushr verify`, `crushr extract`, `crushr extract --recover`, `crushr info`, and thin wrappers over those commands
+- **Stable product surface:** user-facing CLI behavior and machine-readable outputs of `crushr pack`, `crushr verify`, `crushr extract`, `crushr extract --recover`, `crushr info`, `crushr info --list`, and thin wrappers over those commands
 - **Bounded internal surface:** workspace Rust crates/modules used to implement the tool suite
 - **Experimental/lab-only surface:** `crushr lab`, corruption research workflows, format-comparison tooling, and research schemas/artifacts
 - **Removed primary surface:** standalone salvage as a normal operator-facing command
@@ -163,6 +237,16 @@ crushr is designed to fit evidence-aware and failure-aware workflows:
 4. Strict extraction returns only canonical outputs.
 5. Recovery-aware extraction returns recoverable outputs with explicit trust segregation.
 6. Later reviewers can rerun verification and recovery against the same archive and receive deterministic classifications.
+
+## Roadmap direction
+
+Near-term priorities continue along these lines:
+
+- expand Linux tar-class preservation semantics
+- improve archive inspection and metadata visibility
+- add deeper introspection of container/layout structure
+- begin benchmark and compression analysis once core semantics stabilize
+- explore reproducible archive mode in the future
 
 ## Product version governance
 

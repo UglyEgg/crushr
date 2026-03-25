@@ -30,11 +30,12 @@ nav = [
   ] },
   { "Chronicles" = [
     { "Overview" = "chronicles/index.md" },
-    { "03/13/2006 - It Begins" = "chronicles/2026-03-13-it-begins.md" },
-    { "03/15/2026 - Corruption Trials" = "chronicles/2026-03-15-corruption-trials.md" },
-    { "03/16/2026 - We Have Recoverability" = "chronicles/2026-03-16-we-have-recoverability.md" },
-    { "03/18/2026 - Speed" = "chronicles/2026-03-18-speed.md" },
+    { "03/25/2026 - The Origin of crushr" = "chronicles/2026-03-25-the-origin-of-crushr.md" },
     { "03/24/2026 - Feels Real" = "chronicles/2026-03-24-real-tool.md" },
+    { "03/18/2026 - Speed" = "chronicles/2026-03-18-speed.md" },
+    { "03/16/2026 - We Have Recoverability" = "chronicles/2026-03-16-we-have-recoverability.md" },
+    { "03/15/2026 - Corruption Trials" = "chronicles/2026-03-15-corruption-trials.md" },
+    { "03/13/2006 - It Begins" = "chronicles/2026-03-13-it-begins.md" },
   ] },
   { "Format evolution" = "format-evolution.md" },
 ]

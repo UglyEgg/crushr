@@ -43,11 +43,12 @@ For current behavior and guarantees, see the formal docs and project control doc
 
 ## Entries
 
-- [2026-03-13 — It Begins](./2026-03-13-it-begins.md)
-- [2026-03-15 — Corruption Trials](./2026-03-15-corruption-trials.md)
-- [2026-03-16 — We Have Recoverability](./2026-03-16-we-have-recoverability.md)
-- [2026-03-18 — Speed Comes From Killing Bad Ideas Faster](./2026-03-18-speed.md)
+- [2026-03-25 — The Origin of crushr](./2026-03-25-the-origin-of-crushr.md)
 - [2026-03-24 — Feels Like a Real Tool](./2026-03-24-real-tool.md)
+- [2026-03-18 — Speed Comes From Killing Bad Ideas Faster](./2026-03-18-speed.md)
+- [2026-03-16 — We Have Recoverability](./2026-03-16-we-have-recoverability.md)
+- [2026-03-15 — Corruption Trials](./2026-03-15-corruption-trials.md)
+- [2026-03-13 — It Begins](./2026-03-13-it-begins.md)
 
 ## Why this exists
 
