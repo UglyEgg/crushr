@@ -315,6 +315,7 @@ pub(super) fn parse_redundant_map_files(ledger_json: &[u8]) -> Result<Vec<Redund
                 block_id: extent.block_id,
                 offset: extent.file_offset,
                 len: extent.len,
+                logical_offset: extent.file_offset,
             });
         }
         out.push(RedundantMapFile {
@@ -592,6 +593,7 @@ pub(super) fn parse_self_describing_extent_records(
                 block_id: envelope.record.block_id,
                 offset: envelope.record.logical_offset,
                 len: envelope.record.logical_length,
+                logical_offset: envelope.record.logical_offset,
             },
         });
     }
@@ -614,6 +616,7 @@ pub(super) fn parse_checkpoint_extent_records(
                     block_id: rec.block_id,
                     offset: rec.logical_offset,
                     len: rec.logical_length,
+                    logical_offset: rec.logical_offset,
                 },
             });
         }
@@ -966,6 +969,7 @@ pub(super) fn verify_and_plan_payload_block_identity_records(
                 block_id: record.block_id,
                 offset: record.logical_offset,
                 len: record.logical_length,
+                logical_offset: record.logical_offset,
             },
         ));
     }
@@ -1074,6 +1078,7 @@ pub(super) fn parse_file_identity_extent_records(
                 block_id,
                 offset,
                 len,
+                logical_offset: offset,
             },
             block_scan_offset: value.block_scan_offset,
             path_digest_blake3: path_linkage.path_digest_blake3,
@@ -1352,6 +1357,7 @@ pub(super) fn verify_and_apply_manifest_expectations(
                             block_id: record.block_id,
                             offset: record.logical_offset,
                             len: record.logical_length,
+                            logical_offset: record.logical_offset,
                         },
                     )
                 })
@@ -1649,11 +1655,13 @@ mod tests {
                     block_id: 1,
                     offset: 0,
                     len: 6,
+                    logical_offset: 0,
                 },
                 Extent {
                     block_id: 2,
                     offset: 6,
                     len: 6,
+                    logical_offset: 6,
                 },
             ],
         );
@@ -1677,6 +1685,7 @@ mod tests {
                 block_id: 1,
                 offset: 0,
                 len: 12,
+                logical_offset: 0,
             }],
         );
         assert_eq!(
@@ -1700,11 +1709,13 @@ mod tests {
                     block_id: 1,
                     offset: 0,
                     len: 6,
+                    logical_offset: 0,
                 },
                 Extent {
                     block_id: 2,
                     offset: 6,
                     len: 6,
+                    logical_offset: 6,
                 },
             ],
         );
@@ -1728,11 +1739,13 @@ mod tests {
                     block_id: 1,
                     offset: 6,
                     len: 6,
+                    logical_offset: 6,
                 },
                 Extent {
                     block_id: 2,
                     offset: 0,
                     len: 6,
+                    logical_offset: 0,
                 },
             ],
         );
@@ -1751,6 +1764,7 @@ mod tests {
                 block_id: 9,
                 offset: 0,
                 len: 4,
+                logical_offset: 0,
             }],
         );
         assert_eq!(

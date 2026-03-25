@@ -109,12 +109,17 @@ The recovery manifest preserves structured classification and identity metadata 
 - empty directories
 - extended attributes (xattrs)
 - hard-link relationships
+- sparse regular files (hole-aware round trip where supported)
+- FIFO entries
+- character/block device node entries (restore is best-effort and privilege-gated)
+- ownership-name enrichment (`uname` / `gname`) when available
 
 Current scope is intentionally Linux-first. Non-Linux platforms may degrade with explicit warnings for unsupported metadata restoration (especially xattrs) rather than silent metadata fabrication.
 
 Current limitations in this baseline packet:
 
-- ownership names (`uname`/`gname`) are currently optional and may be absent.
+- ownership names (`uname`/`gname`) are enrichment-only; numeric uid/gid remain authoritative.
+- device restoration may emit explicit warnings in unprivileged environments (`WARNING[special-restore]`) and continue extraction without silent type-faking.
 - Permission-denied xattr restore warning paths are implemented, but deterministic CI coverage for that specific denied-path scenario is not guaranteed in every environment.
 
 ## Product boundary

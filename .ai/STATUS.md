@@ -7,8 +7,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_PRESERVATION_02 complete** (ownership + hard-link preservation with metadata visibility)
+Current Step: **CRUSHR_PRESERVATION_03 complete** (sparse/FIFO/device-node preservation + ownership-name enrichment)
 
+
+Latest maintenance fix (2026-03-25):
+- **CRUSHR_PRESERVATION_03 complete**: production index encoding advanced to IDX5 with sparse regular-file mapping (`logical_offset` extents), FIFO/character/block device entry kinds, optional device major/minor metadata, and ownership-name enrichment capture where available.
+- **CRUSHR_PRESERVATION_03 complete**: strict + recover extraction now restore sparse files hole-aware, recreate FIFOs/device nodes where permitted, and emit explicit `WARNING[special-restore]` degradation when platform/privilege blocks special-file restoration.
+- **CRUSHR_PRESERVATION_03 complete**: `crushr info` metadata presence now includes `sparse files` and `special files`, and format marker reflects IDX3/IDX4/IDX5 truth.
+- **CRUSHR_PRESERVATION_03 complete**: operator-level manual validation evidence with exact commands/results is recorded at `.ai/COMPLETION_NOTES_CRUSHR_PRESERVATION_03.md`.
+- **CRUSHR_PRESERVATION_03 validation**: `cargo fmt --all`, `cargo test -p crushr --test metadata_preservation`, `cargo test -p crushr --test deterministic_pack --test mvp --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings` are green.
 
 Latest maintenance fix (2026-03-25):
 - **CRUSHR_PRESERVATION_02 complete**: production pack/index now preserves uid/gid ownership metadata and hard-link group identity in IDX4 while keeping Linux-first mode/mtime/xattr behavior.

@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-25 — CRUSHR_PRESERVATION_03 sparse/special-entry/ownership-name lock
+
+- Decision:
+  - Advance production index encoding to IDX5 to represent sparse regular files (`logical_offset` extent mapping), FIFO entries, character/block device entries, and optional device major/minor metadata.
+  - Capture ownership-name enrichment (`uname`/`gname`) at pack time when available, while keeping numeric uid/gid authoritative.
+  - Restore sparse files hole-aware and restore special files best-effort in strict/recover extraction; when special restoration is blocked by privilege/platform constraints, continue extraction and surface explicit `WARNING[special-restore]`.
+  - Extend `crushr info` metadata presence visibility with `sparse files` and `special files`.
+- Alternatives considered:
+  1. Keep IDX4 and flatten sparse/special entries into regular files.
+  2. Preserve sparse data by materializing holes as zero payload bytes.
+- Rationale:
+  - Packet requires truthful Linux-first tar-class behavior without silent type falsification.
+  - IDX5 avoids lossy inference and keeps sparse/special semantics explicit/verifiable in index truth.
+- Blast radius:
+  - Pack/index encoding, strict/recover extraction materialization, info metadata visibility, and tail-frame IDX magic acceptance paths were updated.
+  - Golden fixtures and metadata-preservation regression coverage expanded to include sparse/FIFO/device/ownership-name cases.
+
 ## 2026-03-25 — CRUSHR_PRESERVATION_02 ownership + hard-link + info metadata visibility lock
 
 - Decision:

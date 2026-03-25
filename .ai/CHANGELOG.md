@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-25 — CRUSHR_PRESERVATION_03
+- Advanced archive index encoding to IDX5 with explicit sparse/extents logical-offset metadata, FIFO/char-device/block-device entry kinds, and optional device major/minor fields while retaining IDX3/IDX4 decode compatibility.
+- Extended production pack collection to detect sparse files, FIFOs, and device nodes; capture ownership-name enrichment (`uname`/`gname`) when available; and preserve sparse payloads without hole expansion.
+- Extended strict and recover extraction paths to restore sparse files as sparse where supported, recreate FIFO/device entries, and emit explicit warning degradation (`WARNING[special-restore]`) when special-file restoration is unsupported or unprivileged.
+- Extended `crushr info` metadata presence reporting with `sparse files` and `special files`, plus IDX5 format-marker visibility; refreshed golden outputs accordingly.
+- Added deterministic regression coverage in `metadata_preservation.rs` for sparse-file round-trip, FIFO preservation, device-node truthful degradation behavior, and ownership-name enrichment non-placeholder capture.
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test metadata_preservation`; `cargo test -p crushr --test deterministic_pack --test mvp --test cli_presentation_contract`; `cargo clippy --workspace --all-targets -- -D warnings`.
+
 ## 2026-03-25 — CRUSHR_PRESERVATION_02
 - Extended index encoding to IDX4 to preserve ownership metadata (`uid`/`gid`, optional ownership names) and explicit hard-link group identity.
 - Updated production pack planning/emission so hard-linked regular files share a single payload block while retaining multiple logical file mappings.
