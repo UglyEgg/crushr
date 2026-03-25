@@ -9,7 +9,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
 [![REUSE status](https://api.reuse.software/badge/github.com/UglyEgg/crushr)](https://api.reuse.software/info/github.com/UglyEgg/crushr)
 
-Failure-aware archival, recovery, and inspection tooling with deterministic verification semantics.
+A Linux-first archive tool built to replace `tar + zstd` for workflows that care about preservation fidelity, honest recovery, and what actually happens when archives fail.
 
 Its core design question is simple:
 
@@ -17,17 +17,27 @@ Its core design question is simple:
 
 That is the foundation.
 
-Tar-class preservation, archive introspection, future layout visibility, benchmarking, and compression analysis all sit on top of that core principle rather than replacing it.
+Everything else — tar-class preservation, archive inspection, future layout visibility, benchmarking, and later reproducible archive modes — sits on top of that principle rather than replacing it.
 
-crushr is built around:
+## Why crushr exists
 
-- integrity-first extraction
-- deterministic verification
-- explicit trust segregation during recovery
-- fail-closed naming semantics
-- anonymous fallback when original identity cannot be proven
-- recovery outputs that preserve evidence without pretending certainty
-- Linux-first archival behavior for real-world filesystem workflows
+Most archive tooling assumes the happy path:
+
+- metadata is intact
+- structure is trustworthy
+- extraction either works or fails cleanly
+- archives remain black boxes until you unpack them
+
+crushr was built around the opposite assumption:
+
+- things fail
+- data gets damaged
+- partial truth still matters
+- and the tool should say clearly what is canonical, what is degraded, what was recovered, and what is lost
+
+The goal is not just to compress files.
+
+The goal is to preserve Linux filesystem state honestly, recover what can be proven, and avoid pretending certainty where none exists.
 
 ## What crushr is now
 
@@ -35,7 +45,7 @@ crushr has moved beyond a format experiment.
 
 Today, the project provides:
 
-- strict archive creation with `crushr pack`
+- archive creation with `crushr pack`
 - strict verification with `crushr verify`
 - strict extraction with `crushr extract`
 - recovery-aware extraction with `crushr extract --recover`
@@ -51,38 +61,7 @@ The canonical default extension is:
 
 If no extension is supplied for `pack -o`, `.crs` is appended automatically.
 
-`crushr pack` now also supports explicit preservation contracts:
-
-- `--preservation full` (default)
-- `--preservation basic`
-- `--preservation payload-only`
-
-The selected preservation profile is recorded in archive metadata and shown by `crushr info`.
-
-## Documentation
-
-Public product, reference, and historical material lives under `docs/`.
-
-Primary entry points:
-
-- `docs/index.md` — site landing page
-- `docs/why-crushr.md` — positioning and legitimacy
-- `docs/whitepaper/index.md` — technical whitepaper
-- `docs/reference/index.md` — concise technical reference
-- `docs/chronicles/index.md` — historical project milestones and public writing
-
-The published docs site targets **Zensical** via `zensical.toml`.
-
-## Internal project control
-
-The repository also contains internal planning and control material under:
-
-- `.ai/` — active project-control documents
-- `.ai/contracts/` — policy and interface contracts used during development
-
-These files are not part of the website and should be treated as internal engineering/project-control material.
-
-## Canonical runtime boundary
+## Canonical command surface
 
 The canonical public tool surface is:
 
@@ -110,7 +89,7 @@ If a path, file identity, or recovery outcome cannot be proven from surviving ar
 
 ### Separate trust classes explicitly
 
-Recovery output distinguishes between:
+Recovery and extraction outcomes distinguish between:
 
 - `canonical`
 - `metadata_degraded`
@@ -118,7 +97,7 @@ Recovery output distinguishes between:
 - `recovered_anonymous`
 - `unrecoverable`
 
-This prevents non-canonical recovery output from being confused with verified extraction.
+This prevents degraded or partial output from being confused with fully canonical extraction.
 
 ### Fail closed by default
 
@@ -128,7 +107,7 @@ Strict commands refuse clearly when canonical guarantees cannot be met. Recovery
 
 crushr is designed first for real Linux archival workflows. Other platforms may be supported later, but they are not allowed to redefine the core metadata model.
 
-### Product behavior must be inspectable
+### Archives should be inspectable
 
 Archives should not remain opaque until extraction. Listing, structural inspection, metadata visibility, and later spatial introspection are part of the product direction.
 
@@ -144,6 +123,7 @@ If strict canonical extraction cannot be completed, the command should refuse cl
 Recovery-aware extraction separates output by trust class:
 
 - `canonical/`
+- `metadata_degraded/`
 - `recovered_named/`
 - `_crushr_recovery/anonymous/`
 - `_crushr_recovery/manifest.json`
@@ -151,6 +131,7 @@ Recovery-aware extraction separates output by trust class:
 Recovery results are reported explicitly as:
 
 - `canonical`
+- `metadata_degraded`
 - `recovered_named`
 - `recovered_anonymous`
 - `unrecoverable`
@@ -167,40 +148,86 @@ The recovery manifest preserves structured classification and identity metadata 
 
 crushr's foundational philosophy is recoverability and truthful inspection. Tar-style preservation is a secondary but increasingly important capability layered onto that foundation.
 
-The current Linux-first preservation set includes:
+### Preservation profiles
+
+`crushr pack` supports explicit archive preservation contracts:
+
+- `--preservation full` (default)
+- `--preservation basic`
+- `--preservation payload-only`
+
+The selected preservation profile is recorded in archive metadata and shown by `crushr info`.
+
+#### full
+
+Preserves the complete Linux-first metadata and entry-kind set crushr currently supports.
+
+#### basic
+
+Preserves regular files, directories, empty directories, symlinks, hard links, mode, mtime, and sparse semantics.
+
+Intentionally omits:
+
+- xattrs
+- uid/gid
+- uname/gname
+- ACLs
+- SELinux labels
+- Linux capabilities
+- FIFOs
+- device nodes
+
+#### payload-only
+
+Preserves only regular-file payload bytes plus logical tree reconstruction directories.
+
+Intentionally omits:
+
+- symlink semantics
+- hard link semantics
+- mode
+- mtime
+- sparse semantics
+- xattrs
+- ownership
+- ACLs
+- SELinux labels
+- Linux capabilities
+- FIFOs
+- device nodes
+
+If a selected profile excludes an entry kind, crushr warns and omits it rather than fabricating an alternate representation.
+
+### Current Linux-first preservation scope
+
+With `--preservation full`, crushr currently preserves:
 
 - regular files
 - directories
 - empty directories
 - symlinks and link targets
 - hard links
+- sparse files
+- FIFOs
+- char/block device nodes
 - file mode / permissions
 - modification time (`mtime`)
 - extended attributes (`xattrs`)
 - numeric ownership (`uid` / `gid`)
+- optional ownership names (`uname` / `gname`) when available
 - POSIX ACL metadata (`system.posix_acl_access`, `system.posix_acl_default`)
 - SELinux label metadata (`security.selinux`)
 - Linux file capability metadata (`security.capability`)
 
-Optional ownership names (`uname` / `gname`) may be present when available, but numeric ownership is authoritative.
-
-Where preservation or restoration cannot be applied due to platform or permission constraints (for example ACL/SELinux/capability restore in restricted environments), crushr should degrade honestly and warn rather than silently pretend success.
-
-### Preservation profiles
-
-- `full` preserves the complete Linux-first set listed above.
-- `basic` preserves regular/directory/symlink/hard-link semantics plus mode/mtime/sparse semantics, and intentionally omits ownership, xattrs, ACL/SELinux/capability metadata, and FIFO/device entries.
-- `payload-only` preserves only regular-file payload bytes plus logical tree reconstruction directories; link semantics, sparse semantics, and metadata classes are intentionally omitted.
-
-For profiles that exclude entry kinds, crushr emits explicit warnings and omits those entries rather than fabricating alternate representations.
+Where preservation or restoration cannot be applied due to platform or permission constraints, crushr degrades honestly and warns rather than silently pretending success.
 
 ### Long-term preservation goal
 
-crushr's long-term preservation goal is broad Linux-first archive fidelity suitable for serious tar-based workflows.
+crushr’s long-term goal is broad Linux-first archive fidelity suitable for serious tar-based workflows.
 
 That means, over time, supporting as much tar-class behavior as is practical and honest, including metadata and entry classes beyond simple payload preservation.
 
-This is a staged roadmap goal, not a claim that crushr already has full tar parity.
+This is a staged roadmap goal, not a claim that crushr already has full tar parity in every environment.
 
 ## Archive introspection
 
@@ -214,7 +241,30 @@ Current behavior is intentionally fail-closed:
 - if metadata needed for listing is unavailable, crushr does not invent structure
 - directories in listing output are derived from stored logical paths rather than treated as independent authoritative archive objects
 
-This introspection line is expected to expand further in the 0.4.x series, including deeper archive/layout visibility.
+This introspection line is expected to expand further in the 0.4.x series, including richer metadata surfacing and deeper archive/layout visibility.
+
+## Documentation
+
+Public product, reference, and historical material lives under `docs/`.
+
+Primary entry points:
+
+- `docs/index.md` — site landing page
+- `docs/why-crushr.md` — positioning and legitimacy
+- `docs/whitepaper/index.md` — technical whitepaper
+- `docs/reference/index.md` — concise technical reference
+- `docs/chronicles/index.md` — historical project milestones and public writing
+
+The published docs site targets **Zensical** via `zensical.toml`.
+
+## Internal project control
+
+The repository also contains internal planning and control material under:
+
+- `.ai/` — active project-control documents
+- `.ai/contracts/` — policy and interface contracts used during development
+
+These files are not part of the public documentation site and should be treated as internal engineering/project-control material.
 
 ## Product boundary
 
@@ -239,7 +289,7 @@ Public-facing commands share one operator-facing presentation system:
 - restrained motion only for active work
 - stable final summaries suitable for terminal use and copy/paste
 
-The CLI is designed to be calm, explicit, and trustworthy rather than flashy.
+The CLI is designed to feel calm, explicit, and trustworthy rather than flashy.
 
 ### Silent/scriptable mode
 
@@ -255,14 +305,14 @@ crushr is designed to fit evidence-aware and failure-aware workflows:
 2. Files are packaged into crushr archives.
 3. Verification establishes what remains trustworthy.
 4. Strict extraction returns only canonical outputs.
-5. Recovery-aware extraction returns recoverable outputs with explicit trust segregation.
+5. Recovery-aware extraction returns outputs with explicit trust segregation.
 6. Later reviewers can rerun verification and recovery against the same archive and receive deterministic classifications.
 
 ## Roadmap direction
 
 Near-term priorities continue along these lines:
 
-- expand Linux tar-class preservation semantics
+- finish Linux-first preservation and recovery semantics
 - improve archive inspection and metadata visibility
 - add deeper introspection of container/layout structure
 - begin benchmark and compression analysis once core semantics stabilize
