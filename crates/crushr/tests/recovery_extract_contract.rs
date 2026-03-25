@@ -108,6 +108,7 @@ fn recover_mode_writes_strict_structure_for_clean_archive() {
     ));
 
     assert!(out_dir.join("canonical/alpha.txt").exists());
+    assert!(out_dir.join("metadata_degraded").is_dir());
     assert!(out_dir.join("recovered_named").is_dir());
     assert!(out_dir.join("_crushr_recovery/anonymous").is_dir());
     assert!(out_dir.join("_crushr_recovery/manifest.json").is_file());
@@ -163,9 +164,10 @@ fn recover_mode_writes_strict_structure_for_clean_archive() {
             "expected progress phase in output: {phase}\n{stdout}"
         );
     }
-    assert!(stdout.contains("canonical files"));
+    assert!(stdout.contains("canonical"));
+    assert!(stdout.contains("metadata_degraded"));
     assert!(stdout.contains("recovered_named"));
-    assert!(stdout.contains("recovered_anonymous"));
+    assert!(stdout.contains("anonymous"));
     assert!(stdout.contains("unrecoverable"));
     assert!(stdout.contains("canonical extraction"));
     assert!(stdout.contains("recovery extraction"));
@@ -237,7 +239,13 @@ fn recover_mode_emits_anonymous_artifact_and_manifest_for_damaged_archive() {
     assert!(
         first["recovery_kind"] == "recovered_anonymous"
             || first["recovery_kind"] == "recovered_named"
+            || first["recovery_kind"] == "metadata_degraded"
     );
+    assert!(first["trust_class"].is_string());
+    assert!(
+        first["missing_metadata_classes"].is_null() || first["missing_metadata_classes"].is_array()
+    );
+    assert!(first["failed_metadata_classes"].is_array());
     let assigned = first["assigned_name"].as_str().unwrap();
     assert!(first["classification"]["kind"].is_string());
     assert!(first["classification"]["confidence"].is_string());

@@ -183,7 +183,7 @@ fn mixed_tree_roundtrip_preserves_baseline_metadata_and_xattrs() {
 }
 
 #[test]
-fn extraction_warns_when_ownership_restore_is_not_permitted() {
+fn extraction_refuses_when_ownership_restore_is_not_permitted() {
     if nix_like_euid_is_root() {
         return;
     }
@@ -217,13 +217,43 @@ fn extraction_warns_when_ownership_restore_is_not_permitted() {
         .output()
         .expect("run extract");
     assert!(
-        out.status.success(),
-        "extract failed\nstdout:\n{}\nstderr:\n{}",
+        !out.status.success(),
+        "extract unexpectedly succeeded\nstdout:\n{}\nstderr:\n{}",
         String::from_utf8_lossy(&out.stdout),
         String::from_utf8_lossy(&out.stderr)
     );
     let stderr = String::from_utf8_lossy(&out.stderr);
-    assert!(stderr.contains("WARNING[ownership-restore]"));
+    assert!(stderr.contains("metadata restoration failed"));
+    assert!(stderr.contains("ownership"));
+
+    let recover_out = td.path().join("recover");
+    let recover = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+        .args([
+            archive.to_str().unwrap(),
+            "-o",
+            recover_out.to_str().unwrap(),
+            "--recover",
+        ])
+        .output()
+        .expect("run recover extract");
+    assert!(
+        recover.status.success(),
+        "recover extract failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&recover.stdout),
+        String::from_utf8_lossy(&recover.stderr)
+    );
+    assert!(recover_out.join("metadata_degraded/file.txt").is_file());
+    let manifest: serde_json::Value = serde_json::from_slice(
+        &fs::read(recover_out.join("_crushr_recovery/manifest.json")).unwrap(),
+    )
+    .unwrap();
+    let entries = manifest["entries"].as_array().unwrap();
+    assert!(entries.iter().any(|entry| {
+        entry["recovery_kind"] == "metadata_degraded"
+            && entry["failed_metadata_classes"]
+                .as_array()
+                .is_some_and(|arr| arr.iter().any(|v| v == "ownership"))
+    }));
 }
 
 #[test]

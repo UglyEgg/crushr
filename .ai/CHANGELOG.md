@@ -5,6 +5,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-25 — CRUSHR_RECOVERY_MODEL_07
+- Added explicit `metadata_degraded` trust class in extraction/recovery model and CLI trust presentation, including recover Result rows (`canonical`, `metadata_degraded`, `recovered_named`, `anonymous`, `unrecoverable`).
+- Updated recover output layout to emit a dedicated `metadata_degraded/` tree and prevent metadata-degraded outputs from being merged into `canonical/`.
+- Updated strict extraction behavior to refuse when required metadata restoration fails, with explicit metadata-failure refusal messaging.
+- Extended recovery manifest schema + entry model with `trust_class`, `missing_metadata_classes`, `failed_metadata_classes`, and `degradation_reason`.
+- Added/updated deterministic coverage for metadata-degraded behavior and strict refusal in `metadata_preservation.rs` + recover contract updates.
+- Coverage note: metadata-degraded placement/classification is currently complete for regular-file canonical outputs; directory/symlink/special-entry metadata restoration remains warning-based and is explicitly tracked as a follow-up limitation.
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test recovery_extract_contract --test metadata_preservation`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 ## 2026-03-25 — CRUSHR_PRESERVATION_03
 - Advanced archive index encoding to IDX5 with explicit sparse/extents logical-offset metadata, FIFO/char-device/block-device entry kinds, and optional device major/minor fields while retaining IDX3/IDX4 decode compatibility.
 - Extended production pack collection to detect sparse files, FIFOs, and device nodes; capture ownership-name enrichment (`uname`/`gname`) when available; and preserve sparse payloads without hole expansion.

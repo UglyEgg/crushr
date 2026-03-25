@@ -988,6 +988,15 @@ fn emit_archive_from_layout(
     let mut payload_materialized_by_block =
         BTreeMap::<u32, (u64, u64, [u8; 32], [u8; 32], u64, Vec<u8>)>::new();
     for (ordinal, file) in layout.files.into_iter().enumerate() {
+        let current_meta = std::fs::metadata(&file.abs_path)
+            .with_context(|| format!("stat {}", file.abs_path.display()))?;
+        let current = capture_mode_mtime_uid_gid(&current_meta);
+        if current_meta.len() != file.raw_len || current.mtime != file.mtime {
+            bail!(
+                "input changed during pack planning: {}",
+                file.abs_path.display()
+            );
+        }
         let (raw_len, compressed_len, payload_hash, raw_hash, block_scan_offset, raw_for_manifest) =
             if file.write_payload {
                 let raw = if file.sparse_chunks.is_empty() {

@@ -105,6 +105,7 @@ If a path, file identity, or recovery outcome cannot be proven from surviving ar
 Recovery output distinguishes between:
 
 - `canonical`
+- `metadata_degraded`
 - `recovered_named`
 - `recovered_anonymous`
 - `unrecoverable`

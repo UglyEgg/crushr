@@ -26,6 +26,7 @@ pub enum VisualToken {
     WarningBanner,
     FailureBanner,
     TrustCanonical,
+    TrustMetadataDegraded,
     TrustRecoveredNamed,
     TrustRecoveredAnonymous,
     TrustUnrecoverable,
@@ -35,6 +36,7 @@ pub enum VisualToken {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TrustClass {
     Canonical,
+    MetadataDegraded,
     RecoveredNamed,
     RecoveredAnonymous,
     Unrecoverable,
@@ -44,6 +46,7 @@ impl TrustClass {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Canonical => "CANONICAL",
+            Self::MetadataDegraded => "METADATA_DEGRADED",
             Self::RecoveredNamed => "RECOVERED_NAMED",
             Self::RecoveredAnonymous => "RECOVERED_ANONYMOUS",
             Self::Unrecoverable => "UNRECOVERABLE",
@@ -53,6 +56,7 @@ impl TrustClass {
     fn token(self) -> VisualToken {
         match self {
             Self::Canonical => VisualToken::TrustCanonical,
+            Self::MetadataDegraded => VisualToken::TrustMetadataDegraded,
             Self::RecoveredNamed => VisualToken::TrustRecoveredNamed,
             Self::RecoveredAnonymous => VisualToken::TrustRecoveredAnonymous,
             Self::Unrecoverable => VisualToken::TrustUnrecoverable,
@@ -434,7 +438,9 @@ impl VisualToken {
             Self::ActiveRunning => Some("\x1b[36m"),
             Self::Pending => Some("\x1b[90m"),
             Self::CompleteSuccess | Self::TrustCanonical => Some("\x1b[32m"),
-            Self::WarningDegraded | Self::TrustRecoveredNamed => Some("\x1b[33m"),
+            Self::WarningDegraded | Self::TrustRecoveredNamed | Self::TrustMetadataDegraded => {
+                Some("\x1b[33m")
+            }
             Self::TrustRecoveredAnonymous => Some("\x1b[93m"),
             Self::FailureRefusal | Self::TrustUnrecoverable => Some("\x1b[31m"),
             Self::InformationalNote => Some("\x1b[94m"),
