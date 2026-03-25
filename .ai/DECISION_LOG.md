@@ -5,6 +5,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-25 — CRUSHR_RECOVERY_MODEL_07 metadata-degraded trust lock
+
+- Decision:
+  - Extend extract/recover trust classes with explicit `metadata_degraded`.
+  - Canonical now requires successful restoration of required preserved metadata classes (not only path/name/data proof).
+  - Strict extraction must refuse when any selected entry is metadata-degraded.
+  - Recover extraction must emit metadata-degraded outputs under `metadata_degraded/` and must not merge them into `canonical/`.
+  - Recovery manifest schema/entries now carry explicit metadata degradation fields: `trust_class`, `missing_metadata_classes`, `failed_metadata_classes`, and optional `degradation_reason`.
+- Alternatives considered:
+  1. Keep treating metadata-restore failures as canonical with warning-only output.
+  2. Collapse metadata-degraded outcomes into `recovered_named`.
+- Rationale:
+  - Packet requires trust-model honesty: metadata restoration failure is a distinct non-canonical outcome when content/path/name are still proven.
+  - Warning-only canonical classification was misleading once Linux tar-class metadata preservation became part of the archive contract.
+- Blast radius:
+  - `strict_extract_impl`, `recover_extract_impl`, recover manifest schema, CLI trust/summary rendering, and metadata/recovery contract tests were updated.
+  - Recover output layout now includes `metadata_degraded/`, and strict error messaging now references metadata restoration failure explicitly.
+
 ## 2026-03-25 — CRUSHR_PRESERVATION_04 ACL/SELinux/capability preservation lock
 
 - Decision:

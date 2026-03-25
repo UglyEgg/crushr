@@ -487,16 +487,17 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                                 },
                                 "recovery extraction completed",
                                 &[
+                                    ("canonical", group_u64(recovered_run.canonical_count as u64)),
                                     (
-                                        "canonical files",
-                                        group_u64(recovered_run.canonical_count as u64),
+                                        "metadata_degraded",
+                                        group_u64(recovered_run.metadata_degraded_count as u64),
                                     ),
                                     (
                                         "recovered_named",
                                         group_u64(recovered_run.recovered_named_count as u64),
                                     ),
                                     (
-                                        "recovered_anonymous",
+                                        "anonymous",
                                         group_u64(recovered_run.recovered_anonymous_count as u64),
                                     ),
                                     (
@@ -510,12 +511,14 @@ pub fn dispatch(args: Vec<String>) -> i32 {
                             presenter.kv("recovery extraction", recovery_status.as_str());
                             presenter.section("Trust classes");
                             presenter.trust_kv("canonical", TrustClass::Canonical);
+                            presenter.trust_kv("metadata_degraded", TrustClass::MetadataDegraded);
                             presenter.trust_kv("recovered_named", TrustClass::RecoveredNamed);
                             presenter
                                 .trust_kv("recovered_anonymous", TrustClass::RecoveredAnonymous);
                             presenter.trust_kv("unrecoverable", TrustClass::Unrecoverable);
                             let non_canonical_count = recovered_run.recovered_named_count
-                                + recovered_run.recovered_anonymous_count;
+                                + recovered_run.recovered_anonymous_count
+                                + recovered_run.metadata_degraded_count;
                             if non_canonical_count > 0 || recovered_run.unrecoverable_count > 0 {
                                 presenter.section("Warnings");
                                 presenter.banner(

@@ -56,6 +56,7 @@ pub struct RecoverExtractRun {
     pub report: crushr_core::extraction::ExtractionReport,
     pub manifest_path: PathBuf,
     pub canonical_count: usize,
+    pub metadata_degraded_count: usize,
     pub recovered_named_count: usize,
     pub recovered_anonymous_count: usize,
     pub unrecoverable_count: usize,
@@ -67,6 +68,7 @@ pub struct RecoverExtractRun {
 #[serde(rename_all = "snake_case")]
 enum RecoveryKind {
     Canonical,
+    MetadataDegraded,
     RecoveredNamed,
     RecoveredAnonymous,
     Unrecoverable,
@@ -81,12 +83,24 @@ enum IdentityStatus {
     Lost,
 }
 
-const TRUST_CLASS_CONTRACT: [RecoveryKind; 4] = [
+const TRUST_CLASS_CONTRACT: [RecoveryKind; 5] = [
     RecoveryKind::Canonical,
+    RecoveryKind::MetadataDegraded,
     RecoveryKind::RecoveredNamed,
     RecoveryKind::RecoveredAnonymous,
     RecoveryKind::Unrecoverable,
 ];
+
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+enum MetadataClass {
+    Ownership,
+    Acl,
+    Selinux,
+    Capability,
+    Xattr,
+    SpecialFile,
+}
 
 const IDENTITY_STATUS_CONTRACT: [IdentityStatus; 4] = [
     IdentityStatus::Verified,
@@ -109,6 +123,11 @@ struct RecoveryManifestEntry {
     size: u64,
     hash: Option<String>,
     recovery_kind: RecoveryKind,
+    trust_class: RecoveryKind,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    missing_metadata_classes: Option<Vec<MetadataClass>>,
+    failed_metadata_classes: Vec<MetadataClass>,
+    degradation_reason: Option<String>,
     classification: ContentClassification,
     original_identity: OriginalIdentity,
     recovery_reason: String,
@@ -142,12 +161,15 @@ where
     let corrupted = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
 
     let canonical_dir = opts.out_dir.join("canonical");
+    let metadata_degraded_dir = opts.out_dir.join("metadata_degraded");
     let recovered_named_dir = opts.out_dir.join("recovered_named");
     let recovery_root = opts.out_dir.join("_crushr_recovery");
     let anonymous_dir = recovery_root.join("anonymous");
 
     fs::create_dir_all(&canonical_dir)
         .with_context(|| format!("create {}", canonical_dir.display()))?;
+    fs::create_dir_all(&metadata_degraded_dir)
+        .with_context(|| format!("create {}", metadata_degraded_dir.display()))?;
     fs::create_dir_all(&recovered_named_dir)
         .with_context(|| format!("create {}", recovered_named_dir.display()))?;
     fs::create_dir_all(&anonymous_dir)
@@ -191,8 +213,13 @@ where
         .map(|entry| entry.path.as_str())
         .collect::<BTreeSet<_>>();
     let mut hardlink_roots = BTreeMap::<u64, PathBuf>::new();
+    let mut manifest_entries = Vec::new();
+    let mut recovered_named_count = 0usize;
+    let mut recovered_anonymous_count = 0usize;
 
     progress("canonical extraction");
+    let mut canonical_count = 0usize;
+    let mut metadata_degraded_count = 0usize;
     for entry in &selected_entries {
         let destination = resolve_confined_path(&canonical_dir, &entry.path)?;
         match entry.kind {
@@ -250,13 +277,53 @@ where
                         let bytes = read_entry_bytes_strict(&reader, entry, &blocks)?;
                         write_entry(destination.as_path(), &bytes, opts.overwrite)?;
                     }
-                    restore_regular_metadata(destination.as_path(), entry)?;
+                    let failed_metadata = restore_regular_metadata(destination.as_path(), entry)?;
+                    if failed_metadata.is_empty() {
+                        canonical_count += 1;
+                    } else {
+                        let degraded_destination =
+                            resolve_confined_path(&metadata_degraded_dir, &entry.path)?;
+                        if let Some(parent) = degraded_destination.parent() {
+                            fs::create_dir_all(parent)
+                                .with_context(|| format!("create {}", parent.display()))?;
+                        }
+                        fs::rename(&destination, &degraded_destination).with_context(|| {
+                            format!(
+                                "move {} -> {}",
+                                destination.display(),
+                                degraded_destination.display()
+                            )
+                        })?;
+                        metadata_degraded_count += 1;
+                        manifest_entries.push(RecoveryManifestEntry {
+                            recovery_id: format!("rec_{:06}", manifest_entries.len() + 1),
+                            assigned_name: Some(entry.path.clone()),
+                            size: entry.size,
+                            hash: None,
+                            recovery_kind: RecoveryKind::MetadataDegraded,
+                            trust_class: RecoveryKind::MetadataDegraded,
+                            missing_metadata_classes: None,
+                            failed_metadata_classes: failed_metadata.clone(),
+                            degradation_reason: Some(
+                                "required metadata restoration failed".to_string(),
+                            ),
+                            classification: classify_content(&read_entry_bytes_strict(
+                                &reader, entry, &blocks,
+                            )?),
+                            original_identity: OriginalIdentity {
+                                path_status: IdentityStatus::Verified,
+                                name_status: IdentityStatus::Verified,
+                            },
+                            recovery_reason: "metadata restoration failed".to_string(),
+                        });
+                    }
                 }
             }
             EntryKind::Directory => {
                 fs::create_dir_all(&destination)
                     .with_context(|| format!("create {}", destination.display()))?;
                 restore_directory_metadata(destination.as_path(), entry)?;
+                canonical_count += 1;
             }
             EntryKind::Symlink => {
                 let target = entry.link_target.clone().unwrap_or_default();
@@ -268,8 +335,9 @@ where
                 #[cfg(unix)]
                 std::os::unix::fs::symlink(&target, &destination)
                     .with_context(|| format!("symlink {} -> {}", destination.display(), target))?;
-                restore_ownership(destination.as_path(), entry)?;
-                restore_security_metadata(destination.as_path(), entry);
+                let _ = restore_ownership(destination.as_path(), entry)?;
+                let _ = restore_security_metadata(destination.as_path(), entry);
+                canonical_count += 1;
             }
             EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice => {
                 if let Some(parent) = destination.parent() {
@@ -289,15 +357,12 @@ where
                     }
                 }
                 restore_special(destination.as_path(), entry)?;
-                restore_ownership(destination.as_path(), entry)?;
-                restore_security_metadata(destination.as_path(), entry);
+                let _ = restore_ownership(destination.as_path(), entry)?;
+                let _ = restore_security_metadata(destination.as_path(), entry);
+                canonical_count += 1;
             }
         }
     }
-
-    let mut manifest_entries = Vec::new();
-    let mut recovered_named_count = 0usize;
-    let mut recovered_anonymous_count = 0usize;
 
     let refused_paths = refused_files
         .iter()
@@ -318,6 +383,10 @@ where
                 size: 0,
                 hash: None,
                 recovery_kind: RecoveryKind::Unrecoverable,
+                trust_class: RecoveryKind::Unrecoverable,
+                missing_metadata_classes: None,
+                failed_metadata_classes: Vec::new(),
+                degradation_reason: None,
                 classification: ContentClassification {
                     kind: "bin".to_string(),
                     confidence: RecoveryConfidence::Low,
@@ -343,6 +412,10 @@ where
                 size: recovered.len() as u64,
                 hash: Some(format!("blake3:{}", blake3::hash(&recovered).to_hex())),
                 recovery_kind: RecoveryKind::RecoveredNamed,
+                trust_class: RecoveryKind::RecoveredNamed,
+                missing_metadata_classes: None,
+                failed_metadata_classes: Vec::new(),
+                degradation_reason: None,
                 classification: classify_content(&recovered),
                 original_identity: OriginalIdentity {
                     path_status: IdentityStatus::Untrusted,
@@ -364,6 +437,10 @@ where
                 size: recovered.len() as u64,
                 hash: Some(format!("blake3:{}", blake3::hash(&recovered).to_hex())),
                 recovery_kind: RecoveryKind::RecoveredAnonymous,
+                trust_class: RecoveryKind::RecoveredAnonymous,
+                missing_metadata_classes: None,
+                failed_metadata_classes: Vec::new(),
+                degradation_reason: None,
                 classification: naming.classification,
                 original_identity: OriginalIdentity {
                     path_status: IdentityStatus::Lost,
@@ -395,9 +472,10 @@ where
     .with_context(|| format!("write {}", manifest_path.display()))?;
     progress("manifest/report finalization");
 
-    let canonical_count = safe_files.len();
-    let canonical_trust = if refused_files.is_empty() {
+    let canonical_trust = if refused_files.is_empty() && metadata_degraded_count == 0 {
         "COMPLETE"
+    } else if canonical_count == 0 {
+        "FAILED"
     } else {
         "PARTIAL"
     };
@@ -408,6 +486,7 @@ where
         report,
         manifest_path,
         canonical_count,
+        metadata_degraded_count,
         recovered_named_count,
         recovered_anonymous_count,
         unrecoverable_count,
@@ -634,7 +713,7 @@ fn restore_special(path: &Path, entry: &Entry) -> Result<()> {
             );
         } else {
             restore_mtime(path, entry.mtime)?;
-            restore_xattrs(path, entry)?;
+            let _ = restore_xattrs(path, entry)?;
         }
     }
     #[cfg(not(unix))]
@@ -648,17 +727,37 @@ fn restore_special(path: &Path, entry: &Entry) -> Result<()> {
     Ok(())
 }
 
-fn restore_regular_metadata(path: &Path, entry: &Entry) -> Result<()> {
+fn restore_regular_metadata(path: &Path, entry: &Entry) -> Result<Vec<MetadataClass>> {
+    let mut failed = Vec::new();
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).ok();
+        if fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).is_err() {
+            failed.push(MetadataClass::SpecialFile);
+        }
     }
-    restore_mtime(path, entry.mtime)?;
-    restore_xattrs(path, entry)?;
-    restore_ownership(path, entry)?;
-    restore_security_metadata(path, entry);
-    Ok(())
+    if restore_mtime(path, entry.mtime).is_err() {
+        failed.push(MetadataClass::SpecialFile);
+    }
+    if restore_xattrs(path, entry)? {
+        failed.push(MetadataClass::Xattr);
+    }
+    if restore_ownership(path, entry)? {
+        failed.push(MetadataClass::Ownership);
+    }
+    let security_failures = restore_security_metadata(path, entry);
+    if security_failures.contains(&MetadataClass::Acl) {
+        failed.push(MetadataClass::Acl);
+    }
+    if security_failures.contains(&MetadataClass::Selinux) {
+        failed.push(MetadataClass::Selinux);
+    }
+    if security_failures.contains(&MetadataClass::Capability) {
+        failed.push(MetadataClass::Capability);
+    }
+    failed.sort();
+    failed.dedup();
+    Ok(failed)
 }
 
 fn restore_directory_metadata(path: &Path, entry: &Entry) -> Result<()> {
@@ -668,9 +767,9 @@ fn restore_directory_metadata(path: &Path, entry: &Entry) -> Result<()> {
         fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).ok();
     }
     restore_mtime(path, entry.mtime)?;
-    restore_xattrs(path, entry)?;
-    restore_ownership(path, entry)?;
-    restore_security_metadata(path, entry);
+    let _ = restore_xattrs(path, entry)?;
+    let _ = restore_ownership(path, entry)?;
+    let _ = restore_security_metadata(path, entry);
     Ok(())
 }
 
@@ -723,11 +822,13 @@ fn restore_mtime(path: &Path, mtime_secs: i64) -> Result<()> {
     Ok(())
 }
 
-fn restore_xattrs(path: &Path, entry: &Entry) -> Result<()> {
+fn restore_xattrs(path: &Path, entry: &Entry) -> Result<bool> {
+    let mut failed = false;
     #[cfg(unix)]
     {
         for xa in &entry.xattrs {
             if let Err(err) = xattr::set(path, &xa.name, &xa.value) {
+                failed = true;
                 eprintln!(
                     "WARNING[xattr-restore]: could not restore '{}' on '{}': {err}",
                     xa.name,
@@ -739,6 +840,7 @@ fn restore_xattrs(path: &Path, entry: &Entry) -> Result<()> {
     #[cfg(not(unix))]
     {
         if !entry.xattrs.is_empty() {
+            failed = true;
             eprintln!(
                 "WARNING[xattr-restore]: skipped {} xattrs on '{}' (unsupported platform)",
                 entry.xattrs.len(),
@@ -746,62 +848,75 @@ fn restore_xattrs(path: &Path, entry: &Entry) -> Result<()> {
             );
         }
     }
-    Ok(())
+    Ok(failed)
 }
 
-fn restore_security_metadata(path: &Path, entry: &Entry) {
+fn restore_security_metadata(path: &Path, entry: &Entry) -> Vec<MetadataClass> {
+    let mut failed = Vec::new();
     #[cfg(unix)]
     {
-        restore_single_xattr(
+        if restore_single_xattr(
             path,
             "acl-restore",
             "system.posix_acl_access",
             entry.acl_access.as_deref(),
-        );
-        restore_single_xattr(
+        ) {
+            failed.push(MetadataClass::Acl);
+        }
+        if restore_single_xattr(
             path,
             "acl-restore",
             "system.posix_acl_default",
             entry.acl_default.as_deref(),
-        );
-        restore_single_xattr(
+        ) {
+            failed.push(MetadataClass::Acl);
+        }
+        if restore_single_xattr(
             path,
             "selinux-restore",
             "security.selinux",
             entry.selinux_label.as_deref(),
-        );
-        restore_single_xattr(
+        ) {
+            failed.push(MetadataClass::Selinux);
+        }
+        if restore_single_xattr(
             path,
             "capability-restore",
             "security.capability",
             entry.linux_capability.as_deref(),
-        );
+        ) {
+            failed.push(MetadataClass::Capability);
+        }
     }
     #[cfg(not(unix))]
     {
         if entry.acl_access.is_some() || entry.acl_default.is_some() {
+            failed.push(MetadataClass::Acl);
             eprintln!(
                 "WARNING[acl-restore]: skipped ACL metadata on '{}' (unsupported platform)",
                 path.display()
             );
         }
         if entry.selinux_label.is_some() {
+            failed.push(MetadataClass::Selinux);
             eprintln!(
                 "WARNING[selinux-restore]: skipped SELinux label on '{}' (unsupported platform)",
                 path.display()
             );
         }
         if entry.linux_capability.is_some() {
+            failed.push(MetadataClass::Capability);
             eprintln!(
                 "WARNING[capability-restore]: skipped Linux capabilities on '{}' (unsupported platform)",
                 path.display()
             );
         }
     }
+    failed
 }
 
 #[cfg(unix)]
-fn restore_single_xattr(path: &Path, warning_code: &str, name: &str, value: Option<&[u8]>) {
+fn restore_single_xattr(path: &Path, warning_code: &str, name: &str, value: Option<&[u8]>) -> bool {
     if let Some(value) = value
         && let Err(err) = xattr::set(path, name, value)
     {
@@ -809,10 +924,12 @@ fn restore_single_xattr(path: &Path, warning_code: &str, name: &str, value: Opti
             "WARNING[{warning_code}]: could not restore '{name}' on '{}': {err}",
             path.display()
         );
+        return true;
     }
+    false
 }
 
-fn restore_ownership(path: &Path, entry: &Entry) -> Result<()> {
+fn restore_ownership(path: &Path, entry: &Entry) -> Result<bool> {
     #[cfg(unix)]
     {
         use std::ffi::CString;
@@ -840,13 +957,14 @@ fn restore_ownership(path: &Path, entry: &Entry) -> Result<()> {
                 path.display(),
                 std::io::Error::last_os_error()
             );
+            return Ok(true);
         }
     }
     #[cfg(not(unix))]
     {
         let _ = (path, entry);
     }
-    Ok(())
+    Ok(false)
 }
 
 fn read_exact_at<R: ReadAt>(reader: &R, mut offset: u64, mut dst: &mut [u8]) -> Result<()> {

@@ -130,7 +130,10 @@ fn pack_single_file_produces_readable_v1_archive() {
     };
     let opened = open_archive_v1(&reader).unwrap();
     assert!(
-        opened.tail.idx3_bytes.starts_with(b"IDX3") || opened.tail.idx3_bytes.starts_with(b"IDX4")
+        opened.tail.idx3_bytes.starts_with(b"IDX3")
+            || opened.tail.idx3_bytes.starts_with(b"IDX4")
+            || opened.tail.idx3_bytes.starts_with(b"IDX5")
+            || opened.tail.idx3_bytes.starts_with(b"IDX6")
     );
 
     let info = run_bin("crushr-info", &[archive.to_str().unwrap(), "--json"]);

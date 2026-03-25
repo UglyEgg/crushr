@@ -33,6 +33,9 @@
         "size",
         "hash",
         "recovery_kind",
+        "trust_class",
+        "failed_metadata_classes",
+        "degradation_reason",
         "classification",
         "original_identity",
         "recovery_reason"
@@ -131,9 +134,54 @@
           "type": "string",
           "enum": [
             "canonical",
+            "metadata_degraded",
             "recovered_named",
             "recovered_anonymous",
             "unrecoverable"
+          ]
+        },
+        "trust_class": {
+          "type": "string",
+          "enum": [
+            "canonical",
+            "metadata_degraded",
+            "recovered_named",
+            "recovered_anonymous",
+            "unrecoverable"
+          ]
+        },
+        "missing_metadata_classes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ownership",
+              "acl",
+              "selinux",
+              "capability",
+              "xattr",
+              "special_file"
+            ]
+          }
+        },
+        "failed_metadata_classes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ownership",
+              "acl",
+              "selinux",
+              "capability",
+              "xattr",
+              "special_file"
+            ]
+          }
+        },
+        "degradation_reason": {
+          "type": [
+            "string",
+            "null"
           ]
         }
       },

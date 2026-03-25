@@ -43,6 +43,16 @@ pub struct StrictExtractOptions {
     pub verify_only: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum MetadataClass {
+    Ownership,
+    Acl,
+    Selinux,
+    Capability,
+    Xattr,
+    SpecialFile,
+}
+
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct StrictExtractRun {
@@ -103,6 +113,7 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
         .map(|entry| entry.path.as_str())
         .collect::<BTreeSet<_>>();
     let mut hardlink_roots = BTreeMap::<u64, PathBuf>::new();
+    let mut metadata_failures: Vec<(String, Vec<MetadataClass>)> = Vec::new();
 
     for entry in entries {
         if entry.kind == EntryKind::Regular && !safe_paths.contains(entry.path.as_str()) {
@@ -120,8 +131,29 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
                 &blocks,
                 opts.overwrite,
                 &mut hardlink_roots,
-            )?;
+            )
+            .map(|failed| {
+                if !failed.is_empty() {
+                    metadata_failures.push((entry.path.clone(), failed));
+                }
+            })?;
         }
+    }
+
+    if !metadata_failures.is_empty() {
+        metadata_failures.sort_by(|a, b| a.0.cmp(&b.0));
+        let (path, classes) = &metadata_failures[0];
+        let class_list = classes
+            .iter()
+            .map(|class| format!("{class:?}").to_lowercase())
+            .collect::<Vec<_>>()
+            .join(", ");
+        bail!(
+            "strict extraction refused: metadata restoration failed for {} entries (first: '{}' failed [{}])",
+            metadata_failures.len(),
+            path,
+            class_list
+        );
     }
 
     let (outcome_kind, report) = build_extraction_report(safe_files, refused_files);
@@ -260,7 +292,7 @@ fn write_entry(
     blocks: &[crushr_core::verify::BlockSpanV1],
     overwrite: bool,
     hardlink_roots: &mut BTreeMap<u64, PathBuf>,
-) -> Result<()> {
+) -> Result<Vec<MetadataClass>> {
     match entry.kind {
         EntryKind::Directory => {
             fs::create_dir_all(path).with_context(|| format!("create {}", path.display()))?;
@@ -270,10 +302,10 @@ fn write_entry(
                 fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).ok();
             }
             restore_mtime(path, entry.mtime)?;
-            restore_xattrs(path, entry)?;
-            restore_ownership(path, entry)?;
-            restore_security_metadata(path, entry);
-            Ok(())
+            let _ = restore_xattrs(path, entry)?;
+            let _ = restore_ownership(path, entry)?;
+            let _ = restore_security_metadata(path, entry);
+            Ok(Vec::new())
         }
         EntryKind::Symlink => {
             if path.exists() {
@@ -296,9 +328,15 @@ fn write_entry(
                 .with_context(|| format!("symlink {} -> {}", path.display(), target))?;
             #[cfg(not(unix))]
             bail!("symlink extraction is unsupported on this platform");
-            restore_ownership(path, entry)?;
-            restore_security_metadata(path, entry);
-            Ok(())
+            let failed = {
+                let mut failed = Vec::new();
+                if restore_ownership(path, entry)? {
+                    failed.push(MetadataClass::Ownership);
+                }
+                failed.extend(restore_security_metadata(path, entry));
+                failed
+            };
+            Ok(failed)
         }
         EntryKind::Regular => {
             if let Some(parent) = path.parent() {
@@ -346,11 +384,20 @@ fn write_entry(
                 use std::os::unix::fs::PermissionsExt;
                 fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).ok();
             }
-            restore_mtime(path, entry.mtime)?;
-            restore_xattrs(path, entry)?;
-            restore_ownership(path, entry)?;
-            restore_security_metadata(path, entry);
-            Ok(())
+            let mut failed = Vec::new();
+            if restore_xattrs(path, entry)? {
+                failed.push(MetadataClass::Xattr);
+            }
+            if restore_ownership(path, entry)? {
+                failed.push(MetadataClass::Ownership);
+            }
+            failed.extend(restore_security_metadata(path, entry));
+            if restore_mtime(path, entry.mtime).is_err() {
+                failed.push(MetadataClass::SpecialFile);
+            }
+            failed.sort();
+            failed.dedup();
+            Ok(failed)
         }
         EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice => {
             if let Some(parent) = path.parent() {
@@ -366,10 +413,17 @@ fn write_entry(
                     bail!("destination exists (use --overwrite): {}", path.display());
                 }
             }
-            restore_special(path, entry)?;
-            restore_ownership(path, entry)?;
-            restore_security_metadata(path, entry);
-            Ok(())
+            let mut failed = Vec::new();
+            if restore_special(path, entry)? {
+                failed.push(MetadataClass::SpecialFile);
+            }
+            if restore_ownership(path, entry)? {
+                failed.push(MetadataClass::Ownership);
+            }
+            failed.extend(restore_security_metadata(path, entry));
+            failed.sort();
+            failed.dedup();
+            Ok(failed)
         }
     }
 }
@@ -406,7 +460,7 @@ fn write_sparse_entry(
     Ok(())
 }
 
-fn restore_special(path: &Path, entry: &Entry) -> Result<()> {
+fn restore_special(path: &Path, entry: &Entry) -> Result<bool> {
     #[cfg(unix)]
     {
         use std::ffi::CString;
@@ -447,9 +501,10 @@ fn restore_special(path: &Path, entry: &Entry) -> Result<()> {
                 path.display(),
                 std::io::Error::last_os_error()
             );
+            return Ok(true);
         } else {
             restore_mtime(path, entry.mtime)?;
-            restore_xattrs(path, entry)?;
+            let _ = restore_xattrs(path, entry)?;
         }
     }
     #[cfg(not(unix))]
@@ -459,11 +514,12 @@ fn restore_special(path: &Path, entry: &Entry) -> Result<()> {
             entry.path,
             path.display()
         );
+        return Ok(true);
     }
-    Ok(())
+    Ok(false)
 }
 
-fn restore_ownership(path: &Path, entry: &Entry) -> Result<()> {
+fn restore_ownership(path: &Path, entry: &Entry) -> Result<bool> {
     #[cfg(unix)]
     {
         use std::ffi::CString;
@@ -491,13 +547,14 @@ fn restore_ownership(path: &Path, entry: &Entry) -> Result<()> {
                 path.display(),
                 std::io::Error::last_os_error()
             );
+            return Ok(true);
         }
     }
     #[cfg(not(unix))]
     {
         let _ = (path, entry);
     }
-    Ok(())
+    Ok(false)
 }
 
 fn restore_mtime(path: &Path, mtime_secs: i64) -> Result<()> {
@@ -553,11 +610,13 @@ fn restore_mtime(path: &Path, mtime_secs: i64) -> Result<()> {
     Ok(())
 }
 
-fn restore_xattrs(path: &Path, entry: &Entry) -> Result<()> {
+fn restore_xattrs(path: &Path, entry: &Entry) -> Result<bool> {
+    let mut failed = false;
     #[cfg(unix)]
     {
         for xa in &entry.xattrs {
             if let Err(err) = xattr::set(path, &xa.name, &xa.value) {
+                failed = true;
                 eprintln!(
                     "WARNING[xattr-restore]: could not restore '{}' on '{}': {err}",
                     xa.name,
@@ -569,6 +628,7 @@ fn restore_xattrs(path: &Path, entry: &Entry) -> Result<()> {
     #[cfg(not(unix))]
     {
         if !entry.xattrs.is_empty() {
+            failed = true;
             eprintln!(
                 "WARNING[xattr-restore]: skipped {} xattrs on '{}' (unsupported platform)",
                 entry.xattrs.len(),
@@ -576,62 +636,75 @@ fn restore_xattrs(path: &Path, entry: &Entry) -> Result<()> {
             );
         }
     }
-    Ok(())
+    Ok(failed)
 }
 
-fn restore_security_metadata(path: &Path, entry: &Entry) {
+fn restore_security_metadata(path: &Path, entry: &Entry) -> Vec<MetadataClass> {
+    let mut failed = Vec::new();
     #[cfg(unix)]
     {
-        restore_single_xattr(
+        if restore_single_xattr(
             path,
             "acl-restore",
             "system.posix_acl_access",
             entry.acl_access.as_deref(),
-        );
-        restore_single_xattr(
+        ) {
+            failed.push(MetadataClass::Acl);
+        }
+        if restore_single_xattr(
             path,
             "acl-restore",
             "system.posix_acl_default",
             entry.acl_default.as_deref(),
-        );
-        restore_single_xattr(
+        ) {
+            failed.push(MetadataClass::Acl);
+        }
+        if restore_single_xattr(
             path,
             "selinux-restore",
             "security.selinux",
             entry.selinux_label.as_deref(),
-        );
-        restore_single_xattr(
+        ) {
+            failed.push(MetadataClass::Selinux);
+        }
+        if restore_single_xattr(
             path,
             "capability-restore",
             "security.capability",
             entry.linux_capability.as_deref(),
-        );
+        ) {
+            failed.push(MetadataClass::Capability);
+        }
     }
     #[cfg(not(unix))]
     {
         if entry.acl_access.is_some() || entry.acl_default.is_some() {
+            failed.push(MetadataClass::Acl);
             eprintln!(
                 "WARNING[acl-restore]: skipped ACL metadata on '{}' (unsupported platform)",
                 path.display()
             );
         }
         if entry.selinux_label.is_some() {
+            failed.push(MetadataClass::Selinux);
             eprintln!(
                 "WARNING[selinux-restore]: skipped SELinux label on '{}' (unsupported platform)",
                 path.display()
             );
         }
         if entry.linux_capability.is_some() {
+            failed.push(MetadataClass::Capability);
             eprintln!(
                 "WARNING[capability-restore]: skipped Linux capabilities on '{}' (unsupported platform)",
                 path.display()
             );
         }
     }
+    failed
 }
 
 #[cfg(unix)]
-fn restore_single_xattr(path: &Path, warning_code: &str, name: &str, value: Option<&[u8]>) {
+fn restore_single_xattr(path: &Path, warning_code: &str, name: &str, value: Option<&[u8]>) -> bool {
     if let Some(value) = value
         && let Err(err) = xattr::set(path, name, value)
     {
@@ -639,7 +712,9 @@ fn restore_single_xattr(path: &Path, warning_code: &str, name: &str, value: Opti
             "WARNING[{warning_code}]: could not restore '{name}' on '{}': {err}",
             path.display()
         );
+        return true;
     }
+    false
 }
 
 fn read_exact_at<R: ReadAt>(reader: &R, mut offset: u64, mut dst: &mut [u8]) -> Result<()> {

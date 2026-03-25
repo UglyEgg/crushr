@@ -1,3 +1,12 @@
+CRUSHR_RECOVERY_MODEL_07 complete (2026-03-25):
+- Recovery/extraction trust classes now include explicit `metadata_degraded`; canonical now requires successful required-metadata restoration (not only path/name/data proof).
+- Recover output layout now includes `metadata_degraded/` and no longer permits silent metadata-degraded merge into `canonical/`.
+- Strict extraction now refuses when metadata restoration fails and surfaces explicit metadata-failure cause text.
+- Recovery manifest entries now include explicit degradation fields (`trust_class`, `missing_metadata_classes`, `failed_metadata_classes`, `degradation_reason`) and schema is updated accordingly.
+- Recover summary/trust-class rows now include `metadata_degraded` and use `anonymous` result-count label.
+- Coverage limitation: metadata-degraded placement/classification is currently complete for regular-file canonical outputs; directories, symlinks, and special entries still follow warning-based metadata restore behavior and are not yet fully classified/relocated as metadata-degraded.
+- Validation in packet: `cargo fmt --all`; `cargo test -p crushr --test recovery_extract_contract --test metadata_preservation`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 CRUSHR_PRESERVATION_04 complete (2026-03-25):
 - Production index format is now IDX6 (IDX3/IDX4/IDX5 decode compatibility retained) with explicit fields for POSIX ACL metadata, SELinux label metadata, and Linux capability metadata.
 - Pack now captures ACL/SELinux/capability values as structured security metadata and keeps generic xattrs separate to avoid silent class omission.

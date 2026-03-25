@@ -7,7 +7,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_PRESERVATION_04 complete** (POSIX ACL + SELinux label + Linux capability preservation envelope)
+Current Step: **CRUSHR_RECOVERY_MODEL_07 complete** (metadata-degraded trust class and strict metadata-failure refusal semantics)
+
+Latest maintenance fix (2026-03-25):
+- **CRUSHR_RECOVERY_MODEL_07 complete**: extraction/recovery trust model now includes `metadata_degraded`, and recover output layout now creates `metadata_degraded/` separately from `canonical/` (no silent merge).
+- **CRUSHR_RECOVERY_MODEL_07 complete**: strict extract now refuses when required metadata restoration fails and surfaces explicit metadata-failure cause messaging instead of treating those outcomes as canonical success.
+- **CRUSHR_RECOVERY_MODEL_07 complete**: recovery manifest contract now includes `trust_class`, `missing_metadata_classes`, `failed_metadata_classes`, and `degradation_reason`, with `metadata_degraded` explicitly represented in schema + manifest output.
+- **CRUSHR_RECOVERY_MODEL_07 complete**: recover CLI summary/trust-class presentation now includes `metadata_degraded`, and result rows align to `canonical / metadata_degraded / recovered_named / anonymous / unrecoverable`.
+- **CRUSHR_RECOVERY_MODEL_07 known coverage limit**: metadata-degraded routing/classification is currently complete for regular-file canonical outputs; directories, symlinks, and special entries still use warning-based metadata restore behavior and are not yet fully routed through metadata-degraded placement/classification.
+- **CRUSHR_RECOVERY_MODEL_07 validation**: `cargo fmt --all`, `cargo test -p crushr --test recovery_extract_contract --test metadata_preservation`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
 
 Latest maintenance fix (2026-03-25):
 - **CRUSHR_PRESERVATION_04 complete**: production index encoding advanced to IDX6 with explicit fields for POSIX ACL access/default metadata, SELinux label metadata, and Linux capability metadata.
