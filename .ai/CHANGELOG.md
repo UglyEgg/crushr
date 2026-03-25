@@ -5,6 +5,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-25 — CRUSHR_PRESERVATION_05 (v0.4.10)
+- Added explicit production preservation profiles via `crushr-pack --preservation <full|basic|payload-only>` with default `full`; no `--strip` alias.
+- Added warn-and-omit semantics for profile-excluded entry kinds (e.g., FIFO/device under `basic`/`payload-only`, symlink under `payload-only`) with no silent flattening/fabrication fallback.
+- Advanced on-disk index encoding to IDX7 and recorded preservation profile as structured archive metadata; legacy IDX3/IDX4/IDX5/IDX6 decode defaults to `full` compatibility profile.
+- Made strict/recover metadata-degraded classification profile-aware for regular canonical outputs so intentionally omitted classes do not trigger metadata restoration failure.
+- Added `crushr info` preservation-profile visibility and IDX7 format marker support; refreshed CLI golden fixtures and index-compat checks.
+- Expanded deterministic metadata-preservation tests for profile default/recording/reporting, warn-and-omit behavior, payload-only semantics, and legacy profile compatibility behavior.
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract --test index_codec --test metadata_preservation`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 ## 2026-03-25 — CRUSHR_RECOVERY_MODEL_07
 - Added explicit `metadata_degraded` trust class in extraction/recovery model and CLI trust presentation, including recover Result rows (`canonical`, `metadata_degraded`, `recovered_named`, `anonymous`, `unrecoverable`).
 - Updated recover output layout to emit a dedicated `metadata_degraded/` tree and prevent metadata-degraded outputs from being merged into `canonical/`.

@@ -3,6 +3,7 @@
 
 #![cfg(unix)]
 
+use crushr::format::PreservationProfile;
 use crushr::index_codec::{decode_index, encode_index};
 use crushr_core::{
     io::{Len, ReadAt},
@@ -440,4 +441,137 @@ fn ownership_name_enrichment_is_captured_without_placeholders() {
     if let Some(gname) = &entry.gname {
         assert!(!gname.trim().is_empty());
     }
+}
+
+#[test]
+fn preservation_profile_defaults_to_full_and_info_reports_it() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    fs::write(input.join("file.txt"), b"payload").unwrap();
+    let archive = td.path().join("default.crs");
+
+    run(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+            input.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+        ]),
+    );
+
+    let reader = FileReader {
+        file: fs::File::open(&archive).unwrap(),
+    };
+    let open = open_archive_v1(&reader).unwrap();
+    let index = decode_index(&open.tail.idx3_bytes).unwrap();
+    assert_eq!(index.preservation_profile, PreservationProfile::Full);
+
+    let info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+        .arg(&archive)
+        .output()
+        .expect("run info");
+    assert!(info.status.success());
+    let info_out = String::from_utf8_lossy(&info.stdout);
+    assert!(info_out.contains("Preservation"));
+    assert!(info_out.contains("profile"));
+    assert!(info_out.contains("full"));
+}
+
+#[test]
+fn basic_profile_omits_special_entries_and_metadata() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    let file_path = input.join("file.txt");
+    fs::write(&file_path, b"payload").unwrap();
+    fs::hard_link(&file_path, input.join("file.hard")).unwrap();
+    run(Command::new("mkfifo").arg(input.join("named.pipe")));
+    let _ = xattr::set(&file_path, "user.crushr.basic", b"drop-me");
+    let archive = td.path().join("basic.crs");
+
+    let pack = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+        .args([
+            input.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--preservation",
+            "basic",
+        ])
+        .output()
+        .expect("run pack");
+    assert!(pack.status.success());
+    let stderr = String::from_utf8_lossy(&pack.stderr);
+    assert!(stderr.contains("WARNING[preservation-omit]"));
+    assert!(stderr.contains("named.pipe"));
+
+    let reader = FileReader {
+        file: fs::File::open(&archive).unwrap(),
+    };
+    let open = open_archive_v1(&reader).unwrap();
+    let index = decode_index(&open.tail.idx3_bytes).unwrap();
+    assert_eq!(index.preservation_profile, PreservationProfile::Basic);
+    assert!(index.entries.iter().all(|entry| {
+        !matches!(
+            entry.kind,
+            crushr::format::EntryKind::Fifo
+                | crushr::format::EntryKind::CharDevice
+                | crushr::format::EntryKind::BlockDevice
+        )
+    }));
+    assert!(
+        index
+            .entries
+            .iter()
+            .filter(|entry| entry.kind == crushr::format::EntryKind::Regular)
+            .all(|entry| entry.xattrs.is_empty() && entry.uid == 0 && entry.gid == 0)
+    );
+}
+
+#[test]
+fn payload_only_drops_link_semantics_and_legacy_idx6_defaults_full() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    let file_path = input.join("file.txt");
+    fs::write(&file_path, b"payload").unwrap();
+    fs::hard_link(&file_path, input.join("file.hard")).unwrap();
+    symlink("file.txt", input.join("file.link")).unwrap();
+    let archive = td.path().join("payload.crs");
+
+    run(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+            input.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--preservation",
+            "payload-only",
+        ]),
+    );
+
+    let reader = FileReader {
+        file: fs::File::open(&archive).unwrap(),
+    };
+    let open = open_archive_v1(&reader).unwrap();
+    let index = decode_index(&open.tail.idx3_bytes).unwrap();
+    assert_eq!(index.preservation_profile, PreservationProfile::PayloadOnly);
+    assert!(
+        index
+            .entries
+            .iter()
+            .all(|entry| entry.kind != crushr::format::EntryKind::Symlink)
+    );
+    assert!(
+        index
+            .entries
+            .iter()
+            .filter(|entry| entry.kind == crushr::format::EntryKind::Regular)
+            .all(|entry| entry.hardlink_group_id.is_none() && !entry.sparse)
+    );
+
+    let mut idx6_legacy = open.tail.idx3_bytes.clone();
+    assert!(idx6_legacy.starts_with(b"IDX7"));
+    idx6_legacy[0..4].copy_from_slice(b"IDX6");
+    idx6_legacy.remove(4);
+    let legacy_index = decode_index(&idx6_legacy).unwrap();
+    assert_eq!(legacy_index.preservation_profile, PreservationProfile::Full);
 }

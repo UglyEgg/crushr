@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::cli_presentation::{CliPresenter, StatusWord, group_u64};
-use crate::format::{Entry, EntryKind, Extent, Index, Xattr};
+use crate::format::{Entry, EntryKind, Extent, Index, PreservationProfile, Xattr};
 use crate::index_codec::encode_index;
 use anyhow::{Context, Result, bail};
 use crushr_format::blk3::{Blk3Flags, Blk3Header, write_blk3_header};
@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 const ZSTD_CODEC: u32 = 1;
-const PRODUCTION_USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
+const PRODUCTION_USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--preservation <full|basic|payload-only>] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --preservation <name>                      preservation profile: full | basic | payload-only (default: full)\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
 
 const LAB_EXPERIMENTAL_USAGE: &str = "usage: crushr lab pack-experimental <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only|extent_identity_inline_path|extent_identity_distributed_names|extent_identity_path_dict_single|extent_identity_path_dict_header_tail|extent_identity_path_dict_quasi_uniform|extent_identity_path_dict_factored_header_tail>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only | extent_identity_inline_path | extent_identity_distributed_names | extent_identity_path_dict_single | extent_identity_path_dict_header_tail | extent_identity_path_dict_quasi_uniform | extent_identity_path_dict_factored_header_tail\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
 
@@ -29,6 +29,7 @@ enum PlacementStrategy {
 
 #[derive(Clone, Copy, Debug)]
 struct PackExperimentalOptions {
+    preservation_profile: PreservationProfile,
     self_describing_extents: bool,
     file_identity_extents: bool,
     self_identifying_blocks: bool,
@@ -78,7 +79,7 @@ fn print_help(surface: PackCliSurface) {
     match surface {
         PackCliSurface::Production => presenter.kv(
             "command",
-            "usage: crushr-pack <input>... -o <archive> [--level <n>] [--silent]",
+            "usage: crushr-pack <input>... -o <archive> [--level <n>] [--preservation <full|basic|payload-only>] [--silent]",
         ),
         PackCliSurface::LabExperimental => presenter.kv(
             "command",
@@ -88,6 +89,12 @@ fn print_help(surface: PackCliSurface) {
     presenter.section("Flags");
     presenter.kv("-o, --output <archive>", "output archive path");
     presenter.kv("--level <n>", "zstd compression level (default: 3)");
+    if matches!(surface, PackCliSurface::Production) {
+        presenter.kv(
+            "--preservation <name>",
+            "preservation profile: full | basic | payload-only (default: full)",
+        );
+    }
     if matches!(surface, PackCliSurface::LabExperimental) {
         presenter.kv(
             "--experimental-self-describing-extents",
@@ -592,6 +599,7 @@ fn run(raw_args: Vec<String>, surface: PackCliSurface) -> Result<()> {
     let mut inputs = Vec::new();
     let mut output = None;
     let mut level: i32 = 3;
+    let mut preservation_profile = PreservationProfile::Full;
     let mut experimental_self_describing_extents = false;
     let mut experimental_file_identity_extents = false;
     let mut experimental_self_identifying_blocks = false;
@@ -614,6 +622,13 @@ fn run(raw_args: Vec<String>, surface: PackCliSurface) -> Result<()> {
             level = value
                 .parse::<i32>()
                 .with_context(|| format!("invalid --level value: {value}"))?;
+        } else if arg == "--preservation" {
+            if !matches!(surface, PackCliSurface::Production) {
+                bail!("unsupported flag: {arg}");
+            }
+            let value = args.next().context(surface.usage())?;
+            preservation_profile = PreservationProfile::parse_name(&value)
+                .with_context(|| format!("unsupported preservation profile: {value}"))?;
         } else if arg == "--experimental-self-describing-extents" {
             if !surface.allows_experimental_flags() {
                 bail!("unsupported flag: {arg}");
@@ -688,12 +703,14 @@ fn run(raw_args: Vec<String>, surface: PackCliSurface) -> Result<()> {
     presenter.kv("archive", output.display());
     presenter.kv_number("inputs", inputs.len() as u64);
     presenter.kv("compression level", level);
+    presenter.kv("preservation profile", preservation_profile.as_str());
 
     pack_minimal_v1(
         &inputs,
         &output,
         level,
         PackExperimentalOptions {
+            preservation_profile,
             self_describing_extents: experimental_self_describing_extents,
             file_identity_extents: experimental_file_identity_extents,
             self_identifying_blocks: experimental_self_identifying_blocks,
@@ -714,7 +731,7 @@ fn pack_minimal_v1(
 ) -> Result<()> {
     presenter.section("Progress");
     let input_discovery = presenter.begin_active_phase("input discovery", None);
-    let files = match collect_files(inputs) {
+    let mut files = match collect_files(inputs) {
         Ok(files) => {
             input_discovery.settle(
                 StatusWord::Complete,
@@ -730,6 +747,7 @@ fn pack_minimal_v1(
     if files.is_empty() {
         bail!("no input files to pack");
     }
+    apply_preservation_profile(&mut files, options.preservation_profile);
     let planning = presenter.begin_active_phase("planning", None);
     if let Err(err) = reject_duplicate_logical_paths(&files) {
         planning.settle(StatusWord::Failed, Some("duplicate logical paths"));
@@ -991,7 +1009,7 @@ fn emit_archive_from_layout(
         let current_meta = std::fs::metadata(&file.abs_path)
             .with_context(|| format!("stat {}", file.abs_path.display()))?;
         let current = capture_mode_mtime_uid_gid(&current_meta);
-        if current_meta.len() != file.raw_len || current.mtime != file.mtime {
+        if current_meta.len() != file.raw_len || (file.mtime >= 0 && current.mtime != file.mtime) {
             bail!(
                 "input changed during pack planning: {}",
                 file.abs_path.display()
@@ -1696,6 +1714,7 @@ fn write_tail_with_redundant_map(
     emit_manifest_checkpoints: bool,
 ) -> Result<()> {
     let idx3 = encode_index(&Index {
+        preservation_profile: options.preservation_profile,
         entries: entries.to_vec(),
     });
     let redundant_file_map = build_redundant_file_map(
@@ -2459,6 +2478,76 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
     Ok(files)
 }
 
+fn apply_preservation_profile(files: &mut Vec<InputFile>, profile: PreservationProfile) {
+    match profile {
+        PreservationProfile::Full => {}
+        PreservationProfile::Basic => {
+            files.retain(|entry| match entry.kind {
+                EntryKind::Regular | EntryKind::Directory | EntryKind::Symlink => true,
+                EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice => {
+                    eprintln!(
+                        "WARNING[preservation-omit]: omitted '{}' ({:?}) due to preservation profile basic",
+                        entry.rel_path, entry.kind
+                    );
+                    false
+                }
+            });
+            for entry in files {
+                entry.xattrs.clear();
+                entry.uid = 0;
+                entry.gid = 0;
+                entry.uname = None;
+                entry.gname = None;
+                entry.acl_access = None;
+                entry.acl_default = None;
+                entry.selinux_label = None;
+                entry.linux_capability = None;
+            }
+        }
+        PreservationProfile::PayloadOnly => {
+            files.retain(|entry| match entry.kind {
+                EntryKind::Regular | EntryKind::Directory => true,
+                EntryKind::Symlink
+                | EntryKind::Fifo
+                | EntryKind::CharDevice
+                | EntryKind::BlockDevice => {
+                    eprintln!(
+                        "WARNING[preservation-omit]: omitted '{}' ({:?}) due to preservation profile payload-only",
+                        entry.rel_path, entry.kind
+                    );
+                    false
+                }
+            });
+            for entry in files {
+                match entry.kind {
+                    EntryKind::Regular => {
+                        entry.mode = 0;
+                        entry.mtime = -1;
+                        entry.hardlink_key = None;
+                        entry.sparse_chunks.clear();
+                    }
+                    EntryKind::Directory => {
+                        entry.mode = 0;
+                        entry.mtime = -1;
+                    }
+                    _ => {}
+                }
+                entry.xattrs.clear();
+                entry.uid = 0;
+                entry.gid = 0;
+                entry.uname = None;
+                entry.gname = None;
+                entry.acl_access = None;
+                entry.acl_default = None;
+                entry.selinux_label = None;
+                entry.linux_capability = None;
+                entry.device_major = None;
+                entry.device_minor = None;
+            }
+        }
+    }
+}
+
 fn normalize_logical_path(path: &str) -> String {
     path.replace('\\', "/")
 }
@@ -2549,6 +2638,7 @@ mod tests {
 
     fn baseline_options() -> PackExperimentalOptions {
         PackExperimentalOptions {
+            preservation_profile: PreservationProfile::Full,
             self_describing_extents: false,
             file_identity_extents: false,
             self_identifying_blocks: false,

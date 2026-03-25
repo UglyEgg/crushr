@@ -2,7 +2,10 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::cli_presentation::{BannerLevel, CliPresenter, StatusWord, group_u64};
-use crate::format::{EntryKind, IDX_MAGIC_V3, IDX_MAGIC_V4, IDX_MAGIC_V5, IDX_MAGIC_V6};
+use crate::format::{
+    EntryKind, IDX_MAGIC_V3, IDX_MAGIC_V4, IDX_MAGIC_V5, IDX_MAGIC_V6, IDX_MAGIC_V7,
+    PreservationProfile,
+};
 use crate::index_codec::decode_index;
 use anyhow::{Context, Result, bail};
 use crushr_core::verify::scan_blocks_v1;
@@ -69,6 +72,7 @@ fn dependencies_from_index_bytes(idx3_bytes: &[u8]) -> Option<Vec<FileDependency
 }
 
 struct IndexSummary {
+    preservation_profile: PreservationProfile,
     regular_file_count: u64,
     extent_count: u64,
     logical_bytes: u64,
@@ -85,10 +89,13 @@ struct IndexSummary {
 }
 
 fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
-    let ownership_supported = idx3_bytes.starts_with(IDX_MAGIC_V4)
-        || idx3_bytes.starts_with(IDX_MAGIC_V5)
-        || idx3_bytes.starts_with(IDX_MAGIC_V6);
     let index = decode_index(idx3_bytes).ok()?;
+    let profile = index.preservation_profile;
+    let ownership_supported = profile == PreservationProfile::Full
+        && (idx3_bytes.starts_with(IDX_MAGIC_V4)
+            || idx3_bytes.starts_with(IDX_MAGIC_V5)
+            || idx3_bytes.starts_with(IDX_MAGIC_V6)
+            || idx3_bytes.starts_with(IDX_MAGIC_V7));
     let mut regular_file_count = 0u64;
     let mut extent_count = 0u64;
     let mut logical_bytes = 0u64;
@@ -122,6 +129,7 @@ fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
     }
 
     Some(IndexSummary {
+        preservation_profile: profile,
         regular_file_count,
         extent_count,
         logical_bytes,
@@ -293,7 +301,8 @@ fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> R
             let magic_ok = idx3_bytes.starts_with(IDX_MAGIC_V3)
                 || idx3_bytes.starts_with(IDX_MAGIC_V4)
                 || idx3_bytes.starts_with(IDX_MAGIC_V5)
-                || idx3_bytes.starts_with(IDX_MAGIC_V6);
+                || idx3_bytes.starts_with(IDX_MAGIC_V6)
+                || idx3_bytes.starts_with(IDX_MAGIC_V7);
             if !hash_ok || !magic_ok {
                 corrupted_structures.insert(STRUCTURE_IDX3.to_string());
             }
@@ -452,6 +461,7 @@ fn read_idx3_bytes_from_footer<R: ReadAt + Len>(reader: &R) -> Result<Vec<u8>> {
         && !idx3_bytes.starts_with(IDX_MAGIC_V4)
         && !idx3_bytes.starts_with(IDX_MAGIC_V5)
         && !idx3_bytes.starts_with(IDX_MAGIC_V6)
+        && !idx3_bytes.starts_with(IDX_MAGIC_V7)
     {
         bail!("IDX magic mismatch");
     }
@@ -670,7 +680,9 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         group_u64(snapshot.payload.summary.archive_len),
     );
     presenter.kv("blake3", archive_blake3);
-    let idx_marker = if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V6) {
+    let idx_marker = if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V7) {
+        "IDX7"
+    } else if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V6) {
         "IDX6"
     } else if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V5) {
         "IDX5"
@@ -682,9 +694,17 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         "IDX?"
     };
     presenter.kv("format markers", format!("FTR4 + {idx_marker}"));
+    let index_summary = summarize_index(&opened.tail.idx3_bytes);
+    presenter.section("Preservation");
+    presenter.kv(
+        "profile",
+        index_summary
+            .as_ref()
+            .map(|summary| summary.preservation_profile.as_str())
+            .unwrap_or(PreservationProfile::Full.as_str()),
+    );
 
     presenter.section("Structure");
-    let index_summary = summarize_index(&opened.tail.idx3_bytes);
     presenter.kv(
         "files",
         index_summary.as_ref().map_or_else(

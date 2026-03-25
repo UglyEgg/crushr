@@ -6,6 +6,7 @@ Target
   archive                <TMP>/sample.crushr
   inputs                 1
   compression level      3
+  preservation profile   full
 
 Progress
   input discovery        COMPLETE (files=2)
@@ -20,7 +21,7 @@ Result
   total size             9 B
   compressed size        1.2 KiB
   compression ratio      0.01x
-  reduction              -13144.4%
+  reduction              -13155.6%
   processing time        <1s
   status                 COMPLETE
   message                archive emitted

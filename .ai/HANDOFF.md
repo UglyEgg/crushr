@@ -1,3 +1,11 @@
+CRUSHR_PRESERVATION_05 complete (2026-03-25):
+- Production pack now exposes explicit preservation contract flag `--preservation <full|basic|payload-only>` (default `full`), with explicit warn-and-omit behavior for excluded entry kinds and no flattening fallback.
+- Index encoding advanced to IDX7 with structured preservation-profile recording; legacy IDX3/IDX4/IDX5/IDX6 decode paths default to `full` profile.
+- Strict/recover canonical metadata-degraded classification is profile-aware for regular canonical outputs; profile-omitted classes are no longer misclassified as metadata restoration failure.
+- `crushr info` now displays `Preservation / profile` and recognizes IDX7 format markers.
+- Added deterministic profile tests in `metadata_preservation.rs` and updated CLI/index/core compatibility fixtures.
+- Validation in packet: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract --test index_codec --test metadata_preservation`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 CRUSHR_RECOVERY_MODEL_07 complete (2026-03-25):
 - Recovery/extraction trust classes now include explicit `metadata_degraded`; canonical now requires successful required-metadata restoration (not only path/name/data proof).
 - Recover output layout now includes `metadata_degraded/` and no longer permits silent metadata-degraded merge into `canonical/`.

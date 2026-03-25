@@ -7,7 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_RECOVERY_MODEL_07 complete** (metadata-degraded trust class and strict metadata-failure refusal semantics)
+Current Step: **CRUSHR_PRESERVATION_05 complete** (explicit preservation profiles + profile-aware canonical extraction semantics)
+
+Latest maintenance fix (2026-03-25):
+- **CRUSHR_PRESERVATION_05 complete**: production pack now supports explicit `--preservation <full|basic|payload-only>` (default `full`) with deterministic warn-and-omit behavior for excluded entry kinds; no `--strip` alias was added.
+- **CRUSHR_PRESERVATION_05 complete**: production index encoding advanced to IDX7 with structured on-disk preservation-profile recording; legacy IDX3/IDX4/IDX5/IDX6 decode paths default to `full` compatibility semantics.
+- **CRUSHR_PRESERVATION_05 complete**: strict/recover metadata-degraded classification is now profile-aware for regular-file canonical outcomes (`basic`/`payload-only` omitted classes no longer misclassify as metadata restoration failure).
+- **CRUSHR_PRESERVATION_05 complete**: `crushr info` now renders `Preservation` profile visibility and format-marker truth includes IDX7.
+- **CRUSHR_PRESERVATION_05 validation**: `cargo fmt --all`, `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract --test index_codec --test metadata_preservation`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
 
 Latest maintenance fix (2026-03-25):
 - **CRUSHR_RECOVERY_MODEL_07 complete**: extraction/recovery trust model now includes `metadata_degraded`, and recover output layout now creates `metadata_degraded/` separately from `canonical/` (no silent merge).

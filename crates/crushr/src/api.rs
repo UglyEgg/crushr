@@ -118,7 +118,10 @@ pub fn extract_all(opts: &ExtractOptions) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{extract_all, ExtractOptions};
-    use crate::format::{Entry, EntryKind, Extent, Index, BLK_MAGIC_V2, CODEC_ZSTD, FTR_MAGIC_V2};
+    use crate::format::{
+        BLK_MAGIC_V2, CODEC_ZSTD, Entry, EntryKind, Extent, FTR_MAGIC_V2, Index,
+        PreservationProfile,
+    };
     use crate::index_codec::encode_index;
     use std::fs;
     use std::io::Write;
@@ -138,6 +141,7 @@ mod tests {
 
         let blocks_end_offset = 4 + 4 + 8 + 8 + comp.len() as u64;
         let index = Index {
+            preservation_profile: PreservationProfile::Full,
             entries: vec![Entry {
                 path: path.to_string(),
                 kind: EntryKind::Regular,

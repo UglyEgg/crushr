@@ -229,6 +229,7 @@ fn invalid_idx3_yields_unmappable_orphan_only_plan() {
             || &bytes[i..i + 4] == b"IDX4"
             || &bytes[i..i + 4] == b"IDX5"
             || &bytes[i..i + 4] == b"IDX6"
+            || &bytes[i..i + 4] == b"IDX7"
         {
             idx_pos = Some(i);
             break;

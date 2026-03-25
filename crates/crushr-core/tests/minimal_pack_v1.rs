@@ -134,6 +134,7 @@ fn pack_single_file_produces_readable_v1_archive() {
             || opened.tail.idx3_bytes.starts_with(b"IDX4")
             || opened.tail.idx3_bytes.starts_with(b"IDX5")
             || opened.tail.idx3_bytes.starts_with(b"IDX6")
+            || opened.tail.idx3_bytes.starts_with(b"IDX7")
     );
 
     let info = run_bin("crushr-info", &[archive.to_str().unwrap(), "--json"]);

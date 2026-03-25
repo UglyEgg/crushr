@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::extraction_path::resolve_confined_path;
-use crate::format::{Entry, EntryKind};
+use crate::format::{Entry, EntryKind, PreservationProfile};
 use crate::index_codec::decode_index;
 use anyhow::{Context, Result, bail};
 use crushr_core::{
@@ -69,6 +69,7 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
     let opened = open_archive_v1(&reader)?;
     let blocks = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset)?;
     let index = decode_index(&opened.tail.idx3_bytes).context("decode IDX3")?;
+    let preservation_profile = index.preservation_profile;
     let corrupted = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)?;
 
     if !opts.verify_only {
@@ -133,6 +134,12 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
                 &mut hardlink_roots,
             )
             .map(|failed| {
+                let failed = failed
+                    .into_iter()
+                    .filter(|class| {
+                        metadata_required_by_profile(preservation_profile, &entry, *class)
+                    })
+                    .collect::<Vec<_>>();
                 if !failed.is_empty() {
                     metadata_failures.push((entry.path.clone(), failed));
                 }
@@ -162,6 +169,28 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
         outcome_kind,
         report,
     })
+}
+
+fn metadata_required_by_profile(
+    profile: PreservationProfile,
+    entry: &Entry,
+    class: MetadataClass,
+) -> bool {
+    match profile {
+        PreservationProfile::Full => true,
+        PreservationProfile::Basic => match class {
+            MetadataClass::SpecialFile => !matches!(
+                entry.kind,
+                EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice
+            ),
+            MetadataClass::Xattr
+            | MetadataClass::Ownership
+            | MetadataClass::Acl
+            | MetadataClass::Selinux
+            | MetadataClass::Capability => false,
+        },
+        PreservationProfile::PayloadOnly => false,
+    }
 }
 
 fn read_entry_bytes_strict(

@@ -5,6 +5,25 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-25 — CRUSHR_PRESERVATION_05 explicit preservation-profile archive contract lock
+
+- Decision:
+  - Add production pack flag `--preservation <full|basic|payload-only>` with default `full`; do not add `--strip` alias.
+  - Advance production index encoding to IDX7 and record the selected preservation profile explicitly in archive metadata.
+  - Treat legacy archives without profile metadata (IDX3/IDX4/IDX5/IDX6) as `full` compatibility profile.
+  - Make strict/recover canonical metadata-degraded classification profile-aware so profile-omitted classes do not count as restoration failure.
+  - In non-`full` profiles, excluded entry kinds are warned and omitted; no flattening/fabrication fallback is allowed.
+- Alternatives considered:
+  1. Keep implicit full-preservation semantics and infer profile from missing metadata.
+  2. Add a `--strip` compatibility alias.
+  3. Keep canonical extraction requirements fixed at max format capability regardless of archive profile.
+- Rationale:
+  - Packet requires explicit archive self-description so omission intent is distinguishable from corruption/restore failure/legacy limits.
+  - Profile-aware canonicality preserves trust-model honesty and removes false metadata-degraded outcomes for intentional omissions.
+- Blast radius:
+  - `crushr-pack` CLI/help/planning/emission, `index_codec`/tailframe magic acceptance, `strict_extract_impl` and `recover_extract_impl` metadata-failure classification, `crushr info` presentation, and metadata/index/CLI contract tests were updated.
+  - Workspace version bumped to `0.4.10` (`VERSION` + workspace package version).
+
 ## 2026-03-25 — CRUSHR_RECOVERY_MODEL_07 metadata-degraded trust lock
 
 - Decision:
