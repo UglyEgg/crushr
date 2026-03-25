@@ -64,6 +64,10 @@ fn regular_entry(path: &str, len: u64) -> Entry {
         sparse: false,
         device_major: None,
         device_minor: None,
+        acl_access: None,
+        acl_default: None,
+        selinux_label: None,
+        linux_capability: None,
     }
 }
 

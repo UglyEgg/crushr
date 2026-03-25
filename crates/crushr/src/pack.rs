@@ -209,6 +209,13 @@ pub fn pack_paths_with_dict_with_xattrs_progress(
                 uname: None,
                 gname: None,
                 hardlink_group_id: None,
+                sparse: false,
+                device_major: None,
+                device_minor: None,
+                acl_access: None,
+                acl_default: None,
+                selinux_label: None,
+                linux_capability: None,
             });
             continue;
         }
@@ -241,6 +248,7 @@ pub fn pack_paths_with_dict_with_xattrs_progress(
                 block_id,
                 offset: off_in_block,
                 len: want as u64,
+                logical_offset: 0,
             });
             remaining -= want as u64;
 
@@ -272,6 +280,13 @@ pub fn pack_paths_with_dict_with_xattrs_progress(
             uname: None,
             gname: None,
             hardlink_group_id: None,
+            sparse: false,
+            device_major: None,
+            device_minor: None,
+            acl_access: None,
+            acl_default: None,
+            selinux_label: None,
+            linux_capability: None,
         });
     }
 

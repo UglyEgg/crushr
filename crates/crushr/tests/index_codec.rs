@@ -30,6 +30,10 @@ fn idx1_roundtrip() {
                 sparse: false,
                 device_major: None,
                 device_minor: None,
+                acl_access: Some(vec![1, 2, 3]),
+                acl_default: None,
+                selinux_label: Some(b"system_u:object_r:tmp_t:s0".to_vec()),
+                linux_capability: Some(vec![0x01, 0, 0, 0]),
             },
             Entry {
                 path: "sub/b.json".to_string(),
@@ -53,6 +57,10 @@ fn idx1_roundtrip() {
                 sparse: false,
                 device_major: None,
                 device_minor: None,
+                acl_access: None,
+                acl_default: None,
+                selinux_label: None,
+                linux_capability: None,
             },
         ],
     };
@@ -63,4 +71,10 @@ fn idx1_roundtrip() {
     assert_eq!(dec.entries[0].path, "a.txt");
     assert_eq!(dec.entries[1].path, "sub/b.json");
     assert_eq!(dec.entries[1].extents[0].block_id, 1);
+    assert_eq!(dec.entries[0].acl_access, Some(vec![1, 2, 3]));
+    assert_eq!(
+        dec.entries[0].selinux_label,
+        Some(b"system_u:object_r:tmp_t:s0".to_vec())
+    );
+    assert_eq!(dec.entries[0].linux_capability, Some(vec![0x01, 0, 0, 0]));
 }

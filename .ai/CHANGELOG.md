@@ -930,3 +930,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 ## 2026-03-24 — CRUSHR_UI_POLISH_07 maintenance (v0.3.7)
 - Bumped canonical product version to `0.3.7` by updating root `VERSION` and syncing `workspace.package.version` in `Cargo.toml`.
 - Validation evidence: `./scripts/check-version-sync.sh`; `cargo test -p crushr --test version_contract`.
+
+## 2026-03-25 — CRUSHR_PRESERVATION_04
+- Advanced production index encoding to IDX6 and added explicit entry fields for POSIX ACL metadata (`acl_access`, `acl_default`), SELinux labels (`selinux_label`), and Linux capabilities (`linux_capability`).
+- Updated pack capture to preserve ACL/SELinux/capability metadata as structured security fields (separate from generic xattrs), and updated strict/recover extraction to restore these classes best-effort with explicit warning surfacing when blocked.
+- Expanded `crushr info` metadata visibility with `ACLs`, `SELinux labels`, and `capabilities`; updated goldens and compatibility checks for IDX6 markers.
+- Added/updated preservation regression coverage (`metadata_preservation`, `index_codec`) and validated with fmt + focused integration tests + workspace clippy.
+
+## 2026-03-25 — CRUSHR_PRESERVATION_04 manual-evidence addendum
+- Added operator-level completion evidence file `.ai/COMPLETION_NOTES_CRUSHR_PRESERVATION_04.md` with exact commands and observed outcomes for ACL/SELinux/capability/info visibility/degraded restore/backward-compatibility/recovery-model checks.
+- Fixed security-metadata restore ordering so ACL/SELinux/capability restoration runs after ownership restore, preventing capability loss from post-restore ownership changes.

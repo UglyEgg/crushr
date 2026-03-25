@@ -169,10 +169,13 @@ The current Linux-first preservation set includes:
 - modification time (`mtime`)
 - extended attributes (`xattrs`)
 - numeric ownership (`uid` / `gid`)
+- POSIX ACL metadata (`system.posix_acl_access`, `system.posix_acl_default`)
+- SELinux label metadata (`security.selinux`)
+- Linux file capability metadata (`security.capability`)
 
 Optional ownership names (`uname` / `gname`) may be present when available, but numeric ownership is authoritative.
 
-Where preservation or restoration cannot be applied due to platform or permission constraints, crushr should degrade honestly and warn rather than silently pretend success.
+Where preservation or restoration cannot be applied due to platform or permission constraints (for example ACL/SELinux/capability restore in restricted environments), crushr should degrade honestly and warn rather than silently pretend success.
 
 ### Long-term preservation goal
 

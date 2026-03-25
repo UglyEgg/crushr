@@ -2,8 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::cli_presentation::{CliPresenter, StatusWord, group_u64};
-use crate::format::{EntryKind, Extent, IDX_MAGIC_V3, IDX_MAGIC_V4};
-const IDX_MAGIC_V5: &[u8; 4] = b"IDX5";
+use crate::format::{EntryKind, Extent, IDX_MAGIC_V3, IDX_MAGIC_V4, IDX_MAGIC_V5, IDX_MAGIC_V6};
 use crate::index_codec::decode_index;
 use anyhow::{Context, Result, bail};
 use crushr_core::{
@@ -478,6 +477,7 @@ fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
                     if tail.idx3_bytes.starts_with(IDX_MAGIC_V3)
                         || tail.idx3_bytes.starts_with(IDX_MAGIC_V4)
                         || tail.idx3_bytes.starts_with(IDX_MAGIC_V5)
+                        || tail.idx3_bytes.starts_with(IDX_MAGIC_V6)
                     {
                         if let Ok(index) = decode_index(&tail.idx3_bytes) {
                             index_analysis = IndexAnalysis {

@@ -1,3 +1,12 @@
+CRUSHR_PRESERVATION_04 complete (2026-03-25):
+- Production index format is now IDX6 (IDX3/IDX4/IDX5 decode compatibility retained) with explicit fields for POSIX ACL metadata, SELinux label metadata, and Linux capability metadata.
+- Pack now captures ACL/SELinux/capability values as structured security metadata and keeps generic xattrs separate to avoid silent class omission.
+- Strict/recover extraction now restore ACL/SELinux/capability metadata best-effort and emit explicit warning classes (`WARNING[acl-restore]`, `WARNING[selinux-restore]`, `WARNING[capability-restore]`) when restore is blocked.
+- Security metadata restore ordering now applies ACL/SELinux/capability after ownership restore so capability xattrs are not cleared by subsequent ownership changes.
+- `crushr info` metadata visibility now includes `ACLs`, `SELinux labels`, and `capabilities`; format marker now reports IDX6 when present.
+- Exact operator/manual validation evidence is recorded at `.ai/COMPLETION_NOTES_CRUSHR_PRESERVATION_04.md`.
+- Validation run in this packet: `cargo test -p crushr --test index_codec --test metadata_preservation`, `cargo test -p crushr --test deterministic_pack --test mvp --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`.
+
 CRUSHR_PRESERVATION_03 complete (2026-03-25):
 - Production index format is now IDX5 (IDX3/IDX4 decode compatibility retained) with new entry-kind coverage for FIFO + character/block device files, sparse-file logical extent mapping, and optional device major/minor metadata.
 - Pack now captures sparse extents (Linux hole/data probing), ownership names (`uname`/`gname`) as enrichment, FIFO/device node kinds, and preserves numeric uid/gid as authoritative ownership truth.

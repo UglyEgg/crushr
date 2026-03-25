@@ -226,6 +226,48 @@ fn extraction_warns_when_ownership_restore_is_not_permitted() {
     assert!(stderr.contains("WARNING[ownership-restore]"));
 }
 
+#[test]
+fn info_reports_acl_presence_when_acl_is_captured() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    let file_path = input.join("acl.txt");
+    fs::write(&file_path, b"payload").unwrap();
+    let setfacl = Command::new("setfacl")
+        .args(["-m", "u::rw,g::r,o::---", file_path.to_str().unwrap()])
+        .output();
+    let Ok(setfacl) = setfacl else {
+        eprintln!("skipping ACL info test: setfacl unavailable");
+        return;
+    };
+    if !setfacl.status.success() {
+        eprintln!(
+            "skipping ACL info test: {}",
+            String::from_utf8_lossy(&setfacl.stderr)
+        );
+        return;
+    }
+
+    let archive = td.path().join("meta.crs");
+    run(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+            input.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--level",
+            "3",
+        ]),
+    );
+    let info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+        .arg(&archive)
+        .output()
+        .expect("run info");
+    assert!(info.status.success());
+    let out = String::from_utf8_lossy(&info.stdout);
+    assert!(out.contains("ACLs"));
+    assert!(out.contains("present"));
+}
+
 fn nix_like_euid_is_root() -> bool {
     let mut status = false;
     let output = Command::new(OsStr::new("id"))

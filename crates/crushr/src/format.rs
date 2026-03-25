@@ -15,6 +15,8 @@ pub const IDX_MAGIC_V1: &[u8; 4] = b"IDX1";
 pub const IDX_MAGIC_V2: &[u8; 4] = b"IDX2";
 pub const IDX_MAGIC_V3: &[u8; 4] = b"IDX3";
 pub const IDX_MAGIC_V4: &[u8; 4] = b"IDX4";
+pub const IDX_MAGIC_V5: &[u8; 4] = b"IDX5";
+pub const IDX_MAGIC_V6: &[u8; 4] = b"IDX6";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EntryKind {
@@ -49,6 +51,10 @@ pub struct Entry {
     pub sparse: bool,
     pub device_major: Option<u32>,
     pub device_minor: Option<u32>,
+    pub acl_access: Option<Vec<u8>>,
+    pub acl_default: Option<Vec<u8>>,
+    pub selinux_label: Option<Vec<u8>>,
+    pub linux_capability: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Clone)]

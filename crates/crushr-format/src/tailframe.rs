@@ -15,11 +15,13 @@ use std::io::Cursor;
 pub const IDX3_MAGIC: [u8; 4] = *b"IDX3";
 pub const IDX4_MAGIC: [u8; 4] = *b"IDX4";
 pub const IDX5_MAGIC: [u8; 4] = *b"IDX5";
+pub const IDX6_MAGIC: [u8; 4] = *b"IDX6";
 
 fn is_supported_index_magic(bytes: &[u8]) -> bool {
     bytes.starts_with(&IDX3_MAGIC)
         || bytes.starts_with(&IDX4_MAGIC)
         || bytes.starts_with(&IDX5_MAGIC)
+        || bytes.starts_with(&IDX6_MAGIC)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

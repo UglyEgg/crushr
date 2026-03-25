@@ -5,6 +5,34 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-25 — CRUSHR_PRESERVATION_04 ACL/SELinux/capability preservation lock
+
+- Decision:
+  - Advance production index encoding to IDX6 to carry explicit structured metadata for POSIX ACLs (`acl_access`, `acl_default`), SELinux labels (`selinux_label`), and Linux file capabilities (`linux_capability`).
+  - Capture these metadata classes separately from generic xattrs during pack to avoid silent omission and provide explicit visibility in archive semantics.
+  - Restore ACL/SELinux/capability metadata best-effort in strict/recover extraction with explicit warning classes (`WARNING[acl-restore]`, `WARNING[selinux-restore]`, `WARNING[capability-restore]`) when blocked by privilege/platform/runtime policy.
+  - Extend `crushr info` metadata presence summary with `ACLs`, `SELinux labels`, and `capabilities`.
+- Alternatives considered:
+  1. Keep IDX5 and rely entirely on generic xattrs for ACL/SELinux/capability behavior.
+  2. Defer ACL/SELinux/capability support to a later packet and continue current metadata envelope.
+- Rationale:
+  - Packet requires explicit enterprise-relevant Linux security metadata preservation and truthful restoration/degradation semantics.
+  - Structured IDX6 fields make these classes first-class and inspectable instead of implicit side effects.
+- Blast radius:
+  - Index codec/tail-frame magic acceptance, pack capture path, strict/recover extract restoration warnings, and `info` metadata summary were updated.
+  - Golden fixtures and metadata/index regression tests were expanded for IDX6 and metadata-presence behavior.
+
+## 2026-03-25 — CRUSHR_PRESERVATION_04 restore-order follow-up lock
+
+- Decision:
+  - Apply structured security metadata restoration (ACL/SELinux/capabilities) after ownership restore in strict/recover extraction metadata flows.
+- Alternatives considered:
+  1. Keep security metadata restoration inside generic xattr restore before ownership changes.
+- Rationale:
+  - Ownership/mode transitions can clear capability state; applying capabilities after ownership restore preserves truthful round-trip behavior.
+- Blast radius:
+  - `strict_extract_impl` and `recover_extract_impl` metadata ordering changed; manual completion evidence updated to confirm capability round-trip in privileged context and warning-based degradation in non-root context.
+
 ## 2026-03-25 — CRUSHR_PRESERVATION_03 sparse/special-entry/ownership-name lock
 
 - Decision:
