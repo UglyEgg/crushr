@@ -102,6 +102,7 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
         .iter()
         .map(|entry| entry.path.as_str())
         .collect::<BTreeSet<_>>();
+    let mut hardlink_roots = BTreeMap::<u64, PathBuf>::new();
 
     for entry in entries {
         if entry.kind == EntryKind::Regular && !safe_paths.contains(entry.path.as_str()) {
@@ -118,6 +119,7 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
                 destination.as_path(),
                 &blocks,
                 opts.overwrite,
+                &mut hardlink_roots,
             )?;
         }
     }
@@ -236,6 +238,7 @@ fn write_entry(
     path: &Path,
     blocks: &[crushr_core::verify::BlockSpanV1],
     overwrite: bool,
+    hardlink_roots: &mut BTreeMap<u64, PathBuf>,
 ) -> Result<()> {
     match entry.kind {
         EntryKind::Directory => {
@@ -247,6 +250,7 @@ fn write_entry(
             }
             restore_mtime(path, entry.mtime)?;
             restore_xattrs(path, entry)?;
+            restore_ownership(path, entry)?;
             Ok(())
         }
         EntryKind::Symlink => {
@@ -270,18 +274,43 @@ fn write_entry(
                 .with_context(|| format!("symlink {} -> {}", path.display(), target))?;
             #[cfg(not(unix))]
             bail!("symlink extraction is unsupported on this platform");
+            restore_ownership(path, entry)?;
             Ok(())
         }
         EntryKind::Regular => {
-            let bytes = read_entry_bytes_strict(reader, entry, blocks)?;
             if let Some(parent) = path.parent() {
                 fs::create_dir_all(parent)
                     .with_context(|| format!("create {}", parent.display()))?;
             }
-            if path.exists() && !overwrite {
-                bail!("destination exists (use --overwrite): {}", path.display());
+            if let Some(group_id) = entry.hardlink_group_id {
+                if let Some(root_path) = hardlink_roots.get(&group_id) {
+                    if path.exists() {
+                        if overwrite {
+                            fs::remove_file(path)
+                                .or_else(|_| fs::remove_dir_all(path))
+                                .ok();
+                        } else {
+                            bail!("destination exists (use --overwrite): {}", path.display());
+                        }
+                    }
+                    fs::hard_link(root_path, path).with_context(|| {
+                        format!("hardlink {} -> {}", path.display(), root_path.display())
+                    })?;
+                } else {
+                    let bytes = read_entry_bytes_strict(reader, entry, blocks)?;
+                    if path.exists() && !overwrite {
+                        bail!("destination exists (use --overwrite): {}", path.display());
+                    }
+                    fs::write(path, &bytes).with_context(|| format!("write {}", path.display()))?;
+                    hardlink_roots.insert(group_id, path.to_path_buf());
+                }
+            } else {
+                let bytes = read_entry_bytes_strict(reader, entry, blocks)?;
+                if path.exists() && !overwrite {
+                    bail!("destination exists (use --overwrite): {}", path.display());
+                }
+                fs::write(path, &bytes).with_context(|| format!("write {}", path.display()))?;
             }
-            fs::write(path, &bytes).with_context(|| format!("write {}", path.display()))?;
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
@@ -289,9 +318,47 @@ fn write_entry(
             }
             restore_mtime(path, entry.mtime)?;
             restore_xattrs(path, entry)?;
+            restore_ownership(path, entry)?;
             Ok(())
         }
     }
+}
+
+fn restore_ownership(path: &Path, entry: &Entry) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::ffi::CString;
+        use std::os::unix::ffi::OsStrExt;
+        unsafe extern "C" {
+            fn lchown(
+                path: *const std::os::raw::c_char,
+                owner: u32,
+                group: u32,
+            ) -> std::os::raw::c_int;
+        }
+        let c_path = CString::new(path.as_os_str().as_bytes())
+            .with_context(|| format!("invalid path for ownership restore: {}", path.display()))?;
+        let rc = unsafe { lchown(c_path.as_ptr(), entry.uid, entry.gid) };
+        if rc != 0 {
+            let label = entry
+                .uname
+                .as_ref()
+                .zip(entry.gname.as_ref())
+                .map(|(u, g)| format!("{u}:{g}"))
+                .unwrap_or_else(|| format!("{}:{}", entry.uid, entry.gid));
+            eprintln!(
+                "WARNING[ownership-restore]: could not restore '{}' on '{}': {}",
+                label,
+                path.display(),
+                std::io::Error::last_os_error()
+            );
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (path, entry);
+    }
+    Ok(())
 }
 
 fn restore_mtime(path: &Path, mtime_secs: i64) -> Result<()> {

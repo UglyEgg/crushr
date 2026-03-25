@@ -151,6 +151,11 @@ mod tests {
                 }],
                 link_target: None,
                 xattrs: vec![],
+                uid: 0,
+                gid: 0,
+                uname: None,
+                gname: None,
+                hardlink_group_id: None,
             }],
         };
         let idx_bytes = encode_index(&index);

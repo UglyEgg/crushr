@@ -21,6 +21,11 @@ fn idx1_roundtrip() {
                 }],
                 link_target: None,
                 xattrs: Vec::new(),
+                uid: 1000,
+                gid: 1000,
+                uname: Some("user".to_string()),
+                gname: Some("group".to_string()),
+                hardlink_group_id: None,
             },
             Entry {
                 path: "sub/b.json".to_string(),
@@ -35,6 +40,11 @@ fn idx1_roundtrip() {
                 }],
                 link_target: None,
                 xattrs: Vec::new(),
+                uid: 1000,
+                gid: 1000,
+                uname: None,
+                gname: None,
+                hardlink_group_id: Some(42),
             },
         ],
     };

@@ -7,7 +7,18 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_UI_POLISH_08 complete** (pack/info truth polish finalized for v0.3.5)
+Current Step: **CRUSHR_PRESERVATION_02 complete** (ownership + hard-link preservation with metadata visibility)
+
+
+Latest maintenance fix (2026-03-25):
+- **CRUSHR_PRESERVATION_02 complete**: production pack/index now preserves uid/gid ownership metadata and hard-link group identity in IDX4 while keeping Linux-first mode/mtime/xattr behavior.
+- **CRUSHR_PRESERVATION_02 complete**: strict + recover extraction paths now restore ownership best-effort with explicit warnings on permission/platform failures and recreate hard links from preserved link groups.
+- **CRUSHR_PRESERVATION_02 complete**: `crushr info` now reports metadata presence classes (`modes`, `mtime`, `xattrs`, `ownership`, `hard links`) and format marker reflects IDX3/IDX4 truth.
+- **CRUSHR_PRESERVATION_02 validation**: `cargo fmt --all`, `cargo test -p crushr --test deterministic_pack --test mvp --test metadata_preservation --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace -q` are green.
+
+Latest maintenance fix (2026-03-25):
+- **CRUSHR_PRESERVATION_02-FIX1 complete**: corrected `info` ownership presence detection for IDX4 archives so root-owned (`uid=0,gid=0`) metadata is not falsely reported absent.
+- **CRUSHR_PRESERVATION_02-FIX1 complete**: added explicit packet completion evidence at `.ai/COMPLETION_NOTES_CRUSHR_PRESERVATION_02.md` with exact commands + observed outputs for all addendum validation cases.
 
 
 Latest maintenance fix (2026-03-24):

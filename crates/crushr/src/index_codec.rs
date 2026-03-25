@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::format::{
-    Entry, EntryKind, Extent, IDX_MAGIC_V1, IDX_MAGIC_V2, IDX_MAGIC_V3, Index, Xattr,
+    Entry, EntryKind, Extent, IDX_MAGIC_V1, IDX_MAGIC_V2, IDX_MAGIC_V3, IDX_MAGIC_V4, Index, Xattr,
 };
 use anyhow::{Result, bail};
 
@@ -66,8 +66,23 @@ fn get_len_bytes<'a>(input: &'a [u8], off: &mut usize) -> Result<&'a [u8]> {
     Ok(s)
 }
 
+fn put_opt_string(out: &mut Vec<u8>, value: &Option<String>) {
+    match value {
+        Some(value) => put_len_bytes(out, value.as_bytes()),
+        None => put_u32(out, 0),
+    }
+}
+
+fn get_opt_string(input: &[u8], off: &mut usize) -> Result<Option<String>> {
+    let bytes = get_len_bytes(input, off)?;
+    if bytes.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(std::str::from_utf8(bytes)?.to_string()))
+    }
+}
 pub fn encode_index(idx: &Index) -> Vec<u8> {
-    // Current stable encoding (IDX3) includes xattrs.
+    // Current stable encoding (IDX4) includes ownership and hard-link metadata.
     // magic(4) entry_count(u32)
     // entries:
     //   path (len+bytes)
@@ -77,7 +92,7 @@ pub fn encode_index(idx: &Index) -> Vec<u8> {
     //   link_target (len+bytes; 0 for regular)
     //   xattr_count(u32) + xattrs: name(len+bytes) value(len+bytes)
     let mut out = Vec::new();
-    out.extend_from_slice(IDX_MAGIC_V3);
+    out.extend_from_slice(IDX_MAGIC_V4);
     put_u32(&mut out, idx.entries.len() as u32);
 
     for e in &idx.entries {
@@ -115,6 +130,18 @@ pub fn encode_index(idx: &Index) -> Vec<u8> {
             put_len_bytes(&mut out, xa.name.as_bytes());
             put_len_bytes(&mut out, &xa.value);
         }
+
+        put_u32(&mut out, e.uid);
+        put_u32(&mut out, e.gid);
+        put_opt_string(&mut out, &e.uname);
+        put_opt_string(&mut out, &e.gname);
+        match e.hardlink_group_id {
+            Some(group_id) => {
+                put_u8(&mut out, 1);
+                put_u64(&mut out, group_id);
+            }
+            None => put_u8(&mut out, 0),
+        }
     }
 
     out
@@ -126,7 +153,9 @@ pub fn decode_index(bytes: &[u8]) -> Result<Index> {
     }
     let magic = &bytes[0..4];
 
-    if magic == IDX_MAGIC_V3 {
+    if magic == IDX_MAGIC_V4 {
+        decode_idx4(bytes)
+    } else if magic == IDX_MAGIC_V3 {
         decode_idx3(bytes)
     } else if magic == IDX_MAGIC_V2 {
         decode_idx2(bytes)
@@ -135,6 +164,94 @@ pub fn decode_index(bytes: &[u8]) -> Result<Index> {
     } else {
         bail!("bad index magic");
     }
+}
+
+fn decode_idx4(bytes: &[u8]) -> Result<Index> {
+    let mut off = 4usize;
+    let count = get_u32(bytes, &mut off)? as usize;
+    let mut entries = Vec::with_capacity(count);
+
+    for _ in 0..count {
+        let path = std::str::from_utf8(get_len_bytes(bytes, &mut off)?)?.to_string();
+        let kind_u8 = get_u8(bytes, &mut off)?;
+        let kind = match kind_u8 {
+            0 => EntryKind::Regular,
+            1 => EntryKind::Symlink,
+            2 => EntryKind::Directory,
+            _ => bail!("unknown entry kind {}", kind_u8),
+        };
+
+        let mode = get_u32(bytes, &mut off)?;
+        let mtime = get_i64(bytes, &mut off)?;
+        let size = get_u64(bytes, &mut off)?;
+        let ex_count = get_u32(bytes, &mut off)? as usize;
+
+        let mut extents = Vec::with_capacity(ex_count);
+        for _ in 0..ex_count {
+            let block_id = get_u32(bytes, &mut off)?;
+            let offset = get_u64(bytes, &mut off)?;
+            let len = get_u64(bytes, &mut off)?;
+            extents.push(Extent {
+                block_id,
+                offset,
+                len,
+            });
+        }
+
+        let link_target_bytes = get_len_bytes(bytes, &mut off)?;
+        let link_target = if link_target_bytes.is_empty() {
+            None
+        } else {
+            Some(std::str::from_utf8(link_target_bytes)?.to_string())
+        };
+
+        let xa_count = get_u32(bytes, &mut off)? as usize;
+        let mut xattrs = Vec::with_capacity(xa_count);
+        for _ in 0..xa_count {
+            let name = std::str::from_utf8(get_len_bytes(bytes, &mut off)?)?.to_string();
+            let val = get_len_bytes(bytes, &mut off)?.to_vec();
+            xattrs.push(Xattr { name, value: val });
+        }
+
+        let uid = get_u32(bytes, &mut off)?;
+        let gid = get_u32(bytes, &mut off)?;
+        let uname = get_opt_string(bytes, &mut off)?;
+        let gname = get_opt_string(bytes, &mut off)?;
+        let hardlink_group_id = if get_u8(bytes, &mut off)? == 0 {
+            None
+        } else {
+            Some(get_u64(bytes, &mut off)?)
+        };
+
+        if kind == EntryKind::Symlink && !extents.is_empty() {
+            bail!("symlink entry has extents");
+        }
+        if kind == EntryKind::Directory && (!extents.is_empty() || size != 0) {
+            bail!("directory entry must have no extents and zero size");
+        }
+
+        entries.push(Entry {
+            path,
+            kind,
+            mode,
+            mtime,
+            size,
+            extents,
+            link_target,
+            xattrs,
+            uid,
+            gid,
+            uname,
+            gname,
+            hardlink_group_id,
+        });
+    }
+
+    if off != bytes.len() {
+        bail!("index has trailing bytes");
+    }
+
+    Ok(Index { entries })
 }
 
 fn decode_idx3(bytes: &[u8]) -> Result<Index> {
@@ -200,6 +317,11 @@ fn decode_idx3(bytes: &[u8]) -> Result<Index> {
             extents,
             link_target,
             xattrs,
+            uid: 0,
+            gid: 0,
+            uname: None,
+            gname: None,
+            hardlink_group_id: None,
         });
     }
 
@@ -262,6 +384,11 @@ fn decode_idx2(bytes: &[u8]) -> Result<Index> {
             extents,
             link_target,
             xattrs: Vec::new(),
+            uid: 0,
+            gid: 0,
+            uname: None,
+            gname: None,
+            hardlink_group_id: None,
         });
     }
 
@@ -306,6 +433,11 @@ fn decode_idx1(bytes: &[u8]) -> Result<Index> {
             extents,
             link_target: None,
             xattrs: Vec::new(),
+            uid: 0,
+            gid: 0,
+            uname: None,
+            gname: None,
+            hardlink_group_id: None,
         });
     }
 

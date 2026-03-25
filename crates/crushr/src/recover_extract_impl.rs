@@ -190,6 +190,7 @@ where
         .iter()
         .map(|entry| entry.path.as_str())
         .collect::<BTreeSet<_>>();
+    let mut hardlink_roots = BTreeMap::<u64, PathBuf>::new();
 
     progress("canonical extraction");
     for entry in &selected_entries {
@@ -197,13 +198,47 @@ where
         match entry.kind {
             EntryKind::Regular => {
                 if safe_paths.contains(entry.path.as_str()) {
-                    let bytes = read_entry_bytes_strict(&reader, entry, &blocks)?;
-                    write_entry(destination.as_path(), &bytes, opts.overwrite)?;
+                    if let Some(parent) = destination.parent() {
+                        fs::create_dir_all(parent)
+                            .with_context(|| format!("create {}", parent.display()))?;
+                    }
+                    if let Some(group_id) = entry.hardlink_group_id {
+                        if let Some(root_path) = hardlink_roots.get(&group_id) {
+                            if destination.exists() {
+                                if opts.overwrite {
+                                    fs::remove_file(&destination)
+                                        .or_else(|_| fs::remove_dir_all(&destination))
+                                        .ok();
+                                } else {
+                                    bail!(
+                                        "destination exists (use --overwrite): {}",
+                                        destination.display()
+                                    );
+                                }
+                            }
+                            fs::hard_link(root_path, &destination).with_context(|| {
+                                format!(
+                                    "hardlink {} -> {}",
+                                    destination.display(),
+                                    root_path.display()
+                                )
+                            })?;
+                        } else {
+                            let bytes = read_entry_bytes_strict(&reader, entry, &blocks)?;
+                            write_entry(destination.as_path(), &bytes, opts.overwrite)?;
+                            hardlink_roots.insert(group_id, destination.clone());
+                        }
+                    } else {
+                        let bytes = read_entry_bytes_strict(&reader, entry, &blocks)?;
+                        write_entry(destination.as_path(), &bytes, opts.overwrite)?;
+                    }
+                    restore_regular_metadata(destination.as_path(), entry)?;
                 }
             }
             EntryKind::Directory => {
                 fs::create_dir_all(&destination)
                     .with_context(|| format!("create {}", destination.display()))?;
+                restore_directory_metadata(destination.as_path(), entry)?;
             }
             EntryKind::Symlink => {
                 let target = entry.link_target.clone().unwrap_or_default();
@@ -215,6 +250,7 @@ where
                 #[cfg(unix)]
                 std::os::unix::fs::symlink(&target, &destination)
                     .with_context(|| format!("symlink {} -> {}", destination.display(), target))?;
+                restore_ownership(destination.as_path(), entry)?;
             }
         }
     }
@@ -448,6 +484,142 @@ fn write_entry(path: &Path, bytes: &[u8], overwrite: bool) -> Result<()> {
     }
 
     fs::write(path, bytes).with_context(|| format!("write {}", path.display()))?;
+    Ok(())
+}
+
+fn restore_regular_metadata(path: &Path, entry: &Entry) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).ok();
+    }
+    restore_mtime(path, entry.mtime)?;
+    restore_xattrs(path, entry)?;
+    restore_ownership(path, entry)?;
+    Ok(())
+}
+
+fn restore_directory_metadata(path: &Path, entry: &Entry) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).ok();
+    }
+    restore_mtime(path, entry.mtime)?;
+    restore_xattrs(path, entry)?;
+    restore_ownership(path, entry)?;
+    Ok(())
+}
+
+fn restore_mtime(path: &Path, mtime_secs: i64) -> Result<()> {
+    #[cfg(unix)]
+    {
+        if mtime_secs < 0 {
+            return Ok(());
+        }
+        use std::ffi::CString;
+        use std::os::unix::ffi::OsStrExt;
+        use std::os::unix::io::RawFd;
+        #[repr(C)]
+        struct Timespec {
+            tv_sec: i64,
+            tv_nsec: i64,
+        }
+        unsafe extern "C" {
+            fn utimensat(
+                dirfd: RawFd,
+                pathname: *const std::os::raw::c_char,
+                times: *const Timespec,
+                flags: std::os::raw::c_int,
+            ) -> std::os::raw::c_int;
+        }
+        const AT_FDCWD: RawFd = -100;
+        const UTIME_OMIT: i64 = 1_073_741_822;
+        let c_path = CString::new(path.as_os_str().as_bytes())
+            .with_context(|| format!("invalid path for mtime restore: {}", path.display()))?;
+        let times = [
+            Timespec {
+                tv_sec: 0,
+                tv_nsec: UTIME_OMIT,
+            },
+            Timespec {
+                tv_sec: mtime_secs,
+                tv_nsec: 0,
+            },
+        ];
+        let rc = unsafe { utimensat(AT_FDCWD, c_path.as_ptr(), times.as_ptr(), 0) };
+        if rc != 0 {
+            return Err(std::io::Error::last_os_error())
+                .with_context(|| format!("set mtime {}", path.display()));
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (path, mtime_secs);
+    }
+    Ok(())
+}
+
+fn restore_xattrs(path: &Path, entry: &Entry) -> Result<()> {
+    #[cfg(unix)]
+    {
+        for xa in &entry.xattrs {
+            if let Err(err) = xattr::set(path, &xa.name, &xa.value) {
+                eprintln!(
+                    "WARNING[xattr-restore]: could not restore '{}' on '{}': {err}",
+                    xa.name,
+                    path.display()
+                );
+            }
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        if !entry.xattrs.is_empty() {
+            eprintln!(
+                "WARNING[xattr-restore]: skipped {} xattrs on '{}' (unsupported platform)",
+                entry.xattrs.len(),
+                path.display()
+            );
+        }
+    }
+    Ok(())
+}
+
+fn restore_ownership(path: &Path, entry: &Entry) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::ffi::CString;
+        use std::os::unix::ffi::OsStrExt;
+        unsafe extern "C" {
+            fn lchown(
+                path: *const std::os::raw::c_char,
+                owner: u32,
+                group: u32,
+            ) -> std::os::raw::c_int;
+        }
+        let c_path = CString::new(path.as_os_str().as_bytes())
+            .with_context(|| format!("invalid path for ownership restore: {}", path.display()))?;
+        let rc = unsafe { lchown(c_path.as_ptr(), entry.uid, entry.gid) };
+        if rc != 0 {
+            let label = entry
+                .uname
+                .as_ref()
+                .zip(entry.gname.as_ref())
+                .map(|(u, g)| format!("{u}:{g}"))
+                .unwrap_or_else(|| format!("{}:{}", entry.uid, entry.gid));
+            eprintln!(
+                "WARNING[ownership-restore]: could not restore '{}' on '{}': {}",
+                label,
+                path.display(),
+                std::io::Error::last_os_error()
+            );
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (path, entry);
+    }
     Ok(())
 }
 

@@ -5,6 +5,19 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-25 — CRUSHR_PRESERVATION_02
+- Extended index encoding to IDX4 to preserve ownership metadata (`uid`/`gid`, optional ownership names) and explicit hard-link group identity.
+- Updated production pack planning/emission so hard-linked regular files share a single payload block while retaining multiple logical file mappings.
+- Updated strict and recover extraction to restore ownership best-effort with explicit warning surfacing on failure and to recreate hard links instead of duplicating file data.
+- Expanded `crushr-info` human output with metadata presence visibility rows (`modes`, `mtime`, `xattrs`, `ownership`, `hard links`) and IDX3/IDX4 format-marker truth.
+- Added deterministic metadata preservation coverage for hard-link round-trip and ownership-restore failure-warning behavior; refreshed info/pack goldens for IDX4 output.
+- Validation: `cargo fmt --all`, `cargo test -p crushr --test deterministic_pack --test mvp --test metadata_preservation --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace -q`.
+
+## 2026-03-25 — CRUSHR_PRESERVATION_02-FIX1
+- Corrected `crushr info` ownership-presence semantics so IDX4 archives truthfully report ownership metadata as present even when numeric ownership is `0:0` (root-owned trees).
+- Added explicit completion-evidence doc `.ai/COMPLETION_NOTES_CRUSHR_PRESERVATION_02.md` with exact commands and observed outcomes for hard links, ownership, metadata visibility, IDX3 compatibility, xattr interaction, and warning-path honesty.
+- Validation: `cargo fmt --all`, `cargo test -p crushr --test metadata_preservation --test cli_presentation_contract`, `cargo clippy --workspace --all-targets -- -D warnings`.
+
 ## 2026-03-24 — CRUSHR_PRESERVATION_01
 - Extended IDX3 metadata model for baseline filesystem preservation by adding explicit directory entry-kind support alongside existing regular/symlink semantics; pack now records mode, mtime, and xattrs from Linux filesystem metadata.
 - Upgraded production pack collection to retain directory paths (including empty directories), symlink targets, and per-entry metadata while keeping deterministic ordering and duplicate-path safeguards.

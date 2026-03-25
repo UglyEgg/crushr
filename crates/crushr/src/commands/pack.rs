@@ -226,17 +226,29 @@ struct InputFile {
     kind: EntryKind,
     mode: u32,
     mtime: i64,
+    uid: u32,
+    gid: u32,
+    uname: Option<String>,
+    gname: Option<String>,
+    hardlink_key: Option<(u64, u64)>,
     xattrs: Vec<Xattr>,
 }
 
 #[derive(Debug)]
 struct PlannedFileModel {
     file_id: u32,
+    block_id: u32,
+    write_payload: bool,
+    hardlink_group_id: Option<u64>,
     rel_path: String,
     abs_path: PathBuf,
     raw_len: u64,
     mode: u32,
     mtime: i64,
+    uid: u32,
+    gid: u32,
+    uname: Option<String>,
+    gname: Option<String>,
     xattrs: Vec<Xattr>,
 }
 
@@ -854,17 +866,49 @@ fn build_pack_layout_plan(
         options.metadata_profile,
     )?;
     let mut planned_files = Vec::with_capacity(files.len());
+    let mut hardlink_sources = BTreeMap::<(u64, u64), (u32, u64)>::new();
+    let mut next_block_id = 0u32;
+    let mut next_hardlink_group_id = 1u64;
     for (idx, file) in files.into_iter().enumerate() {
         let raw_len = std::fs::metadata(&file.abs_path)
             .with_context(|| format!("stat {}", file.abs_path.display()))?
             .len();
+        let (block_id, write_payload, hardlink_group_id) = if let Some(key) = file.hardlink_key {
+            if let Some((existing_block_id, group_id)) = hardlink_sources.get(&key).copied() {
+                (existing_block_id, false, Some(group_id))
+            } else {
+                let block_id = next_block_id;
+                next_block_id = next_block_id
+                    .checked_add(1)
+                    .context("block id overflow while planning hard links")?;
+                let group_id = next_hardlink_group_id;
+                next_hardlink_group_id = next_hardlink_group_id
+                    .checked_add(1)
+                    .context("hard-link group id overflow")?;
+                hardlink_sources.insert(key, (block_id, group_id));
+                (block_id, true, Some(group_id))
+            }
+        } else {
+            let block_id = next_block_id;
+            next_block_id = next_block_id
+                .checked_add(1)
+                .context("block id overflow while planning payloads")?;
+            (block_id, true, None)
+        };
         planned_files.push(PlannedFileModel {
             file_id: idx as u32,
+            block_id,
+            write_payload,
+            hardlink_group_id,
             rel_path: file.rel_path.clone(),
             abs_path: file.abs_path.clone(),
             raw_len,
             mode: file.mode,
             mtime: file.mtime,
+            uid: file.uid,
+            gid: file.gid,
+            uname: file.uname.clone(),
+            gname: file.gname.clone(),
             xattrs: file.xattrs.clone(),
         });
     }
@@ -918,47 +962,91 @@ fn emit_archive_from_layout(
     if let Some(path_dictionary) = &layout.metadata.dictionary.primary_copy {
         write_experimental_metadata_block(&mut out, path_dictionary, level)?;
     }
+    let mut payload_materialized_by_block =
+        BTreeMap::<u32, (u64, u64, [u8; 32], [u8; 32], u64, Vec<u8>)>::new();
     for (ordinal, file) in layout.files.into_iter().enumerate() {
-        let raw = std::fs::read(&file.abs_path)
-            .with_context(|| format!("read {}", file.abs_path.display()))?;
-        let raw_len = raw.len() as u64;
-        if raw_len != file.raw_len {
-            bail!(
-                "input changed during pack planning: {}",
-                file.abs_path.display()
-            );
-        }
-        let compressed = compress_deterministic(&raw, level)
-            .with_context(|| format!("compress {}", file.abs_path.display()))?;
+        let (raw_len, compressed_len, payload_hash, raw_hash, block_scan_offset, raw_for_manifest) =
+            if file.write_payload {
+                let raw = std::fs::read(&file.abs_path)
+                    .with_context(|| format!("read {}", file.abs_path.display()))?;
+                let raw_len = raw.len() as u64;
+                if raw_len != file.raw_len {
+                    bail!(
+                        "input changed during pack planning: {}",
+                        file.abs_path.display()
+                    );
+                }
+                let compressed = compress_deterministic(&raw, level)
+                    .with_context(|| format!("compress {}", file.abs_path.display()))?;
+                let block_scan_offset = out.stream_position()?;
+                let payload_hash = *blake3::hash(&compressed).as_bytes();
+                let raw_hash = *blake3::hash(&raw).as_bytes();
+                let flags = Blk3Flags(Blk3Flags::HAS_PAYLOAD_HASH | Blk3Flags::HAS_RAW_HASH);
+                let header = Blk3Header {
+                    header_len: (4 + 2 + 2 + 4 + 4 + 4 + 8 + 8 + 32 + 32) as u16,
+                    flags,
+                    codec: ZSTD_CODEC,
+                    level,
+                    dict_id: 0,
+                    raw_len,
+                    comp_len: compressed.len() as u64,
+                    payload_hash: Some(payload_hash),
+                    raw_hash: Some(raw_hash),
+                };
+
+                write_blk3_header(&mut out, &header)?;
+                out.write_all(&compressed)?;
+
+                payload_materialized_by_block.insert(
+                    file.block_id,
+                    (
+                        raw_len,
+                        compressed.len() as u64,
+                        payload_hash,
+                        raw_hash,
+                        block_scan_offset,
+                        raw.clone(),
+                    ),
+                );
+                (
+                    raw_len,
+                    compressed.len() as u64,
+                    payload_hash,
+                    raw_hash,
+                    block_scan_offset,
+                    raw,
+                )
+            } else {
+                let (raw_len, compressed_len, payload_hash, raw_hash, block_scan_offset, raw) =
+                    payload_materialized_by_block
+                        .get(&file.block_id)
+                        .cloned()
+                        .with_context(|| {
+                            format!(
+                                "missing hard-link payload source for block {}",
+                                file.block_id
+                            )
+                        })?;
+                (
+                    raw_len,
+                    compressed_len,
+                    payload_hash,
+                    raw_hash,
+                    block_scan_offset,
+                    raw,
+                )
+            };
         progress(
             PackProgressPhase::Compression,
             (ordinal + 1) as u64,
             total_files as u64,
         );
-        let block_scan_offset = out.stream_position()?;
-        let payload_hash = *blake3::hash(&compressed).as_bytes();
-        let raw_hash = *blake3::hash(&raw).as_bytes();
-        let flags = Blk3Flags(Blk3Flags::HAS_PAYLOAD_HASH | Blk3Flags::HAS_RAW_HASH);
-        let header = Blk3Header {
-            header_len: (4 + 2 + 2 + 4 + 4 + 4 + 8 + 8 + 32 + 32) as u16,
-            flags,
-            codec: ZSTD_CODEC,
-            level,
-            dict_id: 0,
-            raw_len,
-            comp_len: compressed.len() as u64,
-            payload_hash: Some(payload_hash),
-            raw_hash: Some(raw_hash),
-        };
-
-        write_blk3_header(&mut out, &header)?;
-        out.write_all(&compressed)?;
 
         if options.self_describing_extents {
             let record = build_self_describing_extent_record(
                 file.file_id,
                 &file.rel_path,
-                raw.len() as u64,
+                raw_len,
                 &payload_hash,
                 &raw_hash,
             );
@@ -986,7 +1074,7 @@ fn emit_archive_from_layout(
             let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
             file_identity_extent_records.push(build_file_identity_extent_record(
                 file.file_id,
-                raw.len() as u64,
+                raw_len,
                 &payload_hash,
                 &raw_hash,
                 block_scan_offset,
@@ -1036,7 +1124,7 @@ fn emit_archive_from_layout(
                 PayloadIdentityInput {
                     file_id: file.file_id,
                     raw_len,
-                    compressed_len: compressed.len() as u64,
+                    compressed_len,
                     payload_hash: &payload_hash,
                     raw_hash: &raw_hash,
                     block_scan_offset,
@@ -1086,8 +1174,12 @@ fn emit_archive_from_layout(
         }
 
         if emit_manifest_checkpoints {
-            let manifest_record =
-                build_file_manifest_record(file.file_id, &file.rel_path, &raw, raw_len);
+            let manifest_record = build_file_manifest_record(
+                file.file_id,
+                &file.rel_path,
+                &raw_for_manifest,
+                raw_len,
+            );
             file_manifest_records.push(manifest_record.clone());
             write_experimental_metadata_block(&mut out, &manifest_record, level)?;
 
@@ -1116,12 +1208,17 @@ fn emit_archive_from_layout(
             mtime: file.mtime,
             size: raw_len,
             extents: vec![Extent {
-                block_id: file.file_id,
+                block_id: file.block_id,
                 offset: 0,
                 len: raw_len,
             }],
             link_target: None,
             xattrs: file.xattrs,
+            uid: file.uid,
+            gid: file.gid,
+            uname: file.uname,
+            gname: file.gname,
+            hardlink_group_id: file.hardlink_group_id,
         });
         progress(
             PackProgressPhase::Serialization,
@@ -1153,6 +1250,11 @@ fn emit_archive_from_layout(
             extents: Vec::new(),
             link_target,
             xattrs: input.xattrs.clone(),
+            uid: input.uid,
+            gid: input.gid,
+            uname: input.uname.clone(),
+            gname: input.gname.clone(),
+            hardlink_group_id: None,
         });
     }
     entries.sort_by(|a, b| a.path.cmp(&b.path));
@@ -1860,16 +1962,29 @@ fn capture_xattrs(path: &Path) -> Vec<Xattr> {
     }
 }
 
-fn capture_mode_mtime(meta: &std::fs::Metadata) -> (u32, i64) {
+fn capture_mode_mtime_uid_gid(
+    meta: &std::fs::Metadata,
+) -> (u32, i64, u32, u32, Option<(u64, u64)>) {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
-        (meta.mode() & 0o7777, meta.mtime())
+        let hardlink_key = if meta.is_file() && meta.nlink() > 1 {
+            Some((meta.dev(), meta.ino()))
+        } else {
+            None
+        };
+        (
+            meta.mode() & 0o7777,
+            meta.mtime(),
+            meta.uid(),
+            meta.gid(),
+            hardlink_key,
+        )
     }
     #[cfg(not(unix))]
     {
         let _ = meta;
-        (0, 0)
+        (0, 0, 0, 0, None)
     }
 }
 
@@ -1892,13 +2007,18 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 .context("input file has no file name")?
                 .to_string_lossy()
                 .to_string();
-            let (mode, mtime) = capture_mode_mtime(&meta);
+            let (mode, mtime, uid, gid, hardlink_key) = capture_mode_mtime_uid_gid(&meta);
             files.push(InputFile {
                 rel_path: normalize_logical_path(&name),
                 abs_path: abs,
                 kind: EntryKind::Regular,
                 mode,
                 mtime,
+                uid,
+                gid,
+                uname: None,
+                gname: None,
+                hardlink_key,
                 xattrs: capture_xattrs(input),
             });
             continue;
@@ -1910,13 +2030,18 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 .context("input symlink has no file name")?
                 .to_string_lossy()
                 .to_string();
-            let (mode, mtime) = capture_mode_mtime(&meta);
+            let (mode, mtime, uid, gid, hardlink_key) = capture_mode_mtime_uid_gid(&meta);
             files.push(InputFile {
                 rel_path: normalize_logical_path(&name),
                 abs_path: input.clone(),
                 kind: EntryKind::Symlink,
                 mode,
                 mtime,
+                uid,
+                gid,
+                uname: None,
+                gname: None,
+                hardlink_key,
                 xattrs: Vec::new(),
             });
             continue;
@@ -1942,7 +2067,7 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
             let rel_path = normalize_logical_path(&rel);
             let entry_meta = std::fs::symlink_metadata(entry.path())
                 .with_context(|| format!("stat {}", entry.path().display()))?;
-            let (mode, mtime) = capture_mode_mtime(&entry_meta);
+            let (mode, mtime, uid, gid, hardlink_key) = capture_mode_mtime_uid_gid(&entry_meta);
             let kind = if entry.file_type().is_file() {
                 EntryKind::Regular
             } else if entry.file_type().is_symlink() {
@@ -1959,6 +2084,11 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 kind,
                 mode,
                 mtime,
+                uid,
+                gid,
+                uname: None,
+                gname: None,
+                hardlink_key,
                 xattrs: if kind == EntryKind::Regular || kind == EntryKind::Directory {
                     capture_xattrs(entry.path())
                 } else {
@@ -1967,7 +2097,7 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
             });
         }
         if !saw_child {
-            let (mode, mtime) = capture_mode_mtime(&meta);
+            let (mode, mtime, uid, gid, hardlink_key) = capture_mode_mtime_uid_gid(&meta);
             let name = abs
                 .file_name()
                 .context("input directory has no file name")?
@@ -1979,6 +2109,11 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 kind: EntryKind::Directory,
                 mode,
                 mtime,
+                uid,
+                gid,
+                uname: None,
+                gname: None,
+                hardlink_key,
                 xattrs: capture_xattrs(input),
             });
         }

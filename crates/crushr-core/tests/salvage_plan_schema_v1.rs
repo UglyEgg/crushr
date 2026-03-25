@@ -225,12 +225,12 @@ fn invalid_idx3_yields_unmappable_orphan_only_plan() {
     let mut bytes = fs::read(&archive).unwrap();
     let mut idx_pos = None;
     for i in 0..bytes.len().saturating_sub(3) {
-        if &bytes[i..i + 4] == b"IDX3" {
+        if &bytes[i..i + 4] == b"IDX3" || &bytes[i..i + 4] == b"IDX4" {
             idx_pos = Some(i);
             break;
         }
     }
-    let idx_pos = idx_pos.expect("IDX3 magic should exist");
+    let idx_pos = idx_pos.expect("IDX magic should exist");
     bytes[idx_pos] = b'X';
 
     let broken = root.join("broken-idx.crs");

@@ -129,7 +129,9 @@ fn pack_single_file_produces_readable_v1_archive() {
         file: fs::File::open(&archive).unwrap(),
     };
     let opened = open_archive_v1(&reader).unwrap();
-    assert!(opened.tail.idx3_bytes.starts_with(b"IDX3"));
+    assert!(
+        opened.tail.idx3_bytes.starts_with(b"IDX3") || opened.tail.idx3_bytes.starts_with(b"IDX4")
+    );
 
     let info = run_bin("crushr-info", &[archive.to_str().unwrap(), "--json"]);
     assert_ok(&info);

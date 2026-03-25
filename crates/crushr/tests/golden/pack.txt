@@ -20,7 +20,7 @@ Result
   total size             9 B
   compressed size        1.1 KiB
   compression ratio      0.01x
-  reduction              -12011.1%
+  reduction              -12388.9%
   processing time        <1s
   status                 COMPLETE
   message                archive emitted

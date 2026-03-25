@@ -14,6 +14,7 @@ pub const CODEC_ZSTD: u32 = 1;
 pub const IDX_MAGIC_V1: &[u8; 4] = b"IDX1";
 pub const IDX_MAGIC_V2: &[u8; 4] = b"IDX2";
 pub const IDX_MAGIC_V3: &[u8; 4] = b"IDX3";
+pub const IDX_MAGIC_V4: &[u8; 4] = b"IDX4";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EntryKind {
@@ -37,6 +38,11 @@ pub struct Entry {
     pub extents: Vec<Extent>,
     pub link_target: Option<String>,
     pub xattrs: Vec<Xattr>,
+    pub uid: u32,
+    pub gid: u32,
+    pub uname: Option<String>,
+    pub gname: Option<String>,
+    pub hardlink_group_id: Option<u64>,
 }
 
 #[derive(Debug, Clone)]

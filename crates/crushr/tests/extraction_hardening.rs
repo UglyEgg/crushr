@@ -55,6 +55,11 @@ fn regular_entry(path: &str, len: u64) -> Entry {
         }],
         link_target: None,
         xattrs: vec![],
+        uid: 0,
+        gid: 0,
+        uname: None,
+        gname: None,
+        hardlink_group_id: None,
     }
 }
 

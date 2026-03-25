@@ -105,14 +105,16 @@ The recovery manifest preserves structured classification and identity metadata 
 - symlink entries and link targets
 - mode/permission bits
 - modification time (`mtime`)
+- uid/gid ownership
 - empty directories
 - extended attributes (xattrs)
+- hard-link relationships
 
 Current scope is intentionally Linux-first. Non-Linux platforms may degrade with explicit warnings for unsupported metadata restoration (especially xattrs) rather than silent metadata fabrication.
 
 Current limitations in this baseline packet:
 
-- uid/gid numeric ownership preservation is intentionally deferred.
+- ownership names (`uname`/`gname`) are currently optional and may be absent.
 - Permission-denied xattr restore warning paths are implemented, but deterministic CI coverage for that specific denied-path scenario is not guaranteed in every environment.
 
 ## Product boundary
