@@ -1004,7 +1004,7 @@ fn emit_archive_from_layout(
         write_experimental_metadata_block(&mut out, path_dictionary, level)?;
     }
     let mut payload_materialized_by_block =
-        BTreeMap::<u32, (u64, u64, [u8; 32], [u8; 32], u64, Vec<u8>)>::new();
+        BTreeMap::<u32, (u64, u64, [u8; 32], [u8; 32], u64)>::new();
     for (ordinal, file) in layout.files.into_iter().enumerate() {
         let current_meta = std::fs::metadata(&file.abs_path)
             .with_context(|| format!("stat {}", file.abs_path.display()))?;
@@ -1015,7 +1015,7 @@ fn emit_archive_from_layout(
                 file.abs_path.display()
             );
         }
-        let (raw_len, compressed_len, payload_hash, raw_hash, block_scan_offset, raw_for_manifest) =
+        let (raw_len, compressed_len, payload_hash, raw_hash, block_scan_offset) =
             if file.write_payload {
                 let raw = if file.sparse_chunks.is_empty() {
                     std::fs::read(&file.abs_path)
@@ -1085,7 +1085,6 @@ fn emit_archive_from_layout(
                         payload_hash,
                         raw_hash,
                         block_scan_offset,
-                        raw.clone(),
                     ),
                 );
                 (
@@ -1094,10 +1093,9 @@ fn emit_archive_from_layout(
                     payload_hash,
                     raw_hash,
                     block_scan_offset,
-                    raw,
                 )
             } else {
-                let (raw_len, compressed_len, payload_hash, raw_hash, block_scan_offset, raw) =
+                let (raw_len, compressed_len, payload_hash, raw_hash, block_scan_offset) =
                     payload_materialized_by_block
                         .get(&file.block_id)
                         .cloned()
@@ -1113,7 +1111,6 @@ fn emit_archive_from_layout(
                     payload_hash,
                     raw_hash,
                     block_scan_offset,
-                    raw,
                 )
             };
         progress(
@@ -1254,12 +1251,8 @@ fn emit_archive_from_layout(
         }
 
         if emit_manifest_checkpoints {
-            let manifest_record = build_file_manifest_record(
-                file.file_id,
-                &file.rel_path,
-                &raw_for_manifest,
-                raw_len,
-            );
+            let manifest_record =
+                build_file_manifest_record(file.file_id, &file.rel_path, &raw_hash, raw_len);
             file_manifest_records.push(manifest_record.clone());
             write_experimental_metadata_block(&mut out, &manifest_record, level)?;
 
@@ -1677,7 +1670,7 @@ fn build_path_checkpoint_snapshot(
 fn build_file_manifest_record(
     file_id: u32,
     rel_path: &str,
-    raw: &[u8],
+    raw_hash: &[u8; 32],
     raw_len: u64,
 ) -> FileManifestRecord {
     FileManifestRecord {
@@ -1687,7 +1680,7 @@ fn build_file_manifest_record(
         file_size: raw_len,
         expected_block_count: 1,
         extent_count: 1,
-        file_digest: to_hex(blake3::hash(raw).as_bytes()),
+        file_digest: to_hex(raw_hash),
     }
 }
 

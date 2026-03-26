@@ -5,6 +5,22 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-26 — CRUSHR_PACK_STREAMING_01 production pack raw-byte retention removal
+
+- Decision:
+  - Remove raw payload byte vectors from `emit_archive_from_layout` hard-link reuse cache (`payload_materialized_by_block`) and retain only immutable per-block identity/length/offset metadata.
+  - Reuse the already computed per-block raw BLAKE3 digest for file-manifest `file_digest` instead of retaining and re-hashing payload bytes later in the run.
+  - Keep existing fail-closed mutation detection timing and behavior unchanged.
+- Alternatives considered:
+  1. Keep retaining raw payload bytes in the hard-link map and rely on larger host memory.
+  2. Re-read source files only for manifest hashing in a second pass.
+- Rationale:
+  - The recurring OOM regression was caused by raw payload vectors being retained across the full pack run (`block_id -> ... -> Vec<u8>`), which scaled with archive-total payload size rather than active working set.
+  - Reusing already-computed raw hashes preserves deterministic manifest truth while eliminating broad payload residency.
+- Blast radius:
+  - `crates/crushr/src/commands/pack.rs` pack serialization path and manifest record builder signature.
+  - No archive format contract changes, no extraction/verify behavior changes, and no mutation-guard semantics changes.
+
 ## 2026-03-25 — CRUSHR_INTROSPECTION_02 profile-aware introspection presentation lock
 
 - Decision:
