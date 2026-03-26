@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-26 — CRUSHR_PRESERVATION_FIX_06 (v0.4.16)
+- Fixed strict/recover extraction metadata restore semantics so omitted-by-profile classes are not attempted at restore time (instead of being attempted and only filtered later for classification).
+- Added profile-aware restore gating for ownership, xattrs, ACLs, SELinux labels, and Linux capabilities; this removes spurious omitted-class restore warnings for `basic` and `payload-only` archives.
+- Preserved full-profile behavior: required metadata restoration still attempts restore and still reports warning/fail-closed behavior when blocked.
+- Extended `metadata_preservation` deterministic coverage with omitted-profile warning suppression checks for strict+recover and explicit full-profile ownership-warning assertions.
+- Advanced canonical version to `0.4.16` (`VERSION` + workspace package version sync).
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test metadata_preservation`; `cargo test -p crushr --test recovery_extract_contract`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `./scripts/check-version-sync.sh`.
+
 ## 2026-03-26 — CRUSHR_BENCHMARK_02 (v0.4.15)
 - Executed the full CRUSHR benchmark matrix over deterministic datasets (`small_mixed_tree`, `medium_realistic_tree`, `large_stress_tree`) with `tar+zstd`, `tar+xz`, `crushr(full)`, and `crushr(basic)`.
 - Published canonical baseline raw results at `docs/reference/benchmarks/benchmark_results_v0.4.15.json` and the first comparative analysis report at `docs/reference/benchmark-baseline.md`.

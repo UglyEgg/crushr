@@ -1,3 +1,11 @@
+CRUSHR_PRESERVATION_FIX_06 complete (2026-03-26):
+- Strict + recover extraction now treat archive profile as restore-time authority: omitted metadata classes are skipped (no restore syscall attempts) instead of attempted then classification-filtered.
+- Omitted-profile warning noise is removed for `basic`/`payload-only` across ownership/xattrs/ACL/SELinux/capability metadata classes.
+- Full-profile behavior is intentionally unchanged: required metadata restoration is still attempted and still warns/fail-closes/degrades when blocked.
+- Added deterministic coverage in `metadata_preservation.rs` for omitted-profile warning suppression in strict/recover and explicit full-profile ownership-warning assertions.
+- Canonical version advanced to `0.4.16` (`VERSION` + workspace package version sync).
+- Validation in packet: `cargo fmt --all`; `cargo test -p crushr --test metadata_preservation`; `cargo test -p crushr --test recovery_extract_contract`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `./scripts/check-version-sync.sh`.
+
 CRUSHR_BENCHMARK_02 complete (2026-03-26):
 - Executed full benchmark matrix from locked harness over all three deterministic datasets and published canonical baseline artifacts.
 - Raw JSON artifact committed at `docs/reference/benchmarks/benchmark_results_v0.4.15.json`; human report committed at `docs/reference/benchmark-baseline.md`.

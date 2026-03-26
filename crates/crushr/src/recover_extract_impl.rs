@@ -278,12 +278,8 @@ where
                         let bytes = read_entry_bytes_strict(&reader, entry, &blocks)?;
                         write_entry(destination.as_path(), &bytes, opts.overwrite)?;
                     }
-                    let failed_metadata = restore_entry_metadata(destination.as_path(), entry)?
-                        .into_iter()
-                        .filter(|class| {
-                            metadata_required_by_profile(preservation_profile, entry, *class)
-                        })
-                        .collect::<Vec<_>>();
+                    let failed_metadata =
+                        restore_entry_metadata(destination.as_path(), entry, preservation_profile)?;
                     if failed_metadata.is_empty() {
                         canonical_count += 1;
                     } else {
@@ -329,12 +325,8 @@ where
             EntryKind::Directory => {
                 fs::create_dir_all(&destination)
                     .with_context(|| format!("create {}", destination.display()))?;
-                let failed_metadata = restore_entry_metadata(destination.as_path(), entry)?
-                    .into_iter()
-                    .filter(|class| {
-                        metadata_required_by_profile(preservation_profile, entry, *class)
-                    })
-                    .collect::<Vec<_>>();
+                let failed_metadata =
+                    restore_entry_metadata(destination.as_path(), entry, preservation_profile)?;
                 if failed_metadata.is_empty() {
                     canonical_count += 1;
                 } else {
@@ -383,12 +375,8 @@ where
                 #[cfg(unix)]
                 std::os::unix::fs::symlink(&target, &destination)
                     .with_context(|| format!("symlink {} -> {}", destination.display(), target))?;
-                let failed_metadata = restore_entry_metadata(destination.as_path(), entry)?
-                    .into_iter()
-                    .filter(|class| {
-                        metadata_required_by_profile(preservation_profile, entry, *class)
-                    })
-                    .collect::<Vec<_>>();
+                let failed_metadata =
+                    restore_entry_metadata(destination.as_path(), entry, preservation_profile)?;
                 if failed_metadata.is_empty() {
                     canonical_count += 1;
                 } else {
@@ -445,12 +433,8 @@ where
                     }
                 }
                 restore_special(destination.as_path(), entry)?;
-                let failed_metadata = restore_entry_metadata(destination.as_path(), entry)?
-                    .into_iter()
-                    .filter(|class| {
-                        metadata_required_by_profile(preservation_profile, entry, *class)
-                    })
-                    .collect::<Vec<_>>();
+                let failed_metadata =
+                    restore_entry_metadata(destination.as_path(), entry, preservation_profile)?;
                 if failed_metadata.is_empty() {
                     canonical_count += 1;
                 } else {
@@ -877,7 +861,11 @@ fn restore_special(path: &Path, entry: &Entry) -> Result<()> {
     Ok(())
 }
 
-fn restore_regular_metadata(path: &Path, entry: &Entry) -> Result<Vec<MetadataClass>> {
+fn restore_regular_metadata(
+    path: &Path,
+    entry: &Entry,
+    profile: PreservationProfile,
+) -> Result<Vec<MetadataClass>> {
     let mut failed = Vec::new();
     #[cfg(unix)]
     {
@@ -889,13 +877,17 @@ fn restore_regular_metadata(path: &Path, entry: &Entry) -> Result<Vec<MetadataCl
     if restore_mtime(path, entry.mtime).is_err() {
         failed.push(MetadataClass::SpecialFile);
     }
-    if restore_xattrs(path, entry)? {
+    if metadata_required_by_profile(profile, entry, MetadataClass::Xattr)
+        && restore_xattrs(path, entry)?
+    {
         failed.push(MetadataClass::Xattr);
     }
-    if restore_ownership(path, entry)? {
+    if metadata_required_by_profile(profile, entry, MetadataClass::Ownership)
+        && restore_ownership(path, entry)?
+    {
         failed.push(MetadataClass::Ownership);
     }
-    let security_failures = restore_security_metadata(path, entry);
+    let security_failures = restore_security_metadata(path, entry, profile);
     if security_failures.contains(&MetadataClass::Acl) {
         failed.push(MetadataClass::Acl);
     }
@@ -910,7 +902,11 @@ fn restore_regular_metadata(path: &Path, entry: &Entry) -> Result<Vec<MetadataCl
     Ok(failed)
 }
 
-fn restore_directory_metadata(path: &Path, entry: &Entry) -> Result<Vec<MetadataClass>> {
+fn restore_directory_metadata(
+    path: &Path,
+    entry: &Entry,
+    profile: PreservationProfile,
+) -> Result<Vec<MetadataClass>> {
     let mut failed = Vec::new();
     #[cfg(unix)]
     {
@@ -922,47 +918,67 @@ fn restore_directory_metadata(path: &Path, entry: &Entry) -> Result<Vec<Metadata
     if restore_mtime(path, entry.mtime).is_err() {
         failed.push(MetadataClass::SpecialFile);
     }
-    if restore_xattrs(path, entry)? {
+    if metadata_required_by_profile(profile, entry, MetadataClass::Xattr)
+        && restore_xattrs(path, entry)?
+    {
         failed.push(MetadataClass::Xattr);
     }
-    if restore_ownership(path, entry)? {
+    if metadata_required_by_profile(profile, entry, MetadataClass::Ownership)
+        && restore_ownership(path, entry)?
+    {
         failed.push(MetadataClass::Ownership);
     }
-    failed.extend(restore_security_metadata(path, entry));
+    failed.extend(restore_security_metadata(path, entry, profile));
     failed.sort();
     failed.dedup();
     Ok(failed)
 }
 
-fn restore_symlink_metadata(path: &Path, entry: &Entry) -> Result<Vec<MetadataClass>> {
+fn restore_symlink_metadata(
+    path: &Path,
+    entry: &Entry,
+    profile: PreservationProfile,
+) -> Result<Vec<MetadataClass>> {
     let mut failed = Vec::new();
-    if restore_ownership(path, entry)? {
+    if metadata_required_by_profile(profile, entry, MetadataClass::Ownership)
+        && restore_ownership(path, entry)?
+    {
         failed.push(MetadataClass::Ownership);
     }
-    failed.extend(restore_security_metadata(path, entry));
+    failed.extend(restore_security_metadata(path, entry, profile));
     failed.sort();
     failed.dedup();
     Ok(failed)
 }
 
-fn restore_special_metadata(path: &Path, entry: &Entry) -> Result<Vec<MetadataClass>> {
+fn restore_special_metadata(
+    path: &Path,
+    entry: &Entry,
+    profile: PreservationProfile,
+) -> Result<Vec<MetadataClass>> {
     let mut failed = Vec::new();
-    if restore_ownership(path, entry)? {
+    if metadata_required_by_profile(profile, entry, MetadataClass::Ownership)
+        && restore_ownership(path, entry)?
+    {
         failed.push(MetadataClass::Ownership);
     }
-    failed.extend(restore_security_metadata(path, entry));
+    failed.extend(restore_security_metadata(path, entry, profile));
     failed.sort();
     failed.dedup();
     Ok(failed)
 }
 
-fn restore_entry_metadata(path: &Path, entry: &Entry) -> Result<Vec<MetadataClass>> {
+fn restore_entry_metadata(
+    path: &Path,
+    entry: &Entry,
+    profile: PreservationProfile,
+) -> Result<Vec<MetadataClass>> {
     match entry.kind {
-        EntryKind::Regular => restore_regular_metadata(path, entry),
-        EntryKind::Directory => restore_directory_metadata(path, entry),
-        EntryKind::Symlink => restore_symlink_metadata(path, entry),
+        EntryKind::Regular => restore_regular_metadata(path, entry, profile),
+        EntryKind::Directory => restore_directory_metadata(path, entry, profile),
+        EntryKind::Symlink => restore_symlink_metadata(path, entry, profile),
         EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice => {
-            restore_special_metadata(path, entry)
+            restore_special_metadata(path, entry, profile)
         }
     }
 }
@@ -1064,60 +1080,78 @@ fn restore_xattrs(path: &Path, entry: &Entry) -> Result<bool> {
     Ok(failed)
 }
 
-fn restore_security_metadata(path: &Path, entry: &Entry) -> Vec<MetadataClass> {
+fn restore_security_metadata(
+    path: &Path,
+    entry: &Entry,
+    profile: PreservationProfile,
+) -> Vec<MetadataClass> {
     let mut failed = Vec::new();
     #[cfg(unix)]
     {
-        if restore_single_xattr(
-            path,
-            "acl-restore",
-            "system.posix_acl_access",
-            entry.acl_access.as_deref(),
-        ) {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Acl)
+            && restore_single_xattr(
+                path,
+                "acl-restore",
+                "system.posix_acl_access",
+                entry.acl_access.as_deref(),
+            )
+        {
             failed.push(MetadataClass::Acl);
         }
-        if restore_single_xattr(
-            path,
-            "acl-restore",
-            "system.posix_acl_default",
-            entry.acl_default.as_deref(),
-        ) {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Acl)
+            && restore_single_xattr(
+                path,
+                "acl-restore",
+                "system.posix_acl_default",
+                entry.acl_default.as_deref(),
+            )
+        {
             failed.push(MetadataClass::Acl);
         }
-        if restore_single_xattr(
-            path,
-            "selinux-restore",
-            "security.selinux",
-            entry.selinux_label.as_deref(),
-        ) {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Selinux)
+            && restore_single_xattr(
+                path,
+                "selinux-restore",
+                "security.selinux",
+                entry.selinux_label.as_deref(),
+            )
+        {
             failed.push(MetadataClass::Selinux);
         }
-        if restore_single_xattr(
-            path,
-            "capability-restore",
-            "security.capability",
-            entry.linux_capability.as_deref(),
-        ) {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Capability)
+            && restore_single_xattr(
+                path,
+                "capability-restore",
+                "security.capability",
+                entry.linux_capability.as_deref(),
+            )
+        {
             failed.push(MetadataClass::Capability);
         }
     }
     #[cfg(not(unix))]
     {
-        if entry.acl_access.is_some() || entry.acl_default.is_some() {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Acl)
+            && (entry.acl_access.is_some() || entry.acl_default.is_some())
+        {
             failed.push(MetadataClass::Acl);
             eprintln!(
                 "WARNING[acl-restore]: skipped ACL metadata on '{}' (unsupported platform)",
                 path.display()
             );
         }
-        if entry.selinux_label.is_some() {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Selinux)
+            && entry.selinux_label.is_some()
+        {
             failed.push(MetadataClass::Selinux);
             eprintln!(
                 "WARNING[selinux-restore]: skipped SELinux label on '{}' (unsupported platform)",
                 path.display()
             );
         }
-        if entry.linux_capability.is_some() {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Capability)
+            && entry.linux_capability.is_some()
+        {
             failed.push(MetadataClass::Capability);
             eprintln!(
                 "WARNING[capability-restore]: skipped Linux capabilities on '{}' (unsupported platform)",
