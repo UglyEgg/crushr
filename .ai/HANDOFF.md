@@ -1,3 +1,10 @@
+CRUSHR_BENCHMARK_02 complete (2026-03-26):
+- Executed full benchmark matrix from locked harness over all three deterministic datasets and published canonical baseline artifacts.
+- Raw JSON artifact committed at `docs/reference/benchmarks/benchmark_results_v0.4.15.json`; human report committed at `docs/reference/benchmark-baseline.md`.
+- Environment summary + caveats documented; peak RSS is currently unavailable in this environment because GNU `/usr/bin/time` is missing.
+- Canonical version advanced to `0.4.15` (`VERSION` + workspace package version sync).
+- Validation in packet: `cargo build --release -p crushr`; dataset generation + benchmark run; schema validation via `python3 -m jsonschema`; `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `./scripts/check-version-sync.sh`.
+
 CRUSHR_BENCHMARK_01 complete (2026-03-26):
 - Added deterministic benchmark dataset generator at `scripts/benchmark/generate_datasets.py` with three benchmark classes and emitted `dataset_manifest.json`.
 - Added deterministic benchmark harness at `scripts/benchmark/run_benchmarks.py` capturing command provenance, archive size, pack/extract wall time, and peak RSS per run.

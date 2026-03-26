@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-26 — CRUSHR_BENCHMARK_02 (v0.4.15)
+- Executed the full CRUSHR benchmark matrix over deterministic datasets (`small_mixed_tree`, `medium_realistic_tree`, `large_stress_tree`) with `tar+zstd`, `tar+xz`, `crushr(full)`, and `crushr(basic)`.
+- Published canonical baseline raw results at `docs/reference/benchmarks/benchmark_results_v0.4.15.json` and the first comparative analysis report at `docs/reference/benchmark-baseline.md`.
+- Recorded benchmark environment details (CPU/RAM/OS/filesystem) and explicit metric caveats (peak RSS and CPU timings unavailable due missing GNU `/usr/bin/time` in this environment).
+- Updated reference index and benchmark contract page version marker to include baseline artifact visibility.
+- Advanced canonical version to `0.4.15` (`VERSION` + workspace package version sync).
+- Validation: `cargo build --release -p crushr`; `python3 scripts/benchmark/generate_datasets.py --clean --output .bench/datasets`; `python3 scripts/benchmark/run_benchmarks.py --datasets .bench/datasets --crushr-bin target/release/crushr --output .bench/results/benchmark_results.json`; `python3 -m jsonschema -i .bench/results/benchmark_results.json schemas/crushr-benchmark-run.v1.schema.json`; `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `./scripts/check-version-sync.sh`.
+
 ## 2026-03-26 — CRUSHR_BENCHMARK_01 (v0.4.14)
 - Added deterministic benchmark dataset generation at `scripts/benchmark/generate_datasets.py` with three locked dataset classes (`small_mixed_tree`, `medium_realistic_tree`, `large_stress_tree`), fixed generation seed/mtime controls, and emitted `dataset_manifest.json`.
 - Added reproducible benchmark execution harness at `scripts/benchmark/run_benchmarks.py` with explicit comparator commands for `tar+zstd`, `tar+xz`, `crushr(full)`, and `crushr(basic)`, including pack/extract timing and peak-RSS capture.
