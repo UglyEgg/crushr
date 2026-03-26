@@ -7,7 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_INTROSPECTION_02 complete** (expanded profile-aware archive introspection readability for `info` and `info --list`)
+Current Step: **CRUSHR_PACK_STREAMING_01 complete** (bounded-memory streaming fix for recurring production pack OOM)
+
+Latest maintenance fix (2026-03-26):
+- **CRUSHR_PACK_STREAMING_01 complete**: removed recurring whole-run payload retention from production `pack` by dropping in-memory raw-byte caching in hard-link payload reuse state.
+- **CRUSHR_PACK_STREAMING_01 complete**: file-manifest digest emission now uses already-computed per-block raw BLAKE3 digests instead of retaining payload bytes for later re-hash.
+- **CRUSHR_PACK_STREAMING_01 complete**: fail-closed mutation guard remains unchanged (`input changed during pack planning`) and still runs at serialization-time metadata checks.
+- **CRUSHR_PACK_STREAMING_01 evidence**: synthetic 250-file (2 MiB each) dataset max RSS dropped from **525,800 KiB** (`HEAD~1`) to **14,400 KiB** (current), with equivalent successful archive emission.
+- **CRUSHR_PACK_STREAMING_01 validation**: `cargo fmt --all`, `cargo test -p crushr pack_fails_if_file_changes_between_planning_and_emit -- --nocapture`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `cargo test -p crushr --test version_contract`, and pack/info/verify/extract runtime probes are green.
 
 Latest maintenance fix (2026-03-25):
 - **CRUSHR_INTROSPECTION_02 complete**: `crushr info` now surfaces preservation profile contract classification (`full-fidelity Linux-first` / `basic Linux metadata` / `content-oriented payload`) and adds concise entry-kind visibility summary (`regular`, `directory`, `symlink`, `hard link`, `sparse`, `FIFO`, `char/block device`).

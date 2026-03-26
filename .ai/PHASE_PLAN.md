@@ -70,6 +70,7 @@ Deliverables
 - [x] CRUSHR_CLI_UNIFY_03 — CLI contract enforcement pass: added integration tests for canonical taxonomy/help/about/version/exit-code/shared-flag invariants and removed remaining undocumented alias branches.
 - [x] CRUSHR_CLI_UNIFY_04 — production-vs-lab pack boundary lock: remove experimental format/layout controls from public `pack`, relocate retained experimentation to `crushr lab`, and align parser/help/tests/docs.
 - [x] CRUSHR_PACK_SCALE_01 — bound production `pack` planning memory by eliminating whole-run file payload pre-materialization and moving payload compression/hashing to serialization-time streaming.
+- [x] CRUSHR_PACK_STREAMING_01 — remove recurring production pack whole-run raw-byte retention in hard-link reuse/manifest emission so memory stays bounded to active working-set state.
 - [x] CRUSHR_VERIFY_SCALE_01 — bound production `verify` memory by removing temp extraction/materialization from verify path and adding deterministic real-phase progress visibility in human verify output.
 - [x] CRUSHR_RECOVERY_MODEL_01 — add `extract --recover` trust-class recovery model, segregated output contract, anonymous naming policy, and required recovery manifest schema/output generation.
 - [x] CRUSHR_RECOVERY_MODEL_02 — integrate salvage planning into `extract --recover`, add required recover progress phases, and emit required recovery Result/Trust summary contract.

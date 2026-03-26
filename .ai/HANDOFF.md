@@ -1,3 +1,10 @@
+CRUSHR_PACK_STREAMING_01 complete (2026-03-26):
+- Production `pack` no longer retains per-block raw payload vectors for the entire run; hard-link reuse cache now stores only block metadata (lengths/hashes/offset).
+- File-manifest digest writing now reuses the already computed `raw_hash` for each block, removing a hidden whole-run payload-retention path.
+- Repro/evidence captured in `.ai/COMPLETION_NOTES_CRUSHR_PACK_STREAMING_01.md` with exact commands and before/after RSS (`HEAD~1` vs current) on a deterministic 250-file dataset.
+- Canonical version advanced to `0.4.13` (`VERSION` + workspace package version sync).
+- Validation in packet: `cargo fmt --all`; `cargo test -p crushr pack_fails_if_file_changes_between_planning_and_emit -- --nocapture`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo test -p crushr --test version_contract`; plus runtime `pack/info/extract --verify/extract --all` probes.
+
 CRUSHR_INTROSPECTION_02 complete (2026-03-25):
 - `crushr info` now has explicit preservation contract labeling and entry-kind summary rows, plus metadata visibility states (`present`, `not present`, `omitted by profile`) to separate omission intent from degradation semantics.
 - `crushr info --list` now prints profile/scope context and keeps non-regular omission messaging informational while preserving fail-closed proof-unavailable warning behavior.

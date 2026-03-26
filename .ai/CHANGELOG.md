@@ -5,6 +5,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-26 — CRUSHR_PACK_STREAMING_01 (v0.4.13)
+- Removed recurring production-pack whole-run raw payload retention: hard-link payload reuse cache in `emit_archive_from_layout` no longer stores `Vec<u8>` per block.
+- Reworked file-manifest record construction to consume already computed per-block raw BLAKE3 digests, eliminating payload-byte retention for deferred manifest hashing.
+- Preserved fail-closed mutation detection behavior (`input changed during pack planning`) and deterministic archive semantics.
+- Captured reproducible before/after memory evidence and commands in `.ai/COMPLETION_NOTES_CRUSHR_PACK_STREAMING_01.md` (max RSS `525,800 KiB` on `HEAD~1` → `14,400 KiB` current for deterministic 250-file dataset).
+- Validation: `cargo fmt --all`; `cargo test -p crushr pack_fails_if_file_changes_between_planning_and_emit -- --nocapture`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo test -p crushr --test version_contract`; plus runtime pack/info/verify/extract probes on generated archive.
+
 ## 2026-03-25 — CRUSHR_INTROSPECTION_02 (v0.4.12)
 - Expanded `crushr info` introspection readability with explicit preservation contract row and a compact `Entry kinds` section that summarizes regular/directories/symlinks/hard-links/sparse/FIFO/char-device/block-device visibility.
 - Updated `crushr info` metadata visibility semantics to report `present`, `not present`, and `omitted by profile`, clarifying intentional profile omission vs extraction-time `metadata_degraded` outcomes.
