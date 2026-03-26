@@ -43,6 +43,7 @@ For current behavior and guarantees, see the formal docs and project control doc
 
 ## Entries
 
+- [2026-03-26 — The Tool Told Me It Was Wrong](./2026-03-26-told-me-it-was-wrong.md)
 - [2026-03-25 — The Origin of crushr](./2026-03-25-the-origin-of-crushr.md)
 - [2026-03-24 — Feels Like a Real Tool](./2026-03-24-real-tool.md)
 - [2026-03-18 — Speed Comes From Killing Bad Ideas Faster](./2026-03-18-speed.md)

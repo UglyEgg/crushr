@@ -30,6 +30,7 @@ nav = [
   ] },
   { "Chronicles" = [
     { "Overview" = "chronicles/index.md" },
+    { "03/26/2026 — The Tool Told Me It Was Wrong" = "chronicles/2026-03-26-told-me-it-was-wrong.md" },
     { "03/25/2026 - The Origin of crushr" = "chronicles/2026-03-25-the-origin-of-crushr.md" },
     { "03/24/2026 - Feels Real" = "chronicles/2026-03-24-real-tool.md" },
     { "03/18/2026 - Speed" = "chronicles/2026-03-18-speed.md" },
