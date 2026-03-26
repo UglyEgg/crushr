@@ -5,6 +5,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-26 — CRUSHR_BENCHMARK_03 pack-phase attribution surface lock
+
+- Decision:
+  - Add explicit production-only flag `crushr pack --profile-pack` to emit deterministic human-readable phase timing breakdown.
+  - Instrument pack pipeline timings across six attributed phases: `discovery`, `metadata`, `hashing`, `compression`, `emission`, and `finalization`.
+  - Keep profiling opt-in only; default pack output and archive semantics remain unchanged unless `--profile-pack` is supplied.
+- Alternatives considered:
+  1. Keep benchmark attribution external-only (e.g., system profiler/perf) with no product-surface instrumentation.
+  2. Emit profiling data by default in normal pack output.
+  3. Add per-file tracing/noisy debug output instead of bounded phase totals.
+- Rationale:
+  - Benchmark deficit needs stage-level attribution evidence before optimization packets can be scoped safely.
+  - Opt-in phase totals provide deterministic, low-noise signals for human benchmark investigation without changing pack behavior/contracts.
+- Blast radius:
+  - `crates/crushr/src/commands/pack.rs` gained explicit phase timers and `--profile-pack` parsing/help surface.
+  - `crates/crushr/tests/cli_contract_surface.rs` gained profiling-surface contract checks.
+  - `docs/reference/benchmarking.md` now includes local operator commands and capture guidance for phase-attribution runs.
+
 ## 2026-03-26 — CRUSHR_PRESERVATION_FIX_06 extraction profile-authority lock
 
 - Decision:

@@ -93,7 +93,7 @@ Deliverables
 - [x] CRUSHR_INTROSPECTION_02 — expand/polish `info` + `info --list` readability with profile contract clarity, metadata omission-vs-presence wording, entry-kind summary visibility, and calm fail-closed listing context.
 - [x] CRUSHR-BENCH-01 — implement deterministic benchmark contract foundation with reproducible datasets, explicit comparator commands/profiles, and schema-backed benchmark output.
 - [x] CRUSHR-BENCH-02 — initial canonical corpus generation, baseline runs, and first quantitative benchmark artifacts.
-- [ ] CRUSHR-BENCH-03 — benchmark result review, compression/performance tuning priorities, and whitepaper/data-surface integration.
+- [x] CRUSHR-BENCH-03 — pack pipeline attribution instrumentation (`--profile-pack`), deterministic phase timing visibility, and benchmark-operator capture guidance for medium/large datasets.
 
 Exit criteria
 

@@ -117,3 +117,7 @@ Surprising findings:
 - CPU time fields are also absent for the same reason.
 - Results are tied to this host profile (3 vCPU, ext4, containerized runtime).
 - Dataset representativeness is bounded to current deterministic synthetic families (`small_mixed_tree`, `medium_realistic_tree`, `large_stress_tree`).
+
+## Follow-up attribution status
+
+As of `v0.4.17`, pack-phase attribution is available through `crushr pack --profile-pack` (see `docs/reference/benchmarking.md`) so future benchmark investigations can break pack-time cost down by internal phase rather than treating pack as a single undifferentiated bucket.

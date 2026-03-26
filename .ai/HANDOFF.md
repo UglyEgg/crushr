@@ -1,3 +1,11 @@
+CRUSHR_BENCHMARK_03 complete (2026-03-26):
+- Added explicit production pack profiling flag `--profile-pack` with deterministic phase totals for `discovery`, `metadata`, `hashing`, `compression`, `emission`, and `finalization`.
+- Pack attribution is instrumentation-only: no archive semantics/compression behavior changes and no default output noise; phase table is emitted only when profiling flag is present.
+- Added CLI contract coverage ensuring profile output is absent by default and present when requested.
+- Updated benchmark reference docs with exact local operator commands for medium/large dataset attribution capture and optional `full` vs `basic` comparison.
+- Canonical version advanced to `0.4.17` (`VERSION` + workspace package version sync).
+- Validation in packet: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `./scripts/check-version-sync.sh`; `cargo test -p crushr --test version_contract`.
+
 CRUSHR_PRESERVATION_FIX_06 complete (2026-03-26):
 - Strict + recover extraction now treat archive profile as restore-time authority: omitted metadata classes are skipped (no restore syscall attempts) instead of attempted then classification-filtered.
 - Omitted-profile warning noise is removed for `basic`/`payload-only` across ownership/xattrs/ACL/SELinux/capability metadata classes.
