@@ -7,7 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_PACK_STREAMING_01 complete** (bounded-memory streaming fix for recurring production pack OOM)
+Current Step: **CRUSHR_BENCHMARK_01 complete** (deterministic benchmark contract, datasets, and comparison methodology)
+
+Latest maintenance fix (2026-03-26):
+- **CRUSHR_BENCHMARK_01 complete**: added deterministic benchmark dataset generator (`scripts/benchmark/generate_datasets.py`) with three reproducible dataset classes (`small_mixed_tree`, `medium_realistic_tree`, `large_stress_tree`) plus emitted `dataset_manifest.json`.
+- **CRUSHR_BENCHMARK_01 complete**: added benchmark harness runner (`scripts/benchmark/run_benchmarks.py`) with explicit command execution for `tar+zstd`, `tar+xz`, `crushr --preservation full`, and `crushr --preservation basic`, plus structured JSON result output.
+- **CRUSHR_BENCHMARK_01 complete**: added benchmark contract documentation (`docs/reference/benchmarking.md`) and locked result schema (`schemas/crushr-benchmark-run.v1.schema.json`) for reproducible, attributable measurements.
+- **CRUSHR_BENCHMARK_01 complete**: canonical version advanced to `0.4.14` (`VERSION` + workspace package version sync).
+- **CRUSHR_BENCHMARK_01 validation**: `cargo build --release -p crushr`, dataset generation + full benchmark suite run over all three datasets, `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, and `./scripts/check-version-sync.sh` are green.
 
 Latest maintenance fix (2026-03-26):
 - **CRUSHR_PACK_STREAMING_01 complete**: removed recurring whole-run payload retention from production `pack` by dropping in-memory raw-byte caching in hard-link payload reuse state.
@@ -160,7 +167,7 @@ Latest maintenance fix (2026-03-23):
 - **CRUSHR_RECOVERY_MODEL_03 complete**: added a modular, data-driven recovery classification engine (`recovery_classification`) with ordered detection pipeline (magic -> secondary header/structure checks -> confidence assignment) and broad coverage across document/archive/media/binary/system signatures.
 - **CRUSHR_RECOVERY_MODEL_03 complete**: recover manifest entries now separate trust class (`recovery_kind`) from content typing (`classification.kind/confidence/basis/subtype`) and anonymous naming policy now strictly follows high/medium/low tiered naming.
 - **CRUSHR_RECOVERY_MODEL_03 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, and `cargo test --workspace` are green.
-Immediate Next Step: begin CRUSHR-BENCH-01 benchmark harness foundation now that the v0.3.x CLI polish surface is complete through CRUSHR_UI_POLISH_07.
+Immediate Next Step: begin CRUSHR-BENCH-02 baseline benchmark artifact capture and first comparative result review using the locked CRUSHR_BENCHMARK_01 methodology.
 
 
 Latest maintenance fix (2026-03-23):
@@ -351,7 +358,7 @@ Recovery should degrade in reverse order:
 1. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
 2. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
 3. Keep strict extraction interfaces/semantics untouched (including hardened `crushr-extract --verify` refusal behavior).
-4. Establish a unified CLI identity/presentation layer before building the benchmark harness so future output/report surfaces inherit one product language.
+4. Execute CRUSHR-BENCH-02 baseline runs from the locked harness and publish first canonical benchmark artifacts for review.
 
 ## Near-term product-completeness track (not active yet)
 

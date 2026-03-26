@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-26 — CRUSHR_BENCHMARK_01 (v0.4.14)
+- Added deterministic benchmark dataset generation at `scripts/benchmark/generate_datasets.py` with three locked dataset classes (`small_mixed_tree`, `medium_realistic_tree`, `large_stress_tree`), fixed generation seed/mtime controls, and emitted `dataset_manifest.json`.
+- Added reproducible benchmark execution harness at `scripts/benchmark/run_benchmarks.py` with explicit comparator commands for `tar+zstd`, `tar+xz`, `crushr(full)`, and `crushr(basic)`, including pack/extract timing and peak-RSS capture.
+- Added benchmark result schema `schemas/crushr-benchmark-run.v1.schema.json` and benchmark methodology doc `docs/reference/benchmarking.md` (commands, metrics, reproducibility assumptions, and output contract).
+- Linked benchmark contract page from `docs/reference/index.md` and ignored local benchmark workspace output via `/.bench/` in `.gitignore`.
+- Advanced canonical version to `0.4.14` (`VERSION` + workspace package version sync).
+- Validation: `cargo build --release -p crushr`; `python3 scripts/benchmark/generate_datasets.py --clean --output .bench/datasets`; `python3 scripts/benchmark/run_benchmarks.py --datasets .bench/datasets --crushr-bin target/release/crushr --output .bench/results/benchmark_results.json`; `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `./scripts/check-version-sync.sh`.
+
 ## 2026-03-26 — CRUSHR_PACK_STREAMING_01 (v0.4.13)
 - Removed recurring production-pack whole-run raw payload retention: hard-link payload reuse cache in `emit_archive_from_layout` no longer stores `Vec<u8>` per block.
 - Reworked file-manifest record construction to consume already computed per-block raw BLAKE3 digests, eliminating payload-byte retention for deferred manifest hashing.

@@ -32,6 +32,7 @@
 # Research / task packet working folders - heavy churn and messy
 /PHASE2_RESEARCH/
 /TASK_PACKETS/
+/.bench/
 
 
 # =========================================================

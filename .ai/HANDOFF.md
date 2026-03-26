@@ -1,3 +1,11 @@
+CRUSHR_BENCHMARK_01 complete (2026-03-26):
+- Added deterministic benchmark dataset generator at `scripts/benchmark/generate_datasets.py` with three benchmark classes and emitted `dataset_manifest.json`.
+- Added deterministic benchmark harness at `scripts/benchmark/run_benchmarks.py` capturing command provenance, archive size, pack/extract wall time, and peak RSS per run.
+- Added benchmark contract/reference docs (`docs/reference/benchmarking.md`) plus locked output schema (`schemas/crushr-benchmark-run.v1.schema.json`).
+- Benchmarks now run `tar+zstd`, `tar+xz`, `crushr --preservation full`, and `crushr --preservation basic` for each dataset and write structured output to `.bench/results/benchmark_results.json`.
+- Canonical version advanced to `0.4.14` (`VERSION` + workspace package version sync).
+- Validation in packet: `cargo build --release -p crushr`; `python3 scripts/benchmark/generate_datasets.py --clean --output .bench/datasets`; `python3 scripts/benchmark/run_benchmarks.py --datasets .bench/datasets --crushr-bin target/release/crushr --output .bench/results/benchmark_results.json`; `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `./scripts/check-version-sync.sh`.
+
 CRUSHR_PACK_STREAMING_01 complete (2026-03-26):
 - Production `pack` no longer retains per-block raw payload vectors for the entire run; hard-link reuse cache now stores only block metadata (lengths/hashes/offset).
 - File-manifest digest writing now reuses the already computed `raw_hash` for each block, removing a hidden whole-run payload-retention path.

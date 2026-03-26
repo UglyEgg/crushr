@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.crushr.dev/crushr-benchmark-run.v1.schema.json",
+  "title": "crushr benchmark run v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "benchmark_started_unix",
+    "environment",
+    "runs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "crushr-benchmark-run.v1"
+    },
+    "benchmark_started_unix": {
+      "type": "integer"
+    },
+    "environment": {
+      "type": "object",
+      "required": [
+        "platform",
+        "python",
+        "uname",
+        "cwd"
+      ],
+      "properties": {
+        "platform": {
+          "type": "string"
+        },
+        "python": {
+          "type": "string"
+        },
+        "uname": {
+          "type": "string"
+        },
+        "cwd": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "dataset",
+          "tool",
+          "pack_command",
+          "extract_command",
+          "archive_path",
+          "archive_size_bytes",
+          "pack_time_ms",
+          "extract_time_ms",
+          "pack_peak_rss_kb",
+          "extract_peak_rss_kb"
+        ],
+        "properties": {
+          "dataset": {
+            "enum": [
+              "small_mixed_tree",
+              "medium_realistic_tree",
+              "large_stress_tree"
+            ]
+          },
+          "tool": {
+            "enum": [
+              "tar_zstd",
+              "tar_xz",
+              "crushr"
+            ]
+          },
+          "profile": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              null,
+              "full",
+              "basic"
+            ]
+          },
+          "pack_command": {
+            "type": "string"
+          },
+          "extract_command": {
+            "type": "string"
+          },
+          "archive_path": {
+            "type": "string"
+          },
+          "archive_size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pack_time_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "extract_time_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pack_peak_rss_kb": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "extract_peak_rss_kb": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "pack_user_time_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "pack_sys_time_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "extract_user_time_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "extract_sys_time_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

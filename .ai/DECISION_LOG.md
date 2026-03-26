@@ -5,6 +5,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-26 — CRUSHR_BENCHMARK_01 deterministic benchmark contract lock
+
+- Decision:
+  - Introduce a deterministic benchmark contract with three generated dataset classes (`small_mixed_tree`, `medium_realistic_tree`, `large_stress_tree`) using fixed seed + fixed mtime generation semantics.
+  - Lock baseline comparator set for this packet to `tar+zstd`, `tar+xz`, `crushr(full)`, and `crushr(basic)` with explicit command forms and level alignment at `3`.
+  - Record benchmark runs in a structured JSON artifact (`crushr-benchmark-run.v1`) with required fields for dataset/tool/profile/commands/archive-size/pack+extract timing/peak RSS and environment context.
+  - Keep this packet methodology-only: no benchmark tuning, no performance-threshold assertions, and no selective result filtering behavior.
+- Alternatives considered:
+  1. Keep ad-hoc manual benchmark commands in docs/shell history without a locked data contract.
+  2. Build benchmark comparisons only for crushr profiles and defer baseline tool comparisons.
+  3. Add CI enforcement immediately in the same packet.
+- Rationale:
+  - Packet objective is reproducible and defensible methodology first; explicit dataset generation + explicit command provenance prevents drift/cherry-picking.
+  - Structured output and schema lock future analysis/review to consistent machine-readable fields before optimization work begins.
+- Blast radius:
+  - Added `scripts/benchmark/` generation/runner tooling, benchmark reference docs, schema file, docs index link, and `.bench` local artifact ignore policy.
+  - No changes to archive format/extract semantics and no compression/performance tuning behavior changes.
+
 ## 2026-03-26 — CRUSHR_PACK_STREAMING_01 production pack raw-byte retention removal
 
 - Decision:

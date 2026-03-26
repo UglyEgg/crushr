@@ -19,6 +19,7 @@ This section is intentionally narrow. It exists for readers who need the concise
 2. [Extent identity](extent-identity.md)
 3. [Dictionary system](dictionary-system.md)
 4. [Salvage model](salvage-model.md)
+5. [Benchmark contract](benchmarking.md)
 
 !!! tip "Why this section is small"
     The whitepaper explains the argument. The technical reference exists only to make the current architecture easier to implement and review.
