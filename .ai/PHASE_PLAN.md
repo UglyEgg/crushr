@@ -91,7 +91,7 @@ Deliverables
 - [x] CRUSHR_INTROSPECTION_01-FIX1 — expose omitted non-regular entry counts in list output, add degraded-path salvage guidance, and align version to `0.4.1`.
 - [x] CRUSHR_INTROSPECTION_01-FIX2 — treat omission-only list behavior as informational/complete while keeping structural-proof failures degraded.
 - [x] CRUSHR_INTROSPECTION_02 — expand/polish `info` + `info --list` readability with profile contract clarity, metadata omission-vs-presence wording, entry-kind summary visibility, and calm fail-closed listing context.
-- [ ] CRUSHR-BENCH-01 — implement benchmark harness foundation using manifest-driven deterministic corpus/variant/corruption execution and schema-backed raw/summary output.
+- [x] CRUSHR-BENCH-01 — implement deterministic benchmark contract foundation with reproducible datasets, explicit comparator commands/profiles, and schema-backed benchmark output.
 - [ ] CRUSHR-BENCH-02 — initial canonical corpus generation, baseline runs, and first quantitative benchmark artifacts.
 - [ ] CRUSHR-BENCH-03 — benchmark result review, compression/performance tuning priorities, and whitepaper/data-surface integration.
 
