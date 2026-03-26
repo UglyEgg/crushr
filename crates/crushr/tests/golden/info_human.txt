@@ -10,6 +10,7 @@ Archive
 
 Preservation
   profile                full
+  contract               full-fidelity Linux-first
 
 Structure
   files                  2
@@ -22,17 +23,28 @@ Structure
   dictionary table       not present
   dictionary ledger      present
 
+Entry kinds
+  regular files          2
+  directories            0
+  symlinks               0
+  hard links             0
+  sparse files           2
+  FIFOs                  0
+  char devices           0
+  block devices          0
+
 Metadata
   modes                  present
   mtime                  present
-  xattrs                 absent
+  xattrs                 not present
   ownership              present
-  hard links             absent
+  hard links             not present
   sparse files           present
-  special files          absent
-  ACLs                   absent
-  SELinux labels         absent
-  capabilities           absent
+  special files          not present
+  ACLs                   not present
+  SELinux labels         not present
+  capabilities           not present
+  - omitted by profile is intentional archive scope; metadata_degraded is an extraction outcome
 
 Compression
   method                 zstd

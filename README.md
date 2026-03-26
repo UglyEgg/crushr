@@ -235,6 +235,9 @@ crushr archives are no longer black boxes.
 
 `crushr info --list` provides pre-extraction logical archive listing using archive metadata rather than payload extraction.
 
+`crushr info` is archive-contract introspection: it reports preservation profile, metadata and entry-kind visibility, and what the archive intended to carry.
+It does **not** claim extraction-time metadata restore outcomes; `metadata_degraded` remains an extraction/recovery result class.
+
 Current behavior is intentionally fail-closed:
 
 - if archive structure can be proven, crushr lists it
