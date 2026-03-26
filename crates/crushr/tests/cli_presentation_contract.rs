@@ -408,3 +408,35 @@ fn info_list_degrades_honestly_when_listing_proof_is_unavailable() {
     assert!(out.contains("(no provable paths)"));
     assert!(out.contains("status                 DEGRADED"));
 }
+
+#[test]
+fn info_list_surfaces_profile_context_across_preservation_variants() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    fs::create_dir_all(&input_dir).expect("create input");
+    fs::write(input_dir.join("a.txt"), b"a").expect("write");
+
+    for (profile, expected_profile) in [
+        ("full", "profile                full"),
+        ("basic", "profile                basic"),
+        ("payload-only", "profile                payload-only"),
+    ] {
+        let archive = tmp.path().join(format!("{profile}.crushr"));
+        run_ok(
+            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+                .arg(&input_dir)
+                .arg("-o")
+                .arg(&archive)
+                .arg("--preservation")
+                .arg(profile),
+        );
+
+        let out = run_ok(
+            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+                .arg(&archive)
+                .arg("--list"),
+        );
+        assert!(out.contains(expected_profile), "{profile} profile missing\n{out}");
+        assert!(out.contains("scope                  regular files (metadata/index proven)"));
+    }
+}

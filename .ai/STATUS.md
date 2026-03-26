@@ -7,7 +7,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_RECOVERY_MODEL_08 complete** (profile-aware metadata-degraded handling aligned across non-regular canonical entry kinds)
+Current Step: **CRUSHR_INTROSPECTION_02 complete** (expanded profile-aware archive introspection readability for `info` and `info --list`)
+
+Latest maintenance fix (2026-03-25):
+- **CRUSHR_INTROSPECTION_02 complete**: `crushr info` now surfaces preservation profile contract classification (`full-fidelity Linux-first` / `basic Linux metadata` / `content-oriented payload`) and adds concise entry-kind visibility summary (`regular`, `directory`, `symlink`, `hard link`, `sparse`, `FIFO`, `char/block device`).
+- **CRUSHR_INTROSPECTION_02 complete**: metadata visibility rows now distinguish `present`, `not present`, and `omitted by profile` so omission intent is not framed as corruption/degradation.
+- **CRUSHR_INTROSPECTION_02 complete**: `crushr info --list` now includes profile/scope context while preserving fail-closed metadata/index-only proof behavior; non-regular omission is rendered as informational scope notes instead of warning-level corruption semantics.
+- **CRUSHR_INTROSPECTION_02 complete**: updated docs wording to clarify `info` reports archive contract truth while `metadata_degraded` remains an extraction/recovery outcome.
+- **CRUSHR_INTROSPECTION_02 complete**: canonical version advanced to `0.4.12` (`VERSION` + workspace package version sync).
+- **CRUSHR_INTROSPECTION_02 validation**: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract --test metadata_preservation`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, and `cargo test -p crushr --test version_contract` are green.
 
 Latest maintenance fix (2026-03-25):
 - **CRUSHR_RECOVERY_MODEL_08 complete**: strict extraction now fail-closes on profile-required metadata restoration failures for non-regular canonical entries (directories, symlinks, FIFOs, char devices, block devices) instead of leaving warning-only canonical gaps.

@@ -74,6 +74,13 @@ fn dependencies_from_index_bytes(idx3_bytes: &[u8]) -> Option<Vec<FileDependency
 struct IndexSummary {
     preservation_profile: PreservationProfile,
     regular_file_count: u64,
+    directory_count: u64,
+    symlink_count: u64,
+    hardlink_count: u64,
+    sparse_file_count: u64,
+    fifo_count: u64,
+    char_device_count: u64,
+    block_device_count: u64,
     extent_count: u64,
     logical_bytes: u64,
     has_modes: bool,
@@ -97,6 +104,13 @@ fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
             || idx3_bytes.starts_with(IDX_MAGIC_V6)
             || idx3_bytes.starts_with(IDX_MAGIC_V7));
     let mut regular_file_count = 0u64;
+    let mut directory_count = 0u64;
+    let mut symlink_count = 0u64;
+    let mut fifo_count = 0u64;
+    let mut char_device_count = 0u64;
+    let mut block_device_count = 0u64;
+    let mut hardlink_count = 0u64;
+    let mut sparse_file_count = 0u64;
     let mut extent_count = 0u64;
     let mut logical_bytes = 0u64;
     let mut has_xattrs = false;
@@ -109,10 +123,24 @@ fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
     let mut has_capabilities = false;
 
     for entry in index.entries {
+        match entry.kind {
+            EntryKind::Regular => regular_file_count = regular_file_count.saturating_add(1),
+            EntryKind::Directory => directory_count = directory_count.saturating_add(1),
+            EntryKind::Symlink => symlink_count = symlink_count.saturating_add(1),
+            EntryKind::Fifo => fifo_count = fifo_count.saturating_add(1),
+            EntryKind::CharDevice => char_device_count = char_device_count.saturating_add(1),
+            EntryKind::BlockDevice => block_device_count = block_device_count.saturating_add(1),
+        }
         has_xattrs |= !entry.xattrs.is_empty();
-        has_hardlinks |= entry.hardlink_group_id.is_some();
+        if entry.hardlink_group_id.is_some() {
+            has_hardlinks = true;
+            hardlink_count = hardlink_count.saturating_add(1);
+        }
         has_ownership |= ownership_supported;
-        has_sparse |= entry.sparse;
+        if entry.sparse {
+            has_sparse = true;
+            sparse_file_count = sparse_file_count.saturating_add(1);
+        }
         has_special |= matches!(
             entry.kind,
             EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice
@@ -123,7 +151,6 @@ fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
         if entry.kind != EntryKind::Regular {
             continue;
         }
-        regular_file_count += 1;
         extent_count += entry.extents.len() as u64;
         logical_bytes = logical_bytes.saturating_add(entry.size);
     }
@@ -131,10 +158,19 @@ fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
     Some(IndexSummary {
         preservation_profile: profile,
         regular_file_count,
+        directory_count,
+        symlink_count,
+        hardlink_count,
+        sparse_file_count,
+        fifo_count,
+        char_device_count,
+        block_device_count,
         extent_count,
         logical_bytes,
-        has_modes: regular_file_count > 0,
-        has_mtime: regular_file_count > 0,
+        has_modes: profile != PreservationProfile::PayloadOnly
+            && (regular_file_count > 0 || directory_count > 0 || symlink_count > 0),
+        has_mtime: profile != PreservationProfile::PayloadOnly
+            && (regular_file_count > 0 || directory_count > 0 || symlink_count > 0),
         has_xattrs,
         has_ownership,
         has_hardlinks,
@@ -223,7 +259,10 @@ fn print_help() {
     );
     presenter.section("Flags");
     presenter.kv("--json", "emit machine-readable output");
-    presenter.kv("--list", "list archive contents without extraction");
+    presenter.kv(
+        "--list",
+        "list metadata/index-proven contents without extraction",
+    );
     presenter.kv("--flat", "list full paths (requires --list)");
     presenter.kv("--report propagation", "emit propagation/dependency report");
     presenter.kv("-h, --help", "print this help text");
@@ -238,6 +277,42 @@ fn compression_method_display(summary: Option<&CompressionSummary>) -> String {
     summary
         .map(|value| value.method.clone())
         .unwrap_or_else(|| "unavailable".to_string())
+}
+
+enum MetadataState {
+    Present,
+    NotPresent,
+    OmittedByProfile,
+}
+
+impl MetadataState {
+    fn as_display(&self) -> &'static str {
+        match self {
+            Self::Present => "present",
+            Self::NotPresent => "not present",
+            Self::OmittedByProfile => "omitted by profile",
+        }
+    }
+}
+
+fn metadata_state(
+    profile: PreservationProfile,
+    full_supported: bool,
+    basic_supported: bool,
+    is_present: bool,
+) -> MetadataState {
+    let included_by_profile = match profile {
+        PreservationProfile::Full => full_supported,
+        PreservationProfile::Basic => basic_supported,
+        PreservationProfile::PayloadOnly => false,
+    };
+    if !included_by_profile {
+        MetadataState::OmittedByProfile
+    } else if is_present {
+        MetadataState::Present
+    } else {
+        MetadataState::NotPresent
+    }
 }
 
 fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> Result<String> {
@@ -414,6 +489,8 @@ fn build_flat_listing(paths: &[String]) -> Vec<String> {
 
 struct ListingLoad {
     paths: Vec<String>,
+    preservation_profile: PreservationProfile,
+    non_regular_entries: u64,
     omitted_non_regular_entries: u64,
     warnings: Vec<String>,
     degraded: bool,
@@ -477,16 +554,14 @@ fn load_listing_paths<R: ReadAt + Len>(reader: &R) -> Result<ListingLoad> {
         Ok(opened) => {
             let (paths, omitted_non_regular_entries) =
                 listing_paths_from_index_bytes(&opened.tail.idx3_bytes)?;
-            let mut warnings = Vec::new();
-            if omitted_non_regular_entries > 0 {
-                warnings.push(format!(
-                    "{omitted_non_regular_entries} non-regular index entries omitted from --list output"
-                ));
-            }
             Ok(ListingLoad {
                 paths,
+                preservation_profile: decode_index(&opened.tail.idx3_bytes)
+                    .map(|index| index.preservation_profile)
+                    .unwrap_or(PreservationProfile::Full),
+                non_regular_entries: omitted_non_regular_entries,
                 omitted_non_regular_entries,
-                warnings,
+                warnings: Vec::new(),
                 degraded: false,
             })
         }
@@ -496,6 +571,8 @@ fn load_listing_paths<R: ReadAt + Len>(reader: &R) -> Result<ListingLoad> {
                 Err(idx_err) => {
                     return Ok(ListingLoad {
                         paths: Vec::new(),
+                        preservation_profile: PreservationProfile::Full,
+                        non_regular_entries: 0,
                         omitted_non_regular_entries: 0,
                         warnings: vec![
                             format!(
@@ -510,17 +587,17 @@ fn load_listing_paths<R: ReadAt + Len>(reader: &R) -> Result<ListingLoad> {
                 }
             };
             let (paths, omitted_non_regular_entries) = listing_paths_from_index_bytes(&idx3_bytes)?;
-            let mut warnings = vec![
+            let warnings = vec![
                 "archive has structural damage outside IDX3; listing shows only CANONICAL index-proven paths".to_string(),
             ];
-            if omitted_non_regular_entries > 0 {
-                warnings.push(format!(
-                    "{omitted_non_regular_entries} non-regular index entries omitted from --list output"
-                ));
-            }
+            let preservation_profile = decode_index(&idx3_bytes)
+                .map(|index| index.preservation_profile)
+                .unwrap_or(PreservationProfile::Full);
 
             Ok(ListingLoad {
                 paths,
+                preservation_profile,
+                non_regular_entries: omitted_non_regular_entries,
                 omitted_non_regular_entries,
                 warnings,
                 degraded: true,
@@ -604,6 +681,8 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         presenter.section("Archive");
         presenter.kv("path", &archive);
         presenter.kv("mode", if flat { "flat" } else { "tree" });
+        presenter.kv("profile", listing.preservation_profile.as_str());
+        presenter.kv("scope", "regular files (metadata/index proven)");
 
         presenter.section("Contents");
         if listing.paths.is_empty() {
@@ -626,6 +705,12 @@ fn run(raw_args: Vec<String>) -> Result<()> {
             presenter.banner(BannerLevel::Warning, warning);
         }
 
+        if listing.non_regular_entries > 0 {
+            presenter.info_note(&format!(
+                "{} non-regular index entries are outside --list scope",
+                group_u64(listing.non_regular_entries)
+            ));
+        }
         if listing.omitted_non_regular_entries > 0 {
             presenter.info_note(&format!(
                 "omitted {} non-regular index entries",
@@ -695,6 +780,10 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     };
     presenter.kv("format markers", format!("FTR4 + {idx_marker}"));
     let index_summary = summarize_index(&opened.tail.idx3_bytes);
+    let profile = index_summary
+        .as_ref()
+        .map(|summary| summary.preservation_profile)
+        .unwrap_or(PreservationProfile::Full);
     presenter.section("Preservation");
     presenter.kv(
         "profile",
@@ -702,6 +791,14 @@ fn run(raw_args: Vec<String>) -> Result<()> {
             .as_ref()
             .map(|summary| summary.preservation_profile.as_str())
             .unwrap_or(PreservationProfile::Full.as_str()),
+    );
+    presenter.kv(
+        "contract",
+        match profile {
+            PreservationProfile::Full => "full-fidelity Linux-first",
+            PreservationProfile::Basic => "basic Linux metadata",
+            PreservationProfile::PayloadOnly => "content-oriented payload",
+        },
     );
 
     presenter.section("Structure");
@@ -751,114 +848,155 @@ fn run(raw_args: Vec<String>) -> Result<()> {
             "not present"
         },
     );
-    presenter.section("Metadata");
+    presenter.section("Entry kinds");
     presenter.kv(
-        "modes",
-        if index_summary.as_ref().map(|s| s.has_modes).unwrap_or(false) {
-            "present"
-        } else {
-            "absent"
-        },
+        "regular files",
+        index_summary.as_ref().map_or_else(
+            || "unavailable".to_string(),
+            |s| group_u64(s.regular_file_count),
+        ),
     );
     presenter.kv(
-        "mtime",
-        if index_summary.as_ref().map(|s| s.has_mtime).unwrap_or(false) {
-            "present"
-        } else {
-            "absent"
-        },
+        "directories",
+        index_summary.as_ref().map_or_else(
+            || "unavailable".to_string(),
+            |s| group_u64(s.directory_count),
+        ),
     );
     presenter.kv(
-        "xattrs",
-        if index_summary
+        "symlinks",
+        index_summary
             .as_ref()
-            .map(|s| s.has_xattrs)
-            .unwrap_or(false)
-        {
-            "present"
-        } else {
-            "absent"
-        },
-    );
-    presenter.kv(
-        "ownership",
-        if index_summary
-            .as_ref()
-            .map(|s| s.has_ownership)
-            .unwrap_or(false)
-        {
-            "present"
-        } else {
-            "absent"
-        },
+            .map_or_else(|| "unavailable".to_string(), |s| group_u64(s.symlink_count)),
     );
     presenter.kv(
         "hard links",
-        if index_summary
-            .as_ref()
-            .map(|s| s.has_hardlinks)
-            .unwrap_or(false)
-        {
-            "present"
-        } else {
-            "absent"
-        },
+        index_summary.as_ref().map_or_else(
+            || "unavailable".to_string(),
+            |s| group_u64(s.hardlink_count),
+        ),
     );
     presenter.kv(
         "sparse files",
-        if index_summary
+        index_summary.as_ref().map_or_else(
+            || "unavailable".to_string(),
+            |s| group_u64(s.sparse_file_count),
+        ),
+    );
+    presenter.kv(
+        "FIFOs",
+        index_summary
+            .as_ref()
+            .map_or_else(|| "unavailable".to_string(), |s| group_u64(s.fifo_count)),
+    );
+    presenter.kv(
+        "char devices",
+        index_summary.as_ref().map_or_else(
+            || "unavailable".to_string(),
+            |s| group_u64(s.char_device_count),
+        ),
+    );
+    presenter.kv(
+        "block devices",
+        index_summary.as_ref().map_or_else(
+            || "unavailable".to_string(),
+            |s| group_u64(s.block_device_count),
+        ),
+    );
+    presenter.section("Metadata");
+    let modes_state = metadata_state(
+        profile,
+        true,
+        true,
+        index_summary.as_ref().map(|s| s.has_modes).unwrap_or(false),
+    );
+    presenter.kv("modes", modes_state.as_display());
+    let mtime_state = metadata_state(
+        profile,
+        true,
+        true,
+        index_summary.as_ref().map(|s| s.has_mtime).unwrap_or(false),
+    );
+    presenter.kv("mtime", mtime_state.as_display());
+    let xattrs_state = metadata_state(
+        profile,
+        true,
+        false,
+        index_summary
+            .as_ref()
+            .map(|s| s.has_xattrs)
+            .unwrap_or(false),
+    );
+    presenter.kv("xattrs", xattrs_state.as_display());
+    let ownership_state = metadata_state(
+        profile,
+        true,
+        false,
+        index_summary
+            .as_ref()
+            .map(|s| s.has_ownership)
+            .unwrap_or(false),
+    );
+    presenter.kv("ownership", ownership_state.as_display());
+    let hardlinks_state = metadata_state(
+        profile,
+        true,
+        true,
+        index_summary
+            .as_ref()
+            .map(|s| s.has_hardlinks)
+            .unwrap_or(false),
+    );
+    presenter.kv("hard links", hardlinks_state.as_display());
+    let sparse_state = metadata_state(
+        profile,
+        true,
+        true,
+        index_summary
             .as_ref()
             .map(|s| s.has_sparse)
-            .unwrap_or(false)
-        {
-            "present"
-        } else {
-            "absent"
-        },
+            .unwrap_or(false),
     );
-    presenter.kv(
-        "special files",
-        if index_summary
+    presenter.kv("sparse files", sparse_state.as_display());
+    let special_state = metadata_state(
+        profile,
+        true,
+        false,
+        index_summary
             .as_ref()
             .map(|s| s.has_special)
-            .unwrap_or(false)
-        {
-            "present"
-        } else {
-            "absent"
-        },
+            .unwrap_or(false),
     );
-    presenter.kv(
-        "ACLs",
-        if index_summary.as_ref().map(|s| s.has_acls).unwrap_or(false) {
-            "present"
-        } else {
-            "absent"
-        },
+    presenter.kv("special files", special_state.as_display());
+    let acl_state = metadata_state(
+        profile,
+        true,
+        false,
+        index_summary.as_ref().map(|s| s.has_acls).unwrap_or(false),
     );
-    presenter.kv(
-        "SELinux labels",
-        if index_summary
+    presenter.kv("ACLs", acl_state.as_display());
+    let selinux_state = metadata_state(
+        profile,
+        true,
+        false,
+        index_summary
             .as_ref()
             .map(|s| s.has_selinux)
-            .unwrap_or(false)
-        {
-            "present"
-        } else {
-            "absent"
-        },
+            .unwrap_or(false),
     );
-    presenter.kv(
-        "capabilities",
-        if index_summary
+    presenter.kv("SELinux labels", selinux_state.as_display());
+    let capability_state = metadata_state(
+        profile,
+        true,
+        false,
+        index_summary
             .as_ref()
             .map(|s| s.has_capabilities)
-            .unwrap_or(false)
-        {
-            "present"
-        } else {
-            "absent"
-        },
+            .unwrap_or(false),
+    );
+    presenter.kv("capabilities", capability_state.as_display());
+    presenter.info_note(
+        "omitted by profile is intentional archive scope; metadata_degraded is an extraction outcome",
     );
     let compression =
         compression_summary_from_blocks(&reader, opened.tail.footer.blocks_end_offset)

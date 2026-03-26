@@ -1,3 +1,10 @@
+CRUSHR_INTROSPECTION_02 complete (2026-03-25):
+- `crushr info` now has explicit preservation contract labeling and entry-kind summary rows, plus metadata visibility states (`present`, `not present`, `omitted by profile`) to separate omission intent from degradation semantics.
+- `crushr info --list` now prints profile/scope context and keeps non-regular omission messaging informational while preserving fail-closed proof-unavailable warning behavior.
+- README introspection wording now explicitly states `info` is archive-contract truth; extraction/recovery outcomes like `metadata_degraded` are not implied by `info`.
+- Canonical version advanced to `0.4.12` (`VERSION` + workspace package version sync).
+- Validation in packet: `cargo fmt --all`; `cargo test -p crushr --test cli_presentation_contract --test metadata_preservation`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo test -p crushr --test version_contract`.
+
 CRUSHR_RECOVERY_MODEL_08 complete (2026-03-25):
 - Strict extraction fail-closed metadata restoration semantics now cover non-regular canonical outputs too (directories, symlinks, FIFOs, char devices, block devices) when metadata classes required by recorded preservation profile fail to restore.
 - Recover extraction now routes non-regular canonical outputs into `metadata_degraded/` (with manifest entries) when profile-required metadata restoration fails; they no longer remain warning-only canonical.

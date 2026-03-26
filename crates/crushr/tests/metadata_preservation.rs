@@ -731,3 +731,51 @@ fn payload_only_drops_link_semantics_and_legacy_idx6_defaults_full() {
     let legacy_index = decode_index(&idx6_legacy).unwrap();
     assert_eq!(legacy_index.preservation_profile, PreservationProfile::Full);
 }
+
+#[test]
+fn info_surfaces_profile_aware_metadata_scope_for_basic_and_payload_only() {
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    fs::write(input.join("file.txt"), b"payload").unwrap();
+
+    let basic_archive = td.path().join("basic-info.crs");
+    run(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+            input.to_str().unwrap(),
+            "-o",
+            basic_archive.to_str().unwrap(),
+            "--preservation",
+            "basic",
+        ]),
+    );
+    let basic_info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+        .arg(&basic_archive)
+        .output()
+        .expect("run info basic");
+    assert!(basic_info.status.success());
+    let basic_out = String::from_utf8_lossy(&basic_info.stdout);
+    assert!(basic_out.contains("profile                basic"));
+    assert!(basic_out.contains("xattrs                 omitted by profile"));
+    assert!(basic_out.contains("ownership              omitted by profile"));
+
+    let payload_archive = td.path().join("payload-info.crs");
+    run(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+            input.to_str().unwrap(),
+            "-o",
+            payload_archive.to_str().unwrap(),
+            "--preservation",
+            "payload-only",
+        ]),
+    );
+    let payload_info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+        .arg(&payload_archive)
+        .output()
+        .expect("run info payload");
+    assert!(payload_info.status.success());
+    let payload_out = String::from_utf8_lossy(&payload_info.stdout);
+    assert!(payload_out.contains("profile                payload-only"));
+    assert!(payload_out.contains("modes                  omitted by profile"));
+    assert!(payload_out.contains("mtime                  omitted by profile"));
+}

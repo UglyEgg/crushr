@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-25 — CRUSHR_INTROSPECTION_02 (v0.4.12)
+- Expanded `crushr info` introspection readability with explicit preservation contract row and a compact `Entry kinds` section that summarizes regular/directories/symlinks/hard-links/sparse/FIFO/char-device/block-device visibility.
+- Updated `crushr info` metadata visibility semantics to report `present`, `not present`, and `omitted by profile`, clarifying intentional profile omission vs extraction-time `metadata_degraded` outcomes.
+- Improved `crushr info --list` with profile/scope context while preserving metadata/index-only fail-closed behavior; non-regular omission is now informational scope messaging rather than warning-level corruption framing.
+- Updated docs/help wording for introspection boundaries and refreshed `info` human golden output plus deterministic tests for profile-aware listing/metadata readability.
+- Bumped canonical product version to `0.4.12` (`VERSION` + workspace package version sync).
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_presentation_contract --test metadata_preservation`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo test -p crushr --test version_contract`.
+
 ## 2026-03-25 — CRUSHR_RECOVERY_MODEL_08 (v0.4.11)
 - Extended strict extraction fail-closed metadata semantics to non-regular canonical entries so profile-required metadata restore failures for directories, symlinks, FIFOs, and device nodes no longer remain warning-only canonical outcomes.
 - Extended recover extraction metadata-degraded routing to non-regular canonical entries and aligned manifest truth fields (`trust_class`, `failed_metadata_classes`, `degradation_reason`) for those outcomes.

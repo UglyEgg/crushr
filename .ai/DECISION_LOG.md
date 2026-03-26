@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-25 — CRUSHR_INTROSPECTION_02 profile-aware introspection presentation lock
+
+- Decision:
+  - Expand `crushr info` with explicit preservation contract labeling and compact entry-kind summary counts.
+  - Represent metadata visibility with three states (`present`, `not present`, `omitted by profile`) so omission intent is visually neutral and not treated as corruption/failure.
+  - Keep `crushr info --list` scope explicit (`regular files (metadata/index proven)`) while preserving fail-closed listing rules and deterministic ordering.
+- Alternatives considered:
+  1. Keep binary present/absent metadata rows and rely on docs for omission semantics.
+  2. Add per-line verbose badges for every listed item.
+  3. Expand `info --list` to include non-regular item rendering despite current regular-file-only listing contract.
+- Rationale:
+  - Packet requires operators to differentiate archive contract omission vs extraction degradation from introspection output alone, without adding noisy per-entry clutter.
+  - Scope labels and calm omission wording preserve integrity-first signaling and reduce false error interpretation.
+- Blast radius:
+  - `crushr-info` human output shape changed (`Preservation`, `Entry kinds`, `Metadata`, and `--list` archive context rows), plus updated tests/goldens and README introspection wording.
+  - Canonical version advanced to `0.4.12` (`VERSION` + workspace package version sync).
+
 ## 2026-03-25 — CRUSHR_PRESERVATION_05 explicit preservation-profile archive contract lock
 
 - Decision:
