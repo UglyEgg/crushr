@@ -195,3 +195,50 @@ fn shared_flags_json_and_silent_are_consistent_when_combined() {
     assert!(salvage_json_silent.trim_start().starts_with('{'));
     assert!(!salvage_json_silent.contains("status=PARTIAL"));
 }
+
+#[test]
+fn pack_profile_flag_emits_phase_breakdown_only_when_explicitly_requested() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    std::fs::create_dir_all(&input_dir).expect("create input");
+    std::fs::write(input_dir.join("a.txt"), b"alpha").expect("write file");
+    let archive = tmp.path().join("sample.crs");
+
+    let baseline = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+            input_dir.to_str().expect("utf8"),
+            "-o",
+            archive.to_str().expect("utf8"),
+            "--silent",
+        ]),
+    );
+    assert!(
+        !baseline.contains("Pack phases"),
+        "pack phase breakdown must not print by default"
+    );
+
+    let archive_profiled = tmp.path().join("sample_profiled.crs");
+    let profiled = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+            input_dir.to_str().expect("utf8"),
+            "-o",
+            archive_profiled.to_str().expect("utf8"),
+            "--silent",
+            "--profile-pack",
+        ]),
+    );
+    assert!(profiled.contains("Pack phases"));
+    for phase in [
+        "discovery",
+        "metadata",
+        "hashing",
+        "compression",
+        "emission",
+        "finalization",
+    ] {
+        assert!(
+            profiled.contains(phase),
+            "missing profile phase '{phase}' in output: {profiled}"
+        );
+    }
+}

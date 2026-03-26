@@ -7,7 +7,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_PRESERVATION_FIX_06 complete** (profile-aware extraction restore gating for omitted metadata classes)
+Current Step: **CRUSHR_BENCHMARK_03 complete** (production pack phase-attribution instrumentation and profiling surface)
+
+
+Latest maintenance fix (2026-03-26):
+- **CRUSHR_BENCHMARK_03 complete**: added production `crushr pack --profile-pack` opt-in profiling output for deterministic phase attribution (`discovery`, `metadata`, `hashing`, `compression`, `emission`, `finalization`).
+- **CRUSHR_BENCHMARK_03 complete**: instrumented production pack pipeline phase timing in-process without changing archive bytes, preservation semantics, or default pack CLI noise.
+- **CRUSHR_BENCHMARK_03 complete**: added CLI integration coverage ensuring phase output is absent by default and appears only when `--profile-pack` is explicitly requested.
+- **CRUSHR_BENCHMARK_03 complete**: updated benchmark methodology docs with exact local attribution commands for `medium_realistic_tree` and `large_stress_tree`, expected output shape, capture guidance, and interpretation hints.
+- **CRUSHR_BENCHMARK_03 complete**: canonical version advanced to `0.4.17` (`VERSION` + workspace package version sync).
+- **CRUSHR_BENCHMARK_03 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `./scripts/check-version-sync.sh`, and `cargo test -p crushr --test version_contract` are green.
 
 
 Latest maintenance fix (2026-03-26):

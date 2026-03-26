@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 const ZSTD_CODEC: u32 = 1;
-const PRODUCTION_USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--preservation <full|basic|payload-only>] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --preservation <name>                      preservation profile: full | basic | payload-only (default: full)\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
+const PRODUCTION_USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--preservation <full|basic|payload-only>] [--profile-pack] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --preservation <name>                      preservation profile: full | basic | payload-only (default: full)\n  --profile-pack                             emit deterministic pack phase timing breakdown\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
 
 const LAB_EXPERIMENTAL_USAGE: &str = "usage: crushr lab pack-experimental <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only|extent_identity_inline_path|extent_identity_distributed_names|extent_identity_path_dict_single|extent_identity_path_dict_header_tail|extent_identity_path_dict_quasi_uniform|extent_identity_path_dict_factored_header_tail>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only | extent_identity_inline_path | extent_identity_distributed_names | extent_identity_path_dict_single | extent_identity_path_dict_header_tail | extent_identity_path_dict_quasi_uniform | extent_identity_path_dict_factored_header_tail\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
 
@@ -30,6 +30,7 @@ enum PlacementStrategy {
 #[derive(Clone, Copy, Debug)]
 struct PackExperimentalOptions {
     preservation_profile: PreservationProfile,
+    profile_pack: bool,
     self_describing_extents: bool,
     file_identity_extents: bool,
     self_identifying_blocks: bool,
@@ -79,7 +80,7 @@ fn print_help(surface: PackCliSurface) {
     match surface {
         PackCliSurface::Production => presenter.kv(
             "command",
-            "usage: crushr-pack <input>... -o <archive> [--level <n>] [--preservation <full|basic|payload-only>] [--silent]",
+            "usage: crushr-pack <input>... -o <archive> [--level <n>] [--preservation <full|basic|payload-only>] [--profile-pack] [--silent]",
         ),
         PackCliSurface::LabExperimental => presenter.kv(
             "command",
@@ -93,6 +94,10 @@ fn print_help(surface: PackCliSurface) {
         presenter.kv(
             "--preservation <name>",
             "preservation profile: full | basic | payload-only (default: full)",
+        );
+        presenter.kv(
+            "--profile-pack",
+            "emit deterministic pack phase timing breakdown",
         );
     }
     if matches!(surface, PackCliSurface::LabExperimental) {
@@ -312,12 +317,74 @@ enum PackProgressPhase {
     Serialization,
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+struct PackPhaseTimings {
+    discovery: Duration,
+    metadata: Duration,
+    hashing: Duration,
+    compression: Duration,
+    emission: Duration,
+    finalization: Duration,
+}
+
+impl PackPhaseTimings {
+    fn add(&mut self, phase: PackProfilePhase, elapsed: Duration) {
+        match phase {
+            PackProfilePhase::Hashing => self.hashing += elapsed,
+            PackProfilePhase::Compression => self.compression += elapsed,
+            PackProfilePhase::Emission => self.emission += elapsed,
+            PackProfilePhase::Finalization => self.finalization += elapsed,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum PackProfilePhase {
+    Hashing,
+    Compression,
+    Emission,
+    Finalization,
+}
+
 #[derive(Debug)]
 struct PackRunMetrics {
     files_packed: u64,
     total_size_bytes: u64,
     compressed_size_bytes: u64,
     elapsed: Duration,
+}
+
+fn format_phase_duration_ms(duration: Duration) -> String {
+    format!("{:>6} ms", duration.as_millis())
+}
+
+fn print_pack_phase_breakdown(timings: PackPhaseTimings) {
+    println!();
+    println!("Pack phases");
+    println!(
+        "  discovery      {}",
+        format_phase_duration_ms(timings.discovery)
+    );
+    println!(
+        "  metadata       {}",
+        format_phase_duration_ms(timings.metadata)
+    );
+    println!(
+        "  hashing        {}",
+        format_phase_duration_ms(timings.hashing)
+    );
+    println!(
+        "  compression    {}",
+        format_phase_duration_ms(timings.compression)
+    );
+    println!(
+        "  emission       {}",
+        format_phase_duration_ms(timings.emission)
+    );
+    println!(
+        "  finalization   {}",
+        format_phase_duration_ms(timings.finalization)
+    );
 }
 
 struct PayloadIdentityInput<'a> {
@@ -600,6 +667,7 @@ fn run(raw_args: Vec<String>, surface: PackCliSurface) -> Result<()> {
     let mut output = None;
     let mut level: i32 = 3;
     let mut preservation_profile = PreservationProfile::Full;
+    let mut profile_pack = false;
     let mut experimental_self_describing_extents = false;
     let mut experimental_file_identity_extents = false;
     let mut experimental_self_identifying_blocks = false;
@@ -629,6 +697,11 @@ fn run(raw_args: Vec<String>, surface: PackCliSurface) -> Result<()> {
             let value = args.next().context(surface.usage())?;
             preservation_profile = PreservationProfile::parse_name(&value)
                 .with_context(|| format!("unsupported preservation profile: {value}"))?;
+        } else if arg == "--profile-pack" {
+            if !matches!(surface, PackCliSurface::Production) {
+                bail!("unsupported flag: {arg}");
+            }
+            profile_pack = true;
         } else if arg == "--experimental-self-describing-extents" {
             if !surface.allows_experimental_flags() {
                 bail!("unsupported flag: {arg}");
@@ -711,6 +784,7 @@ fn run(raw_args: Vec<String>, surface: PackCliSurface) -> Result<()> {
         level,
         PackExperimentalOptions {
             preservation_profile,
+            profile_pack,
             self_describing_extents: experimental_self_describing_extents,
             file_identity_extents: experimental_file_identity_extents,
             self_identifying_blocks: experimental_self_identifying_blocks,
@@ -729,10 +803,15 @@ fn pack_minimal_v1(
     options: PackExperimentalOptions,
     presenter: &CliPresenter,
 ) -> Result<()> {
+    let mut phase_timings = options.profile_pack.then_some(PackPhaseTimings::default());
     presenter.section("Progress");
     let input_discovery = presenter.begin_active_phase("input discovery", None);
+    let discovery_start = Instant::now();
     let mut files = match collect_files(inputs) {
         Ok(files) => {
+            if let Some(timings) = phase_timings.as_mut() {
+                timings.discovery = discovery_start.elapsed();
+            }
             input_discovery.settle(
                 StatusWord::Complete,
                 Some(&format!("files={}", group_u64(files.len() as u64))),
@@ -740,6 +819,9 @@ fn pack_minimal_v1(
             files
         }
         Err(err) => {
+            if let Some(timings) = phase_timings.as_mut() {
+                timings.discovery = discovery_start.elapsed();
+            }
             input_discovery.settle(StatusWord::Failed, None);
             return Err(err);
         }
@@ -747,18 +829,28 @@ fn pack_minimal_v1(
     if files.is_empty() {
         bail!("no input files to pack");
     }
+    let metadata_start = Instant::now();
     apply_preservation_profile(&mut files, options.preservation_profile);
     let planning = presenter.begin_active_phase("planning", None);
     if let Err(err) = reject_duplicate_logical_paths(&files) {
+        if let Some(timings) = phase_timings.as_mut() {
+            timings.metadata = metadata_start.elapsed();
+        }
         planning.settle(StatusWord::Failed, Some("duplicate logical paths"));
         return Err(err);
     }
     let layout = match build_pack_layout_plan(files, options) {
         Ok(layout) => {
+            if let Some(timings) = phase_timings.as_mut() {
+                timings.metadata = metadata_start.elapsed();
+            }
             planning.settle(StatusWord::Complete, None);
             layout
         }
         Err(err) => {
+            if let Some(timings) = phase_timings.as_mut() {
+                timings.metadata = metadata_start.elapsed();
+            }
             planning.settle(StatusWord::Failed, None);
             return Err(err);
         }
@@ -768,15 +860,20 @@ fn pack_minimal_v1(
     let total_size_bytes = layout.files.iter().map(|file| file.raw_len).sum::<u64>();
     let compression = presenter.begin_active_phase("compression", None);
     let serialization = presenter.begin_active_phase("serialization", None);
-    if let Err(err) =
-        emit_archive_from_layout(layout, output, level, options, |phase, done, total| {
+    if let Err(err) = emit_archive_from_layout(
+        layout,
+        output,
+        level,
+        options,
+        phase_timings.as_mut(),
+        |phase, done, total| {
             let detail = format!("files={}/{}", group_u64(done), group_u64(total));
             match phase {
                 PackProgressPhase::Compression => compression.set_detail(detail),
                 PackProgressPhase::Serialization => serialization.set_detail(detail),
             }
-        })
-    {
+        },
+    ) {
         compression.settle(StatusWord::Failed, None);
         serialization.settle(StatusWord::Failed, None);
         return Err(err);
@@ -832,6 +929,9 @@ fn pack_minimal_v1(
             ("time", format_elapsed(metrics.elapsed)),
         ],
     );
+    if let Some(timings) = phase_timings {
+        print_pack_phase_breakdown(timings);
+    }
     Ok(())
 }
 
@@ -977,8 +1077,10 @@ fn emit_archive_from_layout(
     output: &Path,
     level: i32,
     options: PackExperimentalOptions,
+    phase_timings: Option<&mut PackPhaseTimings>,
     mut progress: impl FnMut(PackProgressPhase, u64, u64),
 ) -> Result<()> {
+    let mut phase_timings = phase_timings;
     let total_files = layout.files.len();
 
     let mut out = File::create(output).with_context(|| format!("create {}", output.display()))?;
@@ -1001,7 +1103,12 @@ fn emit_archive_from_layout(
     let quasi_uniform_ordinals = &layout.metadata.dictionary.quasi_uniform_ordinals;
     let checkpoint_stride = 2usize;
     if let Some(path_dictionary) = &layout.metadata.dictionary.primary_copy {
-        write_experimental_metadata_block(&mut out, path_dictionary, level)?;
+        write_experimental_metadata_block(
+            &mut out,
+            path_dictionary,
+            level,
+            phase_timings.as_deref_mut(),
+        )?;
     }
     let mut payload_materialized_by_block =
         BTreeMap::<u32, (u64, u64, [u8; 32], [u8; 32], u64)>::new();
@@ -1056,11 +1163,19 @@ fn emit_archive_from_layout(
                         file.abs_path.display()
                     );
                 }
+                let compression_start = Instant::now();
                 let compressed = compress_deterministic(&raw, level)
                     .with_context(|| format!("compress {}", file.abs_path.display()))?;
+                if let Some(timings) = phase_timings.as_mut() {
+                    (*timings).add(PackProfilePhase::Compression, compression_start.elapsed());
+                }
                 let block_scan_offset = out.stream_position()?;
+                let hashing_start = Instant::now();
                 let payload_hash = *blake3::hash(&compressed).as_bytes();
                 let raw_hash = *blake3::hash(&raw).as_bytes();
+                if let Some(timings) = phase_timings.as_mut() {
+                    (*timings).add(PackProfilePhase::Hashing, hashing_start.elapsed());
+                }
                 let flags = Blk3Flags(Blk3Flags::HAS_PAYLOAD_HASH | Blk3Flags::HAS_RAW_HASH);
                 let header = Blk3Header {
                     header_len: (4 + 2 + 2 + 4 + 4 + 4 + 8 + 8 + 32 + 32) as u16,
@@ -1074,8 +1189,12 @@ fn emit_archive_from_layout(
                     raw_hash: Some(raw_hash),
                 };
 
+                let emission_start = Instant::now();
                 write_blk3_header(&mut out, &header)?;
                 out.write_all(&compressed)?;
+                if let Some(timings) = phase_timings.as_mut() {
+                    (*timings).add(PackProfilePhase::Emission, emission_start.elapsed());
+                }
 
                 payload_materialized_by_block.insert(
                     file.block_id,
@@ -1132,6 +1251,7 @@ fn emit_archive_from_layout(
                 &mut out,
                 &wrap_self_describing_extent(record),
                 level,
+                phase_timings.as_deref_mut(),
             )?;
 
             if (ordinal + 1) % checkpoint_stride == 0 {
@@ -1142,6 +1262,7 @@ fn emit_archive_from_layout(
                         &experimental_records,
                     ),
                     level,
+                    phase_timings.as_deref_mut(),
                 )?;
             }
         }
@@ -1169,11 +1290,13 @@ fn emit_archive_from_layout(
                     .last()
                     .context("missing file identity record")?,
                 level,
+                phase_timings.as_deref_mut(),
             )?;
             write_experimental_metadata_block(
                 &mut out,
                 &build_file_path_map_entry(file.file_id, &path, &path_digest),
                 level,
+                phase_timings.as_deref_mut(),
             )?;
             if should_emit_anchor(ordinal, total_files) {
                 write_experimental_metadata_block(
@@ -1184,6 +1307,7 @@ fn emit_archive_from_layout(
                         file_identity_extent_records.len() as u64,
                     ),
                     level,
+                    phase_timings.as_deref_mut(),
                 )?;
             }
         }
@@ -1195,7 +1319,11 @@ fn emit_archive_from_layout(
                 .file_name()
                 .map(|name| name.to_string_lossy().to_string())
                 .unwrap_or_else(|| path.clone());
+            let hashing_start = Instant::now();
             let path_digest = *blake3::hash(path.as_bytes()).as_bytes();
+            if let Some(timings) = phase_timings.as_mut() {
+                (*timings).add(PackProfilePhase::Hashing, hashing_start.elapsed());
+            }
             let path_id = path_id_by_path.get(&path).copied();
             let payload_record = build_payload_block_identity_record(
                 PayloadIdentityInput {
@@ -1213,7 +1341,12 @@ fn emit_archive_from_layout(
                 use_path_dictionary.then_some(path_id).flatten(),
             );
             payload_block_identity_records.push(payload_record.clone());
-            write_experimental_metadata_block(&mut out, &payload_record, level)?;
+            write_experimental_metadata_block(
+                &mut out,
+                &payload_record,
+                level,
+                phase_timings.as_deref_mut(),
+            )?;
 
             if use_path_dictionary && quasi_uniform_ordinals.contains(&ordinal) {
                 let mut copy = layout
@@ -1223,7 +1356,12 @@ fn emit_archive_from_layout(
                     .clone()
                     .context("missing primary dictionary copy for interior mirror")?;
                 copy.copy_role = "interior_mirror";
-                write_experimental_metadata_block(&mut out, &copy, level)?;
+                write_experimental_metadata_block(
+                    &mut out,
+                    &copy,
+                    level,
+                    phase_timings.as_deref_mut(),
+                )?;
             }
 
             if emit_path_checkpoints {
@@ -1245,6 +1383,7 @@ fn emit_archive_from_layout(
                             &path_checkpoint_entries,
                         ),
                         level,
+                        phase_timings.as_deref_mut(),
                     )?;
                 }
             }
@@ -1254,7 +1393,12 @@ fn emit_archive_from_layout(
             let manifest_record =
                 build_file_manifest_record(file.file_id, &file.rel_path, &raw_hash, raw_len);
             file_manifest_records.push(manifest_record.clone());
-            write_experimental_metadata_block(&mut out, &manifest_record, level)?;
+            write_experimental_metadata_block(
+                &mut out,
+                &manifest_record,
+                level,
+                phase_timings.as_deref_mut(),
+            )?;
 
             if should_emit_anchor(ordinal, total_files)
                 || layout
@@ -1270,6 +1414,7 @@ fn emit_archive_from_layout(
                         &file_manifest_records,
                     ),
                     level,
+                    phase_timings.as_deref_mut(),
                 )?;
             }
         }
@@ -1371,14 +1516,16 @@ fn emit_archive_from_layout(
             .clone()
             .context("missing primary dictionary copy for tail mirror")?;
         copy.copy_role = "tail_mirror";
-        write_experimental_metadata_block(&mut out, &copy, level)?;
+        write_experimental_metadata_block(&mut out, &copy, level, phase_timings.as_deref_mut())?;
     }
 
+    let finalization_start = Instant::now();
     if options.self_describing_extents {
         write_experimental_metadata_block(
             &mut out,
             &build_checkpoint_map_snapshot(u64::MAX, &experimental_records),
             level,
+            phase_timings.as_deref_mut(),
         )?;
     }
 
@@ -1391,6 +1538,7 @@ fn emit_archive_from_layout(
                 file_identity_extent_records.len() as u64,
             ),
             level,
+            phase_timings.as_deref_mut(),
         )?;
         write_experimental_metadata_block(
             &mut out,
@@ -1399,6 +1547,7 @@ fn emit_archive_from_layout(
                 records: file_identity_path_records,
             },
             level,
+            phase_timings.as_deref_mut(),
         )?;
     }
 
@@ -1411,6 +1560,7 @@ fn emit_archive_from_layout(
                 &path_checkpoint_entries,
             ),
             level,
+            phase_timings.as_deref_mut(),
         )?;
     }
 
@@ -1422,6 +1572,7 @@ fn emit_archive_from_layout(
                 records_emitted: payload_block_identity_records.len() as u64,
             },
             level,
+            phase_timings.as_deref_mut(),
         )?;
     }
 
@@ -1434,6 +1585,7 @@ fn emit_archive_from_layout(
                 &file_manifest_records,
             ),
             level,
+            phase_timings.as_deref_mut(),
         )?;
     }
 
@@ -1447,6 +1599,9 @@ fn emit_archive_from_layout(
         emit_path_checkpoints,
         emit_manifest_checkpoints,
     )?;
+    if let Some(timings) = phase_timings.as_mut() {
+        (*timings).add(PackProfilePhase::Finalization, finalization_start.elapsed());
+    }
 
     Ok(())
 }
@@ -2024,11 +2179,21 @@ fn write_experimental_metadata_block<T: Serialize>(
     out: &mut File,
     value: &T,
     level: i32,
+    phase_timings: Option<&mut PackPhaseTimings>,
 ) -> Result<()> {
+    let mut phase_timings = phase_timings;
     let raw = serde_json::to_vec(value)?;
+    let compression_start = Instant::now();
     let compressed = compress_deterministic(&raw, level)?;
+    if let Some(timings) = phase_timings.as_mut() {
+        (*timings).add(PackProfilePhase::Compression, compression_start.elapsed());
+    }
+    let hashing_start = Instant::now();
     let payload_hash = *blake3::hash(&compressed).as_bytes();
     let raw_hash = *blake3::hash(&raw).as_bytes();
+    if let Some(timings) = phase_timings.as_mut() {
+        (*timings).add(PackProfilePhase::Hashing, hashing_start.elapsed());
+    }
     let header = Blk3Header {
         header_len: (4 + 2 + 2 + 4 + 4 + 4 + 8 + 8 + 32 + 32) as u16,
         flags: Blk3Flags(Blk3Flags::HAS_PAYLOAD_HASH | Blk3Flags::HAS_RAW_HASH),
@@ -2040,8 +2205,12 @@ fn write_experimental_metadata_block<T: Serialize>(
         payload_hash: Some(payload_hash),
         raw_hash: Some(raw_hash),
     };
+    let emission_start = Instant::now();
     write_blk3_header(&mut *out, &header)?;
     out.write_all(&compressed)?;
+    if let Some(timings) = phase_timings.as_mut() {
+        (*timings).add(PackProfilePhase::Emission, emission_start.elapsed());
+    }
     Ok(())
 }
 
@@ -2632,6 +2801,7 @@ mod tests {
     fn baseline_options() -> PackExperimentalOptions {
         PackExperimentalOptions {
             preservation_profile: PreservationProfile::Full,
+            profile_pack: false,
             self_describing_extents: false,
             file_identity_extents: false,
             self_identifying_blocks: false,
@@ -2671,8 +2841,9 @@ mod tests {
         std::fs::write(&input, b"changed-content").expect("mutate file");
 
         let output = td.path().join("out.crs");
-        let err = emit_archive_from_layout(layout, &output, 3, baseline_options(), |_, _, _| {})
-            .expect_err("emit should fail");
+        let err =
+            emit_archive_from_layout(layout, &output, 3, baseline_options(), None, |_, _, _| {})
+                .expect_err("emit should fail");
         assert!(
             err.to_string()
                 .contains("input changed during pack planning"),

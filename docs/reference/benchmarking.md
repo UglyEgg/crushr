@@ -3,7 +3,7 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
-# Benchmark contract (v0.4.15)
+# Benchmark contract (v0.4.17)
 
 This page defines the locked benchmark methodology for crushr.
 
@@ -114,6 +114,78 @@ Environment assumptions:
 - `zstd`, `xz`, and `time` available in `PATH`
 - filesystem with symlink support
 - xattrs are optional and host-dependent
+
+## Pack phase attribution (v0.4.17+)
+
+`crushr pack` supports explicit pack-phase timing output with `--profile-pack`.
+
+This is attribution-only instrumentation for local investigation; it is not a benchmark-score mode and is never enabled by default.
+
+### Commands for local operator runs (Rich)
+
+From repo root:
+
+```bash
+cargo build --release -p crushr
+python3 scripts/benchmark/generate_datasets.py --clean --output .bench/datasets
+```
+
+Medium dataset (basic profile):
+
+```bash
+target/release/crushr pack .bench/datasets/medium_realistic_tree \
+  -o .bench/results/medium_realistic_tree.basic.profiled.crs \
+  --level 3 \
+  --preservation basic \
+  --profile-pack \
+  --silent | tee .bench/results/pack_phases_medium_basic.txt
+```
+
+Large dataset (basic profile):
+
+```bash
+target/release/crushr pack .bench/datasets/large_stress_tree \
+  -o .bench/results/large_stress_tree.basic.profiled.crs \
+  --level 3 \
+  --preservation basic \
+  --profile-pack \
+  --silent | tee .bench/results/pack_phases_large_basic.txt
+```
+
+Optional preservation comparison:
+
+```bash
+target/release/crushr pack .bench/datasets/medium_realistic_tree \
+  -o .bench/results/medium_realistic_tree.full.profiled.crs \
+  --level 3 \
+  --preservation full \
+  --profile-pack \
+  --silent | tee .bench/results/pack_phases_medium_full.txt
+```
+
+### Expected output shape
+
+`--profile-pack` appends a deterministic phase table after normal pack completion:
+
+```text
+Pack phases
+  discovery         <ms>
+  metadata          <ms>
+  hashing           <ms>
+  compression       <ms>
+  emission          <ms>
+  finalization      <ms>
+```
+
+Capture the full command stdout in `.bench/results/pack_phases_*.txt`.
+
+### Interpretation hints
+
+- `compression` dominant: codec work is primary pack bottleneck.
+- `hashing` dominant: digest work is disproportionate vs compression.
+- `metadata` dominant: input walk/planning and metadata capture are likely scaling poorly.
+- `finalization` dominant: tail/index closeout may be doing too much late work.
+- Large `full` vs `basic` attribution gaps suggest metadata-envelope cost concentration.
 
 ## Limitations
 

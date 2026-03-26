@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-26 — CRUSHR_BENCHMARK_03 (v0.4.17)
+- Added explicit production pack profiling flag `--profile-pack` and deterministic human-readable phase breakdown output for `discovery`, `metadata`, `hashing`, `compression`, `emission`, and `finalization`.
+- Instrumented production pack timing attribution without changing archive bytes/semantics or compression behavior; phase timing is opt-in only and default/silent output remains unchanged unless profiling is requested.
+- Added integration coverage asserting profile output is absent by default and emitted only when `--profile-pack` is explicitly provided.
+- Updated benchmark reference docs with exact local operator commands for `medium_realistic_tree` and `large_stress_tree`, output-capture instructions, expected output shape, and interpretation guidance.
+- Advanced canonical version to `0.4.17` (`VERSION` + workspace package version sync).
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `./scripts/check-version-sync.sh`; `cargo test -p crushr --test version_contract`.
+
 ## 2026-03-26 — CRUSHR_PRESERVATION_FIX_06 (v0.4.16)
 - Fixed strict/recover extraction metadata restore semantics so omitted-by-profile classes are not attempted at restore time (instead of being attempted and only filtered later for classification).
 - Added profile-aware restore gating for ownership, xattrs, ACLs, SELinux labels, and Linux capabilities; this removes spurious omitted-class restore warnings for `basic` and `payload-only` archives.
