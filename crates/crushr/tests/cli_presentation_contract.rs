@@ -436,7 +436,10 @@ fn info_list_surfaces_profile_context_across_preservation_variants() {
                 .arg(&archive)
                 .arg("--list"),
         );
-        assert!(out.contains(expected_profile), "{profile} profile missing\n{out}");
+        assert!(
+            out.contains(expected_profile),
+            "{profile} profile missing\n{out}"
+        );
         assert!(out.contains("scope                  regular files (metadata/index proven)"));
     }
 }
