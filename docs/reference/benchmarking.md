@@ -3,7 +3,7 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
-# Benchmark contract (v0.4.14)
+# Benchmark contract (v0.4.15)
 
 This page defines the locked benchmark methodology for crushr.
 

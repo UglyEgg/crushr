@@ -7,7 +7,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_BENCHMARK_01 complete** (deterministic benchmark contract, datasets, and comparison methodology)
+Current Step: **CRUSHR_BENCHMARK_02 complete** (baseline benchmark execution, artifact publication, and comparative analysis)
+
+
+Latest maintenance fix (2026-03-26):
+- **CRUSHR_BENCHMARK_02 complete**: executed the full locked benchmark matrix over `small_mixed_tree`, `medium_realistic_tree`, and `large_stress_tree` for `tar+zstd`, `tar+xz`, `crushr --preservation full`, and `crushr --preservation basic`.
+- **CRUSHR_BENCHMARK_02 complete**: published canonical raw baseline results at `docs/reference/benchmarks/benchmark_results_v0.4.15.json` and human analysis report at `docs/reference/benchmark-baseline.md`.
+- **CRUSHR_BENCHMARK_02 complete**: documented environment context (CPU/RAM/OS/filesystem) and explicit caveats (`peak_rss_kb` unavailable in this environment due missing GNU `/usr/bin/time`).
+- **CRUSHR_BENCHMARK_02 complete**: canonical version advanced to `0.4.15` (`VERSION` + workspace package version sync).
+- **CRUSHR_BENCHMARK_02 validation**: benchmark harness full run, JSON schema validation (`jsonschema`), `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, and `./scripts/check-version-sync.sh` are green.
 
 Latest maintenance fix (2026-03-26):
 - **CRUSHR_BENCHMARK_01 complete**: added deterministic benchmark dataset generator (`scripts/benchmark/generate_datasets.py`) with three reproducible dataset classes (`small_mixed_tree`, `medium_realistic_tree`, `large_stress_tree`) plus emitted `dataset_manifest.json`.
@@ -358,7 +366,7 @@ Recovery should degrade in reverse order:
 1. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
 2. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
 3. Keep strict extraction interfaces/semantics untouched (including hardened `crushr-extract --verify` refusal behavior).
-4. Execute CRUSHR-BENCH-02 baseline runs from the locked harness and publish first canonical benchmark artifacts for review.
+4. Execute CRUSHR-BENCH-03 benchmark review packet to derive data-backed tuning priorities and whitepaper integration.
 
 ## Near-term product-completeness track (not active yet)
 
