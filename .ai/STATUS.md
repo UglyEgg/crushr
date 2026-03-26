@@ -7,7 +7,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_BENCHMARK_02 complete** (baseline benchmark execution, artifact publication, and comparative analysis)
+Current Step: **CRUSHR_PRESERVATION_FIX_06 complete** (profile-aware extraction restore gating for omitted metadata classes)
+
+
+Latest maintenance fix (2026-03-26):
+- **CRUSHR_PRESERVATION_FIX_06 complete**: strict/recover extraction metadata restoration now gates restore attempts on the archive-recorded preservation profile, so omitted classes are skipped rather than attempted-and-filtered after warning emission.
+- **CRUSHR_PRESERVATION_FIX_06 complete**: omitted-by-profile classes (`ownership`, `xattrs`, `ACLs`, `SELinux labels`, `capabilities`) no longer emit spurious restore warnings in `basic`/`payload-only` extraction paths.
+- **CRUSHR_PRESERVATION_FIX_06 complete**: full-profile behavior remains unchanged; required metadata restoration still attempts restore and still reports warning/fail-closed behavior when blocked.
+- **CRUSHR_PRESERVATION_FIX_06 complete**: deterministic coverage added for omitted-profile warning suppression in strict+recover, and explicit full-profile ownership warning assertions.
+- **CRUSHR_PRESERVATION_FIX_06 complete**: canonical version advanced to `0.4.16` (`VERSION` + workspace package version sync).
+- **CRUSHR_PRESERVATION_FIX_06 validation**: `cargo fmt --all`, `cargo test -p crushr --test metadata_preservation`, `cargo test -p crushr --test recovery_extract_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, and `./scripts/check-version-sync.sh` are green.
 
 
 Latest maintenance fix (2026-03-26):

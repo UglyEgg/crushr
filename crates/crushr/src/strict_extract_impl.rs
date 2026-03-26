@@ -131,6 +131,7 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
                 destination.as_path(),
                 &blocks,
                 opts.overwrite,
+                preservation_profile,
                 &mut hardlink_roots,
             )
             .map(|failed| {
@@ -320,6 +321,7 @@ fn write_entry(
     path: &Path,
     blocks: &[crushr_core::verify::BlockSpanV1],
     overwrite: bool,
+    preservation_profile: PreservationProfile,
     hardlink_roots: &mut BTreeMap<u64, PathBuf>,
 ) -> Result<Vec<MetadataClass>> {
     match entry.kind {
@@ -336,13 +338,17 @@ fn write_entry(
             if restore_mtime(path, entry.mtime).is_err() {
                 failed.push(MetadataClass::SpecialFile);
             }
-            if restore_xattrs(path, entry)? {
+            if metadata_required_by_profile(preservation_profile, entry, MetadataClass::Xattr)
+                && restore_xattrs(path, entry)?
+            {
                 failed.push(MetadataClass::Xattr);
             }
-            if restore_ownership(path, entry)? {
+            if metadata_required_by_profile(preservation_profile, entry, MetadataClass::Ownership)
+                && restore_ownership(path, entry)?
+            {
                 failed.push(MetadataClass::Ownership);
             }
-            failed.extend(restore_security_metadata(path, entry));
+            failed.extend(restore_security_metadata(path, entry, preservation_profile));
             failed.sort();
             failed.dedup();
             Ok(failed)
@@ -370,10 +376,15 @@ fn write_entry(
             bail!("symlink extraction is unsupported on this platform");
             let failed = {
                 let mut failed = Vec::new();
-                if restore_ownership(path, entry)? {
+                if metadata_required_by_profile(
+                    preservation_profile,
+                    entry,
+                    MetadataClass::Ownership,
+                ) && restore_ownership(path, entry)?
+                {
                     failed.push(MetadataClass::Ownership);
                 }
-                failed.extend(restore_security_metadata(path, entry));
+                failed.extend(restore_security_metadata(path, entry, preservation_profile));
                 failed
             };
             Ok(failed)
@@ -425,13 +436,17 @@ fn write_entry(
                 fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).ok();
             }
             let mut failed = Vec::new();
-            if restore_xattrs(path, entry)? {
+            if metadata_required_by_profile(preservation_profile, entry, MetadataClass::Xattr)
+                && restore_xattrs(path, entry)?
+            {
                 failed.push(MetadataClass::Xattr);
             }
-            if restore_ownership(path, entry)? {
+            if metadata_required_by_profile(preservation_profile, entry, MetadataClass::Ownership)
+                && restore_ownership(path, entry)?
+            {
                 failed.push(MetadataClass::Ownership);
             }
-            failed.extend(restore_security_metadata(path, entry));
+            failed.extend(restore_security_metadata(path, entry, preservation_profile));
             if restore_mtime(path, entry.mtime).is_err() {
                 failed.push(MetadataClass::SpecialFile);
             }
@@ -455,10 +470,12 @@ fn write_entry(
             }
             let mut failed = Vec::new();
             failed.extend(restore_special(path, entry)?);
-            if restore_ownership(path, entry)? {
+            if metadata_required_by_profile(preservation_profile, entry, MetadataClass::Ownership)
+                && restore_ownership(path, entry)?
+            {
                 failed.push(MetadataClass::Ownership);
             }
-            failed.extend(restore_security_metadata(path, entry));
+            failed.extend(restore_security_metadata(path, entry, preservation_profile));
             failed.sort();
             failed.dedup();
             Ok(failed)
@@ -682,60 +699,78 @@ fn restore_xattrs(path: &Path, entry: &Entry) -> Result<bool> {
     Ok(failed)
 }
 
-fn restore_security_metadata(path: &Path, entry: &Entry) -> Vec<MetadataClass> {
+fn restore_security_metadata(
+    path: &Path,
+    entry: &Entry,
+    profile: PreservationProfile,
+) -> Vec<MetadataClass> {
     let mut failed = Vec::new();
     #[cfg(unix)]
     {
-        if restore_single_xattr(
-            path,
-            "acl-restore",
-            "system.posix_acl_access",
-            entry.acl_access.as_deref(),
-        ) {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Acl)
+            && restore_single_xattr(
+                path,
+                "acl-restore",
+                "system.posix_acl_access",
+                entry.acl_access.as_deref(),
+            )
+        {
             failed.push(MetadataClass::Acl);
         }
-        if restore_single_xattr(
-            path,
-            "acl-restore",
-            "system.posix_acl_default",
-            entry.acl_default.as_deref(),
-        ) {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Acl)
+            && restore_single_xattr(
+                path,
+                "acl-restore",
+                "system.posix_acl_default",
+                entry.acl_default.as_deref(),
+            )
+        {
             failed.push(MetadataClass::Acl);
         }
-        if restore_single_xattr(
-            path,
-            "selinux-restore",
-            "security.selinux",
-            entry.selinux_label.as_deref(),
-        ) {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Selinux)
+            && restore_single_xattr(
+                path,
+                "selinux-restore",
+                "security.selinux",
+                entry.selinux_label.as_deref(),
+            )
+        {
             failed.push(MetadataClass::Selinux);
         }
-        if restore_single_xattr(
-            path,
-            "capability-restore",
-            "security.capability",
-            entry.linux_capability.as_deref(),
-        ) {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Capability)
+            && restore_single_xattr(
+                path,
+                "capability-restore",
+                "security.capability",
+                entry.linux_capability.as_deref(),
+            )
+        {
             failed.push(MetadataClass::Capability);
         }
     }
     #[cfg(not(unix))]
     {
-        if entry.acl_access.is_some() || entry.acl_default.is_some() {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Acl)
+            && (entry.acl_access.is_some() || entry.acl_default.is_some())
+        {
             failed.push(MetadataClass::Acl);
             eprintln!(
                 "WARNING[acl-restore]: skipped ACL metadata on '{}' (unsupported platform)",
                 path.display()
             );
         }
-        if entry.selinux_label.is_some() {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Selinux)
+            && entry.selinux_label.is_some()
+        {
             failed.push(MetadataClass::Selinux);
             eprintln!(
                 "WARNING[selinux-restore]: skipped SELinux label on '{}' (unsupported platform)",
                 path.display()
             );
         }
-        if entry.linux_capability.is_some() {
+        if metadata_required_by_profile(profile, entry, MetadataClass::Capability)
+            && entry.linux_capability.is_some()
+        {
             failed.push(MetadataClass::Capability);
             eprintln!(
                 "WARNING[capability-restore]: skipped Linux capabilities on '{}' (unsupported platform)",

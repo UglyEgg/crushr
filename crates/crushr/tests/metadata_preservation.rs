@@ -224,6 +224,7 @@ fn extraction_refuses_when_ownership_restore_is_not_permitted() {
         String::from_utf8_lossy(&out.stderr)
     );
     let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("WARNING[ownership-restore]"));
     assert!(stderr.contains("metadata restoration failed"));
     assert!(stderr.contains("ownership"));
 
@@ -243,6 +244,8 @@ fn extraction_refuses_when_ownership_restore_is_not_permitted() {
         String::from_utf8_lossy(&recover.stdout),
         String::from_utf8_lossy(&recover.stderr)
     );
+    let recover_stderr = String::from_utf8_lossy(&recover.stderr);
+    assert!(recover_stderr.contains("WARNING[ownership-restore]"));
     assert!(recover_out.join("metadata_degraded/file.txt").is_file());
     let manifest: serde_json::Value = serde_json::from_slice(
         &fs::read(recover_out.join("_crushr_recovery/manifest.json")).unwrap(),
@@ -255,6 +258,83 @@ fn extraction_refuses_when_ownership_restore_is_not_permitted() {
                 .as_array()
                 .is_some_and(|arr| arr.iter().any(|v| v == "ownership"))
     }));
+}
+
+#[test]
+fn basic_and_payload_only_skip_omitted_metadata_restore_attempts() {
+    if nix_like_euid_is_root() {
+        return;
+    }
+
+    let td = TempDir::new().unwrap();
+    let input = td.path().join("input");
+    fs::create_dir_all(&input).unwrap();
+    fs::write(input.join("file.txt"), b"payload").unwrap();
+
+    for profile in ["basic", "payload-only"] {
+        let archive = td.path().join(format!("{profile}.crs"));
+        run(
+            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
+                input.to_str().unwrap(),
+                "-o",
+                archive.to_str().unwrap(),
+                "--preservation",
+                profile,
+            ]),
+        );
+        mutate_index_in_place(&archive, |index| {
+            for entry in &mut index.entries {
+                entry.uid = 0;
+                entry.gid = 0;
+                entry.acl_access = Some(vec![1, 2, 3, 4]);
+                entry.selinux_label = Some(b"bad-label".to_vec());
+                entry.linux_capability = Some(vec![1, 2, 3, 4]);
+            }
+        });
+
+        let strict_out = td.path().join(format!("strict-{profile}"));
+        let strict = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+            .args([
+                archive.to_str().unwrap(),
+                "-o",
+                strict_out.to_str().unwrap(),
+            ])
+            .output()
+            .expect("run strict extract");
+        assert!(
+            strict.status.success(),
+            "strict extract failed for profile {profile}\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&strict.stdout),
+            String::from_utf8_lossy(&strict.stderr)
+        );
+        let strict_stderr = String::from_utf8_lossy(&strict.stderr);
+        assert!(!strict_stderr.contains("WARNING[ownership-restore]"));
+        assert!(!strict_stderr.contains("WARNING[acl-restore]"));
+        assert!(!strict_stderr.contains("WARNING[selinux-restore]"));
+        assert!(!strict_stderr.contains("WARNING[capability-restore]"));
+
+        let recover_out = td.path().join(format!("recover-{profile}"));
+        let recover = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+            .args([
+                archive.to_str().unwrap(),
+                "-o",
+                recover_out.to_str().unwrap(),
+                "--recover",
+            ])
+            .output()
+            .expect("run recover extract");
+        assert!(
+            recover.status.success(),
+            "recover extract failed for profile {profile}\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&recover.stdout),
+            String::from_utf8_lossy(&recover.stderr)
+        );
+        let recover_stderr = String::from_utf8_lossy(&recover.stderr);
+        assert!(!recover_stderr.contains("WARNING[ownership-restore]"));
+        assert!(!recover_stderr.contains("WARNING[acl-restore]"));
+        assert!(!recover_stderr.contains("WARNING[selinux-restore]"));
+        assert!(!recover_stderr.contains("WARNING[capability-restore]"));
+    }
 }
 
 #[test]

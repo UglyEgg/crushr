@@ -5,6 +5,22 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-26 — CRUSHR_PRESERVATION_FIX_06 extraction profile-authority lock
+
+- Decision:
+  - Treat the archive-recorded preservation profile as authoritative for extraction restore execution, not only for post-hoc metadata failure classification.
+  - Skip restoration attempts (and associated warnings) for metadata classes omitted by profile in both strict and recover extraction paths.
+  - Keep full-profile behavior unchanged: required metadata restoration continues to attempt restore and surfaces failure warnings/refusal/degraded routing as before.
+- Alternatives considered:
+  1. Keep current behavior (attempt restore for all classes, then filter omitted classes only in classification).
+  2. Suppress warnings only while still performing omitted-class restore syscalls.
+- Rationale:
+  - Packet requires `info` contract truth and extraction behavior to agree; omitted-by-profile metadata is outside archive obligations and must not produce restoration warnings.
+  - Skipping omitted-class syscalls is the only deterministic way to prevent spurious warning emission across strict/recover code paths.
+- Blast radius:
+  - `strict_extract_impl` and `recover_extract_impl` metadata restore helpers now gate ownership/xattr/ACL/SELinux/capability restore attempts by profile.
+  - Metadata preservation integration coverage expanded for omitted-profile warning suppression and full-profile ownership warning assertions.
+
 ## 2026-03-26 — CRUSHR_BENCHMARK_01 deterministic benchmark contract lock
 
 - Decision:
