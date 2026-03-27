@@ -14,6 +14,7 @@ Latest maintenance fix (2026-03-27):
 - **CRUSHR_HOSTILE_REVIEW_01 complete**: completed a hostile, enterprise-focused structural review covering pack pipeline, strict/recover extraction split, introspection contract surfaces, preservation-profile semantics, benchmark tooling, and embedded comments/docs.
 - **CRUSHR_HOSTILE_REVIEW_01 complete**: published prioritized findings for duplication, layered patching, hidden coupling, stale/misleading contract messaging, and test-structure illusions in `.ai/COMPLETION_NOTES_CRUSHR_HOSTILE_REVIEW_01.md`.
 - **CRUSHR_HOSTILE_REVIEW_01 complete**: produced actionable cleanup packet roadmap (`CRUSHR_CLEANUP_01`..`CRUSHR_CLEANUP_06`) with recommended execution order before additional feature expansion.
+- **CRUSHR_HOSTILE_REVIEW_01 addendum (2026-03-27)**: refreshed `.ai/COMPLETION_NOTES_CRUSHR_HOSTILE_REVIEW_01.md` with stricter file/function-specific findings and explicit answers to all locked review questions (duplication/layering/source-of-truth/dead-path/test-illusion axes).
 - **CRUSHR_HOSTILE_REVIEW_01 complete**: no product runtime behavior, archive semantics, schema contracts, or benchmark outputs were changed in this packet.
 
 Latest maintenance fix (2026-03-27):
