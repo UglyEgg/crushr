@@ -1,3 +1,11 @@
+CRUSHR_OPTIMIZATION_03 complete (2026-03-27):
+- Optimized production `pack` compression by replacing per-unit `zstd::Encoder` creation with one reusable `zstd::bulk::Compressor` context for payload + metadata units.
+- Preserved deterministic zstd configuration explicitly (`checksum=false`, `contentsize=true`, `dictid=false`), kept method/level behavior unchanged, and retained serial deterministic ordering.
+- Reduced compression-path allocation churn by reusing compressor-owned output buffer state via `compress_to_buffer`.
+- Preserved fail-closed mutation detection, preservation semantics, archive validity behavior, and truthful `--profile-pack` phase boundaries.
+- Canonical version advanced to `0.4.20` (`VERSION` + workspace package version sync).
+- Validation in packet: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `./scripts/check-version-sync.sh`; `cargo test -p crushr --test version_contract`.
+
 CRUSHR_OPTIMIZATION_02 complete (2026-03-27):
 - Optimized production `pack` emission path by switching archive output writes to a 1 MiB `BufWriter`, reducing per-block write syscall pressure while preserving byte-for-byte archive semantics.
 - Optimized compression allocation overhead by reusing a per-run compression output buffer for payload and metadata zstd compression.

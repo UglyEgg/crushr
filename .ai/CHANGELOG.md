@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-27 — CRUSHR_OPTIMIZATION_03 (v0.4.20)
+- Optimized production `pack` compression hot path by replacing per-unit stream encoder setup with a reusable `zstd::bulk::Compressor` context shared across payload and metadata block compression.
+- Kept deterministic compression semantics explicit: zstd method unchanged, level behavior unchanged, and frame flags still locked to checksum disabled, content size enabled, dict id disabled.
+- Reduced compression-path allocation/setup churn by reusing compressor-owned output buffer state (`compress_to_buffer`) instead of constructing/finishing a new encoder for each compressed unit.
+- Preserved correctness guardrails: mutation detection remains fail-closed, preservation semantics unchanged, archive validity/extractability expectations unchanged, and `--profile-pack` phase attribution boundaries unchanged.
+- Advanced canonical version to `0.4.20` (`VERSION` + workspace package version sync).
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `./scripts/check-version-sync.sh`; `cargo test -p crushr --test version_contract`.
+
 ## 2026-03-27 — CRUSHR_OPTIMIZATION_02 (v0.4.19)
 - Optimized production `pack` emission by writing archive output through a 1 MiB `BufWriter`, reducing small-write overhead during payload + metadata block emission.
 - Optimized compression-path allocation overhead by reusing a per-run compression output buffer for deterministic zstd writes (payload and metadata blocks), without changing codec, level, or zstd flag behavior.
