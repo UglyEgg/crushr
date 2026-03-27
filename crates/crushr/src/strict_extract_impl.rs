@@ -4,6 +4,10 @@
 use crate::extraction_path::resolve_confined_path;
 use crate::format::{Entry, EntryKind, PreservationProfile};
 use crate::index_codec::decode_index;
+use crate::restoration_core::{
+    MetadataClass, RestorationPolicy, metadata_required_by_profile, restore_entry_metadata,
+    restore_special_filesystem_object,
+};
 use anyhow::{Context, Result, bail};
 use crushr_core::{
     extraction::{ExtractionOutcomeKind, build_extraction_report, classify_refusal_paths},
@@ -41,16 +45,6 @@ pub struct StrictExtractOptions {
     pub overwrite: bool,
     pub selected_paths: Option<Vec<String>>,
     pub verify_only: bool,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum MetadataClass {
-    Ownership,
-    Acl,
-    Selinux,
-    Capability,
-    Xattr,
-    SpecialFile,
 }
 
 #[allow(dead_code)]
@@ -170,28 +164,6 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
         outcome_kind,
         report,
     })
-}
-
-fn metadata_required_by_profile(
-    profile: PreservationProfile,
-    entry: &Entry,
-    class: MetadataClass,
-) -> bool {
-    match profile {
-        PreservationProfile::Full => true,
-        PreservationProfile::Basic => match class {
-            MetadataClass::SpecialFile => !matches!(
-                entry.kind,
-                EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice
-            ),
-            MetadataClass::Xattr
-            | MetadataClass::Ownership
-            | MetadataClass::Acl
-            | MetadataClass::Selinux
-            | MetadataClass::Capability => false,
-        },
-        PreservationProfile::PayloadOnly => false,
-    }
 }
 
 fn read_entry_bytes_strict(
@@ -327,31 +299,7 @@ fn write_entry(
     match entry.kind {
         EntryKind::Directory => {
             fs::create_dir_all(path).with_context(|| format!("create {}", path.display()))?;
-            let mut failed = Vec::new();
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                if fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).is_err() {
-                    failed.push(MetadataClass::SpecialFile);
-                }
-            }
-            if restore_mtime(path, entry.mtime).is_err() {
-                failed.push(MetadataClass::SpecialFile);
-            }
-            if metadata_required_by_profile(preservation_profile, entry, MetadataClass::Xattr)
-                && restore_xattrs(path, entry)?
-            {
-                failed.push(MetadataClass::Xattr);
-            }
-            if metadata_required_by_profile(preservation_profile, entry, MetadataClass::Ownership)
-                && restore_ownership(path, entry)?
-            {
-                failed.push(MetadataClass::Ownership);
-            }
-            failed.extend(restore_security_metadata(path, entry, preservation_profile));
-            failed.sort();
-            failed.dedup();
-            Ok(failed)
+            restore_entry_metadata(path, entry, preservation_profile)
         }
         EntryKind::Symlink => {
             if path.exists() {
@@ -374,20 +322,7 @@ fn write_entry(
                 .with_context(|| format!("symlink {} -> {}", path.display(), target))?;
             #[cfg(not(unix))]
             bail!("symlink extraction is unsupported on this platform");
-            let failed = {
-                let mut failed = Vec::new();
-                if metadata_required_by_profile(
-                    preservation_profile,
-                    entry,
-                    MetadataClass::Ownership,
-                ) && restore_ownership(path, entry)?
-                {
-                    failed.push(MetadataClass::Ownership);
-                }
-                failed.extend(restore_security_metadata(path, entry, preservation_profile));
-                failed
-            };
-            Ok(failed)
+            restore_entry_metadata(path, entry, preservation_profile)
         }
         EntryKind::Regular => {
             if let Some(parent) = path.parent() {
@@ -430,29 +365,7 @@ fn write_entry(
                 }
                 fs::write(path, &bytes).with_context(|| format!("write {}", path.display()))?;
             }
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                fs::set_permissions(path, fs::Permissions::from_mode(entry.mode)).ok();
-            }
-            let mut failed = Vec::new();
-            if metadata_required_by_profile(preservation_profile, entry, MetadataClass::Xattr)
-                && restore_xattrs(path, entry)?
-            {
-                failed.push(MetadataClass::Xattr);
-            }
-            if metadata_required_by_profile(preservation_profile, entry, MetadataClass::Ownership)
-                && restore_ownership(path, entry)?
-            {
-                failed.push(MetadataClass::Ownership);
-            }
-            failed.extend(restore_security_metadata(path, entry, preservation_profile));
-            if restore_mtime(path, entry.mtime).is_err() {
-                failed.push(MetadataClass::SpecialFile);
-            }
-            failed.sort();
-            failed.dedup();
-            Ok(failed)
+            restore_entry_metadata(path, entry, preservation_profile)
         }
         EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice => {
             if let Some(parent) = path.parent() {
@@ -469,13 +382,12 @@ fn write_entry(
                 }
             }
             let mut failed = Vec::new();
-            failed.extend(restore_special(path, entry)?);
-            if metadata_required_by_profile(preservation_profile, entry, MetadataClass::Ownership)
-                && restore_ownership(path, entry)?
-            {
-                failed.push(MetadataClass::Ownership);
-            }
-            failed.extend(restore_security_metadata(path, entry, preservation_profile));
+            failed.extend(restore_special_filesystem_object(
+                path,
+                entry,
+                RestorationPolicy::Strict,
+            )?);
+            failed.extend(restore_entry_metadata(path, entry, preservation_profile)?);
             failed.sort();
             failed.dedup();
             Ok(failed)
@@ -513,286 +425,6 @@ fn write_sparse_entry(
             .with_context(|| format!("write sparse extent {}", path.display()))?;
     }
     Ok(())
-}
-
-fn restore_special(path: &Path, entry: &Entry) -> Result<Vec<MetadataClass>> {
-    let mut failed = Vec::new();
-    #[cfg(unix)]
-    {
-        use std::ffi::CString;
-        use std::os::unix::ffi::OsStrExt;
-        unsafe extern "C" {
-            fn mkfifo(pathname: *const std::os::raw::c_char, mode: u32) -> std::os::raw::c_int;
-            fn mknod(
-                pathname: *const std::os::raw::c_char,
-                mode: u32,
-                dev: u64,
-            ) -> std::os::raw::c_int;
-        }
-        let c_path = CString::new(path.as_os_str().as_bytes())
-            .with_context(|| format!("invalid path for special restore: {}", path.display()))?;
-        let rc = match entry.kind {
-            EntryKind::Fifo => unsafe { mkfifo(c_path.as_ptr(), entry.mode) },
-            EntryKind::CharDevice | EntryKind::BlockDevice => {
-                let mode = entry.mode
-                    | if entry.kind == EntryKind::CharDevice {
-                        0o020000
-                    } else {
-                        0o060000
-                    };
-                let major = entry.device_major.unwrap_or(0) as u64;
-                let minor = entry.device_minor.unwrap_or(0) as u64;
-                let dev = ((major & 0xfffff000) << 32)
-                    | ((major & 0xfff) << 8)
-                    | ((minor & 0xffffff00) << 12)
-                    | (minor & 0xff);
-                unsafe { mknod(c_path.as_ptr(), mode, dev) }
-            }
-            _ => 0,
-        };
-        if rc != 0 {
-            eprintln!(
-                "WARNING[special-restore]: could not restore '{}' at '{}': {}",
-                entry.path,
-                path.display(),
-                std::io::Error::last_os_error()
-            );
-            failed.push(MetadataClass::SpecialFile);
-        } else {
-            if restore_mtime(path, entry.mtime).is_err() {
-                failed.push(MetadataClass::SpecialFile);
-            }
-            if restore_xattrs(path, entry)? {
-                failed.push(MetadataClass::Xattr);
-            }
-        }
-    }
-    #[cfg(not(unix))]
-    {
-        eprintln!(
-            "WARNING[special-restore]: skipped '{}' at '{}' (unsupported platform)",
-            entry.path,
-            path.display()
-        );
-        failed.push(MetadataClass::SpecialFile);
-    }
-    Ok(failed)
-}
-
-fn restore_ownership(path: &Path, entry: &Entry) -> Result<bool> {
-    #[cfg(unix)]
-    {
-        use std::ffi::CString;
-        use std::os::unix::ffi::OsStrExt;
-        unsafe extern "C" {
-            fn lchown(
-                path: *const std::os::raw::c_char,
-                owner: u32,
-                group: u32,
-            ) -> std::os::raw::c_int;
-        }
-        let c_path = CString::new(path.as_os_str().as_bytes())
-            .with_context(|| format!("invalid path for ownership restore: {}", path.display()))?;
-        let rc = unsafe { lchown(c_path.as_ptr(), entry.uid, entry.gid) };
-        if rc != 0 {
-            let label = entry
-                .uname
-                .as_ref()
-                .zip(entry.gname.as_ref())
-                .map(|(u, g)| format!("{u}:{g}"))
-                .unwrap_or_else(|| format!("{}:{}", entry.uid, entry.gid));
-            eprintln!(
-                "WARNING[ownership-restore]: could not restore '{}' on '{}': {}",
-                label,
-                path.display(),
-                std::io::Error::last_os_error()
-            );
-            return Ok(true);
-        }
-    }
-    #[cfg(not(unix))]
-    {
-        let _ = (path, entry);
-    }
-    Ok(false)
-}
-
-fn restore_mtime(path: &Path, mtime_secs: i64) -> Result<()> {
-    #[cfg(unix)]
-    {
-        if mtime_secs < 0 {
-            return Ok(());
-        }
-        use std::ffi::CString;
-        use std::os::unix::ffi::OsStrExt;
-        use std::os::unix::io::RawFd;
-
-        #[repr(C)]
-        struct Timespec {
-            tv_sec: i64,
-            tv_nsec: i64,
-        }
-
-        unsafe extern "C" {
-            fn utimensat(
-                dirfd: RawFd,
-                pathname: *const std::os::raw::c_char,
-                times: *const Timespec,
-                flags: std::os::raw::c_int,
-            ) -> std::os::raw::c_int;
-        }
-
-        const AT_FDCWD: RawFd = -100;
-        const UTIME_OMIT: i64 = 1_073_741_822;
-
-        let c_path = CString::new(path.as_os_str().as_bytes())
-            .with_context(|| format!("invalid path for mtime restore: {}", path.display()))?;
-        let times = [
-            Timespec {
-                tv_sec: 0,
-                tv_nsec: UTIME_OMIT,
-            },
-            Timespec {
-                tv_sec: mtime_secs,
-                tv_nsec: 0,
-            },
-        ];
-        let rc = unsafe { utimensat(AT_FDCWD, c_path.as_ptr(), times.as_ptr(), 0) };
-        if rc != 0 {
-            return Err(std::io::Error::last_os_error())
-                .with_context(|| format!("set mtime {}", path.display()));
-        }
-    }
-    #[cfg(not(unix))]
-    {
-        let _ = (path, mtime_secs);
-    }
-    Ok(())
-}
-
-fn restore_xattrs(path: &Path, entry: &Entry) -> Result<bool> {
-    let mut failed = false;
-    #[cfg(unix)]
-    {
-        for xa in &entry.xattrs {
-            if let Err(err) = xattr::set(path, &xa.name, &xa.value) {
-                failed = true;
-                eprintln!(
-                    "WARNING[xattr-restore]: could not restore '{}' on '{}': {err}",
-                    xa.name,
-                    path.display()
-                );
-            }
-        }
-    }
-    #[cfg(not(unix))]
-    {
-        if !entry.xattrs.is_empty() {
-            failed = true;
-            eprintln!(
-                "WARNING[xattr-restore]: skipped {} xattrs on '{}' (unsupported platform)",
-                entry.xattrs.len(),
-                path.display()
-            );
-        }
-    }
-    Ok(failed)
-}
-
-fn restore_security_metadata(
-    path: &Path,
-    entry: &Entry,
-    profile: PreservationProfile,
-) -> Vec<MetadataClass> {
-    let mut failed = Vec::new();
-    #[cfg(unix)]
-    {
-        if metadata_required_by_profile(profile, entry, MetadataClass::Acl)
-            && restore_single_xattr(
-                path,
-                "acl-restore",
-                "system.posix_acl_access",
-                entry.acl_access.as_deref(),
-            )
-        {
-            failed.push(MetadataClass::Acl);
-        }
-        if metadata_required_by_profile(profile, entry, MetadataClass::Acl)
-            && restore_single_xattr(
-                path,
-                "acl-restore",
-                "system.posix_acl_default",
-                entry.acl_default.as_deref(),
-            )
-        {
-            failed.push(MetadataClass::Acl);
-        }
-        if metadata_required_by_profile(profile, entry, MetadataClass::Selinux)
-            && restore_single_xattr(
-                path,
-                "selinux-restore",
-                "security.selinux",
-                entry.selinux_label.as_deref(),
-            )
-        {
-            failed.push(MetadataClass::Selinux);
-        }
-        if metadata_required_by_profile(profile, entry, MetadataClass::Capability)
-            && restore_single_xattr(
-                path,
-                "capability-restore",
-                "security.capability",
-                entry.linux_capability.as_deref(),
-            )
-        {
-            failed.push(MetadataClass::Capability);
-        }
-    }
-    #[cfg(not(unix))]
-    {
-        if metadata_required_by_profile(profile, entry, MetadataClass::Acl)
-            && (entry.acl_access.is_some() || entry.acl_default.is_some())
-        {
-            failed.push(MetadataClass::Acl);
-            eprintln!(
-                "WARNING[acl-restore]: skipped ACL metadata on '{}' (unsupported platform)",
-                path.display()
-            );
-        }
-        if metadata_required_by_profile(profile, entry, MetadataClass::Selinux)
-            && entry.selinux_label.is_some()
-        {
-            failed.push(MetadataClass::Selinux);
-            eprintln!(
-                "WARNING[selinux-restore]: skipped SELinux label on '{}' (unsupported platform)",
-                path.display()
-            );
-        }
-        if metadata_required_by_profile(profile, entry, MetadataClass::Capability)
-            && entry.linux_capability.is_some()
-        {
-            failed.push(MetadataClass::Capability);
-            eprintln!(
-                "WARNING[capability-restore]: skipped Linux capabilities on '{}' (unsupported platform)",
-                path.display()
-            );
-        }
-    }
-    failed
-}
-
-#[cfg(unix)]
-fn restore_single_xattr(path: &Path, warning_code: &str, name: &str, value: Option<&[u8]>) -> bool {
-    if let Some(value) = value
-        && let Err(err) = xattr::set(path, name, value)
-    {
-        eprintln!(
-            "WARNING[{warning_code}]: could not restore '{name}' on '{}': {err}",
-            path.display()
-        );
-        return true;
-    }
-    false
 }
 
 fn read_exact_at<R: ReadAt>(reader: &R, mut offset: u64, mut dst: &mut [u8]) -> Result<()> {

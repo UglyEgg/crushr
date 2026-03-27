@@ -5,6 +5,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-27 — CRUSHR_CLEANUP_04
+- Added shared restoration core (`crates/crushr/src/restoration_core.rs`) to centralize metadata restoration sequencing, profile-aware gating, and metadata class shaping for strict/recover extraction.
+- Routed both strict and recover extraction through shared restoration mechanics (`restore_entry_metadata`, `restore_special_filesystem_object`) and removed duplicated local restoration helpers.
+- Kept trust-policy boundaries explicit by passing `RestorationPolicy::{Strict, Recover}` into shared restoration mechanics while preserving strict fail-closed behavior and recover metadata-degraded routing.
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
 
 ## 2026-03-27 — CRUSHR_CLEANUP_03
 - Collapsed recover-mode metadata-degraded routing into one canonical helper (`route_metadata_degraded_entry`) used across regular, directory, symlink, and special-entry extraction branches.

@@ -100,6 +100,7 @@ Deliverables
 - [x] CRUSHR_HOSTILE_REVIEW_01 — perform hostile enterprise structural review (duplication/layering/drift/vibe-residue) and publish prioritized cleanup roadmap before additional capability expansion (report refreshed with explicit question-by-question answers on 2026-03-27).
 - [x] CRUSHR_CLEANUP_02 — unify pack preservation-profile authority in one canonical planning decision layer, remove discovery/emission policy ownership, and centralize warning emission from plan decisions.
 - [x] CRUSHR_CLEANUP_03 — deduplicate recover metadata-degraded routing with one canonical authority and one shared metadata-degraded manifest/entry assembly path.
+- [x] CRUSHR_CLEANUP_04 — unify strict/recover metadata restoration mechanics into one shared restoration core with explicit policy inputs for strict vs recover handling.
 
 Exit criteria
 

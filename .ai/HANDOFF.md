@@ -1,3 +1,10 @@
+CRUSHR_CLEANUP_04 complete (2026-03-27):
+- Added shared restoration core at `crates/crushr/src/restoration_core.rs` to own common metadata restoration mechanism (sequencing, profile-aware gating, and metadata class shaping).
+- Routed strict and recover extraction through shared restoration functions (`restore_entry_metadata`, `restore_special_filesystem_object`) and removed duplicated local restoration helpers from `strict_extract_impl.rs` and `recover_extract_impl.rs`.
+- Kept strict/recover trust semantics separated via explicit policy input (`RestorationPolicy::{Strict, Recover}`) and existing mode-specific outcome handling (strict refusal vs recover `metadata_degraded` routing).
+- Follow-on order now starts at `CRUSHR_CLEANUP_05`, then `CRUSHR_CLEANUP_06`.
+- Validation in packet: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 CRUSHR_CLEANUP_03 complete (2026-03-27):
 - Recover-mode metadata-degraded routing in `crates/crushr/src/recover_extract_impl.rs` now goes through one canonical helper (`route_metadata_degraded_entry`) across regular, directory, symlink, and special-entry branches.
 - Metadata-degraded recover manifest entry assembly is now single-owner via `build_metadata_degraded_manifest_entry`, including trust class, failed metadata classes, degradation reason, and identity status mapping.
