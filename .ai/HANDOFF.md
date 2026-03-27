@@ -1,8 +1,15 @@
+CRUSHR_CLEANUP_05 complete (2026-03-27):
+- Decomposed `crates/crushr/src/commands/pack.rs` into explicit internal ownership layers (`discovery`, `planning`, `emission`) and routed top-level orchestration through those bounded internal interfaces.
+- Kept pack semantics unchanged: CLI behavior/help surface, archive format/output, preservation-profile behavior, and profiling/finalization flow remain as before.
+- Preserved CRUSHR_CLEANUP_02 authority model by keeping profile planning/warning ownership anchored in the canonical planning path (no downstream profile policy duplication).
+- Follow-on order now starts at `CRUSHR_CLEANUP_06`.
+- Validation in packet: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 CRUSHR_CLEANUP_04 complete (2026-03-27):
 - Added shared restoration core at `crates/crushr/src/restoration_core.rs` to own common metadata restoration mechanism (sequencing, profile-aware gating, and metadata class shaping).
 - Routed strict and recover extraction through shared restoration functions (`restore_entry_metadata`, `restore_special_filesystem_object`) and removed duplicated local restoration helpers from `strict_extract_impl.rs` and `recover_extract_impl.rs`.
 - Kept strict/recover trust semantics separated via explicit policy input (`RestorationPolicy::{Strict, Recover}`) and existing mode-specific outcome handling (strict refusal vs recover `metadata_degraded` routing).
-- Follow-on order now starts at `CRUSHR_CLEANUP_05`, then `CRUSHR_CLEANUP_06`.
+- Follow-on order now starts at `CRUSHR_CLEANUP_06`.
 - Validation in packet: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
 
 CRUSHR_CLEANUP_03 complete (2026-03-27):

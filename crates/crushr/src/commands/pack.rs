@@ -669,6 +669,55 @@ struct PathDictionaryCopyRecordV2 {
     body: PathDictionaryBody,
 }
 
+mod discovery {
+    use super::*;
+
+    pub(super) fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
+        collect_files_impl(inputs)
+    }
+
+    pub(super) fn plan_pack_profile(
+        candidates: Vec<InputFile>,
+        profile: PreservationProfile,
+    ) -> PackProfilePlan {
+        plan_pack_profile_impl(candidates, profile)
+    }
+
+    pub(super) fn emit_profile_warnings(omissions: &[ProfileOmission]) {
+        emit_profile_warnings_impl(omissions);
+    }
+
+    pub(super) fn reject_duplicate_logical_paths(files: &[InputFile]) -> Result<()> {
+        reject_duplicate_logical_paths_impl(files)
+    }
+}
+
+mod planning {
+    use super::*;
+
+    pub(super) fn build_pack_layout_plan(
+        profile_plan: PackProfilePlan,
+        options: PackExperimentalOptions,
+    ) -> Result<PackLayoutPlan> {
+        build_pack_layout_plan_impl(profile_plan, options)
+    }
+}
+
+mod emission {
+    use super::*;
+
+    pub(super) fn emit_archive_from_layout(
+        layout: PackLayoutPlan,
+        output: &Path,
+        level: i32,
+        options: PackExperimentalOptions,
+        phase_timings: Option<&mut PackPhaseTimings>,
+        progress: impl FnMut(PackProgressPhase, u64, u64),
+    ) -> Result<()> {
+        emit_archive_from_layout_impl(layout, output, level, options, phase_timings, progress)
+    }
+}
+
 pub fn dispatch(args: Vec<String>) -> i32 {
     if let Err(err) = run(args, PackCliSurface::Production) {
         eprintln!("{err:#}");
@@ -850,7 +899,7 @@ fn pack_minimal_v1(
     presenter.section("Progress");
     let input_discovery = presenter.begin_active_phase("input discovery", None);
     let discovery_start = Instant::now();
-    let candidates = match collect_files(inputs) {
+    let candidates = match discovery::collect_files(inputs) {
         Ok(files) => {
             if let Some(timings) = phase_timings.as_mut() {
                 timings.discovery = discovery_start.elapsed();
@@ -873,20 +922,20 @@ fn pack_minimal_v1(
         bail!("no input files to pack");
     }
     let metadata_start = Instant::now();
-    let profile_plan = plan_pack_profile(candidates, options.preservation_profile);
-    emit_profile_warnings(&profile_plan.omitted);
+    let profile_plan = discovery::plan_pack_profile(candidates, options.preservation_profile);
+    discovery::emit_profile_warnings(&profile_plan.omitted);
     if profile_plan.included.is_empty() {
         bail!("no input files to pack");
     }
     let planning = presenter.begin_active_phase("planning", None);
-    if let Err(err) = reject_duplicate_logical_paths(&profile_plan.included) {
+    if let Err(err) = discovery::reject_duplicate_logical_paths(&profile_plan.included) {
         if let Some(timings) = phase_timings.as_mut() {
             timings.metadata = metadata_start.elapsed();
         }
         planning.settle(StatusWord::Failed, Some("duplicate logical paths"));
         return Err(err);
     }
-    let layout = match build_pack_layout_plan(profile_plan, options) {
+    let layout = match planning::build_pack_layout_plan(profile_plan, options) {
         Ok(layout) => {
             if let Some(timings) = phase_timings.as_mut() {
                 timings.metadata = metadata_start.elapsed();
@@ -907,7 +956,7 @@ fn pack_minimal_v1(
     let total_size_bytes = layout.files.iter().map(|file| file.raw_len).sum::<u64>();
     let compression = presenter.begin_active_phase("compression", None);
     let serialization = presenter.begin_active_phase("serialization", None);
-    if let Err(err) = emit_archive_from_layout(
+    if let Err(err) = emission::emit_archive_from_layout(
         layout,
         output,
         level,
@@ -982,7 +1031,7 @@ fn pack_minimal_v1(
     Ok(())
 }
 
-fn build_pack_layout_plan(
+fn build_pack_layout_plan_impl(
     profile_plan: PackProfilePlan,
     options: PackExperimentalOptions,
 ) -> Result<PackLayoutPlan> {
@@ -1118,7 +1167,7 @@ fn build_pack_layout_plan(
     })
 }
 
-fn emit_archive_from_layout(
+fn emit_archive_from_layout_impl(
     layout: PackLayoutPlan,
     output: &Path,
     level: i32,
@@ -2505,7 +2554,7 @@ fn capture_sparse_chunks(_path: &Path, _size: u64) -> Vec<SparseChunk> {
     Vec::new()
 }
 
-fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
+fn collect_files_impl(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
     let mut files = Vec::new();
     let cwd = std::env::current_dir().context("read current working directory")?;
     let mut uname_by_uid = BTreeMap::<u32, Option<String>>::new();
@@ -2775,7 +2824,10 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
     Ok(files)
 }
 
-fn plan_pack_profile(candidates: Vec<InputFile>, profile: PreservationProfile) -> PackProfilePlan {
+fn plan_pack_profile_impl(
+    candidates: Vec<InputFile>,
+    profile: PreservationProfile,
+) -> PackProfilePlan {
     let mut included = Vec::with_capacity(candidates.len());
     let mut omitted = Vec::new();
 
@@ -2852,7 +2904,7 @@ fn plan_pack_profile(candidates: Vec<InputFile>, profile: PreservationProfile) -
     PackProfilePlan { included, omitted }
 }
 
-fn emit_profile_warnings(omissions: &[ProfileOmission]) {
+fn emit_profile_warnings_impl(omissions: &[ProfileOmission]) {
     for omission in omissions {
         eprintln!(
             "WARNING[preservation-omit]: omitted '{}' ({:?}) due to preservation profile {}",
@@ -2926,7 +2978,7 @@ fn sparse_lseek(fd: std::os::unix::io::RawFd, off: u64, whence: i32) -> Option<u
     if value < 0 { None } else { Some(value as u64) }
 }
 
-fn reject_duplicate_logical_paths(files: &[InputFile]) -> Result<()> {
+fn reject_duplicate_logical_paths_impl(files: &[InputFile]) -> Result<()> {
     let mut path_sources: BTreeMap<&str, Vec<(EntryKind, String)>> = BTreeMap::new();
 
     for file in files {
@@ -2988,10 +3040,10 @@ mod tests {
         perms.set_mode(0o000);
         std::fs::set_permissions(&unreadable, perms).expect("set permissions");
 
-        let files = collect_files(&[unreadable]).expect("collect files");
-        let profile_plan = plan_pack_profile(files, PreservationProfile::Full);
-        let layout =
-            build_pack_layout_plan(profile_plan, baseline_options()).expect("build layout");
+        let files = discovery::collect_files(&[unreadable]).expect("collect files");
+        let profile_plan = discovery::plan_pack_profile(files, PreservationProfile::Full);
+        let layout = planning::build_pack_layout_plan(profile_plan, baseline_options())
+            .expect("build layout");
         assert_eq!(layout.files.len(), 1);
         assert!(layout.files[0].raw_len > 0);
     }
@@ -3001,16 +3053,22 @@ mod tests {
         let td = TempDir::new().expect("tempdir");
         let input = td.path().join("payload.bin");
         std::fs::write(&input, b"before").expect("write file");
-        let files = collect_files(std::slice::from_ref(&input)).expect("collect files");
-        let profile_plan = plan_pack_profile(files, PreservationProfile::Full);
-        let layout =
-            build_pack_layout_plan(profile_plan, baseline_options()).expect("build layout");
+        let files = discovery::collect_files(std::slice::from_ref(&input)).expect("collect files");
+        let profile_plan = discovery::plan_pack_profile(files, PreservationProfile::Full);
+        let layout = planning::build_pack_layout_plan(profile_plan, baseline_options())
+            .expect("build layout");
         std::fs::write(&input, b"changed-content").expect("mutate file");
 
         let output = td.path().join("out.crs");
-        let err =
-            emit_archive_from_layout(layout, &output, 3, baseline_options(), None, |_, _, _| {})
-                .expect_err("emit should fail");
+        let err = emission::emit_archive_from_layout(
+            layout,
+            &output,
+            3,
+            baseline_options(),
+            None,
+            |_, _, _| {},
+        )
+        .expect_err("emit should fail");
         assert!(
             err.to_string()
                 .contains("input changed during pack planning"),
