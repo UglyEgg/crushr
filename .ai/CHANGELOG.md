@@ -6,6 +6,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 # .ai/CHANGELOG.md
 
 
+## 2026-03-27 — CRUSHR_CLEANUP_03
+- Collapsed recover-mode metadata-degraded routing into one canonical helper (`route_metadata_degraded_entry`) used across regular, directory, symlink, and special-entry extraction branches.
+- Unified metadata-degraded recover manifest assembly into one helper (`build_metadata_degraded_manifest_entry`) so trust/degradation/failed-class mapping is no longer repeated in branch-local code.
+- Removed duplicated degraded rename + manifest scaffolding from recover entry-kind branches and centralized degraded-reason wording under a single constant.
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 ## 2026-03-27 — CRUSHR_CLEANUP_02
 - Collapsed pack preservation-profile semantics into a single planning authority (`plan_pack_profile`) that emits explicit included/omitted outcomes with omission reasons.
 - Removed profile policy ownership from discovery (`collect_files` now captures raw candidates only) and removed split post-discovery helper ownership (`apply_preservation_profile`).
