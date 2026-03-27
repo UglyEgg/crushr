@@ -218,26 +218,39 @@ impl MetadataProfile {
 
 const BLK3_HEADER_WITH_HASHES_LEN: u64 = (4 + 2 + 2 + 4 + 4 + 4 + 8 + 8 + 32 + 32) as u64;
 
-fn compress_deterministic(raw: &[u8], level: i32, scratch: &mut Vec<u8>) -> Result<Vec<u8>> {
-    let mut output = std::mem::take(scratch);
-    output.clear();
-    let mut encoder = zstd::Encoder::new(output, level).context("create zstd encoder")?;
-    encoder
-        .include_checksum(false)
-        .context("set zstd checksum flag")?;
-    encoder
-        .include_contentsize(true)
-        .context("set zstd content-size flag")?;
-    encoder
-        .include_dictid(false)
-        .context("set zstd dict-id flag")?;
-    encoder.write_all(raw).context("zstd write")?;
-    encoder.finish().context("zstd finish")
+struct DeterministicCompressor {
+    compressor: zstd::bulk::Compressor<'static>,
+    output: Vec<u8>,
 }
 
-fn recycle_compression_buffer(mut compressed: Vec<u8>, scratch: &mut Vec<u8>) {
-    compressed.clear();
-    *scratch = compressed;
+impl DeterministicCompressor {
+    fn new(level: i32) -> Result<Self> {
+        let mut compressor =
+            zstd::bulk::Compressor::new(level).context("create zstd compressor")?;
+        compressor
+            .include_checksum(false)
+            .context("set zstd checksum flag")?;
+        compressor
+            .include_contentsize(true)
+            .context("set zstd content-size flag")?;
+        compressor
+            .include_dictid(false)
+            .context("set zstd dict-id flag")?;
+        Ok(Self {
+            compressor,
+            output: Vec::new(),
+        })
+    }
+
+    fn compress(&mut self, raw: &[u8]) -> Result<&[u8]> {
+        self.output.clear();
+        self.output
+            .reserve(zstd::zstd_safe::compress_bound(raw.len()));
+        self.compressor
+            .compress_to_buffer(raw, &mut self.output)
+            .context("zstd compress")?;
+        Ok(&self.output)
+    }
 }
 
 #[derive(Debug)]
@@ -1095,7 +1108,7 @@ fn emit_archive_from_layout(
     let mut out = BufWriter::with_capacity(1024 * 1024, out_file);
     let mut write_offset = 0u64;
     let mut entries = Vec::with_capacity(total_files);
-    let mut compression_scratch = Vec::new();
+    let mut compression = DeterministicCompressor::new(level)?;
 
     let mut experimental_records = Vec::new();
     let mut file_identity_extent_records = Vec::new();
@@ -1118,7 +1131,7 @@ fn emit_archive_from_layout(
             &mut out,
             path_dictionary,
             level,
-            &mut compression_scratch,
+            &mut compression,
             &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
@@ -1177,14 +1190,15 @@ fn emit_archive_from_layout(
                     );
                 }
                 let compression_start = Instant::now();
-                let compressed = compress_deterministic(&raw, level, &mut compression_scratch)
+                let compressed = compression
+                    .compress(&raw)
                     .with_context(|| format!("compress {}", file.abs_path.display()))?;
                 if let Some(timings) = phase_timings.as_mut() {
                     (*timings).add(PackProfilePhase::Compression, compression_start.elapsed());
                 }
                 let block_scan_offset = write_offset;
                 let hashing_start = Instant::now();
-                let payload_hash = *blake3::hash(&compressed).as_bytes();
+                let payload_hash = *blake3::hash(compressed).as_bytes();
                 let raw_hash = *blake3::hash(&raw).as_bytes();
                 if let Some(timings) = phase_timings.as_mut() {
                     (*timings).add(PackProfilePhase::Hashing, hashing_start.elapsed());
@@ -1204,7 +1218,7 @@ fn emit_archive_from_layout(
 
                 let emission_start = Instant::now();
                 write_blk3_header(&mut out, &header)?;
-                out.write_all(&compressed)?;
+                out.write_all(compressed)?;
                 let compressed_len = compressed.len() as u64;
                 write_offset += BLK3_HEADER_WITH_HASHES_LEN + compressed_len;
                 if let Some(timings) = phase_timings.as_mut() {
@@ -1221,7 +1235,6 @@ fn emit_archive_from_layout(
                         block_scan_offset,
                     ),
                 );
-                recycle_compression_buffer(compressed, &mut compression_scratch);
                 (
                     raw_len,
                     compressed_len,
@@ -1267,7 +1280,7 @@ fn emit_archive_from_layout(
                 &mut out,
                 &wrap_self_describing_extent(record),
                 level,
-                &mut compression_scratch,
+                &mut compression,
                 &mut write_offset,
                 phase_timings.as_deref_mut(),
             )?;
@@ -1280,7 +1293,7 @@ fn emit_archive_from_layout(
                         &experimental_records,
                     ),
                     level,
-                    &mut compression_scratch,
+                    &mut compression,
                     &mut write_offset,
                     phase_timings.as_deref_mut(),
                 )?;
@@ -1310,7 +1323,7 @@ fn emit_archive_from_layout(
                     .last()
                     .context("missing file identity record")?,
                 level,
-                &mut compression_scratch,
+                &mut compression,
                 &mut write_offset,
                 phase_timings.as_deref_mut(),
             )?;
@@ -1318,7 +1331,7 @@ fn emit_archive_from_layout(
                 &mut out,
                 &build_file_path_map_entry(file.file_id, &path, &path_digest),
                 level,
-                &mut compression_scratch,
+                &mut compression,
                 &mut write_offset,
                 phase_timings.as_deref_mut(),
             )?;
@@ -1331,7 +1344,7 @@ fn emit_archive_from_layout(
                         file_identity_extent_records.len() as u64,
                     ),
                     level,
-                    &mut compression_scratch,
+                    &mut compression,
                     &mut write_offset,
                     phase_timings.as_deref_mut(),
                 )?;
@@ -1371,7 +1384,7 @@ fn emit_archive_from_layout(
                 &mut out,
                 &payload_record,
                 level,
-                &mut compression_scratch,
+                &mut compression,
                 &mut write_offset,
                 phase_timings.as_deref_mut(),
             )?;
@@ -1388,7 +1401,7 @@ fn emit_archive_from_layout(
                     &mut out,
                     &copy,
                     level,
-                    &mut compression_scratch,
+                    &mut compression,
                     &mut write_offset,
                     phase_timings.as_deref_mut(),
                 )?;
@@ -1413,7 +1426,7 @@ fn emit_archive_from_layout(
                             &path_checkpoint_entries,
                         ),
                         level,
-                        &mut compression_scratch,
+                        &mut compression,
                         &mut write_offset,
                         phase_timings.as_deref_mut(),
                     )?;
@@ -1429,7 +1442,7 @@ fn emit_archive_from_layout(
                 &mut out,
                 &manifest_record,
                 level,
-                &mut compression_scratch,
+                &mut compression,
                 &mut write_offset,
                 phase_timings.as_deref_mut(),
             )?;
@@ -1448,7 +1461,7 @@ fn emit_archive_from_layout(
                         &file_manifest_records,
                     ),
                     level,
-                    &mut compression_scratch,
+                    &mut compression,
                     &mut write_offset,
                     phase_timings.as_deref_mut(),
                 )?;
@@ -1556,7 +1569,7 @@ fn emit_archive_from_layout(
             &mut out,
             &copy,
             level,
-            &mut compression_scratch,
+            &mut compression,
             &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
@@ -1568,7 +1581,7 @@ fn emit_archive_from_layout(
             &mut out,
             &build_checkpoint_map_snapshot(u64::MAX, &experimental_records),
             level,
-            &mut compression_scratch,
+            &mut compression,
             &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
@@ -1583,7 +1596,7 @@ fn emit_archive_from_layout(
                 file_identity_extent_records.len() as u64,
             ),
             level,
-            &mut compression_scratch,
+            &mut compression,
             &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
@@ -1594,7 +1607,7 @@ fn emit_archive_from_layout(
                 records: file_identity_path_records,
             },
             level,
-            &mut compression_scratch,
+            &mut compression,
             &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
@@ -1609,7 +1622,7 @@ fn emit_archive_from_layout(
                 &path_checkpoint_entries,
             ),
             level,
-            &mut compression_scratch,
+            &mut compression,
             &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
@@ -1623,7 +1636,7 @@ fn emit_archive_from_layout(
                 records_emitted: payload_block_identity_records.len() as u64,
             },
             level,
-            &mut compression_scratch,
+            &mut compression,
             &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
@@ -1638,7 +1651,7 @@ fn emit_archive_from_layout(
                 &file_manifest_records,
             ),
             level,
-            &mut compression_scratch,
+            &mut compression,
             &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
@@ -2235,19 +2248,19 @@ fn write_experimental_metadata_block<T: Serialize>(
     out: &mut BufWriter<File>,
     value: &T,
     level: i32,
-    compression_scratch: &mut Vec<u8>,
+    compression: &mut DeterministicCompressor,
     write_offset: &mut u64,
     phase_timings: Option<&mut PackPhaseTimings>,
 ) -> Result<()> {
     let mut phase_timings = phase_timings;
     let raw = serde_json::to_vec(value)?;
     let compression_start = Instant::now();
-    let compressed = compress_deterministic(&raw, level, compression_scratch)?;
+    let compressed = compression.compress(&raw)?;
     if let Some(timings) = phase_timings.as_mut() {
         (*timings).add(PackProfilePhase::Compression, compression_start.elapsed());
     }
     let hashing_start = Instant::now();
-    let payload_hash = *blake3::hash(&compressed).as_bytes();
+    let payload_hash = *blake3::hash(compressed).as_bytes();
     let raw_hash = *blake3::hash(&raw).as_bytes();
     if let Some(timings) = phase_timings.as_mut() {
         (*timings).add(PackProfilePhase::Hashing, hashing_start.elapsed());
@@ -2265,12 +2278,11 @@ fn write_experimental_metadata_block<T: Serialize>(
     };
     let emission_start = Instant::now();
     write_blk3_header(&mut *out, &header)?;
-    out.write_all(&compressed)?;
+    out.write_all(compressed)?;
     *write_offset += BLK3_HEADER_WITH_HASHES_LEN + compressed.len() as u64;
     if let Some(timings) = phase_timings.as_mut() {
         (*timings).add(PackProfilePhase::Emission, emission_start.elapsed());
     }
-    recycle_compression_buffer(compressed, compression_scratch);
     Ok(())
 }
 
@@ -3112,5 +3124,18 @@ mod tests {
                 .contains("input changed during pack planning"),
             "unexpected error: {err:#}"
         );
+    }
+
+    #[test]
+    fn deterministic_compressor_handles_growing_inputs() {
+        let mut compressor = DeterministicCompressor::new(3).expect("create compressor");
+        let small = vec![b'a'; 128];
+        let large = vec![b'b'; 2 * 1024 * 1024];
+
+        let small_out = compressor.compress(&small).expect("compress small");
+        assert!(!small_out.is_empty(), "small output should not be empty");
+
+        let large_out = compressor.compress(&large).expect("compress large");
+        assert!(!large_out.is_empty(), "large output should not be empty");
     }
 }

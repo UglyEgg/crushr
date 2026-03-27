@@ -7,7 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_OPTIMIZATION_02 complete** (pack compression/emission optimization with correctness guardrails for v0.4.19)
+Current Step: **CRUSHR_OPTIMIZATION_03 complete** (zstd compression-context reuse optimization with correctness guardrails for v0.4.20)
+
+Latest maintenance fix (2026-03-27):
+- **CRUSHR_OPTIMIZATION_03 complete**: production `pack` now reuses a single `zstd::bulk::Compressor` context for payload and metadata block compression across the run, eliminating per-unit encoder construction/teardown in the hot path.
+- **CRUSHR_OPTIMIZATION_03 complete**: deterministic zstd frame flags remain explicitly locked (`checksum=false`, `contentsize=true`, `dictid=false`), compression method remains `zstd`, and level behavior remains unchanged.
+- **CRUSHR_OPTIMIZATION_03 complete**: compression output buffer lifecycle is now owned by the reusable compressor (`compress_to_buffer`), reducing compression-path allocation churn while preserving existing hashing/emission/finalization boundaries.
+- **CRUSHR_OPTIMIZATION_03 complete**: fail-closed mutation detection, preservation profile semantics, archive validity/extractability expectations, and `--profile-pack` phase truth are unchanged.
+- **CRUSHR_OPTIMIZATION_03 complete**: canonical version advanced to `0.4.20` (`VERSION` + workspace package version sync).
 
 Latest maintenance fix (2026-03-27):
 - **CRUSHR_OPTIMIZATION_02 complete**: production `pack` now writes through a 1 MiB `BufWriter`, reducing small-write syscall pressure in payload and metadata emission without changing archive layout semantics.

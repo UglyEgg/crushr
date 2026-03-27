@@ -5,6 +5,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-27 — CRUSHR_OPTIMIZATION_03 zstd context-reuse lock
+
+- Decision:
+  - Replace per-block stream-encoder construction in production `pack` with a reusable `zstd::bulk::Compressor` context scoped to the pack run.
+  - Keep deterministic zstd frame flags explicitly configured on the reusable context (`checksum=false`, `contentsize=true`, `dictid=false`) and preserve existing compression-level behavior.
+  - Route payload and metadata block compression through one reusable compressor-owned output buffer (`compress_to_buffer`) to reduce allocation/setup churn in the hot path.
+- Alternatives considered:
+  1. Keep per-unit `zstd::Encoder` setup/finish and only tune buffer capacities.
+  2. Add compression parallelism before serial context-reuse improvements.
+  3. Lower compression level to claim phase reduction.
+- Rationale:
+  - Profiling from prior packets showed compression as dominant; encoder setup/teardown per unit remained a high-confidence avoidable cost.
+  - Reusing compression context is a serial-path efficiency optimization that preserves archive validity, deterministic ordering, and packet guardrails.
+- Blast radius:
+  - `crates/crushr/src/commands/pack.rs` compression internals only.
+  - No format, codec, level-default, preservation-profile, or verification semantic changes.
+  - Canonical version advanced to `0.4.20`.
+
 ## 2026-03-27 — CRUSHR_OPTIMIZATION_02 compression/emission overhead reduction lock
 
 - Decision:

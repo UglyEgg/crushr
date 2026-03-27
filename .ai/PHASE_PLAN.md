@@ -96,6 +96,7 @@ Deliverables
 - [x] CRUSHR-BENCH-03 — pack pipeline attribution instrumentation (`--profile-pack`), deterministic phase timing visibility, and benchmark-operator capture guidance for medium/large datasets.
 - [x] CRUSHR_OPTIMIZATION_01 — profile-aware discovery capture gating + duplicate stat removal in production `pack` to reduce discovery-phase filesystem overhead without changing archive semantics.
 - [x] CRUSHR_OPTIMIZATION_02 — optimize production `pack` compression/emission via buffered archive writes and reusable compression output buffers while preserving profile semantics, mutation detection, and truthful phase attribution.
+- [x] CRUSHR_OPTIMIZATION_03 — optimize production `pack` compression hot path by reusing zstd compression context/state across payload+metadata units while preserving deterministic output semantics, profile truth boundaries, and fail-closed correctness checks.
 
 Exit criteria
 
