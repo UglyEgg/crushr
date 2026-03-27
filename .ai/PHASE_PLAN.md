@@ -94,6 +94,7 @@ Deliverables
 - [x] CRUSHR-BENCH-01 — implement deterministic benchmark contract foundation with reproducible datasets, explicit comparator commands/profiles, and schema-backed benchmark output.
 - [x] CRUSHR-BENCH-02 — initial canonical corpus generation, baseline runs, and first quantitative benchmark artifacts.
 - [x] CRUSHR-BENCH-03 — pack pipeline attribution instrumentation (`--profile-pack`), deterministic phase timing visibility, and benchmark-operator capture guidance for medium/large datasets.
+- [x] CRUSHR_OPTIMIZATION_01 — profile-aware discovery capture gating + duplicate stat removal in production `pack` to reduce discovery-phase filesystem overhead without changing archive semantics.
 
 Exit criteria
 

@@ -236,6 +236,7 @@ struct InputFile {
     rel_path: String,
     abs_path: PathBuf,
     kind: EntryKind,
+    raw_len: u64,
     mode: u32,
     mtime: i64,
     uid: u32,
@@ -807,7 +808,7 @@ fn pack_minimal_v1(
     presenter.section("Progress");
     let input_discovery = presenter.begin_active_phase("input discovery", None);
     let discovery_start = Instant::now();
-    let mut files = match collect_files(inputs) {
+    let mut files = match collect_files(inputs, options.preservation_profile) {
         Ok(files) => {
             if let Some(timings) = phase_timings.as_mut() {
                 timings.discovery = discovery_start.elapsed();
@@ -1006,9 +1007,7 @@ fn build_pack_layout_plan(
     let mut next_block_id = 0u32;
     let mut next_hardlink_group_id = 1u64;
     for (idx, file) in files.into_iter().enumerate() {
-        let raw_len = std::fs::metadata(&file.abs_path)
-            .with_context(|| format!("stat {}", file.abs_path.display()))?
-            .len();
+        let raw_len = file.raw_len;
         let (block_id, write_payload, hardlink_group_id) = if let Some(key) = file.hardlink_key {
             if let Some((existing_block_id, group_id)) = hardlink_sources.get(&key).copied() {
                 (existing_block_id, false, Some(group_id))
@@ -2266,6 +2265,51 @@ struct CapturedMeta {
     device_minor: Option<u32>,
 }
 
+#[derive(Clone, Copy)]
+struct DiscoveryCapturePolicy {
+    include_symlinks: bool,
+    include_special: bool,
+    include_mode_mtime: bool,
+    include_ownership: bool,
+    include_xattrs: bool,
+    include_sparse: bool,
+    include_hardlinks: bool,
+}
+
+impl DiscoveryCapturePolicy {
+    fn for_profile(profile: PreservationProfile) -> Self {
+        match profile {
+            PreservationProfile::Full => Self {
+                include_symlinks: true,
+                include_special: true,
+                include_mode_mtime: true,
+                include_ownership: true,
+                include_xattrs: true,
+                include_sparse: true,
+                include_hardlinks: true,
+            },
+            PreservationProfile::Basic => Self {
+                include_symlinks: true,
+                include_special: false,
+                include_mode_mtime: true,
+                include_ownership: false,
+                include_xattrs: false,
+                include_sparse: true,
+                include_hardlinks: true,
+            },
+            PreservationProfile::PayloadOnly => Self {
+                include_symlinks: false,
+                include_special: false,
+                include_mode_mtime: false,
+                include_ownership: false,
+                include_xattrs: false,
+                include_sparse: false,
+                include_hardlinks: false,
+            },
+        }
+    }
+}
+
 fn capture_mode_mtime_uid_gid(meta: &std::fs::Metadata) -> CapturedMeta {
     #[cfg(unix)]
     {
@@ -2408,9 +2452,12 @@ fn capture_sparse_chunks(_path: &Path, _size: u64) -> Vec<SparseChunk> {
     Vec::new()
 }
 
-fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
+fn collect_files(inputs: &[PathBuf], profile: PreservationProfile) -> Result<Vec<InputFile>> {
     let mut files = Vec::new();
     let cwd = std::env::current_dir().context("read current working directory")?;
+    let policy = DiscoveryCapturePolicy::for_profile(profile);
+    let mut uname_by_uid = BTreeMap::<u32, Option<String>>::new();
+    let mut gname_by_gid = BTreeMap::<u32, Option<String>>::new();
 
     for input in inputs {
         let abs = if input.is_absolute() {
@@ -2427,27 +2474,56 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 .context("input file has no file name")?
                 .to_string_lossy()
                 .to_string();
-            let captured = capture_mode_mtime_uid_gid(&meta);
-            let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
             let size = meta.len();
-            let (xattrs, security) = capture_xattrs(input);
+            let captured = capture_mode_mtime_uid_gid(&meta);
+            let (mode, mtime) = if policy.include_mode_mtime {
+                (captured.mode, captured.mtime)
+            } else {
+                (0, -1)
+            };
+            let (uid, gid, uname, gname) = if policy.include_ownership {
+                let uname = uname_by_uid.entry(captured.uid).or_insert_with(|| {
+                    let (uname, _) = capture_ownership_names(captured.uid, captured.gid);
+                    uname
+                });
+                let gname = gname_by_gid.entry(captured.gid).or_insert_with(|| {
+                    let (_, gname) = capture_ownership_names(captured.uid, captured.gid);
+                    gname
+                });
+                (captured.uid, captured.gid, uname.clone(), gname.clone())
+            } else {
+                (0, 0, None, None)
+            };
+            let (xattrs, security) = if policy.include_xattrs {
+                capture_xattrs(input)
+            } else {
+                (Vec::new(), CapturedSecurityMetadata::default())
+            };
             files.push(InputFile {
                 rel_path: normalize_logical_path(&name),
                 abs_path: abs,
+                raw_len: size,
                 kind: EntryKind::Regular,
-                mode: captured.mode,
-                mtime: captured.mtime,
-                uid: captured.uid,
-                gid: captured.gid,
+                mode,
+                mtime,
+                uid,
+                gid,
                 uname,
                 gname,
-                hardlink_key: captured.hardlink_key,
+                hardlink_key: policy
+                    .include_hardlinks
+                    .then_some(captured.hardlink_key)
+                    .flatten(),
                 xattrs,
                 acl_access: security.acl_access,
                 acl_default: security.acl_default,
                 selinux_label: security.selinux_label,
                 linux_capability: security.linux_capability,
-                sparse_chunks: capture_sparse_chunks(input, size),
+                sparse_chunks: if policy.include_sparse {
+                    capture_sparse_chunks(input, size)
+                } else {
+                    Vec::new()
+                },
                 device_major: None,
                 device_minor: None,
             });
@@ -2455,24 +2531,38 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
         }
 
         if meta.file_type().is_symlink() {
+            if !policy.include_symlinks {
+                eprintln!(
+                    "WARNING[preservation-omit]: omitted '{}' ({:?}) due to preservation profile payload-only",
+                    input.display(),
+                    EntryKind::Symlink
+                );
+                continue;
+            }
             let name = abs
                 .file_name()
                 .context("input symlink has no file name")?
                 .to_string_lossy()
                 .to_string();
             let captured = capture_mode_mtime_uid_gid(&meta);
-            let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
+            let (uid, gid, uname, gname) = if policy.include_ownership {
+                let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
+                (captured.uid, captured.gid, uname, gname)
+            } else {
+                (0, 0, None, None)
+            };
             files.push(InputFile {
                 rel_path: normalize_logical_path(&name),
                 abs_path: input.clone(),
+                raw_len: 0,
                 kind: EntryKind::Symlink,
                 mode: captured.mode,
                 mtime: captured.mtime,
-                uid: captured.uid,
-                gid: captured.gid,
+                uid,
+                gid,
                 uname,
                 gname,
-                hardlink_key: captured.hardlink_key,
+                hardlink_key: None,
                 xattrs: Vec::new(),
                 acl_access: None,
                 acl_default: None,
@@ -2500,6 +2590,20 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 None
             };
             if let Some(kind) = kind {
+                if !policy.include_special {
+                    let profile_name = match profile {
+                        PreservationProfile::Basic => "basic",
+                        PreservationProfile::PayloadOnly => "payload-only",
+                        PreservationProfile::Full => "full",
+                    };
+                    eprintln!(
+                        "WARNING[preservation-omit]: omitted '{}' ({:?}) due to preservation profile {}",
+                        input.display(),
+                        kind,
+                        profile_name
+                    );
+                    continue;
+                }
                 let name = abs
                     .file_name()
                     .context("input special file has no file name")?
@@ -2509,6 +2613,7 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
                 files.push(InputFile {
                     rel_path: normalize_logical_path(&name),
                     abs_path: abs,
+                    raw_len: 0,
                     kind,
                     mode: captured.mode,
                     mtime: captured.mtime,
@@ -2551,7 +2656,6 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
             let entry_meta = std::fs::symlink_metadata(entry.path())
                 .with_context(|| format!("stat {}", entry.path().display()))?;
             let captured = capture_mode_mtime_uid_gid(&entry_meta);
-            let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
             #[cfg(unix)]
             use std::os::unix::fs::FileTypeExt;
             let kind = if entry.file_type().is_file() {
@@ -2569,30 +2673,81 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
             } else {
                 continue;
             };
+            if (kind == EntryKind::Symlink && !policy.include_symlinks)
+                || ((kind == EntryKind::Fifo
+                    || kind == EntryKind::CharDevice
+                    || kind == EntryKind::BlockDevice)
+                    && !policy.include_special)
+            {
+                let profile_name = match profile {
+                    PreservationProfile::Basic => "basic",
+                    PreservationProfile::PayloadOnly => "payload-only",
+                    PreservationProfile::Full => "full",
+                };
+                eprintln!(
+                    "WARNING[preservation-omit]: omitted '{}' ({:?}) due to preservation profile {}",
+                    rel_path, kind, profile_name
+                );
+                continue;
+            }
             let (xattrs, security) = if kind == EntryKind::Regular || kind == EntryKind::Directory {
-                capture_xattrs(entry.path())
+                if policy.include_xattrs {
+                    capture_xattrs(entry.path())
+                } else {
+                    (Vec::new(), CapturedSecurityMetadata::default())
+                }
             } else {
                 (Vec::new(), CapturedSecurityMetadata::default())
+            };
+            let (mode, mtime) = if policy.include_mode_mtime {
+                (captured.mode, captured.mtime)
+            } else {
+                (0, -1)
+            };
+            let (uid, gid, uname, gname) = if policy.include_ownership {
+                let uname = uname_by_uid.entry(captured.uid).or_insert_with(|| {
+                    let (uname, _) = capture_ownership_names(captured.uid, captured.gid);
+                    uname
+                });
+                let gname = gname_by_gid.entry(captured.gid).or_insert_with(|| {
+                    let (_, gname) = capture_ownership_names(captured.uid, captured.gid);
+                    gname
+                });
+                (captured.uid, captured.gid, uname.clone(), gname.clone())
+            } else {
+                (0, 0, None, None)
             };
 
             files.push(InputFile {
                 rel_path,
                 abs_path: entry.path().to_path_buf(),
+                raw_len: if kind == EntryKind::Regular {
+                    entry_meta.len()
+                } else {
+                    0
+                },
                 kind,
-                mode: captured.mode,
-                mtime: captured.mtime,
-                uid: captured.uid,
-                gid: captured.gid,
+                mode,
+                mtime,
+                uid,
+                gid,
                 uname,
                 gname,
-                hardlink_key: captured.hardlink_key,
+                hardlink_key: policy
+                    .include_hardlinks
+                    .then_some(captured.hardlink_key)
+                    .flatten(),
                 xattrs,
                 acl_access: security.acl_access,
                 acl_default: security.acl_default,
                 selinux_label: security.selinux_label,
                 linux_capability: security.linux_capability,
                 sparse_chunks: if kind == EntryKind::Regular {
-                    capture_sparse_chunks(entry.path(), entry_meta.len())
+                    if policy.include_sparse {
+                        capture_sparse_chunks(entry.path(), entry_meta.len())
+                    } else {
+                        Vec::new()
+                    }
                 } else {
                     Vec::new()
                 },
@@ -2602,7 +2757,6 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
         }
         if !saw_child {
             let captured = capture_mode_mtime_uid_gid(&meta);
-            let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
             let (xattrs, security) = capture_xattrs(input);
             let name = abs
                 .file_name()
@@ -2612,19 +2766,66 @@ fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
             files.push(InputFile {
                 rel_path: normalize_logical_path(&name),
                 abs_path: abs,
+                raw_len: 0,
                 kind: EntryKind::Directory,
-                mode: captured.mode,
-                mtime: captured.mtime,
-                uid: captured.uid,
-                gid: captured.gid,
-                uname,
-                gname,
-                hardlink_key: captured.hardlink_key,
-                xattrs,
-                acl_access: security.acl_access,
-                acl_default: security.acl_default,
-                selinux_label: security.selinux_label,
-                linux_capability: security.linux_capability,
+                mode: if policy.include_mode_mtime {
+                    captured.mode
+                } else {
+                    0
+                },
+                mtime: if policy.include_mode_mtime {
+                    captured.mtime
+                } else {
+                    -1
+                },
+                uid: if policy.include_ownership {
+                    captured.uid
+                } else {
+                    0
+                },
+                gid: if policy.include_ownership {
+                    captured.gid
+                } else {
+                    0
+                },
+                uname: if policy.include_ownership {
+                    let (uname, _) = capture_ownership_names(captured.uid, captured.gid);
+                    uname
+                } else {
+                    None
+                },
+                gname: if policy.include_ownership {
+                    let (_, gname) = capture_ownership_names(captured.uid, captured.gid);
+                    gname
+                } else {
+                    None
+                },
+                hardlink_key: None,
+                xattrs: if policy.include_xattrs {
+                    xattrs
+                } else {
+                    Vec::new()
+                },
+                acl_access: if policy.include_xattrs {
+                    security.acl_access
+                } else {
+                    None
+                },
+                acl_default: if policy.include_xattrs {
+                    security.acl_default
+                } else {
+                    None
+                },
+                selinux_label: if policy.include_xattrs {
+                    security.selinux_label
+                } else {
+                    None
+                },
+                linux_capability: if policy.include_xattrs {
+                    security.linux_capability
+                } else {
+                    None
+                },
                 sparse_chunks: Vec::new(),
                 device_major: None,
                 device_minor: None,
@@ -2825,7 +3026,7 @@ mod tests {
         perms.set_mode(0o000);
         std::fs::set_permissions(&unreadable, perms).expect("set permissions");
 
-        let files = collect_files(&[unreadable]).expect("collect files");
+        let files = collect_files(&[unreadable], PreservationProfile::Full).expect("collect files");
         let layout = build_pack_layout_plan(files, baseline_options()).expect("build layout");
         assert_eq!(layout.files.len(), 1);
         assert!(layout.files[0].raw_len > 0);
@@ -2836,7 +3037,8 @@ mod tests {
         let td = TempDir::new().expect("tempdir");
         let input = td.path().join("payload.bin");
         std::fs::write(&input, b"before").expect("write file");
-        let files = collect_files(std::slice::from_ref(&input)).expect("collect files");
+        let files = collect_files(std::slice::from_ref(&input), PreservationProfile::Full)
+            .expect("collect files");
         let layout = build_pack_layout_plan(files, baseline_options()).expect("build layout");
         std::fs::write(&input, b"changed-content").expect("mutate file");
 

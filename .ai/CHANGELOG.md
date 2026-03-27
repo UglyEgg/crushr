@@ -1013,3 +1013,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 ## 2026-03-25 — CRUSHR_PRESERVATION_04 manual-evidence addendum
 - Added operator-level completion evidence file `.ai/COMPLETION_NOTES_CRUSHR_PRESERVATION_04.md` with exact commands and observed outcomes for ACL/SELinux/capability/info visibility/degraded restore/backward-compatibility/recovery-model checks.
 - Fixed security-metadata restore ordering so ACL/SELinux/capability restoration runs after ownership restore, preventing capability loss from post-restore ownership changes.
+
+## 2026-03-27 — CRUSHR_OPTIMIZATION_01
+- Optimized `crushr-pack` discovery to be preservation-profile aware at capture time (`collect_files(inputs, profile)`), so omitted metadata classes and entry kinds are skipped before expensive probing rather than captured and discarded later.
+- Added explicit discovery capture policy gating for ownership lookups, xattr/security probes, sparse detection, symlink/special-entry inclusion, and hard-link grouping needs by profile.
+- Removed duplicate regular-file planning `stat` calls by carrying `raw_len` from discovery into planning (`InputFile.raw_len`) and reusing it in `build_pack_layout_plan`.
+- Added per-run UID/GID ownership-name caches in discovery to eliminate repeated `getpwuid`/`getgrgid` resolution for identical IDs.
+- Updated benchmark operator guidance and completion notes for required medium/large full/basic `--profile-pack` validation runs.

@@ -1,3 +1,12 @@
+CRUSHR_OPTIMIZATION_01 complete (2026-03-27):
+- Optimized production `pack` discovery to be preservation-profile aware at capture time so omitted metadata classes/entry kinds are skipped instead of collected and discarded later.
+- Added discovery capture gating for ownership lookups, xattrs/security metadata, sparse probing, symlink/special-entry inclusion, and hard-link key capture by profile semantics.
+- Removed duplicate regular-file planning `stat` overhead by carrying `raw_len` from discovery into layout planning.
+- Added per-run UID/GID ownership-name caches to avoid repeated `getpwuid`/`getgrgid` calls for identical IDs.
+- Updated benchmark operator guidance to include required medium+large full/basic `--profile-pack` attribution commands.
+- Canonical version advanced to `0.4.18` (`VERSION` + workspace package version sync).
+- Validation in packet: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `./scripts/check-version-sync.sh`; `cargo test -p crushr --test version_contract`.
+
 CRUSHR_BENCHMARK_03 complete (2026-03-26):
 - Added explicit production pack profiling flag `--profile-pack` with deterministic phase totals for `discovery`, `metadata`, `hashing`, `compression`, `emission`, and `finalization`.
 - Pack attribution is instrumentation-only: no archive semantics/compression behavior changes and no default output noise; phase table is emitted only when profiling flag is present.

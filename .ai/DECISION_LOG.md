@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-27 — CRUSHR_OPTIMIZATION_01 discovery-phase profile-aware capture lock
+
+- Decision:
+  - Move preservation-profile omission behavior into discovery capture so `basic`/`payload-only` do not eagerly probe metadata classes they intentionally omit.
+  - Add discovery capture policy gates for ownership/name lookup, xattr/security probes, sparse probing, symlink/special-entry inclusion, and hard-link key capture.
+  - Remove duplicate planning-time regular-file `stat` calls by carrying discovery-captured `raw_len` into layout planning.
+- Alternatives considered:
+  1. Keep profile filtering in `apply_preservation_profile` only and attempt micro-optimizations around path allocation.
+  2. Move omitted metadata probes to a later phase while keeping eager discovery scans unchanged.
+- Rationale:
+  - Benchmark attribution identified discovery as dominant and showed `basic` paying near/full discovery cost; eager omitted-metadata probing was the highest-confidence avoidable source.
+  - Eliminating unnecessary syscalls in discovery is safer and more truthful than phase relabeling or deferred no-op work.
+- Blast radius:
+  - `crates/crushr/src/commands/pack.rs` discovery/planning path now captures only profile-required metadata and reuses discovery `raw_len` in planning.
+  - `docs/reference/benchmarking.md` operator profiling commands now include required medium+large full/basic runs for validation symmetry.
+  - Added packet completion evidence at `.ai/COMPLETION_NOTES_CRUSHR_OPTIMIZATION_01.md`.
+
 ## 2026-03-26 — CRUSHR_BENCHMARK_03 pack-phase attribution surface lock
 
 - Decision:
