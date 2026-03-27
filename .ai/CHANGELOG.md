@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+
+## 2026-03-27 — CRUSHR_CLEANUP_02
+- Collapsed pack preservation-profile semantics into a single planning authority (`plan_pack_profile`) that emits explicit included/omitted outcomes with omission reasons.
+- Removed profile policy ownership from discovery (`collect_files` now captures raw candidates only) and removed split post-discovery helper ownership (`apply_preservation_profile`).
+- Centralized profile omission warning emission through one deterministic path (`emit_profile_warnings`) driven by canonical plan omissions.
+- Made plan authoritative downstream by carrying `PackProfilePlan` in `PackLayoutPlan`; emission consumes decided entries only and does not re-evaluate profile rules.
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 ## 2026-03-27 — CRUSHR_HOSTILE_REVIEW_01 addendum
 - Refreshed `.ai/COMPLETION_NOTES_CRUSHR_HOSTILE_REVIEW_01.md` with tighter file/function-specific hostile findings and explicit answers to all ten locked review questions.
 - Kept packet scope unchanged (review artifact only): no runtime behavior, format/schema contracts, benchmark outputs, or versions changed.

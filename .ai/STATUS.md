@@ -7,8 +7,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_HOSTILE_REVIEW_01 complete** (hostile enterprise quality review artifact + cleanup roadmap)
+Current Step: **CRUSHR_CLEANUP_02 complete** (pack preservation-profile authority collapsed into one planning decision layer)
 
+
+Latest maintenance fix (2026-03-27):
+- **CRUSHR_CLEANUP_02 complete**: collapsed pack preservation-profile policy to one canonical planning authority (`plan_pack_profile`) that returns explicit included/omitted outcomes and omission-reason classification.
+- **CRUSHR_CLEANUP_02 complete**: discovery is now policy-free for preservation profile handling (`collect_files` captures raw candidates only; no profile-driven omission/warnings).
+- **CRUSHR_CLEANUP_02 complete**: emission/finalization now consume authoritative plan outcomes only; profile warnings are emitted once through centralized `emit_profile_warnings` using omission decisions from the canonical plan.
+- **CRUSHR_CLEANUP_02 complete**: removed split ownership path (`collect_files(..., profile)` + `apply_preservation_profile`) and replaced it with explicit `PackProfilePlan { included, omitted }` carried by `PackLayoutPlan`.
+- **CRUSHR_CLEANUP_02 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
 
 Latest maintenance fix (2026-03-27):
 - **CRUSHR_HOSTILE_REVIEW_01 complete**: completed a hostile, enterprise-focused structural review covering pack pipeline, strict/recover extraction split, introspection contract surfaces, preservation-profile semantics, benchmark tooling, and embedded comments/docs.
@@ -222,7 +229,7 @@ Latest maintenance fix (2026-03-23):
 - **CRUSHR_RECOVERY_MODEL_03 complete**: added a modular, data-driven recovery classification engine (`recovery_classification`) with ordered detection pipeline (magic -> secondary header/structure checks -> confidence assignment) and broad coverage across document/archive/media/binary/system signatures.
 - **CRUSHR_RECOVERY_MODEL_03 complete**: recover manifest entries now separate trust class (`recovery_kind`) from content typing (`classification.kind/confidence/basis/subtype`) and anonymous naming policy now strictly follows high/medium/low tiered naming.
 - **CRUSHR_RECOVERY_MODEL_03 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, and `cargo test --workspace` are green.
-Immediate Next Step: execute CRUSHR_CLEANUP_01 to unify pack preservation-profile authority and remove layered discovery/filter duplication before further feature work.
+Immediate Next Step: execute CRUSHR_CLEANUP_03 to deduplicate recover metadata-degraded routing after pack profile-authority cleanup completion.
 
 
 Latest maintenance fix (2026-03-23):
@@ -410,10 +417,10 @@ Recovery should degrade in reverse order:
 
 ## Next actions
 
-1. Execute `CRUSHR_CLEANUP_01` to unify pack preservation-profile authority (remove discovery/filter dual-ownership).
-2. Execute `CRUSHR_CLEANUP_02` to consolidate strict/recover metadata/profile restoration logic into shared authority.
-3. Execute `CRUSHR_CLEANUP_03` and `CRUSHR_CLEANUP_04` to deduplicate recover metadata-degraded routing and decompose `commands/pack.rs` boundaries.
-4. Execute `CRUSHR_CLEANUP_05` and `CRUSHR_CLEANUP_06` for info-contract wording truth and benchmark harness matrix/config centralization.
+1. Execute `CRUSHR_CLEANUP_03` to deduplicate recover metadata-degraded routing and consolidate shared manifest placement helpers.
+2. Execute `CRUSHR_CLEANUP_04` to decompose `commands/pack.rs` into clearer internal responsibility boundaries.
+3. Execute `CRUSHR_CLEANUP_05` for `info` wording/structure truth alignment (no overstated model claims).
+4. Execute `CRUSHR_CLEANUP_06` to centralize benchmark matrix/config authority between generator/runner/docs.
 
 ## Near-term product-completeness track (not active yet)
 

@@ -1,3 +1,11 @@
+CRUSHR_CLEANUP_02 complete (2026-03-27):
+- Pack preservation-profile policy is now single-authority in `crates/crushr/src/commands/pack.rs::plan_pack_profile` returning explicit `PackProfilePlan { included, omitted }` decisions.
+- Discovery (`collect_files`) is now profile-policy free (no omission, no profile warnings, no profile-driven partial outputs).
+- Omission warnings are emitted once via `emit_profile_warnings` from canonical plan omissions (`ProfileOmissionReason`), eliminating split warning ownership.
+- Emission/finalization consumes `layout.profile_plan.included` and does not re-check profile rules.
+- Follow-on order now starts at `CRUSHR_CLEANUP_03` (recover metadata-degraded dedupe), then `CRUSHR_CLEANUP_04` (pack module decomposition).
+- Validation in packet: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 CRUSHR_HOSTILE_REVIEW_01 complete (2026-03-27):
 - Completed hostile enterprise code-quality review across pack, strict/recover extract, info/introspection, preservation-profile handling, benchmark tooling, and embedded code/docs comments.
 - Published prioritized findings and cleanup roadmap at `.ai/COMPLETION_NOTES_CRUSHR_HOSTILE_REVIEW_01.md`.

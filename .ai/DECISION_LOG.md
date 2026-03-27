@@ -5,6 +5,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+
+## 2026-03-27 — CRUSHR_CLEANUP_02 pack preservation-profile authority collapse
+
+- Decision:
+  - Establish one canonical pack-time preservation-profile decision authority (`plan_pack_profile`) that consumes raw discovery candidates and returns explicit included/omitted outcomes (`PackProfilePlan`).
+  - Carry omission classification (`ProfileOmissionReason`) in the plan and centralize omission warning emission through one path (`emit_profile_warnings`) based on those plan outcomes.
+  - Remove discovery-time profile omission/warning behavior and remove separate post-discovery profile mutation helper (`apply_preservation_profile`) to eliminate split ownership.
+  - Keep emission/finalization policy-free by consuming authoritative plan outcomes only (`layout.profile_plan.included`), without profile rule re-evaluation.
+- Alternatives considered:
+  1. Keep profile-aware omission/warnings in discovery and only simplify `apply_preservation_profile`.
+  2. Keep both discovery and post-discovery profile handling with additional assertions to detect drift.
+- Rationale:
+  - Hostile review identified multi-owner profile semantics in pack as a drift risk and warning-duplication risk.
+  - A single explicit planning authority makes review/audit straightforward: one place decides inclusion/omission/classification/warning intent.
+- Blast radius:
+  - `crates/crushr/src/commands/pack.rs` discovery/planning/emission internals and pack unit tests only.
+  - No public profile semantic redesign, no schema/version changes, no extract/recover/info behavior changes.
+
 ## 2026-03-27 — CRUSHR_OPTIMIZATION_03 zstd context-reuse lock
 
 - Decision:

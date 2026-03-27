@@ -329,9 +329,29 @@ struct MetadataPlan {
 
 #[derive(Debug)]
 struct PackLayoutPlan {
-    inputs: Vec<InputFile>,
+    profile_plan: PackProfilePlan,
     files: Vec<PlannedFileModel>,
     metadata: MetadataPlan,
+}
+
+#[derive(Debug)]
+struct PackProfilePlan {
+    included: Vec<InputFile>,
+    omitted: Vec<ProfileOmission>,
+}
+
+#[derive(Debug)]
+struct ProfileOmission {
+    rel_path: String,
+    kind: EntryKind,
+    reason: ProfileOmissionReason,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ProfileOmissionReason {
+    BasicOmitsSpecialEntries,
+    PayloadOnlyOmitsSymlinks,
+    PayloadOnlyOmitsSpecialEntries,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -830,7 +850,7 @@ fn pack_minimal_v1(
     presenter.section("Progress");
     let input_discovery = presenter.begin_active_phase("input discovery", None);
     let discovery_start = Instant::now();
-    let mut files = match collect_files(inputs, options.preservation_profile) {
+    let candidates = match collect_files(inputs) {
         Ok(files) => {
             if let Some(timings) = phase_timings.as_mut() {
                 timings.discovery = discovery_start.elapsed();
@@ -849,20 +869,24 @@ fn pack_minimal_v1(
             return Err(err);
         }
     };
-    if files.is_empty() {
+    if candidates.is_empty() {
         bail!("no input files to pack");
     }
     let metadata_start = Instant::now();
-    apply_preservation_profile(&mut files, options.preservation_profile);
+    let profile_plan = plan_pack_profile(candidates, options.preservation_profile);
+    emit_profile_warnings(&profile_plan.omitted);
+    if profile_plan.included.is_empty() {
+        bail!("no input files to pack");
+    }
     let planning = presenter.begin_active_phase("planning", None);
-    if let Err(err) = reject_duplicate_logical_paths(&files) {
+    if let Err(err) = reject_duplicate_logical_paths(&profile_plan.included) {
         if let Some(timings) = phase_timings.as_mut() {
             timings.metadata = metadata_start.elapsed();
         }
         planning.settle(StatusWord::Failed, Some("duplicate logical paths"));
         return Err(err);
     }
-    let layout = match build_pack_layout_plan(files, options) {
+    let layout = match build_pack_layout_plan(profile_plan, options) {
         Ok(layout) => {
             if let Some(timings) = phase_timings.as_mut() {
                 timings.metadata = metadata_start.elapsed();
@@ -959,10 +983,11 @@ fn pack_minimal_v1(
 }
 
 fn build_pack_layout_plan(
-    inputs: Vec<InputFile>,
+    profile_plan: PackProfilePlan,
     options: PackExperimentalOptions,
 ) -> Result<PackLayoutPlan> {
-    let files: Vec<&InputFile> = inputs
+    let files: Vec<&InputFile> = profile_plan
+        .included
         .iter()
         .filter(|entry| entry.kind == EntryKind::Regular)
         .collect();
@@ -1076,7 +1101,7 @@ fn build_pack_layout_plan(
     }
 
     Ok(PackLayoutPlan {
-        inputs,
+        profile_plan,
         files: planned_files,
         metadata: MetadataPlan {
             emit_payload_identity,
@@ -1518,7 +1543,7 @@ fn emit_archive_from_layout(
         );
     }
 
-    for input in &layout.inputs {
+    for input in &layout.profile_plan.included {
         if input.kind == EntryKind::Regular {
             continue;
         }
@@ -2338,51 +2363,6 @@ struct CapturedMeta {
     device_minor: Option<u32>,
 }
 
-#[derive(Clone, Copy)]
-struct DiscoveryCapturePolicy {
-    include_symlinks: bool,
-    include_special: bool,
-    include_mode_mtime: bool,
-    include_ownership: bool,
-    include_xattrs: bool,
-    include_sparse: bool,
-    include_hardlinks: bool,
-}
-
-impl DiscoveryCapturePolicy {
-    fn for_profile(profile: PreservationProfile) -> Self {
-        match profile {
-            PreservationProfile::Full => Self {
-                include_symlinks: true,
-                include_special: true,
-                include_mode_mtime: true,
-                include_ownership: true,
-                include_xattrs: true,
-                include_sparse: true,
-                include_hardlinks: true,
-            },
-            PreservationProfile::Basic => Self {
-                include_symlinks: true,
-                include_special: false,
-                include_mode_mtime: true,
-                include_ownership: false,
-                include_xattrs: false,
-                include_sparse: true,
-                include_hardlinks: true,
-            },
-            PreservationProfile::PayloadOnly => Self {
-                include_symlinks: false,
-                include_special: false,
-                include_mode_mtime: false,
-                include_ownership: false,
-                include_xattrs: false,
-                include_sparse: false,
-                include_hardlinks: false,
-            },
-        }
-    }
-}
-
 fn capture_mode_mtime_uid_gid(meta: &std::fs::Metadata) -> CapturedMeta {
     #[cfg(unix)]
     {
@@ -2525,10 +2505,9 @@ fn capture_sparse_chunks(_path: &Path, _size: u64) -> Vec<SparseChunk> {
     Vec::new()
 }
 
-fn collect_files(inputs: &[PathBuf], profile: PreservationProfile) -> Result<Vec<InputFile>> {
+fn collect_files(inputs: &[PathBuf]) -> Result<Vec<InputFile>> {
     let mut files = Vec::new();
     let cwd = std::env::current_dir().context("read current working directory")?;
-    let policy = DiscoveryCapturePolicy::for_profile(profile);
     let mut uname_by_uid = BTreeMap::<u32, Option<String>>::new();
     let mut gname_by_gid = BTreeMap::<u32, Option<String>>::new();
 
@@ -2549,29 +2528,19 @@ fn collect_files(inputs: &[PathBuf], profile: PreservationProfile) -> Result<Vec
                 .to_string();
             let size = meta.len();
             let captured = capture_mode_mtime_uid_gid(&meta);
-            let (mode, mtime) = if policy.include_mode_mtime {
-                (captured.mode, captured.mtime)
-            } else {
-                (0, -1)
-            };
-            let (uid, gid, uname, gname) = if policy.include_ownership {
-                let uname = uname_by_uid.entry(captured.uid).or_insert_with(|| {
-                    let (uname, _) = capture_ownership_names(captured.uid, captured.gid);
-                    uname
-                });
-                let gname = gname_by_gid.entry(captured.gid).or_insert_with(|| {
-                    let (_, gname) = capture_ownership_names(captured.uid, captured.gid);
-                    gname
-                });
-                (captured.uid, captured.gid, uname.clone(), gname.clone())
-            } else {
-                (0, 0, None, None)
-            };
-            let (xattrs, security) = if policy.include_xattrs {
-                capture_xattrs(input)
-            } else {
-                (Vec::new(), CapturedSecurityMetadata::default())
-            };
+            let mode = captured.mode;
+            let mtime = captured.mtime;
+            let uname = uname_by_uid.entry(captured.uid).or_insert_with(|| {
+                let (uname, _) = capture_ownership_names(captured.uid, captured.gid);
+                uname
+            });
+            let gname = gname_by_gid.entry(captured.gid).or_insert_with(|| {
+                let (_, gname) = capture_ownership_names(captured.uid, captured.gid);
+                gname
+            });
+            let (uid, gid, uname, gname) =
+                (captured.uid, captured.gid, uname.clone(), gname.clone());
+            let (xattrs, security) = capture_xattrs(input);
             files.push(InputFile {
                 rel_path: normalize_logical_path(&name),
                 abs_path: abs,
@@ -2583,20 +2552,13 @@ fn collect_files(inputs: &[PathBuf], profile: PreservationProfile) -> Result<Vec
                 gid,
                 uname,
                 gname,
-                hardlink_key: policy
-                    .include_hardlinks
-                    .then_some(captured.hardlink_key)
-                    .flatten(),
+                hardlink_key: captured.hardlink_key,
                 xattrs,
                 acl_access: security.acl_access,
                 acl_default: security.acl_default,
                 selinux_label: security.selinux_label,
                 linux_capability: security.linux_capability,
-                sparse_chunks: if policy.include_sparse {
-                    capture_sparse_chunks(input, size)
-                } else {
-                    Vec::new()
-                },
+                sparse_chunks: capture_sparse_chunks(input, size),
                 device_major: None,
                 device_minor: None,
             });
@@ -2604,26 +2566,14 @@ fn collect_files(inputs: &[PathBuf], profile: PreservationProfile) -> Result<Vec
         }
 
         if meta.file_type().is_symlink() {
-            if !policy.include_symlinks {
-                eprintln!(
-                    "WARNING[preservation-omit]: omitted '{}' ({:?}) due to preservation profile payload-only",
-                    input.display(),
-                    EntryKind::Symlink
-                );
-                continue;
-            }
             let name = abs
                 .file_name()
                 .context("input symlink has no file name")?
                 .to_string_lossy()
                 .to_string();
             let captured = capture_mode_mtime_uid_gid(&meta);
-            let (uid, gid, uname, gname) = if policy.include_ownership {
-                let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
-                (captured.uid, captured.gid, uname, gname)
-            } else {
-                (0, 0, None, None)
-            };
+            let (uname, gname) = capture_ownership_names(captured.uid, captured.gid);
+            let (uid, gid, uname, gname) = (captured.uid, captured.gid, uname, gname);
             files.push(InputFile {
                 rel_path: normalize_logical_path(&name),
                 abs_path: input.clone(),
@@ -2663,20 +2613,6 @@ fn collect_files(inputs: &[PathBuf], profile: PreservationProfile) -> Result<Vec
                 None
             };
             if let Some(kind) = kind {
-                if !policy.include_special {
-                    let profile_name = match profile {
-                        PreservationProfile::Basic => "basic",
-                        PreservationProfile::PayloadOnly => "payload-only",
-                        PreservationProfile::Full => "full",
-                    };
-                    eprintln!(
-                        "WARNING[preservation-omit]: omitted '{}' ({:?}) due to preservation profile {}",
-                        input.display(),
-                        kind,
-                        profile_name
-                    );
-                    continue;
-                }
                 let name = abs
                     .file_name()
                     .context("input special file has no file name")?
@@ -2746,50 +2682,22 @@ fn collect_files(inputs: &[PathBuf], profile: PreservationProfile) -> Result<Vec
             } else {
                 continue;
             };
-            if (kind == EntryKind::Symlink && !policy.include_symlinks)
-                || ((kind == EntryKind::Fifo
-                    || kind == EntryKind::CharDevice
-                    || kind == EntryKind::BlockDevice)
-                    && !policy.include_special)
-            {
-                let profile_name = match profile {
-                    PreservationProfile::Basic => "basic",
-                    PreservationProfile::PayloadOnly => "payload-only",
-                    PreservationProfile::Full => "full",
-                };
-                eprintln!(
-                    "WARNING[preservation-omit]: omitted '{}' ({:?}) due to preservation profile {}",
-                    rel_path, kind, profile_name
-                );
-                continue;
-            }
             let (xattrs, security) = if kind == EntryKind::Regular || kind == EntryKind::Directory {
-                if policy.include_xattrs {
-                    capture_xattrs(entry.path())
-                } else {
-                    (Vec::new(), CapturedSecurityMetadata::default())
-                }
+                capture_xattrs(entry.path())
             } else {
                 (Vec::new(), CapturedSecurityMetadata::default())
             };
-            let (mode, mtime) = if policy.include_mode_mtime {
-                (captured.mode, captured.mtime)
-            } else {
-                (0, -1)
-            };
-            let (uid, gid, uname, gname) = if policy.include_ownership {
-                let uname = uname_by_uid.entry(captured.uid).or_insert_with(|| {
-                    let (uname, _) = capture_ownership_names(captured.uid, captured.gid);
-                    uname
-                });
-                let gname = gname_by_gid.entry(captured.gid).or_insert_with(|| {
-                    let (_, gname) = capture_ownership_names(captured.uid, captured.gid);
-                    gname
-                });
-                (captured.uid, captured.gid, uname.clone(), gname.clone())
-            } else {
-                (0, 0, None, None)
-            };
+            let (mode, mtime) = (captured.mode, captured.mtime);
+            let uname = uname_by_uid.entry(captured.uid).or_insert_with(|| {
+                let (uname, _) = capture_ownership_names(captured.uid, captured.gid);
+                uname
+            });
+            let gname = gname_by_gid.entry(captured.gid).or_insert_with(|| {
+                let (_, gname) = capture_ownership_names(captured.uid, captured.gid);
+                gname
+            });
+            let (uid, gid, uname, gname) =
+                (captured.uid, captured.gid, uname.clone(), gname.clone());
 
             files.push(InputFile {
                 rel_path,
@@ -2806,21 +2714,14 @@ fn collect_files(inputs: &[PathBuf], profile: PreservationProfile) -> Result<Vec
                 gid,
                 uname,
                 gname,
-                hardlink_key: policy
-                    .include_hardlinks
-                    .then_some(captured.hardlink_key)
-                    .flatten(),
+                hardlink_key: captured.hardlink_key,
                 xattrs,
                 acl_access: security.acl_access,
                 acl_default: security.acl_default,
                 selinux_label: security.selinux_label,
                 linux_capability: security.linux_capability,
                 sparse_chunks: if kind == EntryKind::Regular {
-                    if policy.include_sparse {
-                        capture_sparse_chunks(entry.path(), entry_meta.len())
-                    } else {
-                        Vec::new()
-                    }
+                    capture_sparse_chunks(entry.path(), entry_meta.len())
                 } else {
                     Vec::new()
                 },
@@ -2841,64 +2742,24 @@ fn collect_files(inputs: &[PathBuf], profile: PreservationProfile) -> Result<Vec
                 abs_path: abs,
                 raw_len: 0,
                 kind: EntryKind::Directory,
-                mode: if policy.include_mode_mtime {
-                    captured.mode
-                } else {
-                    0
-                },
-                mtime: if policy.include_mode_mtime {
-                    captured.mtime
-                } else {
-                    -1
-                },
-                uid: if policy.include_ownership {
-                    captured.uid
-                } else {
-                    0
-                },
-                gid: if policy.include_ownership {
-                    captured.gid
-                } else {
-                    0
-                },
-                uname: if policy.include_ownership {
+                mode: captured.mode,
+                mtime: captured.mtime,
+                uid: captured.uid,
+                gid: captured.gid,
+                uname: {
                     let (uname, _) = capture_ownership_names(captured.uid, captured.gid);
                     uname
-                } else {
-                    None
                 },
-                gname: if policy.include_ownership {
+                gname: {
                     let (_, gname) = capture_ownership_names(captured.uid, captured.gid);
                     gname
-                } else {
-                    None
                 },
                 hardlink_key: None,
-                xattrs: if policy.include_xattrs {
-                    xattrs
-                } else {
-                    Vec::new()
-                },
-                acl_access: if policy.include_xattrs {
-                    security.acl_access
-                } else {
-                    None
-                },
-                acl_default: if policy.include_xattrs {
-                    security.acl_default
-                } else {
-                    None
-                },
-                selinux_label: if policy.include_xattrs {
-                    security.selinux_label
-                } else {
-                    None
-                },
-                linux_capability: if policy.include_xattrs {
-                    security.linux_capability
-                } else {
-                    None
-                },
+                xattrs,
+                acl_access: security.acl_access,
+                acl_default: security.acl_default,
+                selinux_label: security.selinux_label,
+                linux_capability: security.linux_capability,
                 sparse_chunks: Vec::new(),
                 device_major: None,
                 device_minor: None,
@@ -2914,21 +2775,40 @@ fn collect_files(inputs: &[PathBuf], profile: PreservationProfile) -> Result<Vec
     Ok(files)
 }
 
-fn apply_preservation_profile(files: &mut Vec<InputFile>, profile: PreservationProfile) {
-    match profile {
-        PreservationProfile::Full => {}
-        PreservationProfile::Basic => {
-            files.retain(|entry| match entry.kind {
-                EntryKind::Regular | EntryKind::Directory | EntryKind::Symlink => true,
-                EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice => {
-                    eprintln!(
-                        "WARNING[preservation-omit]: omitted '{}' ({:?}) due to preservation profile basic",
-                        entry.rel_path, entry.kind
-                    );
-                    false
-                }
+fn plan_pack_profile(candidates: Vec<InputFile>, profile: PreservationProfile) -> PackProfilePlan {
+    let mut included = Vec::with_capacity(candidates.len());
+    let mut omitted = Vec::new();
+
+    for mut entry in candidates {
+        let omission_reason = match (profile, entry.kind) {
+            (PreservationProfile::Basic, EntryKind::Fifo)
+            | (PreservationProfile::Basic, EntryKind::CharDevice)
+            | (PreservationProfile::Basic, EntryKind::BlockDevice) => {
+                Some(ProfileOmissionReason::BasicOmitsSpecialEntries)
+            }
+            (PreservationProfile::PayloadOnly, EntryKind::Symlink) => {
+                Some(ProfileOmissionReason::PayloadOnlyOmitsSymlinks)
+            }
+            (PreservationProfile::PayloadOnly, EntryKind::Fifo)
+            | (PreservationProfile::PayloadOnly, EntryKind::CharDevice)
+            | (PreservationProfile::PayloadOnly, EntryKind::BlockDevice) => {
+                Some(ProfileOmissionReason::PayloadOnlyOmitsSpecialEntries)
+            }
+            _ => None,
+        };
+
+        if let Some(reason) = omission_reason {
+            omitted.push(ProfileOmission {
+                rel_path: entry.rel_path,
+                kind: entry.kind,
+                reason,
             });
-            for entry in files {
+            continue;
+        }
+
+        match profile {
+            PreservationProfile::Full => {}
+            PreservationProfile::Basic => {
                 entry.xattrs.clear();
                 entry.uid = 0;
                 entry.gid = 0;
@@ -2939,22 +2819,7 @@ fn apply_preservation_profile(files: &mut Vec<InputFile>, profile: PreservationP
                 entry.selinux_label = None;
                 entry.linux_capability = None;
             }
-        }
-        PreservationProfile::PayloadOnly => {
-            files.retain(|entry| match entry.kind {
-                EntryKind::Regular | EntryKind::Directory => true,
-                EntryKind::Symlink
-                | EntryKind::Fifo
-                | EntryKind::CharDevice
-                | EntryKind::BlockDevice => {
-                    eprintln!(
-                        "WARNING[preservation-omit]: omitted '{}' ({:?}) due to preservation profile payload-only",
-                        entry.rel_path, entry.kind
-                    );
-                    false
-                }
-            });
-            for entry in files {
+            PreservationProfile::PayloadOnly => {
                 match entry.kind {
                     EntryKind::Regular => {
                         entry.mode = 0;
@@ -2980,6 +2845,30 @@ fn apply_preservation_profile(files: &mut Vec<InputFile>, profile: PreservationP
                 entry.device_major = None;
                 entry.device_minor = None;
             }
+        }
+        included.push(entry);
+    }
+
+    PackProfilePlan { included, omitted }
+}
+
+fn emit_profile_warnings(omissions: &[ProfileOmission]) {
+    for omission in omissions {
+        eprintln!(
+            "WARNING[preservation-omit]: omitted '{}' ({:?}) due to preservation profile {}",
+            omission.rel_path,
+            omission.kind,
+            omission.reason.profile_name()
+        );
+    }
+}
+
+impl ProfileOmissionReason {
+    fn profile_name(self) -> &'static str {
+        match self {
+            ProfileOmissionReason::BasicOmitsSpecialEntries => "basic",
+            ProfileOmissionReason::PayloadOnlyOmitsSymlinks
+            | ProfileOmissionReason::PayloadOnlyOmitsSpecialEntries => "payload-only",
         }
     }
 }
@@ -3099,8 +2988,10 @@ mod tests {
         perms.set_mode(0o000);
         std::fs::set_permissions(&unreadable, perms).expect("set permissions");
 
-        let files = collect_files(&[unreadable], PreservationProfile::Full).expect("collect files");
-        let layout = build_pack_layout_plan(files, baseline_options()).expect("build layout");
+        let files = collect_files(&[unreadable]).expect("collect files");
+        let profile_plan = plan_pack_profile(files, PreservationProfile::Full);
+        let layout =
+            build_pack_layout_plan(profile_plan, baseline_options()).expect("build layout");
         assert_eq!(layout.files.len(), 1);
         assert!(layout.files[0].raw_len > 0);
     }
@@ -3110,9 +3001,10 @@ mod tests {
         let td = TempDir::new().expect("tempdir");
         let input = td.path().join("payload.bin");
         std::fs::write(&input, b"before").expect("write file");
-        let files = collect_files(std::slice::from_ref(&input), PreservationProfile::Full)
-            .expect("collect files");
-        let layout = build_pack_layout_plan(files, baseline_options()).expect("build layout");
+        let files = collect_files(std::slice::from_ref(&input)).expect("collect files");
+        let profile_plan = plan_pack_profile(files, PreservationProfile::Full);
+        let layout =
+            build_pack_layout_plan(profile_plan, baseline_options()).expect("build layout");
         std::fs::write(&input, b"changed-content").expect("mutate file");
 
         let output = td.path().join("out.crs");
