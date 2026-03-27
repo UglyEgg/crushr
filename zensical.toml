@@ -13,6 +13,13 @@ extra_css = ["assets/stylesheets/theme.css"]
 nav = [
   { "Welcome" = "index.md" },
   { "Why crushr" = "why-crushr.md" },
+  { "User guide" = [
+    { "Overview" = "guide/index.md" },
+    { "Packing archives" = "guide/pack.md" },
+    { "Extracting archives" = "guide/extract.md" },
+    { "Verifying archives" = "guide/verify.md" },
+    { "Inspecting archives" = "guide/info.md" },
+  ] },
   { "Whitepaper" = [
     { "Executive summary" = "whitepaper/index.md" },
     { "Problem statement" = "whitepaper/problem-statement.md" },

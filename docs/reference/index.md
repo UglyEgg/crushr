@@ -21,7 +21,6 @@ This section is intentionally narrow. It exists for readers who need the concise
 4. [Salvage model](salvage-model.md)
 5. [Benchmark contract](benchmarking.md)
 6. [Benchmark baseline (v0.4.15)](benchmark-baseline.md)
-7. [Benchmark baseline raw data (v0.4.15 JSON)](benchmarks/benchmark_results_v0.4.15.json)
 
 !!! tip "Why this section is small"
     The whitepaper explains the argument. The technical reference exists only to make the current architecture easier to implement and review.
