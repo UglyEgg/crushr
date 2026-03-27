@@ -7,248 +7,247 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 ## 1. Executive judgment
 
-Overall enterprise-readiness assessment: **functionally strong but structurally patched-over in critical paths**.
+Overall enterprise-readiness assessment: **correctness-focused but structurally overlayered in core product paths**.
 
-The codebase shows real correctness work and extensive tests, but the pack/extract/info surfaces now carry clear iterative-layer residue:
+The code is not toy-quality; it has serious validation coverage and deterministic contracts. But the structure still shows classic iterative residue:
 
-- preservation-profile behavior is implemented in multiple places with overlapping logic
-- strict and recover extraction paths duplicate substantial behavior rather than sharing a single authority layer
-- pack has grown into a mixed production+experimental orchestration module with high coupling
-- introspection output has at least one now-misleading structural statement
+- preservation-profile semantics are owned in multiple places (`pack` discovery, `pack` post-filter, strict extract, recover extract, info rendering)
+- strict and recover extraction duplicate behavior that should be single-authority policy
+- pack owns too many concerns (CLI parsing, production pipeline, and experimental metadata machinery)
+- benchmark tooling is deterministic but not centrally configured, creating ongoing drift pressure
 
 Major risk themes:
 
-1. **Multi-source-of-truth risk** for preservation semantics (pack discovery/filtering + strict/recover gating + info projection).
-2. **High drift risk** from strict/recover duplication for metadata restoration and profile logic.
-3. **Operational complexity risk** from an overgrown pack module where production concerns and lab metadata experiments co-reside.
-4. **Trust/communication risk** where user-facing info wording no longer cleanly matches actual layout semantics.
+1. **Multiple sources of truth for one concept** (preservation profile + metadata obligations).
+2. **Layered patch architecture** where old and new decision points coexist.
+3. **High-coupling maintenance zones** (`commands/pack.rs`, extraction metadata logic).
+4. **Contract communication drift** where user-facing statements can diverge from real behavior.
 
-Verdict: the project looks like a serious system under active hardening, but not yet like a cleanly-owned enterprise surface. It is extendable, but extension risk is rising quickly without structural cleanup packets.
+Verdict: the system is defensible for functionality and tests, but **not yet enterprise-clean for long-horizon extension** without cleanup packets.
 
 ## 2. High-severity findings
 
-### H1 — Preservation profile behavior is implemented twice in pack (and not from one authority)
+### H1 — Pack preservation-profile ownership is split across discovery and post-discovery filtering
 
 **Where**
 
-- `collect_files(..., profile)` performs profile-aware omission and warning emission during discovery.
-- `apply_preservation_profile(...)` then does another profile pass with retention/field-pruning + warning emission.
+- `collect_files(inputs, profile)` applies profile-based omission/warnings during input walk.
+- `apply_preservation_profile(&mut files, profile)` applies another profile stage after discovery.
 
 **Pattern**
 
-Layered patching / dual behavior ownership.
+Dual ownership of one policy.
 
 **Why risky**
 
-- Two independently-evolving places decide what gets omitted and how warnings are surfaced.
-- Easy to introduce mismatches where discovery captures/skips one thing but post-filtering assumes another.
-- Hard for future maintainers to identify the canonical profile authority in pack.
+- Two places can drift in omission semantics and warning behavior.
+- Makes profile behavior audit harder because the true authority is not singular.
+- Future profile additions must modify multiple gates correctly.
 
 **Cleanup shape**
 
-- Single-source “profile projection” stage for `InputFile` records.
-- Discovery should capture only what is needed for policy evaluation; one post-capture policy transform should own omission + warning decisions.
+- One explicit profile projection authority (either fully in discovery or fully in post-capture transform).
+- Keep a single warning-emission owner.
 
 ---
 
-### H2 — Strict vs recover extraction duplicate core metadata/profile logic and payload read paths
+### H2 — Strict and recover extraction duplicate metadata obligation + restore behavior
 
 **Where**
 
-- `metadata_required_by_profile(...)` exists in both strict and recover modules.
-- metadata restoration helpers (`restore_xattrs`, `restore_security_metadata`, `restore_ownership`, `restore_mtime`) are duplicated with near-identical flow.
-- raw payload read/decompress helper paths are duplicated (`read_entry_bytes_strict` + `block_raw_payload`).
+- `metadata_required_by_profile(...)` exists in both `strict_extract_impl.rs` and `recover_extract_impl.rs`.
+- Both modules carry near-parallel restore helpers (`restore_mtime`, `restore_xattrs`, `restore_ownership`, `restore_security_metadata`).
 
 **Pattern**
 
-Parallel implementations that can silently drift.
+Parallel implementations for core policy.
 
 **Why risky**
 
-- One bugfix in strict can easily miss recover (or vice versa).
-- Profile behavior changes become two-module edits and two-module test surface.
-- Hard to prove trust-class differences are intentional rather than accidental drift.
+- Any preservation semantic update is now at least two edits + two review surfaces.
+- Bug fixes can land in one path and miss the other.
+- Trust-class split (strict/refuse vs recover/route) is mixed with duplicated restore mechanics.
 
 **Cleanup shape**
 
-- Extract shared “entry materialization + metadata restore engine” with policy hooks for strict vs recover outcomes.
-- Keep trust routing separate; share restoration/profile semantics.
+- Shared restoration engine + profile obligation authority.
+- Thin strict/recover policy adapters for outcome routing only.
 
 ---
 
-### H3 — Recover flow computes recovery analysis in command layer and then discards it
+### H3 — Recover command computes a pre-analysis and discards it
 
 **Where**
 
-- `commands/extract.rs` calls `run_recovery_analysis(...)`, then immediately binds fields to `_` and does not use results.
+- `commands/extract.rs` runs `run_recovery_analysis(&opts.archive)` then immediately binds outputs to `_`.
 
 **Pattern**
 
-Layer residue / dead intermediate computation.
+Dead/placeholder orchestration residue.
 
 **Why risky**
 
-- Extra analysis pass adds cost/coupling without behavior.
-- Creates false impression that pre-analysis meaningfully gates recover extraction.
-- Encourages hidden divergence if recover implementation evolves independently.
+- Adds cost and cognitive load with no behavioral authority.
+- Suggests a staged design that no longer exists, but code still implies it.
 
 **Cleanup shape**
 
-- Either remove the pre-pass from command layer or make it authoritative (drive displayed summary/progress contract from it).
+- Remove pre-analysis from command path, or make it authoritative and consumed by rendering/output logic.
 
 ## 3. Medium-severity findings
 
-### M1 — `pack.rs` is a monolithic mixed-responsibility boundary
+### M1 — `commands/pack.rs` is an overgrown mixed-responsibility module
 
 **Where**
 
-Single module owns:
-
-- production CLI parse/help
-- lab experimental CLI surface
-- discovery policy
-- planning
-- compression/emission
-- tail finalization
-- large volume of experimental metadata record builders
+Single module owns CLI grammar, discovery, planning, compression/emission, finalization, and extensive experimental metadata record writers.
 
 **Pattern**
 
-Overgrown abstraction with mixed product/lab concerns.
+Monolithic command boundary.
 
 **Why risky**
 
-- Raises review blast radius for any change in pack.
-- Obscures ownership boundaries between canonical product behavior and lab-only experimentation.
-- Increases regression risk when optimization packets touch production hot paths.
+- High blast radius for any change.
+- Production/lab boundaries are harder to reason about.
+- Review quality suffers when one file includes many unrelated responsibility layers.
 
 **Cleanup shape**
 
-Split by responsibility into internal submodules (`cli`, `discovery`, `planning`, `emitter`, `experimental_metadata`). Keep command entry thin.
+Split into internal modules by responsibility (`cli`, `discovery`, `planning`, `emit`, `experimental_metadata`).
 
 ---
 
-### M2 — Metadata-degraded routing in recover has repeated per-entry-kind branches with cloned manifest assembly
+### M2 — Recover metadata-degraded routing clones logic across entry kinds
 
 **Where**
 
-`recover_extract_impl` match arms for regular/directory/symlink/special each duplicate:
-
-- failed metadata branch
-- move to `metadata_degraded`
-- construct almost identical `RecoveryManifestEntry`
+`recover_extract_impl.rs` has repeated “failed metadata → metadata_degraded placement → manifest entry assembly” flow across regular/dir/symlink/special branches.
 
 **Pattern**
 
-Copy/paste branch scaffolding instead of a common degraded-routing helper.
+Branch-level duplication.
 
 **Why risky**
 
-- Increases chance of inconsistent manifest fields across entry kinds.
-- Makes future metadata class additions high-touch and error-prone.
+- Easy to drift in manifest fields or trust-class accounting.
+- Every metadata-class adjustment becomes high-touch.
 
 **Cleanup shape**
 
-Extract helper: `route_metadata_degraded(entry, destination, degraded_destination, failed_classes, ...) -> RecoveryManifestEntry`.
+Shared helper for degraded routing + manifest row assembly.
 
 ---
 
-### M3 — `info` structural statement drifts from behavior for hard links
+### M3 — Benchmark runner matrix is hard-coded despite manifest output existing
 
 **Where**
 
-`info` prints fixed string: `block model = file-level (1:1 file → unit)`.
+- `run_benchmarks.py` hard-codes dataset names and variant matrix.
+- `generate_datasets.py` emits `dataset_manifest.json` but the runner does not consume it.
 
 **Pattern**
 
-Stale/misleading product statement.
+Config declared in two places.
 
 **Why risky**
 
-- Pack planner supports hard-link payload sharing (not strict 1:1 file→unit in those cases).
-- Operator-facing truth can become misleading in preservation-heavy workloads.
+- Adds drift channel between generator, docs, and runner.
+- Expanding benchmark coverage requires code edits instead of matrix config changes.
 
 **Cleanup shape**
 
-Render model statement from actual index/block relationships or use non-absolute phrasing.
+- One benchmark matrix config source (manifest or dedicated benchmark matrix file).
 
 ---
 
-### M4 — Benchmark harness is deterministic but hard-coded, not manifest-driven
+### M4 — `info` structural language can overstate 1:1 mapping truth
 
 **Where**
 
-`run_benchmarks.py` hardcodes dataset names and comparator variants.
+`commands/info.rs` renders `block model = file-level (1:1 file → unit)`.
 
 **Pattern**
 
-Tooling contract drift risk as datasets/variants evolve.
+Absolute wording for non-absolute behavior.
 
 **Why risky**
 
-- Adding new dataset classes requires code edits rather than manifest-driven expansion.
-- Increases chance docs/schema/harness diverge.
+Hard-link sharing and mapping semantics can violate naive 1:1 interpretation.
 
 **Cleanup shape**
 
-Read `dataset_manifest.json` and run a declared matrix from one benchmark config object.
+Compute/report structure from actual mapping facts or soften wording to avoid false absolutes.
 
 ## 4. Low-severity findings
 
-### L1 — Stale inline codec comment in `index_codec`
+### L1 — Stale/legacy comment footprint in index/decode history paths
 
-Comment still documents entry-kind domain as only `regular/symlink/directory` while code handles FIFO/char/block kinds.
+Codec comments and compatibility branches carry older shape descriptions while entry-kind space has expanded. The behavior is correct, but commentary no longer helps ownership clarity.
 
-### L2 — Repeated profile-name warning text formatting in pack discovery
+### L2 — Repeated profile-name string mapping/warning composition in pack discovery branches
 
-Profile-name mapping and warning strings are repeated in multiple branches (`payload-only/basic/full` mapping + omit warning shape).
+Warning formatting is repeated across special/symlink omission branches; low risk but noisy and drift-prone.
 
-### L3 — `info` profile fallback defaults to `full` in multiple degraded decode paths
+### L3 — Test surface strongly locks presentation strings, sometimes masking structure debt
 
-Fallback appears in several listing/info branches. Behavior is intentional for compatibility, but implementation duplication makes policy intent harder to audit.
+Golden/help tests are valuable, but some coverage asserts output form heavily while shared implementation seams (e.g., strict/recover restore policy duplication) remain structurally untested as single-authority behavior.
 
 ## 5. Suspected vibe-code residue
 
-1. **Pack policy layering residue**: discovery-side profile filtering plus post-discovery `apply_preservation_profile` indicates iterative patch stacking instead of one policy owner.
-2. **Strict/recover twin implementations**: large mirrored helper sets suggest feature pressure outpaced consolidation.
-3. **Recover metadata-degraded branch cloning**: multiple nearly identical arms are classic “ship first, unify later” residue.
-4. **Command-layer pre-analysis noop**: `run_recovery_analysis` result discarded is a strong marker of transitional scaffolding left in production flow.
-5. **Pack mixed product/lab surface in one module**: practical during acceleration, but now a maintenance hotspot.
+1. **Layered profile filtering in pack** (`collect_files` + `apply_preservation_profile`) feels like iterative patching rather than clean policy ownership.
+2. **Strict/recover twin restore stacks** are “works now, unify later” residue.
+3. **Recover pre-analysis call with discarded output** is classic transitional scaffolding left live.
+4. **Single-file pack command complexity** is an “accretion zone” where optimization packets piled onto an already broad module.
+5. **Benchmark matrix hard-coding despite emitted dataset manifest** indicates tooling evolved in phases without final consolidation.
 
 ## 6. Recommended cleanup packets
 
-### Packet A — CRUSHR_CLEANUP_01: Preservation profile authority unification (pack)
+### CRUSHR_CLEANUP_01 — Unify pack preservation-profile authority
 
-- **Scope**: `collect_files` + `apply_preservation_profile` interaction, warning emission ownership, profile projection flow.
-- **Why it matters**: removes multi-source-of-truth risk in canonical pack semantics.
-- **Suggested order**: **first**.
+- **Scope**: collapse dual ownership between `collect_files` and `apply_preservation_profile`.
+- **Why**: eliminate profile multi-source truth in canonical pack pipeline.
+- **Order**: 1.
 
-### Packet B — CRUSHR_CLEANUP_02: Shared metadata/profile restoration core for strict+recover
+### CRUSHR_CLEANUP_02 — Shared strict/recover metadata restore core
 
-- **Scope**: unify `metadata_required_by_profile`, metadata restore helpers, and shared payload-read primitives.
-- **Why it matters**: biggest drift-reduction win for extraction correctness transparency.
-- **Suggested order**: **second**.
+- **Scope**: consolidate profile obligation and restore primitives used by strict/recover.
+- **Why**: largest drift-reduction win in extraction correctness transparency.
+- **Order**: 2.
 
-### Packet C — CRUSHR_CLEANUP_03: Recover canonical-routing deduplication
+### CRUSHR_CLEANUP_03 — Recover metadata-degraded routing dedup
 
-- **Scope**: factor metadata-degraded move + manifest-entry assembly into shared helper paths.
-- **Why it matters**: reduces branch-level inconsistency risk and future metadata-class change cost.
-- **Suggested order**: **third** (after Packet B).
+- **Scope**: single helper path for metadata-degraded placement + manifest entry assembly.
+- **Why**: reduce per-entry-kind drift risk and change cost.
+- **Order**: 3.
 
-### Packet D — CRUSHR_CLEANUP_04: Pack module decomposition (product vs experimental boundaries)
+### CRUSHR_CLEANUP_04 — Decompose `commands/pack.rs`
 
-- **Scope**: split `commands/pack.rs` into bounded internal modules with clear ownership.
-- **Why it matters**: reduces review blast radius and hidden coupling for future optimization packets.
-- **Suggested order**: **fourth**.
+- **Scope**: internal module split by responsibility while preserving current external behavior.
+- **Why**: cut review blast radius and hidden coupling.
+- **Order**: 4.
 
-### Packet E — CRUSHR_CLEANUP_05: Info contract truth pass
+### CRUSHR_CLEANUP_05 — Info wording + structure truth pass
 
-- **Scope**: fix block-model wording, centralize profile fallback semantics, audit list/info consistency.
-- **Why it matters**: improves operator trust and contract clarity.
-- **Suggested order**: **fifth**.
+- **Scope**: audit hard-link/structure messaging and profile/metadata wording consistency.
+- **Why**: operator trust depends on precise contract language.
+- **Order**: 5.
 
-### Packet F — CRUSHR_CLEANUP_06: Benchmark harness matrix/config centralization
+### CRUSHR_CLEANUP_06 — Benchmark matrix/config centralization
 
-- **Scope**: replace hardcoded dataset/variant arrays with manifest/config-driven matrix.
-- **Why it matters**: prevents benchmark tooling drift as the suite evolves.
-- **Suggested order**: **sixth**.
+- **Scope**: make runner consume manifest/config rather than hard-coded arrays.
+- **Why**: prevent tooling/docs/schema drift as benchmark suite grows.
+- **Order**: 6.
+
+## Review questions (explicit answers)
+
+1. **Where is logic duplicated?** Pack profile filtering, strict/recover metadata-restore and profile checks, recover metadata-degraded branch handling.
+2. **Where are layered fixes instead of clean ownership?** Pack profile gates split across discovery and post-filter.
+3. **Where do profile/recovery semantics exist in more than one place?** Pack discovery/filter, strict extract, recover extract, info rendering.
+4. **Where are comments stale/vague?** Compatibility/commentary paths in index/decode and some absolute wording in info output.
+5. **Where are abstractions doing too much/too little?** `commands/pack.rs` does too much; recover pre-analysis call does too little (no authority).
+6. **Where do pack/extract/info share concepts inconsistently?** Preservation-profile obligations and metadata requirement semantics are implemented independently.
+7. **Where are tests compensating for awkward structure?** Strong golden-output locking without equivalent shared-authority structural checks in duplicated strict/recover internals.
+8. **Where are dead/stale helpers or leftovers?** Recover pre-analysis call-and-discard path.
+9. **Where does naming drift from responsibility?** `block model` wording in info can imply tighter 1:1 semantics than implementation reality.
+10. **Where could future bugs come from multi-source truth?** Profile obligation logic and metadata restoration expectations across pack/info/strict/recover.

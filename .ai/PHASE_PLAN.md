@@ -97,7 +97,7 @@ Deliverables
 - [x] CRUSHR_OPTIMIZATION_01 — profile-aware discovery capture gating + duplicate stat removal in production `pack` to reduce discovery-phase filesystem overhead without changing archive semantics.
 - [x] CRUSHR_OPTIMIZATION_02 — optimize production `pack` compression/emission via buffered archive writes and reusable compression output buffers while preserving profile semantics, mutation detection, and truthful phase attribution.
 - [x] CRUSHR_OPTIMIZATION_03 — optimize production `pack` compression hot path by reusing zstd compression context/state across payload+metadata units while preserving deterministic output semantics, profile truth boundaries, and fail-closed correctness checks.
-- [x] CRUSHR_HOSTILE_REVIEW_01 — perform hostile enterprise structural review (duplication/layering/drift/vibe-residue) and publish prioritized cleanup roadmap before additional capability expansion.
+- [x] CRUSHR_HOSTILE_REVIEW_01 — perform hostile enterprise structural review (duplication/layering/drift/vibe-residue) and publish prioritized cleanup roadmap before additional capability expansion (report refreshed with explicit question-by-question answers on 2026-03-27).
 
 Exit criteria
 

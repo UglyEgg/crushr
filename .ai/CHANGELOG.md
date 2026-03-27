@@ -5,6 +5,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-27 — CRUSHR_HOSTILE_REVIEW_01 addendum
+- Refreshed `.ai/COMPLETION_NOTES_CRUSHR_HOSTILE_REVIEW_01.md` with tighter file/function-specific hostile findings and explicit answers to all ten locked review questions.
+- Kept packet scope unchanged (review artifact only): no runtime behavior, format/schema contracts, benchmark outputs, or versions changed.
+
 ## 2026-03-27 — CRUSHR_HOSTILE_REVIEW_01
 - Completed a hostile enterprise-grade structural review focused on layered patching, duplication, dead/stale paths, contract drift, naming drift, hidden coupling, and test-structure illusions across current product surfaces.
 - Reviewed required areas explicitly: pack pipeline (discovery/planning/compression/emission/finalization), strict vs recover extract split, introspection/info contract reporting, preservation-profile handling, benchmark tooling/scripts/docs, and embedded comments/docs quality.
