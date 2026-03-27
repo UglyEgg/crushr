@@ -5,6 +5,22 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-27 — CRUSHR_CLEANUP_05 pack ownership-layer decomposition
+
+- Decision:
+  - Introduce explicit internal pack ownership layers (`discovery`, `planning`, `emission`) and route top-level command orchestration through those bounded interfaces.
+  - Keep orchestration thin (`run`/`pack_minimal_v1` hold user-facing flow only) and keep low-level mechanics behind the internal layer boundaries.
+  - Preserve existing pack semantics and the canonical profile/planning authority model from CRUSHR_CLEANUP_02.
+- Alternatives considered:
+  1. Keep `commands/pack.rs` as a monolithic module and only annotate section comments.
+  2. Perform a full multi-file extraction in the same packet with broader mechanical relocation risk.
+- Rationale:
+  - Hostile review flagged pack as an overgrown mixed-responsibility accretion zone; explicit ownership layers reduce review blast radius and make discovery/planning/emission boundaries obvious.
+  - This packet is structural cleanup only, so bounded internal decomposition with behavior lock is preferred over semantic or format change.
+- Blast radius:
+  - `crates/crushr/src/commands/pack.rs` internal structure and pack-local tests only.
+  - No CLI contract changes, no archive/schema changes, and no version bump.
+
 
 ## 2026-03-27 — CRUSHR_CLEANUP_03 recover metadata-degraded routing authority collapse
 

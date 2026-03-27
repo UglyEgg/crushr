@@ -7,7 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_CLEANUP_04 complete** (strict/recover metadata restoration now routes through one shared restoration core with explicit policy boundaries)
+Current Step: **CRUSHR_CLEANUP_05 complete** (pack command now exposes explicit internal ownership layers for discovery, planning, and emission while preserving behavior)
+
+
+Latest maintenance fix (2026-03-27):
+- **CRUSHR_CLEANUP_05 complete**: introduced explicit internal `pack` ownership layers (`discovery`, `planning`, `emission`) and routed top-level orchestration through those bounded module interfaces.
+- **CRUSHR_CLEANUP_05 complete**: kept user-facing CLI grammar/output, archive format semantics, preservation-profile authority model, and pack behavior unchanged while reducing top-level mechanical ownership in `run`/`pack_minimal_v1`.
+- **CRUSHR_CLEANUP_05 complete**: retained canonical profile/planning authority from CRUSHR_CLEANUP_02 (`plan_pack_profile`) and existing emit/finalization mechanics; no profile-policy duplication was reintroduced.
+- **CRUSHR_CLEANUP_05 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
 
 
 Latest maintenance fix (2026-03-27):
@@ -242,7 +249,7 @@ Latest maintenance fix (2026-03-23):
 - **CRUSHR_RECOVERY_MODEL_03 complete**: added a modular, data-driven recovery classification engine (`recovery_classification`) with ordered detection pipeline (magic -> secondary header/structure checks -> confidence assignment) and broad coverage across document/archive/media/binary/system signatures.
 - **CRUSHR_RECOVERY_MODEL_03 complete**: recover manifest entries now separate trust class (`recovery_kind`) from content typing (`classification.kind/confidence/basis/subtype`) and anonymous naming policy now strictly follows high/medium/low tiered naming.
 - **CRUSHR_RECOVERY_MODEL_03 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, and `cargo test --workspace` are green.
-Immediate Next Step: execute `CRUSHR_CLEANUP_05` for `info` wording/structure truth alignment (no overstated model claims), then execute `CRUSHR_CLEANUP_06` benchmark matrix/config authority unification.
+Immediate Next Step: execute `CRUSHR_CLEANUP_06` benchmark matrix/config authority unification.
 
 
 Latest maintenance fix (2026-03-23):

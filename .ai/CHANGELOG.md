@@ -5,6 +5,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-27 — CRUSHR_CLEANUP_05
+- Decomposed `crates/crushr/src/commands/pack.rs` into explicit internal ownership layers (`discovery`, `planning`, `emission`) so orchestration and mechanics are separated by bounded interfaces.
+- Updated pack orchestration (`run`/`pack_minimal_v1`) to route through those layer modules instead of directly owning each mechanical stage call site.
+- Preserved behavior/contract semantics (CLI/output shape, archive semantics, preservation-profile authority, and profile timing behavior) while reducing monolithic ownership drift in pack internals.
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 ## 2026-03-27 — CRUSHR_CLEANUP_04
 - Added shared restoration core (`crates/crushr/src/restoration_core.rs`) to centralize metadata restoration sequencing, profile-aware gating, and metadata class shaping for strict/recover extraction.
 - Routed both strict and recover extraction through shared restoration mechanics (`restore_entry_metadata`, `restore_special_filesystem_object`) and removed duplicated local restoration helpers.
