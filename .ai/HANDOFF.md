@@ -1,3 +1,10 @@
+CRUSHR_CLEANUP_03 complete (2026-03-27):
+- Recover-mode metadata-degraded routing in `crates/crushr/src/recover_extract_impl.rs` now goes through one canonical helper (`route_metadata_degraded_entry`) across regular, directory, symlink, and special-entry branches.
+- Metadata-degraded recover manifest entry assembly is now single-owner via `build_metadata_degraded_manifest_entry`, including trust class, failed metadata classes, degradation reason, and identity status mapping.
+- Branch-local duplicated degraded rename/manifest scaffolding was removed; recover metadata degradation wording is centralized under `METADATA_DEGRADED_REASON`.
+- Follow-on order now starts at `CRUSHR_CLEANUP_04` (pack module decomposition), then `CRUSHR_CLEANUP_05` and `CRUSHR_CLEANUP_06`.
+- Validation in packet: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 CRUSHR_CLEANUP_02 complete (2026-03-27):
 - Pack preservation-profile policy is now single-authority in `crates/crushr/src/commands/pack.rs::plan_pack_profile` returning explicit `PackProfilePlan { included, omitted }` decisions.
 - Discovery (`collect_files`) is now profile-policy free (no omission, no profile warnings, no profile-driven partial outputs).

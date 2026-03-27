@@ -6,6 +6,22 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 # .ai/DECISION_LOG.md
 
 
+## 2026-03-27 — CRUSHR_CLEANUP_03 recover metadata-degraded routing authority collapse
+
+- Decision:
+  - Establish one canonical recover-path authority (`route_metadata_degraded_entry`) for metadata-degraded routing across all recover-supported entry kinds.
+  - Centralize metadata-degraded recover manifest entry assembly in one helper (`build_metadata_degraded_manifest_entry`) with shared degradation reason/trust mapping.
+  - Remove branch-local duplication of degraded rename routing and manifest-entry field construction from recover extraction branches.
+- Alternatives considered:
+  1. Keep branch-local routing/manifest assembly and only extract shared string constants.
+  2. Keep per-entry-kind helpers with duplicated manifest field population.
+- Rationale:
+  - Hostile review and cleanup packet CRUSHR_CLEANUP_03 require one auditable authority for degraded metadata routing and recover-side manifest assembly.
+  - Single-owner routing/assembly reduces drift risk when metadata obligations change and keeps recover safety semantics explicit.
+- Blast radius:
+  - `crates/crushr/src/recover_extract_impl.rs` internal recover extraction path only.
+  - No strict extraction behavior changes, no archive format/schema changes, and no public API changes.
+
 ## 2026-03-27 — CRUSHR_CLEANUP_02 pack preservation-profile authority collapse
 
 - Decision:

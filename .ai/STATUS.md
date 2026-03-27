@@ -7,8 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_CLEANUP_02 complete** (pack preservation-profile authority collapsed into one planning decision layer)
+Current Step: **CRUSHR_CLEANUP_03 complete** (recover metadata-degraded routing and manifest assembly collapsed into one canonical path)
 
+
+Latest maintenance fix (2026-03-27):
+- **CRUSHR_CLEANUP_03 complete**: added a single recover-mode degraded-routing authority (`route_metadata_degraded_entry`) that handles metadata-failure classification/routing for regular, directory, symlink, and special entry kinds.
+- **CRUSHR_CLEANUP_03 complete**: unified recover metadata-degraded manifest entry assembly under one path (`build_metadata_degraded_manifest_entry`) so trust/degradation fields are mapped in one location only.
+- **CRUSHR_CLEANUP_03 complete**: removed repeated branch-local metadata-degraded rename/manifest scaffolding and centralized shared degraded-reason wording for recover-side truth.
+- **CRUSHR_CLEANUP_03 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
 
 Latest maintenance fix (2026-03-27):
 - **CRUSHR_CLEANUP_02 complete**: collapsed pack preservation-profile policy to one canonical planning authority (`plan_pack_profile`) that returns explicit included/omitted outcomes and omission-reason classification.
@@ -229,7 +235,7 @@ Latest maintenance fix (2026-03-23):
 - **CRUSHR_RECOVERY_MODEL_03 complete**: added a modular, data-driven recovery classification engine (`recovery_classification`) with ordered detection pipeline (magic -> secondary header/structure checks -> confidence assignment) and broad coverage across document/archive/media/binary/system signatures.
 - **CRUSHR_RECOVERY_MODEL_03 complete**: recover manifest entries now separate trust class (`recovery_kind`) from content typing (`classification.kind/confidence/basis/subtype`) and anonymous naming policy now strictly follows high/medium/low tiered naming.
 - **CRUSHR_RECOVERY_MODEL_03 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, and `cargo test --workspace` are green.
-Immediate Next Step: execute CRUSHR_CLEANUP_03 to deduplicate recover metadata-degraded routing after pack profile-authority cleanup completion.
+Immediate Next Step: execute CRUSHR_CLEANUP_04 to decompose `commands/pack.rs` into clearer internal responsibility boundaries after recover degraded-routing cleanup completion.
 
 
 Latest maintenance fix (2026-03-23):
@@ -417,10 +423,9 @@ Recovery should degrade in reverse order:
 
 ## Next actions
 
-1. Execute `CRUSHR_CLEANUP_03` to deduplicate recover metadata-degraded routing and consolidate shared manifest placement helpers.
-2. Execute `CRUSHR_CLEANUP_04` to decompose `commands/pack.rs` into clearer internal responsibility boundaries.
-3. Execute `CRUSHR_CLEANUP_05` for `info` wording/structure truth alignment (no overstated model claims).
-4. Execute `CRUSHR_CLEANUP_06` to centralize benchmark matrix/config authority between generator/runner/docs.
+1. Execute `CRUSHR_CLEANUP_04` to decompose `commands/pack.rs` into clearer internal responsibility boundaries.
+2. Execute `CRUSHR_CLEANUP_05` for `info` wording/structure truth alignment (no overstated model claims).
+3. Execute `CRUSHR_CLEANUP_06` to centralize benchmark matrix/config authority between generator/runner/docs.
 
 ## Near-term product-completeness track (not active yet)
 

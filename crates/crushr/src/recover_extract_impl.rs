@@ -139,6 +139,8 @@ struct OriginalIdentity {
     name_status: IdentityStatus,
 }
 
+const METADATA_DEGRADED_REASON: &str = "required metadata restoration failed";
+
 pub fn run_recover_extract_with_progress<F>(
     opts: &RecoverExtractOptions,
     mut progress: F,
@@ -280,45 +282,23 @@ where
                     }
                     let failed_metadata =
                         restore_entry_metadata(destination.as_path(), entry, preservation_profile)?;
-                    if failed_metadata.is_empty() {
-                        canonical_count += 1;
-                    } else {
-                        let degraded_destination =
-                            resolve_confined_path(&metadata_degraded_dir, &entry.path)?;
-                        if let Some(parent) = degraded_destination.parent() {
-                            fs::create_dir_all(parent)
-                                .with_context(|| format!("create {}", parent.display()))?;
-                        }
-                        fs::rename(&destination, &degraded_destination).with_context(|| {
-                            format!(
-                                "move {} -> {}",
-                                destination.display(),
-                                degraded_destination.display()
-                            )
-                        })?;
+                    if route_metadata_degraded_entry(
+                        &reader,
+                        &blocks,
+                        &metadata_degraded_dir,
+                        entry,
+                        &destination,
+                        failed_metadata,
+                        &mut manifest_entries,
+                    )? {
                         metadata_degraded_count += 1;
                         if let Some(group_id) = entry.hardlink_group_id {
-                            hardlink_roots.insert(group_id, degraded_destination.clone());
+                            let degraded_destination =
+                                resolve_confined_path(&metadata_degraded_dir, &entry.path)?;
+                            hardlink_roots.insert(group_id, degraded_destination);
                         }
-                        manifest_entries.push(RecoveryManifestEntry {
-                            recovery_id: format!("rec_{:06}", manifest_entries.len() + 1),
-                            assigned_name: Some(entry.path.clone()),
-                            size: entry.size,
-                            hash: None,
-                            recovery_kind: RecoveryKind::MetadataDegraded,
-                            trust_class: RecoveryKind::MetadataDegraded,
-                            missing_metadata_classes: None,
-                            failed_metadata_classes: failed_metadata.clone(),
-                            degradation_reason: Some(
-                                "required metadata restoration failed".to_string(),
-                            ),
-                            classification: classify_content_from_entry(&reader, entry, &blocks)?,
-                            original_identity: OriginalIdentity {
-                                path_status: IdentityStatus::Verified,
-                                name_status: IdentityStatus::Verified,
-                            },
-                            recovery_reason: "metadata restoration failed".to_string(),
-                        });
+                    } else {
+                        canonical_count += 1;
                     }
                 }
             }
@@ -327,42 +307,18 @@ where
                     .with_context(|| format!("create {}", destination.display()))?;
                 let failed_metadata =
                     restore_entry_metadata(destination.as_path(), entry, preservation_profile)?;
-                if failed_metadata.is_empty() {
-                    canonical_count += 1;
-                } else {
-                    let degraded_destination =
-                        resolve_confined_path(&metadata_degraded_dir, &entry.path)?;
-                    if let Some(parent) = degraded_destination.parent() {
-                        fs::create_dir_all(parent)
-                            .with_context(|| format!("create {}", parent.display()))?;
-                    }
-                    fs::rename(&destination, &degraded_destination).with_context(|| {
-                        format!(
-                            "move {} -> {}",
-                            destination.display(),
-                            degraded_destination.display()
-                        )
-                    })?;
+                if route_metadata_degraded_entry(
+                    &reader,
+                    &blocks,
+                    &metadata_degraded_dir,
+                    entry,
+                    &destination,
+                    failed_metadata,
+                    &mut manifest_entries,
+                )? {
                     metadata_degraded_count += 1;
-                    manifest_entries.push(RecoveryManifestEntry {
-                        recovery_id: format!("rec_{:06}", manifest_entries.len() + 1),
-                        assigned_name: Some(entry.path.clone()),
-                        size: entry.size,
-                        hash: None,
-                        recovery_kind: RecoveryKind::MetadataDegraded,
-                        trust_class: RecoveryKind::MetadataDegraded,
-                        missing_metadata_classes: None,
-                        failed_metadata_classes: failed_metadata,
-                        degradation_reason: Some(
-                            "required metadata restoration failed".to_string(),
-                        ),
-                        classification: classify_content_from_entry(&reader, entry, &blocks)?,
-                        original_identity: OriginalIdentity {
-                            path_status: IdentityStatus::Verified,
-                            name_status: IdentityStatus::Verified,
-                        },
-                        recovery_reason: "metadata restoration failed".to_string(),
-                    });
+                } else {
+                    canonical_count += 1;
                 }
             }
             EntryKind::Symlink => {
@@ -377,42 +333,18 @@ where
                     .with_context(|| format!("symlink {} -> {}", destination.display(), target))?;
                 let failed_metadata =
                     restore_entry_metadata(destination.as_path(), entry, preservation_profile)?;
-                if failed_metadata.is_empty() {
-                    canonical_count += 1;
-                } else {
-                    let degraded_destination =
-                        resolve_confined_path(&metadata_degraded_dir, &entry.path)?;
-                    if let Some(parent) = degraded_destination.parent() {
-                        fs::create_dir_all(parent)
-                            .with_context(|| format!("create {}", parent.display()))?;
-                    }
-                    fs::rename(&destination, &degraded_destination).with_context(|| {
-                        format!(
-                            "move {} -> {}",
-                            destination.display(),
-                            degraded_destination.display()
-                        )
-                    })?;
+                if route_metadata_degraded_entry(
+                    &reader,
+                    &blocks,
+                    &metadata_degraded_dir,
+                    entry,
+                    &destination,
+                    failed_metadata,
+                    &mut manifest_entries,
+                )? {
                     metadata_degraded_count += 1;
-                    manifest_entries.push(RecoveryManifestEntry {
-                        recovery_id: format!("rec_{:06}", manifest_entries.len() + 1),
-                        assigned_name: Some(entry.path.clone()),
-                        size: entry.size,
-                        hash: None,
-                        recovery_kind: RecoveryKind::MetadataDegraded,
-                        trust_class: RecoveryKind::MetadataDegraded,
-                        missing_metadata_classes: None,
-                        failed_metadata_classes: failed_metadata,
-                        degradation_reason: Some(
-                            "required metadata restoration failed".to_string(),
-                        ),
-                        classification: classify_content_from_entry(&reader, entry, &blocks)?,
-                        original_identity: OriginalIdentity {
-                            path_status: IdentityStatus::Verified,
-                            name_status: IdentityStatus::Verified,
-                        },
-                        recovery_reason: "metadata restoration failed".to_string(),
-                    });
+                } else {
+                    canonical_count += 1;
                 }
             }
             EntryKind::Fifo | EntryKind::CharDevice | EntryKind::BlockDevice => {
@@ -435,42 +367,18 @@ where
                 restore_special(destination.as_path(), entry)?;
                 let failed_metadata =
                     restore_entry_metadata(destination.as_path(), entry, preservation_profile)?;
-                if failed_metadata.is_empty() {
-                    canonical_count += 1;
-                } else {
-                    let degraded_destination =
-                        resolve_confined_path(&metadata_degraded_dir, &entry.path)?;
-                    if let Some(parent) = degraded_destination.parent() {
-                        fs::create_dir_all(parent)
-                            .with_context(|| format!("create {}", parent.display()))?;
-                    }
-                    fs::rename(&destination, &degraded_destination).with_context(|| {
-                        format!(
-                            "move {} -> {}",
-                            destination.display(),
-                            degraded_destination.display()
-                        )
-                    })?;
+                if route_metadata_degraded_entry(
+                    &reader,
+                    &blocks,
+                    &metadata_degraded_dir,
+                    entry,
+                    &destination,
+                    failed_metadata,
+                    &mut manifest_entries,
+                )? {
                     metadata_degraded_count += 1;
-                    manifest_entries.push(RecoveryManifestEntry {
-                        recovery_id: format!("rec_{:06}", manifest_entries.len() + 1),
-                        assigned_name: Some(entry.path.clone()),
-                        size: entry.size,
-                        hash: None,
-                        recovery_kind: RecoveryKind::MetadataDegraded,
-                        trust_class: RecoveryKind::MetadataDegraded,
-                        missing_metadata_classes: None,
-                        failed_metadata_classes: failed_metadata,
-                        degradation_reason: Some(
-                            "required metadata restoration failed".to_string(),
-                        ),
-                        classification: classify_content_from_entry(&reader, entry, &blocks)?,
-                        original_identity: OriginalIdentity {
-                            path_status: IdentityStatus::Verified,
-                            name_status: IdentityStatus::Verified,
-                        },
-                        recovery_reason: "metadata restoration failed".to_string(),
-                    });
+                } else {
+                    canonical_count += 1;
                 }
             }
         }
@@ -686,6 +594,67 @@ fn read_entry_bytes_strict(
     }
 
     Ok(out)
+}
+
+fn route_metadata_degraded_entry(
+    reader: &FileReader,
+    blocks: &[BlockSpanV1],
+    metadata_degraded_dir: &Path,
+    entry: &Entry,
+    canonical_destination: &Path,
+    failed_metadata: Vec<MetadataClass>,
+    manifest_entries: &mut Vec<RecoveryManifestEntry>,
+) -> Result<bool> {
+    if failed_metadata.is_empty() {
+        return Ok(false);
+    }
+
+    let degraded_destination = resolve_confined_path(metadata_degraded_dir, &entry.path)?;
+    if let Some(parent) = degraded_destination.parent() {
+        fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
+    }
+    fs::rename(canonical_destination, &degraded_destination).with_context(|| {
+        format!(
+            "move {} -> {}",
+            canonical_destination.display(),
+            degraded_destination.display()
+        )
+    })?;
+
+    manifest_entries.push(build_metadata_degraded_manifest_entry(
+        reader,
+        blocks,
+        entry,
+        failed_metadata,
+        manifest_entries.len() + 1,
+    )?);
+    Ok(true)
+}
+
+fn build_metadata_degraded_manifest_entry(
+    reader: &FileReader,
+    blocks: &[BlockSpanV1],
+    entry: &Entry,
+    failed_metadata_classes: Vec<MetadataClass>,
+    manifest_ordinal: usize,
+) -> Result<RecoveryManifestEntry> {
+    Ok(RecoveryManifestEntry {
+        recovery_id: format!("rec_{manifest_ordinal:06}"),
+        assigned_name: Some(entry.path.clone()),
+        size: entry.size,
+        hash: None,
+        recovery_kind: RecoveryKind::MetadataDegraded,
+        trust_class: RecoveryKind::MetadataDegraded,
+        missing_metadata_classes: None,
+        failed_metadata_classes,
+        degradation_reason: Some(METADATA_DEGRADED_REASON.to_string()),
+        classification: classify_content_from_entry(reader, entry, blocks)?,
+        original_identity: OriginalIdentity {
+            path_status: IdentityStatus::Verified,
+            name_status: IdentityStatus::Verified,
+        },
+        recovery_reason: METADATA_DEGRADED_REASON.to_string(),
+    })
 }
 
 fn recover_partial_entry_bytes(
