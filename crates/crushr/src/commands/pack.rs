@@ -11,7 +11,7 @@ use crushr_format::tailframe::assemble_tail_frame;
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
-use std::io::{Seek, Write};
+use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -216,8 +216,12 @@ impl MetadataProfile {
     }
 }
 
-fn compress_deterministic(raw: &[u8], level: i32) -> Result<Vec<u8>> {
-    let mut encoder = zstd::Encoder::new(Vec::new(), level).context("create zstd encoder")?;
+const BLK3_HEADER_WITH_HASHES_LEN: u64 = (4 + 2 + 2 + 4 + 4 + 4 + 8 + 8 + 32 + 32) as u64;
+
+fn compress_deterministic(raw: &[u8], level: i32, scratch: &mut Vec<u8>) -> Result<Vec<u8>> {
+    let mut output = std::mem::take(scratch);
+    output.clear();
+    let mut encoder = zstd::Encoder::new(output, level).context("create zstd encoder")?;
     encoder
         .include_checksum(false)
         .context("set zstd checksum flag")?;
@@ -229,6 +233,11 @@ fn compress_deterministic(raw: &[u8], level: i32) -> Result<Vec<u8>> {
         .context("set zstd dict-id flag")?;
     encoder.write_all(raw).context("zstd write")?;
     encoder.finish().context("zstd finish")
+}
+
+fn recycle_compression_buffer(mut compressed: Vec<u8>, scratch: &mut Vec<u8>) {
+    compressed.clear();
+    *scratch = compressed;
 }
 
 #[derive(Debug)]
@@ -1082,8 +1091,11 @@ fn emit_archive_from_layout(
     let mut phase_timings = phase_timings;
     let total_files = layout.files.len();
 
-    let mut out = File::create(output).with_context(|| format!("create {}", output.display()))?;
+    let out_file = File::create(output).with_context(|| format!("create {}", output.display()))?;
+    let mut out = BufWriter::with_capacity(1024 * 1024, out_file);
+    let mut write_offset = 0u64;
     let mut entries = Vec::with_capacity(total_files);
+    let mut compression_scratch = Vec::new();
 
     let mut experimental_records = Vec::new();
     let mut file_identity_extent_records = Vec::new();
@@ -1106,6 +1118,8 @@ fn emit_archive_from_layout(
             &mut out,
             path_dictionary,
             level,
+            &mut compression_scratch,
+            &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
     }
@@ -1163,12 +1177,12 @@ fn emit_archive_from_layout(
                     );
                 }
                 let compression_start = Instant::now();
-                let compressed = compress_deterministic(&raw, level)
+                let compressed = compress_deterministic(&raw, level, &mut compression_scratch)
                     .with_context(|| format!("compress {}", file.abs_path.display()))?;
                 if let Some(timings) = phase_timings.as_mut() {
                     (*timings).add(PackProfilePhase::Compression, compression_start.elapsed());
                 }
-                let block_scan_offset = out.stream_position()?;
+                let block_scan_offset = write_offset;
                 let hashing_start = Instant::now();
                 let payload_hash = *blake3::hash(&compressed).as_bytes();
                 let raw_hash = *blake3::hash(&raw).as_bytes();
@@ -1177,7 +1191,7 @@ fn emit_archive_from_layout(
                 }
                 let flags = Blk3Flags(Blk3Flags::HAS_PAYLOAD_HASH | Blk3Flags::HAS_RAW_HASH);
                 let header = Blk3Header {
-                    header_len: (4 + 2 + 2 + 4 + 4 + 4 + 8 + 8 + 32 + 32) as u16,
+                    header_len: BLK3_HEADER_WITH_HASHES_LEN as u16,
                     flags,
                     codec: ZSTD_CODEC,
                     level,
@@ -1191,6 +1205,8 @@ fn emit_archive_from_layout(
                 let emission_start = Instant::now();
                 write_blk3_header(&mut out, &header)?;
                 out.write_all(&compressed)?;
+                let compressed_len = compressed.len() as u64;
+                write_offset += BLK3_HEADER_WITH_HASHES_LEN + compressed_len;
                 if let Some(timings) = phase_timings.as_mut() {
                     (*timings).add(PackProfilePhase::Emission, emission_start.elapsed());
                 }
@@ -1199,15 +1215,16 @@ fn emit_archive_from_layout(
                     file.block_id,
                     (
                         raw_len,
-                        compressed.len() as u64,
+                        compressed_len,
                         payload_hash,
                         raw_hash,
                         block_scan_offset,
                     ),
                 );
+                recycle_compression_buffer(compressed, &mut compression_scratch);
                 (
                     raw_len,
-                    compressed.len() as u64,
+                    compressed_len,
                     payload_hash,
                     raw_hash,
                     block_scan_offset,
@@ -1250,6 +1267,8 @@ fn emit_archive_from_layout(
                 &mut out,
                 &wrap_self_describing_extent(record),
                 level,
+                &mut compression_scratch,
+                &mut write_offset,
                 phase_timings.as_deref_mut(),
             )?;
 
@@ -1261,6 +1280,8 @@ fn emit_archive_from_layout(
                         &experimental_records,
                     ),
                     level,
+                    &mut compression_scratch,
+                    &mut write_offset,
                     phase_timings.as_deref_mut(),
                 )?;
             }
@@ -1289,12 +1310,16 @@ fn emit_archive_from_layout(
                     .last()
                     .context("missing file identity record")?,
                 level,
+                &mut compression_scratch,
+                &mut write_offset,
                 phase_timings.as_deref_mut(),
             )?;
             write_experimental_metadata_block(
                 &mut out,
                 &build_file_path_map_entry(file.file_id, &path, &path_digest),
                 level,
+                &mut compression_scratch,
+                &mut write_offset,
                 phase_timings.as_deref_mut(),
             )?;
             if should_emit_anchor(ordinal, total_files) {
@@ -1306,6 +1331,8 @@ fn emit_archive_from_layout(
                         file_identity_extent_records.len() as u64,
                     ),
                     level,
+                    &mut compression_scratch,
+                    &mut write_offset,
                     phase_timings.as_deref_mut(),
                 )?;
             }
@@ -1344,6 +1371,8 @@ fn emit_archive_from_layout(
                 &mut out,
                 &payload_record,
                 level,
+                &mut compression_scratch,
+                &mut write_offset,
                 phase_timings.as_deref_mut(),
             )?;
 
@@ -1359,6 +1388,8 @@ fn emit_archive_from_layout(
                     &mut out,
                     &copy,
                     level,
+                    &mut compression_scratch,
+                    &mut write_offset,
                     phase_timings.as_deref_mut(),
                 )?;
             }
@@ -1382,6 +1413,8 @@ fn emit_archive_from_layout(
                             &path_checkpoint_entries,
                         ),
                         level,
+                        &mut compression_scratch,
+                        &mut write_offset,
                         phase_timings.as_deref_mut(),
                     )?;
                 }
@@ -1396,6 +1429,8 @@ fn emit_archive_from_layout(
                 &mut out,
                 &manifest_record,
                 level,
+                &mut compression_scratch,
+                &mut write_offset,
                 phase_timings.as_deref_mut(),
             )?;
 
@@ -1413,6 +1448,8 @@ fn emit_archive_from_layout(
                         &file_manifest_records,
                     ),
                     level,
+                    &mut compression_scratch,
+                    &mut write_offset,
                     phase_timings.as_deref_mut(),
                 )?;
             }
@@ -1515,7 +1552,14 @@ fn emit_archive_from_layout(
             .clone()
             .context("missing primary dictionary copy for tail mirror")?;
         copy.copy_role = "tail_mirror";
-        write_experimental_metadata_block(&mut out, &copy, level, phase_timings.as_deref_mut())?;
+        write_experimental_metadata_block(
+            &mut out,
+            &copy,
+            level,
+            &mut compression_scratch,
+            &mut write_offset,
+            phase_timings.as_deref_mut(),
+        )?;
     }
 
     let finalization_start = Instant::now();
@@ -1524,6 +1568,8 @@ fn emit_archive_from_layout(
             &mut out,
             &build_checkpoint_map_snapshot(u64::MAX, &experimental_records),
             level,
+            &mut compression_scratch,
+            &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
     }
@@ -1537,6 +1583,8 @@ fn emit_archive_from_layout(
                 file_identity_extent_records.len() as u64,
             ),
             level,
+            &mut compression_scratch,
+            &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
         write_experimental_metadata_block(
@@ -1546,6 +1594,8 @@ fn emit_archive_from_layout(
                 records: file_identity_path_records,
             },
             level,
+            &mut compression_scratch,
+            &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
     }
@@ -1559,6 +1609,8 @@ fn emit_archive_from_layout(
                 &path_checkpoint_entries,
             ),
             level,
+            &mut compression_scratch,
+            &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
     }
@@ -1571,6 +1623,8 @@ fn emit_archive_from_layout(
                 records_emitted: payload_block_identity_records.len() as u64,
             },
             level,
+            &mut compression_scratch,
+            &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
     }
@@ -1584,11 +1638,13 @@ fn emit_archive_from_layout(
                 &file_manifest_records,
             ),
             level,
+            &mut compression_scratch,
+            &mut write_offset,
             phase_timings.as_deref_mut(),
         )?;
     }
 
-    let blocks_end_offset = out.stream_position()?;
+    let blocks_end_offset = write_offset;
     write_tail_with_redundant_map(
         &mut out,
         blocks_end_offset,
@@ -1598,6 +1654,7 @@ fn emit_archive_from_layout(
         emit_path_checkpoints,
         emit_manifest_checkpoints,
     )?;
+    out.flush()?;
     if let Some(timings) = phase_timings.as_mut() {
         (*timings).add(PackProfilePhase::Finalization, finalization_start.elapsed());
     }
@@ -1851,8 +1908,8 @@ fn build_manifest_checkpoint_snapshot(
     }
 }
 
-fn write_tail_with_redundant_map(
-    out: &mut File,
+fn write_tail_with_redundant_map<W: Write>(
+    out: &mut W,
     blocks_end_offset: u64,
     entries: &[Entry],
     options: PackExperimentalOptions,
@@ -2175,15 +2232,17 @@ fn golden_ratio_ordinals(
 }
 
 fn write_experimental_metadata_block<T: Serialize>(
-    out: &mut File,
+    out: &mut BufWriter<File>,
     value: &T,
     level: i32,
+    compression_scratch: &mut Vec<u8>,
+    write_offset: &mut u64,
     phase_timings: Option<&mut PackPhaseTimings>,
 ) -> Result<()> {
     let mut phase_timings = phase_timings;
     let raw = serde_json::to_vec(value)?;
     let compression_start = Instant::now();
-    let compressed = compress_deterministic(&raw, level)?;
+    let compressed = compress_deterministic(&raw, level, compression_scratch)?;
     if let Some(timings) = phase_timings.as_mut() {
         (*timings).add(PackProfilePhase::Compression, compression_start.elapsed());
     }
@@ -2194,7 +2253,7 @@ fn write_experimental_metadata_block<T: Serialize>(
         (*timings).add(PackProfilePhase::Hashing, hashing_start.elapsed());
     }
     let header = Blk3Header {
-        header_len: (4 + 2 + 2 + 4 + 4 + 4 + 8 + 8 + 32 + 32) as u16,
+        header_len: BLK3_HEADER_WITH_HASHES_LEN as u16,
         flags: Blk3Flags(Blk3Flags::HAS_PAYLOAD_HASH | Blk3Flags::HAS_RAW_HASH),
         codec: ZSTD_CODEC,
         level,
@@ -2207,9 +2266,11 @@ fn write_experimental_metadata_block<T: Serialize>(
     let emission_start = Instant::now();
     write_blk3_header(&mut *out, &header)?;
     out.write_all(&compressed)?;
+    *write_offset += BLK3_HEADER_WITH_HASHES_LEN + compressed.len() as u64;
     if let Some(timings) = phase_timings.as_mut() {
         (*timings).add(PackProfilePhase::Emission, emission_start.elapsed());
     }
+    recycle_compression_buffer(compressed, compression_scratch);
     Ok(())
 }
 

@@ -7,7 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_OPTIMIZATION_01 complete** (pack discovery profile-aware overhead reduction for v0.4.18)
+Current Step: **CRUSHR_OPTIMIZATION_02 complete** (pack compression/emission optimization with correctness guardrails for v0.4.19)
+
+Latest maintenance fix (2026-03-27):
+- **CRUSHR_OPTIMIZATION_02 complete**: production `pack` now writes through a 1 MiB `BufWriter`, reducing small-write syscall pressure in payload and metadata emission without changing archive layout semantics.
+- **CRUSHR_OPTIMIZATION_02 complete**: payload/metadata compression now reuses a per-run compression output buffer, reducing repeated allocation overhead while preserving codec, level, and deterministic zstd flags.
+- **CRUSHR_OPTIMIZATION_02 complete**: block offsets used by experimental identity records are now tracked via deterministic emitted-byte accounting (`BLK3_HEADER_WITH_HASHES_LEN`) so profiling remains truthful while buffered writes are enabled.
+- **CRUSHR_OPTIMIZATION_02 complete**: fail-closed mutation detection (`input changed during pack planning`), preservation profile behavior, hash work, and tail/index finalization semantics are unchanged.
+- **CRUSHR_OPTIMIZATION_02 complete**: canonical version advanced to `0.4.19` (`VERSION` + workspace package version sync).
 
 Latest maintenance fix (2026-03-27):
 - **CRUSHR_OPTIMIZATION_01 complete**: production `pack` discovery now gates metadata capture by selected preservation profile, avoiding eager probes for omitted classes in `basic`/`payload-only`.

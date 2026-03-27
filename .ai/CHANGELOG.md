@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-27 — CRUSHR_OPTIMIZATION_02 (v0.4.19)
+- Optimized production `pack` emission by writing archive output through a 1 MiB `BufWriter`, reducing small-write overhead during payload + metadata block emission.
+- Optimized compression-path allocation overhead by reusing a per-run compression output buffer for deterministic zstd writes (payload and metadata blocks), without changing codec, level, or zstd flag behavior.
+- Replaced per-block `stream_position` probing with deterministic emitted-byte offset accounting (`BLK3_HEADER_WITH_HASHES_LEN`) so buffered writes keep block-offset truth used by identity metadata.
+- Preserved semantics/correctness guardrails: fail-closed mutation detection, hash computation, preservation-profile behavior, manifest/index/tail finalization semantics, and truthful `--profile-pack` phase attribution boundaries remain unchanged.
+- Advanced canonical version to `0.4.19` (`VERSION` + workspace package version sync).
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `./scripts/check-version-sync.sh`; `cargo test -p crushr --test version_contract`.
+
 ## 2026-03-26 — CRUSHR_BENCHMARK_03 (v0.4.17)
 - Added explicit production pack profiling flag `--profile-pack` and deterministic human-readable phase breakdown output for `discovery`, `metadata`, `hashing`, `compression`, `emission`, and `finalization`.
 - Instrumented production pack timing attribution without changing archive bytes/semantics or compression behavior; phase timing is opt-in only and default/silent output remains unchanged unless profiling is requested.

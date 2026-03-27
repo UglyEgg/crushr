@@ -5,6 +5,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-27 — CRUSHR_OPTIMIZATION_02 compression/emission overhead reduction lock
+
+- Decision:
+  - Keep production compression codec/level semantics unchanged, but reuse a per-run compression output buffer for payload and metadata block zstd writes to reduce repeated allocation/setup overhead.
+  - Route archive emission through a buffered writer (1 MiB `BufWriter`) and keep deterministic block offset accounting explicitly in the pack emitter so buffered I/O does not alter identity-record offset truth.
+  - Preserve existing phase boundaries (`compression` vs `emission`) by timing compression/hashing/writes at unchanged logical points after refactor.
+- Alternatives considered:
+  1. Lower default compression level or swap codecs to force apparent phase wins.
+  2. Skip/relax hashing or mutation checks to shrink measured phase time.
+  3. Collapse compression/emission timers into one combined phase after buffering changes.
+- Rationale:
+  - Packet requires measurable compression/emission gains without semantic drift or benchmark-only shortcuts.
+  - Buffer reuse and write buffering are implementation-level overhead reductions that keep archive bytes, profile behavior, and validation semantics intact.
+- Blast radius:
+  - `crates/crushr/src/commands/pack.rs` compression/emission internals and write plumbing only.
+  - No public API/format changes; preservation profile, mutation detection, and finalization contracts remain unchanged.
+  - Canonical version advanced to `0.4.19`.
+
 ## 2026-03-27 — CRUSHR_OPTIMIZATION_01 discovery-phase profile-aware capture lock
 
 - Decision:
