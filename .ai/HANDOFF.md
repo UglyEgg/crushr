@@ -1,3 +1,9 @@
+CRUSHR_HOSTILE_REVIEW_01 complete (2026-03-27):
+- Completed hostile enterprise code-quality review across pack, strict/recover extract, info/introspection, preservation-profile handling, benchmark tooling, and embedded code/docs comments.
+- Published prioritized findings and cleanup roadmap at `.ai/COMPLETION_NOTES_CRUSHR_HOSTILE_REVIEW_01.md`.
+- No runtime semantics were changed; this packet is review-artifact-only and intended to sequence cleanup work before new features.
+- Recommended immediate follow-on order: `CRUSHR_CLEANUP_01` (pack profile authority), `CRUSHR_CLEANUP_02` (strict/recover shared restore core), `CRUSHR_CLEANUP_03` (recover metadata-degraded dedupe), `CRUSHR_CLEANUP_04` (pack module decomposition), then `CRUSHR_CLEANUP_05/06`.
+
 CRUSHR_OPTIMIZATION_03 complete (2026-03-27):
 - Optimized production `pack` compression by replacing per-unit `zstd::Encoder` creation with one reusable `zstd::bulk::Compressor` context for payload + metadata units.
 - Preserved deterministic zstd configuration explicitly (`checksum=false`, `contentsize=true`, `dictid=false`), kept method/level behavior unchanged, and retained serial deterministic ordering.

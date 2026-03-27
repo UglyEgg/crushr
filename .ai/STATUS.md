@@ -7,7 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_OPTIMIZATION_03 complete** (zstd compression-context reuse optimization with correctness guardrails for v0.4.20)
+Current Step: **CRUSHR_HOSTILE_REVIEW_01 complete** (hostile enterprise quality review artifact + cleanup roadmap)
+
+
+Latest maintenance fix (2026-03-27):
+- **CRUSHR_HOSTILE_REVIEW_01 complete**: completed a hostile, enterprise-focused structural review covering pack pipeline, strict/recover extraction split, introspection contract surfaces, preservation-profile semantics, benchmark tooling, and embedded comments/docs.
+- **CRUSHR_HOSTILE_REVIEW_01 complete**: published prioritized findings for duplication, layered patching, hidden coupling, stale/misleading contract messaging, and test-structure illusions in `.ai/COMPLETION_NOTES_CRUSHR_HOSTILE_REVIEW_01.md`.
+- **CRUSHR_HOSTILE_REVIEW_01 complete**: produced actionable cleanup packet roadmap (`CRUSHR_CLEANUP_01`..`CRUSHR_CLEANUP_06`) with recommended execution order before additional feature expansion.
+- **CRUSHR_HOSTILE_REVIEW_01 complete**: no product runtime behavior, archive semantics, schema contracts, or benchmark outputs were changed in this packet.
 
 Latest maintenance fix (2026-03-27):
 - **CRUSHR_OPTIMIZATION_03 complete**: production `pack` now reuses a single `zstd::bulk::Compressor` context for payload and metadata block compression across the run, eliminating per-unit encoder construction/teardown in the hot path.
@@ -214,7 +221,7 @@ Latest maintenance fix (2026-03-23):
 - **CRUSHR_RECOVERY_MODEL_03 complete**: added a modular, data-driven recovery classification engine (`recovery_classification`) with ordered detection pipeline (magic -> secondary header/structure checks -> confidence assignment) and broad coverage across document/archive/media/binary/system signatures.
 - **CRUSHR_RECOVERY_MODEL_03 complete**: recover manifest entries now separate trust class (`recovery_kind`) from content typing (`classification.kind/confidence/basis/subtype`) and anonymous naming policy now strictly follows high/medium/low tiered naming.
 - **CRUSHR_RECOVERY_MODEL_03 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, and `cargo test --workspace` are green.
-Immediate Next Step: begin CRUSHR-BENCH-02 baseline benchmark artifact capture and first comparative result review using the locked CRUSHR_BENCHMARK_01 methodology.
+Immediate Next Step: execute CRUSHR_CLEANUP_01 to unify pack preservation-profile authority and remove layered discovery/filter duplication before further feature work.
 
 
 Latest maintenance fix (2026-03-23):
@@ -402,10 +409,10 @@ Recovery should degrade in reverse order:
 
 ## Next actions
 
-1. Use FORMAT-10/11 output to classify metadata layers into keep/prune candidates by measurable recovery delta and overhead cost.
-2. Use FORMAT-12/13/14A evidence to lock the dictionary-placement winner and de-risk direct dictionary-target corruption.
-3. Keep strict extraction interfaces/semantics untouched (including hardened `crushr-extract --verify` refusal behavior).
-4. Execute CRUSHR-BENCH-03 benchmark review packet to derive data-backed tuning priorities and whitepaper integration.
+1. Execute `CRUSHR_CLEANUP_01` to unify pack preservation-profile authority (remove discovery/filter dual-ownership).
+2. Execute `CRUSHR_CLEANUP_02` to consolidate strict/recover metadata/profile restoration logic into shared authority.
+3. Execute `CRUSHR_CLEANUP_03` and `CRUSHR_CLEANUP_04` to deduplicate recover metadata-degraded routing and decompose `commands/pack.rs` boundaries.
+4. Execute `CRUSHR_CLEANUP_05` and `CRUSHR_CLEANUP_06` for info-contract wording truth and benchmark harness matrix/config centralization.
 
 ## Near-term product-completeness track (not active yet)
 

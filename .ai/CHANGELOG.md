@@ -5,6 +5,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-27 — CRUSHR_HOSTILE_REVIEW_01
+- Completed a hostile enterprise-grade structural review focused on layered patching, duplication, dead/stale paths, contract drift, naming drift, hidden coupling, and test-structure illusions across current product surfaces.
+- Reviewed required areas explicitly: pack pipeline (discovery/planning/compression/emission/finalization), strict vs recover extract split, introspection/info contract reporting, preservation-profile handling, benchmark tooling/scripts/docs, and embedded comments/docs quality.
+- Published the formal report and actionable cleanup roadmap in `.ai/COMPLETION_NOTES_CRUSHR_HOSTILE_REVIEW_01.md` with prioritized severity bands and proposed follow-up packets (`CRUSHR_CLEANUP_01`..`CRUSHR_CLEANUP_06`).
+- No runtime code, schemas, benchmark artifacts, or public command semantics changed in this packet.
+
+
 ## 2026-03-27 — CRUSHR_OPTIMIZATION_03 (v0.4.20)
 - Optimized production `pack` compression hot path by replacing per-unit stream encoder setup with a reusable `zstd::bulk::Compressor` context shared across payload and metadata block compression.
 - Kept deterministic compression semantics explicit: zstd method unchanged, level behavior unchanged, and frame flags still locked to checksum disabled, content size enabled, dict id disabled.
