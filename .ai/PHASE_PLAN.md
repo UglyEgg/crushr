@@ -95,6 +95,7 @@ Deliverables
 - [x] CRUSHR-BENCH-02 — initial canonical corpus generation, baseline runs, and first quantitative benchmark artifacts.
 - [x] CRUSHR-BENCH-03 — pack pipeline attribution instrumentation (`--profile-pack`), deterministic phase timing visibility, and benchmark-operator capture guidance for medium/large datasets.
 - [x] CRUSHR_OPTIMIZATION_01 — profile-aware discovery capture gating + duplicate stat removal in production `pack` to reduce discovery-phase filesystem overhead without changing archive semantics.
+- [x] CRUSHR_OPTIMIZATION_02 — optimize production `pack` compression/emission via buffered archive writes and reusable compression output buffers while preserving profile semantics, mutation detection, and truthful phase attribution.
 
 Exit criteria
 

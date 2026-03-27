@@ -1,3 +1,11 @@
+CRUSHR_OPTIMIZATION_02 complete (2026-03-27):
+- Optimized production `pack` emission path by switching archive output writes to a 1 MiB `BufWriter`, reducing per-block write syscall pressure while preserving byte-for-byte archive semantics.
+- Optimized compression allocation overhead by reusing a per-run compression output buffer for payload and metadata zstd compression.
+- Replaced `stream_position`-based block offset sampling with deterministic emitted-byte accounting (`BLK3_HEADER_WITH_HASHES_LEN`) so identity-record offsets remain truthful under buffered output.
+- Preserved fail-closed mutation detection (`input changed during pack planning`), preservation profile behavior, hashing/finalization work, and `--profile-pack` phase boundary truth.
+- Canonical version advanced to `0.4.19` (`VERSION` + workspace package version sync).
+- Validation in packet: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `./scripts/check-version-sync.sh`; `cargo test -p crushr --test version_contract`.
+
 CRUSHR_OPTIMIZATION_01 complete (2026-03-27):
 - Optimized production `pack` discovery to be preservation-profile aware at capture time so omitted metadata classes/entry kinds are skipped instead of collected and discarded later.
 - Added discovery capture gating for ownership lookups, xattrs/security metadata, sparse probing, symlink/special-entry inclusion, and hard-link key capture by profile semantics.
