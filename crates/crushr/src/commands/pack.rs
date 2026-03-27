@@ -244,9 +244,8 @@ impl DeterministicCompressor {
 
     fn compress(&mut self, raw: &[u8]) -> Result<&[u8]> {
         self.output.clear();
-        self.output.reserve(
-            zstd::zstd_safe::compress_bound(raw.len()).saturating_sub(self.output.capacity()),
-        );
+        self.output
+            .reserve(zstd::zstd_safe::compress_bound(raw.len()));
         self.compressor
             .compress_to_buffer(raw, &mut self.output)
             .context("zstd compress")?;
@@ -3125,5 +3124,18 @@ mod tests {
                 .contains("input changed during pack planning"),
             "unexpected error: {err:#}"
         );
+    }
+
+    #[test]
+    fn deterministic_compressor_handles_growing_inputs() {
+        let mut compressor = DeterministicCompressor::new(3).expect("create compressor");
+        let small = vec![b'a'; 128];
+        let large = vec![b'b'; 2 * 1024 * 1024];
+
+        let small_out = compressor.compress(&small).expect("compress small");
+        assert!(!small_out.is_empty(), "small output should not be empty");
+
+        let large_out = compressor.compress(&large).expect("compress large");
+        assert!(!large_out.is_empty(), "large output should not be empty");
     }
 }
