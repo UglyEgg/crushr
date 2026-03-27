@@ -7,7 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_CLEANUP_03 complete** (recover metadata-degraded routing and manifest assembly collapsed into one canonical path)
+Current Step: **CRUSHR_CLEANUP_04 complete** (strict/recover metadata restoration now routes through one shared restoration core with explicit policy boundaries)
+
+
+Latest maintenance fix (2026-03-27):
+- **CRUSHR_CLEANUP_04 complete**: introduced shared restoration core (`crates/crushr/src/restoration_core.rs`) owning metadata restoration sequencing, profile-aware gating, and restore mechanics for regular/directory/symlink/special entries.
+- **CRUSHR_CLEANUP_04 complete**: strict and recover extraction now both call shared restoration mechanisms (`restore_entry_metadata`, `restore_special_filesystem_object`) instead of maintaining duplicated local restoration helpers.
+- **CRUSHR_CLEANUP_04 complete**: strict-vs-recover policy boundaries remain explicit through `RestorationPolicy::{Strict,Recover}` and mode-specific orchestration (strict fail-closed aggregation vs recover metadata_degraded routing).
+- **CRUSHR_CLEANUP_04 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
 
 
 Latest maintenance fix (2026-03-27):
@@ -235,7 +242,7 @@ Latest maintenance fix (2026-03-23):
 - **CRUSHR_RECOVERY_MODEL_03 complete**: added a modular, data-driven recovery classification engine (`recovery_classification`) with ordered detection pipeline (magic -> secondary header/structure checks -> confidence assignment) and broad coverage across document/archive/media/binary/system signatures.
 - **CRUSHR_RECOVERY_MODEL_03 complete**: recover manifest entries now separate trust class (`recovery_kind`) from content typing (`classification.kind/confidence/basis/subtype`) and anonymous naming policy now strictly follows high/medium/low tiered naming.
 - **CRUSHR_RECOVERY_MODEL_03 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, and `cargo test --workspace` are green.
-Immediate Next Step: execute CRUSHR_CLEANUP_04 to decompose `commands/pack.rs` into clearer internal responsibility boundaries after recover degraded-routing cleanup completion.
+Immediate Next Step: execute `CRUSHR_CLEANUP_05` for `info` wording/structure truth alignment (no overstated model claims), then execute `CRUSHR_CLEANUP_06` benchmark matrix/config authority unification.
 
 
 Latest maintenance fix (2026-03-23):
@@ -423,9 +430,8 @@ Recovery should degrade in reverse order:
 
 ## Next actions
 
-1. Execute `CRUSHR_CLEANUP_04` to decompose `commands/pack.rs` into clearer internal responsibility boundaries.
-2. Execute `CRUSHR_CLEANUP_05` for `info` wording/structure truth alignment (no overstated model claims).
-3. Execute `CRUSHR_CLEANUP_06` to centralize benchmark matrix/config authority between generator/runner/docs.
+1. Execute `CRUSHR_CLEANUP_05` for `info` wording/structure truth alignment (no overstated model claims).
+2. Execute `CRUSHR_CLEANUP_06` to centralize benchmark matrix/config authority between generator/runner/docs.
 
 ## Near-term product-completeness track (not active yet)
 

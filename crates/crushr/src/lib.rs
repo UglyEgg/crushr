@@ -25,6 +25,7 @@ pub mod format;
 pub mod index_codec;
 mod recover_extract_impl;
 mod recovery_classification;
+mod restoration_core;
 pub mod strict_extract_impl;
 pub mod wrapper_cli;
 
