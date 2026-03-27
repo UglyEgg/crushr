@@ -295,23 +295,135 @@ impl MetadataState {
     }
 }
 
-fn metadata_state(
-    profile: PreservationProfile,
+struct MetadataVisibilityFact {
+    label: &'static str,
     full_supported: bool,
     basic_supported: bool,
-    is_present: bool,
+    present: bool,
+}
+
+struct InfoTruthView {
+    profile_contract: &'static str,
+    archive_state_label: &'static str,
+    metadata_rows: Vec<(&'static str, MetadataState)>,
+    metadata_note: &'static str,
+}
+
+fn classify_metadata_state(
+    profile: PreservationProfile,
+    fact: &MetadataVisibilityFact,
 ) -> MetadataState {
     let included_by_profile = match profile {
-        PreservationProfile::Full => full_supported,
-        PreservationProfile::Basic => basic_supported,
+        PreservationProfile::Full => fact.full_supported,
+        PreservationProfile::Basic => fact.basic_supported,
         PreservationProfile::PayloadOnly => false,
     };
     if !included_by_profile {
         MetadataState::OmittedByProfile
-    } else if is_present {
+    } else if fact.present {
         MetadataState::Present
     } else {
         MetadataState::NotPresent
+    }
+}
+
+fn profile_contract_label(profile: PreservationProfile) -> &'static str {
+    match profile {
+        PreservationProfile::Full => "full-fidelity Linux-first",
+        PreservationProfile::Basic => "basic Linux metadata",
+        PreservationProfile::PayloadOnly => "content-oriented payload",
+    }
+}
+
+fn classify_archive_state(summary: Option<&IndexSummary>) -> &'static str {
+    if let Some(summary) = summary {
+        if summary.extent_count == summary.regular_file_count {
+            "file-level (1:1 file → unit)"
+        } else {
+            "file-level (see files vs file mappings)"
+        }
+    } else {
+        "unavailable"
+    }
+}
+
+fn build_info_truth_view(summary: Option<&IndexSummary>) -> InfoTruthView {
+    let profile = summary
+        .map(|value| value.preservation_profile)
+        .unwrap_or(PreservationProfile::Full);
+    let facts = [
+        MetadataVisibilityFact {
+            label: "modes",
+            full_supported: true,
+            basic_supported: true,
+            present: summary.map(|s| s.has_modes).unwrap_or(false),
+        },
+        MetadataVisibilityFact {
+            label: "mtime",
+            full_supported: true,
+            basic_supported: true,
+            present: summary.map(|s| s.has_mtime).unwrap_or(false),
+        },
+        MetadataVisibilityFact {
+            label: "xattrs",
+            full_supported: true,
+            basic_supported: false,
+            present: summary.map(|s| s.has_xattrs).unwrap_or(false),
+        },
+        MetadataVisibilityFact {
+            label: "ownership",
+            full_supported: true,
+            basic_supported: false,
+            present: summary.map(|s| s.has_ownership).unwrap_or(false),
+        },
+        MetadataVisibilityFact {
+            label: "hard links",
+            full_supported: true,
+            basic_supported: true,
+            present: summary.map(|s| s.has_hardlinks).unwrap_or(false),
+        },
+        MetadataVisibilityFact {
+            label: "sparse files",
+            full_supported: true,
+            basic_supported: true,
+            present: summary.map(|s| s.has_sparse).unwrap_or(false),
+        },
+        MetadataVisibilityFact {
+            label: "special files",
+            full_supported: true,
+            basic_supported: false,
+            present: summary.map(|s| s.has_special).unwrap_or(false),
+        },
+        MetadataVisibilityFact {
+            label: "ACLs",
+            full_supported: true,
+            basic_supported: false,
+            present: summary.map(|s| s.has_acls).unwrap_or(false),
+        },
+        MetadataVisibilityFact {
+            label: "SELinux labels",
+            full_supported: true,
+            basic_supported: false,
+            present: summary.map(|s| s.has_selinux).unwrap_or(false),
+        },
+        MetadataVisibilityFact {
+            label: "capabilities",
+            full_supported: true,
+            basic_supported: false,
+            present: summary.map(|s| s.has_capabilities).unwrap_or(false),
+        },
+    ];
+
+    let metadata_rows = facts
+        .iter()
+        .map(|fact| (fact.label, classify_metadata_state(profile, fact)))
+        .collect();
+
+    InfoTruthView {
+        profile_contract: profile_contract_label(profile),
+        archive_state_label: classify_archive_state(summary),
+        metadata_rows,
+        metadata_note: "omitted by profile is intentional archive scope; metadata_degraded is an extraction outcome",
     }
 }
 
@@ -496,6 +608,25 @@ struct ListingLoad {
     degraded: bool,
 }
 
+struct ListingTruthView {
+    status: StatusWord,
+    result_message: &'static str,
+}
+
+fn build_listing_truth_view(listing: &ListingLoad) -> ListingTruthView {
+    if listing.degraded {
+        ListingTruthView {
+            status: StatusWord::Degraded,
+            result_message: "content listing completed with degraded coverage",
+        }
+    } else {
+        ListingTruthView {
+            status: StatusWord::Complete,
+            result_message: "content listing completed",
+        }
+    }
+}
+
 fn listing_paths_from_index_bytes(idx3_bytes: &[u8]) -> Result<(Vec<String>, u64)> {
     let index = decode_index(idx3_bytes).context("decode IDX3 index")?;
     let mut paths = Vec::new();
@@ -676,6 +807,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
 
     if list {
         let listing = load_listing_paths(&reader)?;
+        let listing_truth = build_listing_truth_view(&listing);
         let presenter = CliPresenter::new("crushr-info", "list", false);
         presenter.header();
         presenter.section("Archive");
@@ -718,12 +850,6 @@ fn run(raw_args: Vec<String>) -> Result<()> {
             ));
         }
 
-        let status = if listing.degraded {
-            StatusWord::Degraded
-        } else {
-            StatusWord::Complete
-        };
-
         let mut rows = vec![("listed files", group_u64(listing.paths.len() as u64))];
         if listing.omitted_non_regular_entries > 0 {
             rows.push((
@@ -732,15 +858,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
             ));
         }
 
-        presenter.result_summary(
-            status,
-            if listing.degraded {
-                "content listing completed with degraded coverage"
-            } else {
-                "content listing completed"
-            },
-            &rows,
-        );
+        presenter.result_summary(listing_truth.status, listing_truth.result_message, &rows);
 
         return Ok(());
     }
@@ -780,10 +898,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     };
     presenter.kv("format markers", format!("FTR4 + {idx_marker}"));
     let index_summary = summarize_index(&opened.tail.idx3_bytes);
-    let profile = index_summary
-        .as_ref()
-        .map(|summary| summary.preservation_profile)
-        .unwrap_or(PreservationProfile::Full);
+    let info_truth = build_info_truth_view(index_summary.as_ref());
     presenter.section("Preservation");
     presenter.kv(
         "profile",
@@ -792,14 +907,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
             .map(|summary| summary.preservation_profile.as_str())
             .unwrap_or(PreservationProfile::Full.as_str()),
     );
-    presenter.kv(
-        "contract",
-        match profile {
-            PreservationProfile::Full => "full-fidelity Linux-first",
-            PreservationProfile::Basic => "basic Linux metadata",
-            PreservationProfile::PayloadOnly => "content-oriented payload",
-        },
-    );
+    presenter.kv("contract", info_truth.profile_contract);
 
     presenter.section("Structure");
     presenter.kv(
@@ -819,7 +927,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
             .as_ref()
             .map_or_else(|| "unavailable".to_string(), |s| group_u64(s.extent_count)),
     );
-    presenter.kv("block model", "file-level (1:1 file → unit)");
+    presenter.kv("block model", info_truth.archive_state_label);
     presenter.kv(
         "logical bytes",
         index_summary
@@ -904,100 +1012,10 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         ),
     );
     presenter.section("Metadata");
-    let modes_state = metadata_state(
-        profile,
-        true,
-        true,
-        index_summary.as_ref().map(|s| s.has_modes).unwrap_or(false),
-    );
-    presenter.kv("modes", modes_state.as_display());
-    let mtime_state = metadata_state(
-        profile,
-        true,
-        true,
-        index_summary.as_ref().map(|s| s.has_mtime).unwrap_or(false),
-    );
-    presenter.kv("mtime", mtime_state.as_display());
-    let xattrs_state = metadata_state(
-        profile,
-        true,
-        false,
-        index_summary
-            .as_ref()
-            .map(|s| s.has_xattrs)
-            .unwrap_or(false),
-    );
-    presenter.kv("xattrs", xattrs_state.as_display());
-    let ownership_state = metadata_state(
-        profile,
-        true,
-        false,
-        index_summary
-            .as_ref()
-            .map(|s| s.has_ownership)
-            .unwrap_or(false),
-    );
-    presenter.kv("ownership", ownership_state.as_display());
-    let hardlinks_state = metadata_state(
-        profile,
-        true,
-        true,
-        index_summary
-            .as_ref()
-            .map(|s| s.has_hardlinks)
-            .unwrap_or(false),
-    );
-    presenter.kv("hard links", hardlinks_state.as_display());
-    let sparse_state = metadata_state(
-        profile,
-        true,
-        true,
-        index_summary
-            .as_ref()
-            .map(|s| s.has_sparse)
-            .unwrap_or(false),
-    );
-    presenter.kv("sparse files", sparse_state.as_display());
-    let special_state = metadata_state(
-        profile,
-        true,
-        false,
-        index_summary
-            .as_ref()
-            .map(|s| s.has_special)
-            .unwrap_or(false),
-    );
-    presenter.kv("special files", special_state.as_display());
-    let acl_state = metadata_state(
-        profile,
-        true,
-        false,
-        index_summary.as_ref().map(|s| s.has_acls).unwrap_or(false),
-    );
-    presenter.kv("ACLs", acl_state.as_display());
-    let selinux_state = metadata_state(
-        profile,
-        true,
-        false,
-        index_summary
-            .as_ref()
-            .map(|s| s.has_selinux)
-            .unwrap_or(false),
-    );
-    presenter.kv("SELinux labels", selinux_state.as_display());
-    let capability_state = metadata_state(
-        profile,
-        true,
-        false,
-        index_summary
-            .as_ref()
-            .map(|s| s.has_capabilities)
-            .unwrap_or(false),
-    );
-    presenter.kv("capabilities", capability_state.as_display());
-    presenter.info_note(
-        "omitted by profile is intentional archive scope; metadata_degraded is an extraction outcome",
-    );
+    for (label, state) in &info_truth.metadata_rows {
+        presenter.kv(label, state.as_display());
+    }
+    presenter.info_note(info_truth.metadata_note);
     let compression =
         compression_summary_from_blocks(&reader, opened.tail.footer.blocks_end_offset)
             .ok()

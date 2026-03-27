@@ -5,6 +5,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-27 — CRUSHR_CLEANUP_06
+- Added a canonical `crushr info` reporting authority in `crates/crushr/src/commands/info.rs` (`build_info_truth_view`) that maps profile semantics, metadata visibility states, and archive-state wording before output rendering.
+- Added canonical list fallback/result semantics authority (`build_listing_truth_view`) so degraded-vs-complete list result messaging is no longer branch-local in presentation flow.
+- Removed repeated profile/fallback interpretation from info rendering branches by emitting pre-classified truth rows/messages and rendering them directly.
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 ## 2026-03-27 — CRUSHR_CLEANUP_05
 - Decomposed `crates/crushr/src/commands/pack.rs` into explicit internal ownership layers (`discovery`, `planning`, `emission`) so orchestration and mechanics are separated by bounded interfaces.
 - Updated pack orchestration (`run`/`pack_minimal_v1`) to route through those layer modules instead of directly owning each mechanical stage call site.
