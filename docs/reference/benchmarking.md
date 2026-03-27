@@ -130,7 +130,18 @@ cargo build --release -p crushr
 python3 scripts/benchmark/generate_datasets.py --clean --output .bench/datasets
 ```
 
-Medium dataset (basic profile):
+1) Medium dataset (`full` profile):
+
+```bash
+target/release/crushr pack .bench/datasets/medium_realistic_tree \
+  -o .bench/results/medium_realistic_tree.full.profiled.crs \
+  --level 3 \
+  --preservation full \
+  --profile-pack \
+  --silent | tee .bench/results/pack_phases_medium_full.txt
+```
+
+2) Medium dataset (`basic` profile):
 
 ```bash
 target/release/crushr pack .bench/datasets/medium_realistic_tree \
@@ -141,7 +152,18 @@ target/release/crushr pack .bench/datasets/medium_realistic_tree \
   --silent | tee .bench/results/pack_phases_medium_basic.txt
 ```
 
-Large dataset (basic profile):
+3) Large dataset (`full` profile):
+
+```bash
+target/release/crushr pack .bench/datasets/large_stress_tree \
+  -o .bench/results/large_stress_tree.full.profiled.crs \
+  --level 3 \
+  --preservation full \
+  --profile-pack \
+  --silent | tee .bench/results/pack_phases_large_full.txt
+```
+
+4) Large dataset (`basic` profile):
 
 ```bash
 target/release/crushr pack .bench/datasets/large_stress_tree \
@@ -150,17 +172,6 @@ target/release/crushr pack .bench/datasets/large_stress_tree \
   --preservation basic \
   --profile-pack \
   --silent | tee .bench/results/pack_phases_large_basic.txt
-```
-
-Optional preservation comparison:
-
-```bash
-target/release/crushr pack .bench/datasets/medium_realistic_tree \
-  -o .bench/results/medium_realistic_tree.full.profiled.crs \
-  --level 3 \
-  --preservation full \
-  --profile-pack \
-  --silent | tee .bench/results/pack_phases_medium_full.txt
 ```
 
 ### Expected output shape

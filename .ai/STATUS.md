@@ -7,7 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_BENCHMARK_03 complete** (production pack phase-attribution instrumentation and profiling surface)
+Current Step: **CRUSHR_OPTIMIZATION_01 complete** (pack discovery profile-aware overhead reduction for v0.4.18)
+
+Latest maintenance fix (2026-03-27):
+- **CRUSHR_OPTIMIZATION_01 complete**: production `pack` discovery now gates metadata capture by selected preservation profile, avoiding eager probes for omitted classes in `basic`/`payload-only`.
+- **CRUSHR_OPTIMIZATION_01 complete**: removed duplicate per-regular-file planning `stat` overhead by reusing discovery-captured `raw_len` in layout planning.
+- **CRUSHR_OPTIMIZATION_01 complete**: discovery now caches ownership-name lookups per UID/GID and skips xattr/security/sparse probes when profile semantics do not require them.
+- **CRUSHR_OPTIMIZATION_01 complete**: updated benchmark operator commands to require medium+large full/basic `--profile-pack` runs for direct discovery-phase validation.
+- **CRUSHR_OPTIMIZATION_01 complete**: canonical version advanced to `0.4.18` (`VERSION` + workspace package version sync).
 
 
 Latest maintenance fix (2026-03-26):
