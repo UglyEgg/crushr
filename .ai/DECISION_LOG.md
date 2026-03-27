@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-27 — CRUSHR_CLEANUP_06 info/introspection truth authority centralization
+
+- Decision:
+  - Introduce one canonical info-side reporting authority in `crates/crushr/src/commands/info.rs` (`build_info_truth_view`) to classify preservation contract wording, metadata visibility states, and archive-state language before rendering.
+  - Introduce canonical list-result fallback classification (`build_listing_truth_view`) so degraded/complete listing result semantics are decided once and consumed by presentation code.
+  - Keep presentation code policy-free: output rendering now consumes pre-classified truth rows/messages rather than re-evaluating profile/fallback semantics branch-by-branch.
+- Alternatives considered:
+  1. Keep branch-local `match profile` and repeated metadata visibility calls in render flow, with comments only.
+  2. Spread small helper functions across section-local rendering blocks without one obvious authority boundary.
+- Rationale:
+  - Hostile review and CRUSHR_CLEANUP_06 packet require one auditable location answering “where does info decide what this means?” for operators.
+  - Centralized truth mapping reduces wording/classification drift between profile semantics, fallback semantics, and metadata visibility semantics.
+- Blast radius:
+  - `crates/crushr/src/commands/info.rs` internal reporting structure and introspection presentation tests only.
+  - No pack/extract/recover behavior changes, no archive/schema/CLI-shape changes, and no version bump.
+
+
 ## 2026-03-27 — CRUSHR_CLEANUP_05 pack ownership-layer decomposition
 
 - Decision:

@@ -7,9 +7,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_CLEANUP_05 complete** (pack command now exposes explicit internal ownership layers for discovery, planning, and emission while preserving behavior)
+Current Step: **CRUSHR_CLEANUP_06 complete** (info/introspection now derives operator-facing profile/fallback/metadata/archive-state wording from one internal truth authority before presentation)
 
 
+
+
+Latest maintenance fix (2026-03-27):
+- **CRUSHR_CLEANUP_06 complete**: added canonical info-side reporting authority in `crates/crushr/src/commands/info.rs` (`build_info_truth_view`) for preservation contract wording, metadata visibility classification, and archive-state language before rendering.
+- **CRUSHR_CLEANUP_06 complete**: added list/report fallback classification authority (`build_listing_truth_view`) so list result status/message semantics are decided once and consumed by presentation.
+- **CRUSHR_CLEANUP_06 complete**: removed branch-local metadata visibility reinterpretation and repeated profile-contract wording branches from presentation flow; output now renders pre-classified truth rows.
+- **CRUSHR_CLEANUP_06 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
 Latest maintenance fix (2026-03-27):
 - **CRUSHR_CLEANUP_05 complete**: introduced explicit internal `pack` ownership layers (`discovery`, `planning`, `emission`) and routed top-level orchestration through those bounded module interfaces.
 - **CRUSHR_CLEANUP_05 complete**: kept user-facing CLI grammar/output, archive format semantics, preservation-profile authority model, and pack behavior unchanged while reducing top-level mechanical ownership in `run`/`pack_minimal_v1`.
@@ -249,7 +256,7 @@ Latest maintenance fix (2026-03-23):
 - **CRUSHR_RECOVERY_MODEL_03 complete**: added a modular, data-driven recovery classification engine (`recovery_classification`) with ordered detection pipeline (magic -> secondary header/structure checks -> confidence assignment) and broad coverage across document/archive/media/binary/system signatures.
 - **CRUSHR_RECOVERY_MODEL_03 complete**: recover manifest entries now separate trust class (`recovery_kind`) from content typing (`classification.kind/confidence/basis/subtype`) and anonymous naming policy now strictly follows high/medium/low tiered naming.
 - **CRUSHR_RECOVERY_MODEL_03 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p crushr --test recovery_extract_contract`, and `cargo test --workspace` are green.
-Immediate Next Step: execute `CRUSHR_CLEANUP_06` benchmark matrix/config authority unification.
+Immediate Next Step: await next planner packet after CRUSHR_CLEANUP_06 closeout.
 
 
 Latest maintenance fix (2026-03-23):
@@ -437,8 +444,8 @@ Recovery should degrade in reverse order:
 
 ## Next actions
 
-1. Execute `CRUSHR_CLEANUP_05` for `info` wording/structure truth alignment (no overstated model claims).
-2. Execute `CRUSHR_CLEANUP_06` to centralize benchmark matrix/config authority between generator/runner/docs.
+1. Execute next planner packet after `CRUSHR_CLEANUP_06` closeout.
+2. Keep `crushr-info` operator-truth authority centralized in `build_info_truth_view` / `build_listing_truth_view` when adding new introspection fields.
 
 ## Near-term product-completeness track (not active yet)
 

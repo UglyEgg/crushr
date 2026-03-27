@@ -1,3 +1,9 @@
+CRUSHR_CLEANUP_06 complete (2026-03-27):
+- Added one explicit info-side truth authority in `crates/crushr/src/commands/info.rs` (`build_info_truth_view`) for preservation contract wording, metadata visibility/trust classification, and archive-state wording.
+- Added canonical list fallback/result classification helper (`build_listing_truth_view`) so degraded-vs-complete listing semantics are decided once and formatting no longer re-decides fallback meaning.
+- Rendering now consumes pre-classified truth rows/messages; branch-local profile/fallback reinterpretation was removed from presentation paths.
+- Validation in packet: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 CRUSHR_CLEANUP_05 complete (2026-03-27):
 - Decomposed `crates/crushr/src/commands/pack.rs` into explicit internal ownership layers (`discovery`, `planning`, `emission`) and routed top-level orchestration through those bounded internal interfaces.
 - Kept pack semantics unchanged: CLI behavior/help surface, archive format/output, preservation-profile behavior, and profiling/finalization flow remain as before.

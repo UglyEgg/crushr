@@ -102,7 +102,7 @@ Deliverables
 - [x] CRUSHR_CLEANUP_03 — deduplicate recover metadata-degraded routing with one canonical authority and one shared metadata-degraded manifest/entry assembly path.
 - [x] CRUSHR_CLEANUP_04 — unify strict/recover metadata restoration mechanics into one shared restoration core with explicit policy inputs for strict vs recover handling.
 - [x] CRUSHR_CLEANUP_05 — decompose pack command/module internals into explicit ownership layers for discovery, planning, emission, and orchestration boundaries without behavior drift.
-- [ ] CRUSHR_CLEANUP_06 — benchmark matrix/config authority unification.
+- [x] CRUSHR_CLEANUP_06 — info/introspection operator-truth authority centralization (profile/fallback/metadata/archive-state reporting).
 
 Exit criteria
 
