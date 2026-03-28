@@ -106,6 +106,7 @@ Deliverables
 - [x] CRUSHR_CLEANUP_07 — recover extract orchestration dead pre-analysis removal / authority clarification (no computed-and-discarded pre-pass).
 - [x] CRUSHR_CLEANUP_08 — restore selective discovery metadata capture through canonical profile-derived requirements without reintroducing discovery-owned omission policy.
 - [x] CRUSHR_CLEANUP_09 — physically decompose pack command into bounded files/modules (`pack.rs` orchestration + `pack/{discovery,planning,emission}.rs`) while preserving canonical profile/planning authority and behavior.
+- [x] CRUSHR_CLEANUP_10 — unify strict/recover shared extraction payload/materialization mechanics (entry-byte reads, block raw payload access, regular/sparse write helpers) behind one internal mechanism while preserving explicit policy boundaries.
 
 Exit criteria
 

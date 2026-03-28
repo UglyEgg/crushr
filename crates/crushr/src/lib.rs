@@ -21,6 +21,7 @@ pub mod about;
 pub mod cli_presentation;
 pub mod commands;
 mod extraction_path;
+mod extraction_payload_core;
 pub mod format;
 pub mod index_codec;
 mod recover_extract_impl;

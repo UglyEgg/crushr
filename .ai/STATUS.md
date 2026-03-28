@@ -7,8 +7,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_CLEANUP_09 complete** (pack command is physically decomposed into bounded file ownership units while preserving canonical profile/planning authority and behavior)
+Current Step: **CRUSHR_CLEANUP_10 complete** (shared extraction payload/materialization mechanics are centralized across strict and recover while strict-vs-recover policy boundaries remain explicit)
 
+
+
+Latest maintenance fix (2026-03-28):
+- **CRUSHR_CLEANUP_10 complete**: added shared extraction payload/materialization core (`crates/crushr/src/extraction_payload_core.rs`) for overlapping block-read/decompress and file/sparse write mechanics.
+- **CRUSHR_CLEANUP_10 complete**: strict and recover extraction now consume shared entry-byte read/write helpers (`read_entry_bytes`, `recover_partial_entry_bytes`, `write_entry_bytes`, `write_sparse_entry`) instead of maintaining duplicated local mechanics.
+- **CRUSHR_CLEANUP_10 complete**: strict-vs-recover policy ownership remains explicit in mode orchestration (`write_entry` strict canonical flow, recover `route_metadata_degraded_entry` + manifest/trust routing).
+- **CRUSHR_CLEANUP_10 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
 
 
 Latest maintenance fix (2026-03-28):

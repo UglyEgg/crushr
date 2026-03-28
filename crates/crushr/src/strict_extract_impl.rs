@@ -2,6 +2,9 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::extraction_path::resolve_confined_path;
+use crate::extraction_payload_core::{
+    read_entry_bytes, validate_entry_bytes, write_entry_bytes, write_sparse_entry,
+};
 use crate::format::{Entry, EntryKind, PreservationProfile};
 use crate::index_codec::decode_index;
 use crate::restoration_core::{
@@ -15,10 +18,8 @@ use crushr_core::{
     open::open_archive_v1,
     verify::{scan_blocks_v1, verify_block_payloads_v1},
 };
-use crushr_format::blk3::read_blk3_header;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
-use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 struct FileReader {
@@ -116,7 +117,7 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
         }
 
         if opts.verify_only {
-            validate_entry_bytes_strict(&reader, &entry, &blocks)?;
+            validate_entry_bytes(&reader, &entry, &blocks)?;
         } else {
             let destination = resolve_confined_path(&opts.out_dir, &entry.path)?;
             write_entry(
@@ -164,127 +165,6 @@ pub fn run_strict_extract(opts: &StrictExtractOptions) -> Result<StrictExtractRu
         outcome_kind,
         report,
     })
-}
-
-fn read_entry_bytes_strict(
-    reader: &FileReader,
-    entry: &Entry,
-    blocks: &[crushr_core::verify::BlockSpanV1],
-) -> Result<Vec<u8>> {
-    let mut out = vec![0u8; entry.size as usize];
-    let mut write_cursor = 0u64;
-
-    for extent in &entry.extents {
-        let block = blocks
-            .get(extent.block_id as usize)
-            .with_context(|| format!("extent references missing block {}", extent.block_id))?;
-
-        let raw = block_raw_payload(reader, block)?;
-
-        let begin = extent.offset as usize;
-        let end = begin
-            .checked_add(extent.len as usize)
-            .context("extent length overflow")?;
-        if end > raw.len() {
-            bail!(
-                "extent out of range for block {} while reading {}",
-                extent.block_id,
-                entry.path
-            );
-        }
-
-        let target_off = if entry.sparse {
-            extent.logical_offset as usize
-        } else {
-            write_cursor as usize
-        };
-        let target_end = target_off
-            .checked_add(extent.len as usize)
-            .context("target extent overflow")?;
-        if target_end > out.len() {
-            bail!("entry size mismatch while reading {}", entry.path);
-        }
-        out[target_off..target_end].copy_from_slice(&raw[begin..end]);
-        write_cursor = write_cursor
-            .checked_add(extent.len)
-            .context("entry size overflow while reading")?;
-    }
-
-    if !entry.sparse && write_cursor != entry.size {
-        bail!("entry size mismatch while reading {}", entry.path);
-    }
-
-    Ok(out)
-}
-
-fn validate_entry_bytes_strict(
-    reader: &FileReader,
-    entry: &Entry,
-    blocks: &[crushr_core::verify::BlockSpanV1],
-) -> Result<()> {
-    let mut total = 0u64;
-    let mut max_end = 0u64;
-
-    for extent in &entry.extents {
-        let block = blocks
-            .get(extent.block_id as usize)
-            .with_context(|| format!("extent references missing block {}", extent.block_id))?;
-
-        let raw = block_raw_payload(reader, block)?;
-        let begin = extent.offset as usize;
-        let end = begin
-            .checked_add(extent.len as usize)
-            .context("extent length overflow")?;
-        if end > raw.len() {
-            bail!(
-                "extent out of range for block {} while reading {}",
-                extent.block_id,
-                entry.path
-            );
-        }
-        total = total
-            .checked_add(extent.len)
-            .context("entry size overflow while validating extents")?;
-        let logical_end = extent
-            .logical_offset
-            .checked_add(extent.len)
-            .context("logical extent overflow while validating extents")?;
-        max_end = max_end.max(logical_end);
-    }
-
-    if (!entry.sparse && total != entry.size) || (entry.sparse && max_end > entry.size) {
-        bail!("entry size mismatch while reading {}", entry.path);
-    }
-
-    Ok(())
-}
-
-fn block_raw_payload(
-    reader: &FileReader,
-    block: &crushr_core::verify::BlockSpanV1,
-) -> Result<Vec<u8>> {
-    let header_len = (block.payload_offset - block.header_offset) as usize;
-    let mut header_bytes = vec![0u8; header_len];
-    read_exact_at(reader, block.header_offset, &mut header_bytes)?;
-    let header = read_blk3_header(Cursor::new(&header_bytes)).context("parse BLK3 header")?;
-
-    if header.codec != 1 {
-        bail!(
-            "unsupported BLK3 codec {} for block {}",
-            header.codec,
-            block.block_id
-        );
-    }
-
-    let mut payload = vec![0u8; block.comp_len as usize];
-    read_exact_at(reader, block.payload_offset, &mut payload)?;
-
-    let raw = zstd::decode_all(Cursor::new(payload)).context("decompress BLK3 payload")?;
-    if raw.len() as u64 != header.raw_len {
-        bail!("raw length mismatch for block {}", block.block_id);
-    }
-
-    Ok(raw)
 }
 
 fn write_entry(
@@ -347,23 +227,16 @@ fn write_entry(
                     if entry.sparse {
                         write_sparse_entry(reader, entry, path, blocks, overwrite)?;
                     } else {
-                        let bytes = read_entry_bytes_strict(reader, entry, blocks)?;
-                        if path.exists() && !overwrite {
-                            bail!("destination exists (use --overwrite): {}", path.display());
-                        }
-                        fs::write(path, &bytes)
-                            .with_context(|| format!("write {}", path.display()))?;
+                        let bytes = read_entry_bytes(reader, entry, blocks)?;
+                        write_entry_bytes(path, &bytes, overwrite)?;
                     }
                     hardlink_roots.insert(group_id, path.to_path_buf());
                 }
             } else if entry.sparse {
                 write_sparse_entry(reader, entry, path, blocks, overwrite)?;
             } else {
-                let bytes = read_entry_bytes_strict(reader, entry, blocks)?;
-                if path.exists() && !overwrite {
-                    bail!("destination exists (use --overwrite): {}", path.display());
-                }
-                fs::write(path, &bytes).with_context(|| format!("write {}", path.display()))?;
+                let bytes = read_entry_bytes(reader, entry, blocks)?;
+                write_entry_bytes(path, &bytes, overwrite)?;
             }
             restore_entry_metadata(path, entry, preservation_profile)
         }
@@ -393,49 +266,4 @@ fn write_entry(
             Ok(failed)
         }
     }
-}
-
-fn write_sparse_entry(
-    reader: &FileReader,
-    entry: &Entry,
-    path: &Path,
-    blocks: &[crushr_core::verify::BlockSpanV1],
-    overwrite: bool,
-) -> Result<()> {
-    use std::os::unix::fs::FileExt;
-    if path.exists() && !overwrite {
-        bail!("destination exists (use --overwrite): {}", path.display());
-    }
-    let out = fs::File::create(path).with_context(|| format!("create {}", path.display()))?;
-    out.set_len(entry.size)
-        .with_context(|| format!("set_len {}", path.display()))?;
-    for extent in &entry.extents {
-        let block = blocks
-            .get(extent.block_id as usize)
-            .with_context(|| format!("extent references missing block {}", extent.block_id))?;
-        let raw = block_raw_payload(reader, block)?;
-        let begin = extent.offset as usize;
-        let end = begin
-            .checked_add(extent.len as usize)
-            .context("extent length overflow")?;
-        if end > raw.len() {
-            bail!("extent out of range for sparse write {}", entry.path);
-        }
-        out.write_at(&raw[begin..end], extent.logical_offset)
-            .with_context(|| format!("write sparse extent {}", path.display()))?;
-    }
-    Ok(())
-}
-
-fn read_exact_at<R: ReadAt>(reader: &R, mut offset: u64, mut dst: &mut [u8]) -> Result<()> {
-    while !dst.is_empty() {
-        let n = reader.read_at(offset, dst)?;
-        if n == 0 {
-            bail!("unexpected EOF while reading archive");
-        }
-        let (_, rest) = dst.split_at_mut(n);
-        dst = rest;
-        offset += n as u64;
-    }
-    Ok(())
 }
