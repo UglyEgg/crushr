@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-28 — CRUSHR_PHASE16_01
+- Normalized benchmark/dataset assumptions into a single shared module (`scripts/benchmark/contract.py`) used by both dataset generation and benchmark execution.
+- Hardened dataset determinism: `generate_datasets.py` now requires explicit xattr mode (`--xattrs off|on`, default `off`) and emits stable `dataset_identity` in `dataset_manifest.json`.
+- Added canonical benchmark entrypoint `scripts/benchmark/harness.py` with `datasets`, `run`, and `full` subcommands to remove command-surface drift.
+- Extended benchmark result schema/output to include embedded dataset manifest + centralized assumptions metadata (`level`, comparator set, command-set fingerprint).
+- Updated benchmark contract docs with canonical commands, deterministic assumptions, and normalized result-envelope semantics.
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `cargo build --release -p crushr`; `python3 scripts/benchmark/harness.py datasets --clean --output .bench/datasets --xattrs off`; `python3 scripts/benchmark/harness.py run --datasets .bench/datasets --crushr-bin target/release/crushr --output .bench/results/benchmark_results.json --workdir .bench/work` (fails in this environment because `zstd` is unavailable in PATH).
+
 ## 2026-03-28 — CRUSHR_CLEANUP_11
 - Reconciled continuity/control documents to current post-cleanup code truth: `.ai/STATUS.md` and `.ai/HANDOFF.md` now present explicit current/open/next state without stale follow-on guidance.
 - Marked Phase 15 hardening closeout as complete in `.ai/PHASE_PLAN.md` and removed outdated pending wording for `CRUSHR-UI-01`.

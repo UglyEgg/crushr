@@ -7,6 +7,8 @@
     "schema_version",
     "benchmark_started_unix",
     "environment",
+    "dataset_manifest",
+    "assumptions",
     "runs"
   ],
   "properties": {
@@ -148,6 +150,135 @@
         },
         "additionalProperties": false
       }
+    },
+    "dataset_manifest": {
+      "type": "object",
+      "required": [
+        "manifest_version",
+        "generator",
+        "seed",
+        "fixed_mtime_epoch",
+        "xattrs_mode",
+        "datasets",
+        "dataset_identity"
+      ],
+      "properties": {
+        "manifest_version": {
+          "const": "crushr-benchmark-dataset-manifest.v1"
+        },
+        "generator": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "fixed_mtime_epoch": {
+          "type": "integer"
+        },
+        "xattrs_mode": {
+          "enum": [
+            "off",
+            "on"
+          ]
+        },
+        "dataset_identity": {
+          "type": "string"
+        },
+        "datasets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "file_count",
+              "directory_count",
+              "symlink_count",
+              "total_payload_bytes",
+              "xattr_files"
+            ],
+            "properties": {
+              "name": {
+                "enum": [
+                  "small_mixed_tree",
+                  "medium_realistic_tree",
+                  "large_stress_tree"
+                ]
+              },
+              "file_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "directory_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "symlink_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_payload_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "xattr_files": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "assumptions": {
+      "type": "object",
+      "required": [
+        "level",
+        "command_set_id",
+        "comparators"
+      ],
+      "properties": {
+        "level": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "command_set_id": {
+          "type": "string"
+        },
+        "comparators": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "tool",
+              "profile"
+            ],
+            "properties": {
+              "tool": {
+                "enum": [
+                  "tar_zstd",
+                  "tar_xz",
+                  "crushr"
+                ]
+              },
+              "profile": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  null,
+                  "full",
+                  "basic"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

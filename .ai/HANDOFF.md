@@ -21,9 +21,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 ## Where the repository stands
 
-- Cleanup/hardening arc after hostile review is complete through `CRUSHR_CLEANUP_10`.
-- `CRUSHR_CLEANUP_11` reconciled continuity documents with landed code truth and removed stale/contradictory control-surface guidance.
-- There is **no active runtime implementation packet in progress** in this handoff.
+- Phase 16 benchmark harness normalization packet `CRUSHR_PHASE16_01` is complete.
+- Benchmark command surface is now canonically `python3 scripts/benchmark/harness.py <datasets|run|full>`.
+- Dataset generation defaults to `--xattrs off` and emits stable `dataset_identity` in `dataset_manifest.json`.
+- Full benchmark matrix execution still depends on host comparator tools (`tar`, `xz`, `zstd`).
 
 ## Code assumptions you can rely on
 
@@ -32,6 +33,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Strict/recover restoration and payload/materialization mechanics are shared where truly common.
 - Strict vs recover trust-policy boundaries remain explicit and must not be collapsed.
 - Info/listing truth/report wording is centrally classified before rendering.
+- Benchmark assumptions are centralized in `scripts/benchmark/contract.py` and embedded into run output (`assumptions` + `dataset_manifest`).
 
 ## Open debt to keep explicit
 
