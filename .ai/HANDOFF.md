@@ -21,8 +21,8 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 ## Where the repository stands
 
-- Phase 16 benchmark harness normalization packet `CRUSHR_PHASE16_01` is complete.
-- Benchmark command surface is now canonically `python3 scripts/benchmark/harness.py <datasets|run|full>`.
+- Phase 16 benchmark packets `CRUSHR_PHASE16_01` and `CRUSHR_PHASE16_02` are complete.
+- Benchmark command surface is canonically `python3 scripts/benchmark/harness.py <datasets|run|full>` with dictionary experiment flags on `run/full`.
 - Dataset generation defaults to `--xattrs off` and emits stable `dataset_identity` in `dataset_manifest.json`.
 - Full benchmark matrix execution still depends on host comparator tools (`tar`, `xz`, `zstd`).
 
@@ -33,7 +33,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Strict/recover restoration and payload/materialization mechanics are shared where truly common.
 - Strict vs recover trust-policy boundaries remain explicit and must not be collapsed.
 - Info/listing truth/report wording is centrally classified before rendering.
-- Benchmark assumptions are centralized in `scripts/benchmark/contract.py` and embedded into run output (`assumptions` + `dataset_manifest`).
+- Benchmark assumptions + dictionary experiment model are centralized in `scripts/benchmark/contract.py` and embedded into run output (`assumptions` + `dataset_manifest` + `dictionary_artifacts` + per-run `dictionary`).
 
 ## Open debt to keep explicit
 

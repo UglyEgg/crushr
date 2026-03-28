@@ -137,6 +137,7 @@ Key work
 Deliverables
 
 - [x] CRUSHR_PHASE16_01 — benchmark/profiling harness normalization: deterministic dataset identity controls, canonical harness entrypoint, centralized assumptions, and schema-backed metadata embedding.
+- [x] CRUSHR_PHASE16_02 — controlled dictionary experiment path: deterministic dictionary training/cohort model, explicit dictionary identity/provenance metadata, schema-distinct dictionary-assisted runs, and benchmark-only boundary documentation.
 - benchmark harness implementation
 - raw benchmark records
 - normalized benchmark outputs
