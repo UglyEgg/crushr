@@ -1,3 +1,8 @@
+CRUSHR_CLEANUP_08 complete (2026-03-28):
+- Restored selective metadata capture in pack discovery via canonical profile-derived requirements (`metadata_capture_requirements_for_profile`) and threaded requirements into discovery collection.
+- Discovery remains policy-free for inclusion/omission/warnings; `plan_pack_profile` remains canonical preservation authority and warning ownership remains centralized.
+- Added explicit pack unit test coverage for profile→capture requirements mapping and validated full fmt/clippy/workspace tests.
+
 CRUSHR_CLEANUP_07 complete (2026-03-27):
 - Removed recover-mode pre-analysis call in `crates/crushr/src/commands/extract.rs` that computed recovery analysis and discarded all fields.
 - Recover extraction orchestration now has one authoritative path: `run_recover_extract_with_progress`.

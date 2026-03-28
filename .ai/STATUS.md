@@ -7,7 +7,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_CLEANUP_07 complete** (recover-mode extract orchestration no longer performs computed-and-discarded pre-analysis; recover execution/reporting now runs as one authoritative path)
+Current Step: **CRUSHR_CLEANUP_08 complete** (pack discovery metadata capture is selectively restored via canonical profile-derived requirements; discovery remains policy-free for inclusion/omission decisions)
+
+
+
+Latest maintenance fix (2026-03-28):
+- **CRUSHR_CLEANUP_08 complete**: restored selective discovery-time metadata capture through an explicit canonical requirements model derived from preservation-profile planning authority (`metadata_capture_requirements_for_profile`).
+- **CRUSHR_CLEANUP_08 complete**: discovery now captures ownership names, xattrs/security metadata, and sparse layout only when required by canonical profile requirements; inclusion/omission policy remains in `plan_pack_profile`.
+- **CRUSHR_CLEANUP_08 complete**: added pack unit coverage proving profile-to-capture requirement mapping is explicit and stable.
+- **CRUSHR_CLEANUP_08 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
 
 
 
@@ -451,8 +459,8 @@ Recovery should degrade in reverse order:
 
 ## Next actions
 
-1. Execute next planner packet after `CRUSHR_CLEANUP_07` closeout.
-2. Keep recover orchestration authoritative in one execution path (no computed-and-discarded pre-passes in `extract` recover mode).
+1. Execute next planner packet after `CRUSHR_CLEANUP_08` closeout.
+2. Keep pack profile authority canonical (`metadata_capture_requirements_for_profile` + `plan_pack_profile`) and avoid reintroducing discovery-owned omission policy.
 
 ## Near-term product-completeness track (not active yet)
 

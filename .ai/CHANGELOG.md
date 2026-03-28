@@ -5,6 +5,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-28 — CRUSHR_CLEANUP_08
+- Restored selective pack discovery metadata capture through canonical profile-derived requirements in `crates/crushr/src/commands/pack.rs` (`metadata_capture_requirements_for_profile` + requirements-fed `collect_files`).
+- Kept canonical planning ownership intact: discovery no longer decides omissions/warnings, and `plan_pack_profile` remains the single authority for inclusion/omission semantics.
+- Added pack unit coverage proving profile-to-capture requirements are explicit (`metadata_capture_requirements_follow_preservation_profile`).
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 ## 2026-03-27 — CRUSHR_CLEANUP_07
 - Removed recover-mode pre-analysis dead path in `crates/crushr/src/commands/extract.rs`; recover orchestration no longer computes and discards a pre-analysis result before execution.
 - Removed now-unused recover pre-analysis wrapper from `crates/crushr/src/recover_extract_impl.rs`.

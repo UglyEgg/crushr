@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-28 — CRUSHR_CLEANUP_08 canonical metadata-capture requirements restoration
+
+- Decision:
+  - Restore selective discovery metadata capture using an explicit profile-derived requirements model (`metadata_capture_requirements_for_profile`) as the single source of truth for capture scope.
+  - Keep discovery policy-free for inclusion/omission/warning semantics; discovery consumes requirements but does not decide preservation outcomes.
+  - Keep canonical profile planning authority in `plan_pack_profile`; omission decisions and warning emission remain centralized there.
+- Alternatives considered:
+  1. Keep eager capture for all profiles and only adjust docs.
+  2. Reintroduce profile omission policy directly into discovery capture branches.
+- Rationale:
+  - Packet requires restoring performance/correctness-oriented selective capture while preserving CRUSHR_CLEANUP_02 ownership boundaries.
+  - Explicit requirements model keeps authority auditable and avoids split policy ownership.
+- Blast radius:
+  - `crates/crushr/src/commands/pack.rs` discovery/planning internals and pack unit tests only.
+  - No archive format, CLI contract, extract/recover behavior, or info behavior changes.
+
+
 ## 2026-03-27 — CRUSHR_CLEANUP_07 recover pre-analysis dead-path removal
 
 - Decision:
