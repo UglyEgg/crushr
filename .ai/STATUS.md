@@ -48,3 +48,6 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 - Full packet-by-packet chronology remains in `.ai/CHANGELOG.md`.
 - Architectural/policy decisions remain in `.ai/DECISION_LOG.md`.
+
+
+Phase 16 operating under integrity-first compression constraint (see DECISION_LOG: CRUSHR_PHASE16_IDENTITY_GUARDRAIL)

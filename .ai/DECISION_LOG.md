@@ -1519,3 +1519,29 @@ Blast radius:
   - Adds build artifacts/tooling files (`Containerfile.musl`, `.cargo/config.toml`, build script helper).
   - Changes compile-time metadata key names consumed by `crushr about` build display fields.
   - No archive format or extraction/salvage behavior changes.
+
+
+# 🔒 LOCKED DECISION — CRUSHR_PHASE16_IDENTITY_GUARDRAIL
+
+## Title
+Integrity-first compression constraint and anti-coupling rule
+
+## Decision
+crushr prioritizes integrity, diagnosability, and bounded failure radius over compression gains.
+
+All compression features must preserve:
+- explicit dependency truth
+- bounded blast radius
+- fail-closed behavior
+- clear introspection
+
+Compression gains do NOT justify:
+- hidden dependencies
+- correlated failure
+- ambiguous decode behavior
+
+## Enforcement
+Reject any feature that increases dependency coupling or reduces failure transparency.
+
+## Status
+LOCKED

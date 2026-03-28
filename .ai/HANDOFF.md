@@ -53,3 +53,6 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Detailed packet history: `.ai/CHANGELOG.md`
 - Decision rationale and blast radius: `.ai/DECISION_LOG.md`
 - Hostile review findings/report: `.ai/COMPLETION_NOTES_CRUSHR_HOSTILE_REVIEW_01.md`
+
+
+Guardrail: Do not introduce compression features that increase dependency coupling or reduce failure transparency.
