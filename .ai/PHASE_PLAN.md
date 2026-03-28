@@ -136,6 +136,7 @@ Key work
 
 Deliverables
 
+- [x] CRUSHR_PHASE16_01 — benchmark/profiling harness normalization: deterministic dataset identity controls, canonical harness entrypoint, centralized assumptions, and schema-backed metadata embedding.
 - benchmark harness implementation
 - raw benchmark records
 - normalized benchmark outputs

@@ -13,8 +13,7 @@ import random
 import shutil
 from dataclasses import asdict, dataclass
 
-FIXED_MTIME = 1_700_000_000
-SEED = 0xC2A5_2026
+from contract import DATASET_NAMES, FIXED_MTIME, MANIFEST_VERSION, SEED
 
 
 @dataclass
@@ -45,7 +44,9 @@ def write_file(path: pathlib.Path, payload: bytes) -> None:
     os.utime(path, (FIXED_MTIME, FIXED_MTIME), follow_symlinks=False)
 
 
-def maybe_set_xattr(path: pathlib.Path, key: bytes, value: bytes) -> bool:
+def maybe_set_xattr(path: pathlib.Path, key: bytes, value: bytes, enabled: bool) -> bool:
+    if not enabled:
+        return False
     if not hasattr(os, "setxattr"):
         return False
     try:
@@ -55,7 +56,7 @@ def maybe_set_xattr(path: pathlib.Path, key: bytes, value: bytes) -> bool:
         return False
 
 
-def create_small_mixed_tree(root: pathlib.Path) -> DatasetSummary:
+def create_small_mixed_tree(root: pathlib.Path, *, enable_xattrs: bool) -> DatasetSummary:
     dataset_root = root / "small_mixed_tree"
     dataset_root.mkdir(parents=True, exist_ok=True)
     rng = random.Random(SEED + 1)
@@ -80,11 +81,13 @@ def create_small_mixed_tree(root: pathlib.Path) -> DatasetSummary:
             file_count += 1
             total_payload_bytes += size
 
-            if rng.random() < 0.08:
-                if maybe_set_xattr(
-                    file_path, b"user.crushr.benchmark", f"small-{bucket}-{idx}".encode("utf-8")
-                ):
-                    xattr_files += 1
+            if rng.random() < 0.08 and maybe_set_xattr(
+                file_path,
+                b"user.crushr.benchmark",
+                f"small-{bucket}-{idx}".encode("utf-8"),
+                enable_xattrs,
+            ):
+                xattr_files += 1
 
     for idx in range(24):
         empty_dir = dataset_root / "empty_dirs" / f"empty_{idx:02d}"
@@ -115,7 +118,7 @@ def create_small_mixed_tree(root: pathlib.Path) -> DatasetSummary:
     )
 
 
-def create_medium_realistic_tree(root: pathlib.Path) -> DatasetSummary:
+def create_medium_realistic_tree(root: pathlib.Path, *, enable_xattrs: bool) -> DatasetSummary:
     dataset_root = root / "medium_realistic_tree"
     dataset_root.mkdir(parents=True, exist_ok=True)
     rng = random.Random(SEED + 2)
@@ -146,13 +149,13 @@ def create_medium_realistic_tree(root: pathlib.Path) -> DatasetSummary:
                 write_file(file_path, payload)
                 file_count += 1
                 total_payload_bytes += size
-                if rng.random() < 0.02:
-                    if maybe_set_xattr(
-                        file_path,
-                        b"user.crushr.benchmark",
-                        f"medium-{project}-{section}-{idx}".encode("utf-8"),
-                    ):
-                        xattr_files += 1
+                if rng.random() < 0.02 and maybe_set_xattr(
+                    file_path,
+                    b"user.crushr.benchmark",
+                    f"medium-{project}-{section}-{idx}".encode("utf-8"),
+                    enable_xattrs,
+                ):
+                    xattr_files += 1
 
         canonical_link = project_root / "src" / "src_0000.txt"
         link_path = project_root / "README.link"
@@ -171,7 +174,7 @@ def create_medium_realistic_tree(root: pathlib.Path) -> DatasetSummary:
     )
 
 
-def create_large_stress_tree(root: pathlib.Path) -> DatasetSummary:
+def create_large_stress_tree(root: pathlib.Path, *, enable_xattrs: bool) -> DatasetSummary:
     dataset_root = root / "large_stress_tree"
     dataset_root.mkdir(parents=True, exist_ok=True)
     rng = random.Random(SEED + 3)
@@ -203,11 +206,13 @@ def create_large_stress_tree(root: pathlib.Path) -> DatasetSummary:
             write_file(file_path, payload)
             file_count += 1
             total_payload_bytes += size
-            if rng.random() < 0.005:
-                if maybe_set_xattr(
-                    file_path, b"user.crushr.benchmark", f"large-{shard}-{idx}".encode("utf-8")
-                ):
-                    xattr_files += 1
+            if rng.random() < 0.005 and maybe_set_xattr(
+                file_path,
+                b"user.crushr.benchmark",
+                f"large-{shard}-{idx}".encode("utf-8"),
+                enable_xattrs,
+            ):
+                xattr_files += 1
 
     links_root = dataset_root / "links"
     links_root.mkdir(parents=True, exist_ok=True)
@@ -246,7 +251,36 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Remove existing output directory before generation.",
     )
+    parser.add_argument(
+        "--xattrs",
+        choices=("off", "on"),
+        default="off",
+        help="Whether to set benchmark xattrs. Default is off for host-independent reproducibility.",
+    )
     return parser.parse_args()
+
+
+def dataset_identity_digest(output_root: pathlib.Path) -> str:
+    digest = hashlib.blake2b(digest_size=32)
+    for path in sorted(output_root.rglob("*")):
+        rel = path.relative_to(output_root).as_posix()
+        if rel == "dataset_manifest.json":
+            continue
+        if path.is_symlink():
+            digest.update(b"L")
+            digest.update(rel.encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(os.readlink(path).encode("utf-8"))
+        elif path.is_file():
+            digest.update(b"F")
+            digest.update(rel.encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(path.read_bytes())
+        elif path.is_dir():
+            digest.update(b"D")
+            digest.update(rel.encode("utf-8"))
+            digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def main() -> None:
@@ -257,17 +291,26 @@ def main() -> None:
         shutil.rmtree(output_root)
     output_root.mkdir(parents=True, exist_ok=True)
 
+    enable_xattrs = args.xattrs == "on"
+
     summaries = [
-        create_small_mixed_tree(output_root),
-        create_medium_realistic_tree(output_root),
-        create_large_stress_tree(output_root),
+        create_small_mixed_tree(output_root, enable_xattrs=enable_xattrs),
+        create_medium_realistic_tree(output_root, enable_xattrs=enable_xattrs),
+        create_large_stress_tree(output_root, enable_xattrs=enable_xattrs),
     ]
 
+    observed_names = tuple(summary.name for summary in summaries)
+    if observed_names != DATASET_NAMES:
+        raise RuntimeError(f"dataset mismatch: expected {DATASET_NAMES}, observed {observed_names}")
+
     manifest = {
+        "manifest_version": MANIFEST_VERSION,
         "generator": "scripts/benchmark/generate_datasets.py",
         "seed": SEED,
         "fixed_mtime_epoch": FIXED_MTIME,
+        "xattrs_mode": args.xattrs,
         "datasets": [asdict(summary) for summary in summaries],
+        "dataset_identity": dataset_identity_digest(output_root),
     }
     manifest_path = output_root / "dataset_manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")

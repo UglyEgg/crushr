@@ -5,6 +5,26 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-28 — CRUSHR_PHASE16_01 benchmark harness normalization lock
+
+- Decision:
+  - Centralize benchmark constants (dataset names, comparator set, compression level, schema identifiers) in one shared module `scripts/benchmark/contract.py` consumed by generation and run scripts.
+  - Make dataset xattr behavior explicit via `--xattrs off|on` (default `off`) and include deterministic `dataset_identity` in manifest to lock dataset identity semantics.
+  - Promote one canonical command surface `scripts/benchmark/harness.py` (`datasets`, `run`, `full`) and keep legacy script entrypoints as implementation details.
+  - Expand benchmark result envelope/schema with embedded `dataset_manifest` and `assumptions` metadata so runs are comparable without external context.
+- Alternatives considered:
+  1. Keep separate scripts/docs with duplicated constants and rely on convention.
+  2. Add an external benchmark framework/DSL for orchestration.
+- Rationale:
+  - Packet objective is measurement-discipline hardening, where drift between dataset generation, execution assumptions, and output interpretation is a primary risk.
+  - Lightweight centralization preserves existing behavior while making dataset identity and run assumptions explicit and auditable.
+- Blast radius:
+  - `scripts/benchmark/{contract.py,generate_datasets.py,run_benchmarks.py,harness.py}`
+  - `schemas/crushr-benchmark-run.v1.schema.json`
+  - `docs/reference/benchmarking.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+  - No pack/extract/info runtime semantics, archive format, or compression algorithm changes.
+
 ## 2026-03-28 — CRUSHR_CLEANUP_11 continuity/control-doc truth reconciliation
 
 - Decision:

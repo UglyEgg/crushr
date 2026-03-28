@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import pathlib
@@ -14,6 +15,8 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
+
+from contract import COMPARATORS, DATASET_NAMES, DEFAULT_LEVEL, MANIFEST_VERSION, SCHEMA_VERSION
 
 
 @dataclass
@@ -116,20 +119,47 @@ def collect_environment() -> dict[str, str]:
     }
 
 
+def command_fingerprint() -> str:
+    data = {
+        "comparators": [
+            {"tool": comparator.tool, "profile": comparator.profile, "level": DEFAULT_LEVEL}
+            for comparator in COMPARATORS
+        ],
+        "datasets": DATASET_NAMES,
+    }
+    encoded = json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.blake2b(encoded, digest_size=16).hexdigest()
+
+
+def read_dataset_manifest(datasets_root: pathlib.Path) -> dict[str, object]:
+    manifest_path = datasets_root / "dataset_manifest.json"
+    if not manifest_path.exists():
+        raise SystemExit(f"dataset manifest missing: {manifest_path}")
+    raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if raw.get("manifest_version") != MANIFEST_VERSION:
+        raise SystemExit(
+            f"unsupported manifest version: {raw.get('manifest_version')}; expected {MANIFEST_VERSION}"
+        )
+    names = tuple(dataset["name"] for dataset in raw.get("datasets", []))
+    if names != DATASET_NAMES:
+        raise SystemExit(f"dataset manifest names mismatch: expected {DATASET_NAMES}, got {names}")
+    return raw
+
+
 def main() -> None:
     args = parse_args()
     datasets_root = pathlib.Path(args.datasets).resolve()
     output_path = pathlib.Path(args.output).resolve()
     work_root = pathlib.Path(args.workdir).resolve()
     crushr_bin = pathlib.Path(args.crushr_bin).resolve()
+    dataset_manifest = read_dataset_manifest(datasets_root)
 
     for tool in ("tar", "zstd", "xz"):
         require_tool(tool)
     if not crushr_bin.exists():
         raise SystemExit(f"crushr binary not found: {crushr_bin}")
 
-    dataset_names = ["small_mixed_tree", "medium_realistic_tree", "large_stress_tree"]
-    for name in dataset_names:
+    for name in DATASET_NAMES:
         if not (datasets_root / name).is_dir():
             raise SystemExit(f"dataset missing: {datasets_root / name}")
 
@@ -141,16 +171,12 @@ def main() -> None:
     run_records: list[dict[str, object]] = []
     benchmark_started_at = int(time.time())
 
-    for dataset in dataset_names:
+    for dataset in DATASET_NAMES:
         input_path = datasets_root / dataset
         input_path_rel = os.path.relpath(input_path, start=datasets_root.parent)
-        for variant in (
-            ("tar_zstd", None),
-            ("tar_xz", None),
-            ("crushr", "full"),
-            ("crushr", "basic"),
-        ):
-            tool_name, profile = variant
+        for comparator in COMPARATORS:
+            tool_name = comparator.tool
+            profile = comparator.profile
             variant_id = f"{tool_name}_{profile or 'na'}"
             archive_dir = work_root / "archives" / dataset
             extract_dir = work_root / "extracted" / dataset / variant_id
@@ -168,7 +194,7 @@ def main() -> None:
                     "--numeric-owner",
                     "--pax-option=delete=atime,delete=ctime",
                     "-I",
-                    "zstd -3",
+                    f"zstd -{DEFAULT_LEVEL}",
                     "-cf",
                     str(archive_path),
                     input_path_rel,
@@ -185,7 +211,7 @@ def main() -> None:
                     "--numeric-owner",
                     "--pax-option=delete=atime,delete=ctime",
                     "-I",
-                    "xz -3",
+                    f"xz -{DEFAULT_LEVEL}",
                     "-cf",
                     str(archive_path),
                     input_path_rel,
@@ -200,7 +226,7 @@ def main() -> None:
                     "-o",
                     str(archive_path),
                     "--level",
-                    "3",
+                    str(DEFAULT_LEVEL),
                     "--preservation",
                     str(profile),
                     "--silent",
@@ -240,9 +266,18 @@ def main() -> None:
             )
 
     report = {
-        "schema_version": "crushr-benchmark-run.v1",
+        "schema_version": SCHEMA_VERSION,
         "benchmark_started_unix": benchmark_started_at,
         "environment": collect_environment(),
+        "dataset_manifest": dataset_manifest,
+        "assumptions": {
+            "level": DEFAULT_LEVEL,
+            "command_set_id": command_fingerprint(),
+            "comparators": [
+                {"tool": comparator.tool, "profile": comparator.profile}
+                for comparator in COMPARATORS
+            ],
+        },
         "runs": run_records,
     }
     output_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
