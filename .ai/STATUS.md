@@ -51,3 +51,6 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 
 Phase 16 operating under integrity-first compression constraint (see DECISION_LOG: CRUSHR_PHASE16_IDENTITY_GUARDRAIL)
+
+
+Phase 16 dictionary experiments remain benchmark-only; runtime/archive dictionary dependency is out of scope unless future evidence clears the locked evaluation gate.

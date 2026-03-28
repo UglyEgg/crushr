@@ -1564,3 +1564,81 @@ Reject any feature that increases dependency coupling or reduces failure transpa
 
 ## Status
 LOCKED
+
+
+
+# 🔒 LOCKED EVALUATION RUBRIC — CRUSHR_PHASE16_DICTIONARY_EXPERIMENT_GATE
+
+## Title
+Dictionary experiment pass/fail rubric
+
+## Purpose
+Define the criteria for evaluating dictionary-based compression experiments in Phase 16 so decisions are based on product fit, not isolated compression wins.
+
+## Core rule
+A dictionary experiment does not pass merely because it improves compression ratio.
+
+For crushr, a dictionary strategy is only viable if it demonstrates acceptable behavior across both:
+- compression benefit
+- failure/dependency cost
+
+If dependency cost is too high, the result is a research finding, not a product feature.
+
+## Required evaluation axes
+
+### 1. Compression benefit
+Measure at minimum:
+- archive size reduction vs baseline zstd
+- compression speed impact
+- decompression speed impact
+- consistency across representative corpus classes
+
+### 2. Dependency explicitness
+Dictionary experiments must record and expose:
+- dictionary identity
+- dictionary content hash
+- training provenance
+- dependency scope/cohort
+- which runs depend on which dictionary
+
+### 3. Blast radius under failure
+Primary gate:
+- how many extents/files/runs become undecodable if dictionary material is missing
+- whether failure remains local or becomes correlated
+- whether unaffected data remains independently usable
+- whether the break is diagnosable immediately
+
+### 4. Truthfulness of degradation
+If dictionary material is missing, wrong, or corrupt:
+- decode refusal must be explicit
+- dependency failure must be diagnosable
+- no silent fallback may masquerade as equivalent truth
+
+### 5. Operational complexity cost
+Measure:
+- implementation complexity
+- test matrix growth
+- documentation burden
+- introspection/recovery complexity
+- maintenance overhead
+
+## Pass / fail decision rule
+A dictionary strategy is a candidate for future runtime/archive design only if all of the following are true:
+
+1. Compression gains are meaningful across representative corpus behavior.
+2. Dictionary identity and provenance are explicit and stable.
+3. Failure blast radius is tightly bounded.
+4. Missing/corrupt dictionary behavior remains fail-closed and obvious.
+5. Operational complexity is justified by the gains.
+6. The result strengthens or at least preserves crushr’s integrity-first identity.
+
+If any of 2, 3, 4, or 6 fail:
+- reject for product use
+- may still be recorded as a research result
+
+## Current Phase 16 result
+Initial per-dataset zstd dictionary experiments did not produce meaningful gains on the representative corpus and do not justify added dependency/failure coupling. Runtime/archive dictionary support remains out of scope unless future evidence materially changes this conclusion.
+
+## Status
+LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit decision.
+

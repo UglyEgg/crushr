@@ -56,3 +56,6 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 
 Guardrail: Do not introduce compression features that increase dependency coupling or reduce failure transparency.
+
+
+Guardrail: Do not propose runtime/archive dictionary support unless results clear the locked dictionary evaluation gate and preserve integrity-first behavior.
