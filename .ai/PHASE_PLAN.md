@@ -34,7 +34,7 @@ maximum compression ratio.
 
 ---------------------------------------------------------------------
 
-[~] PHASE 15 — Dictionary Hardening and Namespace Factoring
+[x] PHASE 15 — Dictionary Hardening and Namespace Factoring
 
 Goal
 
@@ -62,7 +62,7 @@ Deliverables
 - [x] CRUSHR-LAB-FIX-01 — repair comparison/normalization contract tests and deterministic scenario ordering.
 - [x] CRUSHR-LICENSE-01 — unified licensing + REUSE compliance.
 - [x] CRUSHR-CRATE-01 — lock workspace MSRV/edition/resolver policy and enforce explicit publish intent + crates.io metadata drift checks.
-- [~] CRUSHR-UI-01 — unified CLI presentation contract and standardized `--silent` behavior across pack/extract/verify/salvage (pending final runtime validation / acceptance).
+- [x] CRUSHR-UI-01 — unified CLI presentation contract and standardized `--silent` behavior across pack/extract/verify/salvage.
 - [x] CRUSHR-CHECK-02 — unified policy gate baseline (secrets, audit, MSRV, style, and VERSION drift enforcement) plus SECURITY.md and workflow-backed README badge alignment.
 - [x] CRUSHR-STYLE-FIX-01 — repo-wide Clippy style-debt cleanup to reestablish zero warnings under enforced `-D warnings` policy gate.
 - [x] CRUSHR_CLI_UNIFY_01 — canonical shared CLI app boundary with in-process `crushr` command dispatch for pack/extract/verify/info/about/lab, plus legacy top-level dispatch cleanup.
@@ -301,7 +301,6 @@ Exit criteria
 
 Latest priority doctrine
 
-- Unified CLI/operator surface acceptance (including v0.3.x polish through CRUSHR_UI_POLISH_06) is complete.
-- Start benchmark harness implementation immediately after.
-- Use benchmark data to steer compression and performance work.
-- Keep evidence/custody features on the long-range roadmap rather than inside the current 0.x core.
+- Phase 15 hardening/cleanup closeout is complete (through CRUSHR_CLEANUP_10 + continuity reconciliation packet CRUSHR_CLEANUP_11).
+- Next planner-issued packet should explicitly select the active Phase 16+ workstream rather than relying on historical “next” notes.
+- Keep evidence/custody features on the long-range roadmap rather than inside the current 0.x core unless explicitly promoted by decision.
