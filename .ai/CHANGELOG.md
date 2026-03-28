@@ -1116,3 +1116,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Removed duplicate regular-file planning `stat` calls by carrying `raw_len` from discovery into planning (`InputFile.raw_len`) and reusing it in `build_pack_layout_plan`.
 - Added per-run UID/GID ownership-name caches in discovery to eliminate repeated `getpwuid`/`getgrgid` resolution for identical IDs.
 - Updated benchmark operator guidance and completion notes for required medium/large full/basic `--profile-pack` validation runs.
+
+
+## 2026-03-28 — CRUSHR_PHASE16_02
+- Added a centralized benchmark dictionary experiment model in `scripts/benchmark/contract.py` (enable/disable, scope, deterministic training rule, comparator-set expansion, assumptions fingerprint integration).
+- Added deterministic dictionary training/generation path in `scripts/benchmark/run_benchmarks.py` with explicit cohort labels, lexicographic sample selection, stable training manifest identity, dictionary content hash, dictionary id, and dependency metadata.
+- Extended benchmark run schema/output to carry dictionary experiment assumptions, top-level dictionary artifact provenance records, per-run comparator labels, and per-run dictionary metadata so dictionary-assisted runs are explicitly distinguishable.
+- Extended canonical harness CLI (`scripts/benchmark/harness.py`) and benchmark reference documentation to expose dictionary experiment commands while explicitly documenting benchmark-only boundaries and non-goals (no runtime/archive semantics change).

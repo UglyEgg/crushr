@@ -9,6 +9,7 @@
     "environment",
     "dataset_manifest",
     "assumptions",
+    "dictionary_artifacts",
     "runs"
   ],
   "properties": {
@@ -49,6 +50,7 @@
         "required": [
           "dataset",
           "tool",
+          "comparator_label",
           "pack_command",
           "extract_command",
           "archive_path",
@@ -56,7 +58,8 @@
           "pack_time_ms",
           "extract_time_ms",
           "pack_peak_rss_kb",
-          "extract_peak_rss_kb"
+          "extract_peak_rss_kb",
+          "dictionary"
         ],
         "properties": {
           "dataset": {
@@ -69,6 +72,7 @@
           "tool": {
             "enum": [
               "tar_zstd",
+              "tar_zstd_dict",
               "tar_xz",
               "crushr"
             ]
@@ -83,6 +87,9 @@
               "full",
               "basic"
             ]
+          },
+          "comparator_label": {
+            "type": "string"
           },
           "pack_command": {
             "type": "string"
@@ -146,6 +153,9 @@
               "null"
             ],
             "minimum": 0
+          },
+          "dictionary": {
+            "$ref": "#/$defs/dictionary_artifact"
           }
         },
         "additionalProperties": false
@@ -236,7 +246,8 @@
       "required": [
         "level",
         "command_set_id",
-        "comparators"
+        "comparators",
+        "dictionary_experiment"
       ],
       "properties": {
         "level": {
@@ -258,6 +269,7 @@
               "tool": {
                 "enum": [
                   "tar_zstd",
+                  "tar_zstd_dict",
                   "tar_xz",
                   "crushr"
                 ]
@@ -276,6 +288,211 @@
             },
             "additionalProperties": false
           }
+        },
+        "dictionary_experiment": {
+          "type": "object",
+          "required": [
+            "enabled",
+            "scope",
+            "training_rule"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "scope": {
+              "enum": [
+                "per_dataset",
+                "global"
+              ]
+            },
+            "training_rule": {
+              "type": "object",
+              "required": [
+                "max_samples",
+                "sample_bytes",
+                "dictionary_size_bytes"
+              ],
+              "properties": {
+                "max_samples": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "sample_bytes": {
+                  "type": "integer",
+                  "minimum": 64
+                },
+                "dictionary_size_bytes": {
+                  "type": "integer",
+                  "minimum": 256
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "dictionary_artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dictionary_artifact"
+      }
+    }
+  },
+  "$defs": {
+    "training_provenance": {
+      "type": "object",
+      "required": [
+        "cohort_datasets",
+        "training_manifest_id",
+        "training_sample_count",
+        "training_sample_bytes",
+        "selection_rule",
+        "training_samples"
+      ],
+      "properties": {
+        "cohort_datasets": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "small_mixed_tree",
+              "medium_realistic_tree",
+              "large_stress_tree"
+            ]
+          }
+        },
+        "training_manifest_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "training_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "training_sample_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "selection_rule": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "sort_order": {
+              "const": "lexicographic_relative_path"
+            },
+            "max_samples": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "sample_bytes": {
+              "type": "integer",
+              "minimum": 64
+            }
+          },
+          "required": [
+            "sort_order",
+            "max_samples",
+            "sample_bytes"
+          ],
+          "additionalProperties": false
+        },
+        "training_samples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "relpath",
+              "size_bytes",
+              "content_hash"
+            ],
+            "properties": {
+              "relpath": {
+                "type": "string"
+              },
+              "size_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "content_hash": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "dictionary_artifact": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "scope",
+        "cohort_label",
+        "dictionary_path",
+        "dictionary_content_hash",
+        "dictionary_id",
+        "dependency_kind",
+        "training_provenance"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "scope": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            null,
+            "per_dataset",
+            "global"
+          ]
+        },
+        "cohort_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dictionary_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dictionary_content_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dictionary_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dependency_kind": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            null,
+            "required_dictionary"
+          ]
+        },
+        "training_provenance": {
+          "$ref": "#/$defs/training_provenance"
         }
       },
       "additionalProperties": false

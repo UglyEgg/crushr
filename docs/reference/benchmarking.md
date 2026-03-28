@@ -51,12 +51,16 @@ Determinism controls:
 
 The benchmark harness executes a centralized comparator set from `scripts/benchmark/contract.py`:
 
+Baseline (always):
 - `tar + zstd` (`zstd -3`)
 - `tar + xz` (`xz -3`)
 - `crushr pack --preservation full --level 3`
 - `crushr pack --preservation basic --level 3`
 
-The comparator set, compression level, and dataset names are single-source constants used by both generation and run scripts.
+Optional experiment comparator (enabled via harness flags):
+- `tar + zstd` with a deterministic trained dictionary (`tar_zstd_dict`)
+
+The comparator set, compression level, dataset names, and dictionary experiment model are centralized and used by both run orchestration and benchmark assumptions fingerprinting.
 
 Canonical command forms used by the harness:
 
@@ -92,16 +96,19 @@ Structured output:
 Top-level benchmark output also includes:
 
 - `dataset_manifest` (embedded dataset identity, generation controls, and counts)
-- `assumptions` (level, comparator set, and deterministic command-set fingerprint)
+- `assumptions` (level, comparator set, deterministic command-set fingerprint, and dictionary experiment config)
+- `dictionary_artifacts` (deterministic dictionary identity/provenance records for experiment cohorts)
 
 Each run record includes:
 
 - dataset
 - tool
 - profile (`full`/`basic` for crushr, `null` for tar baselines)
+- `comparator_label` (explicit comparator identity in comparisons)
 - exact pack/extract command strings
 - archive path + size
 - timing + peak RSS fields
+- `dictionary` metadata (enabled/disabled, dictionary identity hash, cohort label, training provenance summary, dependency marker)
 
 ## Reproducibility steps
 
@@ -213,3 +220,41 @@ Capture the full command stdout in `.bench/results/pack_phases_*.txt`.
 - Peak RSS and CPU fields depend on `time` implementation on host.
 - xattr coverage is best-effort and may be partial/non-zero only on supporting filesystems.
 - Raw benchmark outputs are not performance claims until reviewed comparatively.
+
+## Dictionary experiment mode (benchmark-only)
+
+Dictionary mode is a controlled benchmark experiment path. It does **not** change archive format/runtime behavior.
+
+Enable it from the canonical harness command surface:
+
+```bash
+python3 scripts/benchmark/harness.py run \
+  --datasets .bench/datasets \
+  --crushr-bin target/release/crushr \
+  --output .bench/results/benchmark_results.dict.json \
+  --dictionary-experiment on \
+  --dictionary-scope per_dataset
+```
+
+Determinism and provenance model:
+
+- training input selection is explicit and deterministic (`lexicographic_relative_path`, then capped by `--dictionary-max-samples`)
+- per-sample read size is explicit (`--dictionary-sample-bytes`)
+- dictionary size target is explicit (`--dictionary-size-bytes`)
+- each trained dictionary has:
+  - `dictionary_content_hash` (content digest)
+  - `dictionary_id` (stable identity derived from scope/cohort/training manifest + content hash)
+  - `cohort_label` and `cohort_datasets`
+  - `training_manifest_id` and per-sample digest list
+
+Non-goals for this packet:
+
+- no archive-format dictionary dependency semantics
+- no runtime/archive pack/extract behavior changes
+- no silent fallback; dictionary experiment runs carry explicit dependency metadata (`required_dictionary`)
+
+Design framing for follow-up runtime/archive work (pending benchmark evidence):
+
+- dictionary identity must stay explicit
+- dependency edges must stay explicit and auditable
+- survivability should favor payload-adjacent or checkpoint-local placements over hidden centralized dictionary dependencies
