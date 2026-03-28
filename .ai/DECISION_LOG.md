@@ -5,6 +5,22 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-28 — CRUSHR_CLEANUP_11 continuity/control-doc truth reconciliation
+
+- Decision:
+  - Re-baseline `.ai/STATUS.md` and `.ai/HANDOFF.md` around authoritative **current/open/next** truth instead of append-only maintenance narration.
+  - Mark Phase 15 hardening/cleanup closeout as complete in `.ai/PHASE_PLAN.md` and remove stale pending language for `CRUSHR-UI-01`.
+  - Preserve detailed historical chronology in `.ai/CHANGELOG.md` while preventing historical notes from masquerading as active state.
+- Alternatives considered:
+  1. Keep existing continuity files append-only and add another “latest fix” block.
+  2. Remove large portions of history from all docs to force brevity.
+- Rationale:
+  - Existing control-surface docs mixed current truth with stale follow-on notes, increasing handoff risk after hostile-review cleanup packets landed.
+  - A split model (authoritative current state in STATUS/HANDOFF, chronology in CHANGELOG) preserves history without operational ambiguity.
+- Blast radius:
+  - `.ai/STATUS.md`, `.ai/HANDOFF.md`, `.ai/PHASE_PLAN.md`, `.ai/DECISION_LOG.md`, `.ai/CHANGELOG.md` only.
+  - No runtime/source-code, archive-format, or CLI-behavior changes.
+
 ## 2026-03-28 — CRUSHR_CLEANUP_10 strict/recover payload/materialization mechanics unification
 
 - Decision:

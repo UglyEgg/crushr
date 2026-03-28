@@ -5,6 +5,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-28 — CRUSHR_CLEANUP_11
+- Reconciled continuity/control documents to current post-cleanup code truth: `.ai/STATUS.md` and `.ai/HANDOFF.md` now present explicit current/open/next state without stale follow-on guidance.
+- Marked Phase 15 hardening closeout as complete in `.ai/PHASE_PLAN.md` and removed outdated pending wording for `CRUSHR-UI-01`.
+- Preserved packet chronology in this changelog while demoting historical notes from authoritative operational state.
+- Validation: internal consistency sweep across `.ai/STATUS.md`, `.ai/PHASE_PLAN.md`, `.ai/DECISION_LOG.md`, `.ai/CHANGELOG.md`, and `.ai/HANDOFF.md`; verified no runtime file edits.
+
 ## 2026-03-28 — CRUSHR_CLEANUP_10
 - Added shared extraction payload/materialization core (`crates/crushr/src/extraction_payload_core.rs`) and centralized overlapping block payload decode/read plus regular/sparse materialization helpers.
 - Updated strict and recover extraction implementations to consume shared helper mechanics (`read_entry_bytes`, `recover_partial_entry_bytes`, `write_entry_bytes`, `write_sparse_entry`) and removed duplicated local helper implementations.
