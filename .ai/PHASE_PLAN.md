@@ -139,6 +139,7 @@ Deliverables
 - [x] CRUSHR_PHASE16_01 — benchmark/profiling harness normalization: deterministic dataset identity controls, canonical harness entrypoint, centralized assumptions, and schema-backed metadata embedding.
 - [x] CRUSHR_PHASE16_02 — controlled dictionary experiment path: deterministic dictionary training/cohort model, explicit dictionary identity/provenance metadata, schema-distinct dictionary-assisted runs, and benchmark-only boundary documentation.
 - [x] CRUSHR_PHASE16_03 — controlled zstd-native experiment path: deterministic zstd level/strategy matrices, explicit comparator/run metadata for zstd parameters, canonical harness integration, and benchmark-only boundary documentation.
+- [x] CRUSHR_PHASE16_04 — harden zstd benchmark strategy execution against host CLI differences: centralized zstd command construction, default-strategy no-flag behavior, and early capability diagnostics for unsupported non-default strategies.
 - benchmark harness implementation
 - raw benchmark records
 - normalized benchmark outputs

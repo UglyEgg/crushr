@@ -239,6 +239,12 @@ python3 scripts/benchmark/harness.py run \
   --zstd-strategies default,fast,dfast,greedy,lazy
 ```
 
+Host zstd CLI capability behavior:
+
+- `default` strategy does not emit an explicit zstd strategy flag.
+- Non-default strategies require host zstd CLI support for `--strategy=<name>`.
+- If non-default strategies are requested on a host without strategy-flag support, the harness fails early with a clear capability error before running tar commands.
+
 Recorded metadata:
 
 - top-level `assumptions.zstd_experiment` captures baseline level + configured matrices

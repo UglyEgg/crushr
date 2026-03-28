@@ -5,6 +5,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-28 — CRUSHR_PHASE16_04
+- Hardened zstd tar benchmark command construction in `scripts/benchmark/run_benchmarks.py` by centralizing zstd CLI argument assembly and tar+zstd command generation for both dictionary and non-dictionary comparator paths.
+- Fixed default strategy behavior to omit explicit `--strategy=` emission so level-only and baseline/default-strategy runs remain valid on reduced zstd CLI builds.
+- Added explicit host capability handling for non-default strategies: benchmark execution now fails early with a clear diagnostic when host zstd lacks `--strategy=<name>` support, preventing deep tar/compressor failure.
+- Updated benchmark reference docs with the host capability contract for default vs non-default zstd strategy experiments.
+- Validation: `python3 -m py_compile scripts/benchmark/contract.py scripts/benchmark/run_benchmarks.py scripts/benchmark/harness.py`; `python3 scripts/benchmark/run_benchmarks.py --help`; `python3 scripts/benchmark/run_benchmarks.py --datasets .bench/datasets --output .bench/results/benchmark_results.strategy_default_probe.json --workdir .bench/work_strategy_default_probe --crushr-bin /bin/true --zstd-levels 3 --zstd-strategies default` (fails in this environment because `.bench/datasets/dataset_manifest.json` is not present).
+
 ## 2026-03-28 — CRUSHR_PHASE16_03
 - Added a centralized zstd experiment model in `scripts/benchmark/contract.py` with deterministic level and strategy matrices integrated into comparator generation and assumptions fingerprinting.
 - Extended benchmark execution and canonical harness flags (`scripts/benchmark/run_benchmarks.py`, `scripts/benchmark/harness.py`) to support controlled zstd level/strategy experiments without creating side-channel execution paths.

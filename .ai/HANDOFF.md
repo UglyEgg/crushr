@@ -21,10 +21,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 ## Where the repository stands
 
-- Phase 16 benchmark packets `CRUSHR_PHASE16_01`, `CRUSHR_PHASE16_02`, and `CRUSHR_PHASE16_03` are complete.
+- Phase 16 benchmark packets `CRUSHR_PHASE16_01`, `CRUSHR_PHASE16_02`, `CRUSHR_PHASE16_03`, and `CRUSHR_PHASE16_04` are complete.
 - Benchmark command surface is canonically `python3 scripts/benchmark/harness.py <datasets|run|full>` with dictionary and zstd level/strategy experiment flags on `run/full`.
 - Dataset generation defaults to `--xattrs off` and emits stable `dataset_identity` in `dataset_manifest.json`.
-- Full benchmark matrix execution still depends on host comparator tools (`tar`, `xz`, `zstd`).
+- Full benchmark matrix execution still depends on host comparator tools (`tar`, `xz`, `zstd`), and non-default zstd strategy experiments now require host `--strategy=<name>` support with early capability failure when unavailable.
 
 ## Code assumptions you can rely on
 
