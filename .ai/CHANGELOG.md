@@ -5,6 +5,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-27 — CRUSHR_CLEANUP_07
+- Removed recover-mode pre-analysis dead path in `crates/crushr/src/commands/extract.rs`; recover orchestration no longer computes and discards a pre-analysis result before execution.
+- Removed now-unused recover pre-analysis wrapper from `crates/crushr/src/recover_extract_impl.rs`.
+- Updated recover progress-phase contract expectation in `crates/crushr/tests/recovery_extract_contract.rs` to remove stale `recovery analysis` phase assertion.
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 ## 2026-03-27 — CRUSHR_CLEANUP_06
 - Added a canonical `crushr info` reporting authority in `crates/crushr/src/commands/info.rs` (`build_info_truth_view`) that maps profile semantics, metadata visibility states, and archive-state wording before output rendering.
 - Added canonical list fallback/result semantics authority (`build_listing_truth_view`) so degraded-vs-complete list result messaging is no longer branch-local in presentation flow.

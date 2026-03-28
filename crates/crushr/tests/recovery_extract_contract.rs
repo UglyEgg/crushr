@@ -155,7 +155,6 @@ fn recover_mode_writes_strict_structure_for_clean_archive() {
         "archive open",
         "metadata scan",
         "canonical extraction",
-        "recovery analysis",
         "recovery extraction",
         "manifest/report finalization",
     ] {

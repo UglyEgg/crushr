@@ -1,3 +1,10 @@
+CRUSHR_CLEANUP_07 complete (2026-03-27):
+- Removed recover-mode pre-analysis call in `crates/crushr/src/commands/extract.rs` that computed recovery analysis and discarded all fields.
+- Recover extraction orchestration now has one authoritative path: `run_recover_extract_with_progress`.
+- Removed now-unused wrapper `run_recovery_analysis` from `crates/crushr/src/recover_extract_impl.rs`.
+- Updated recover progress-phase contract test (`crates/crushr/tests/recovery_extract_contract.rs`) to remove stale `recovery analysis` expectation.
+- Validation in packet: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 CRUSHR_CLEANUP_06 complete (2026-03-27):
 - Added one explicit info-side truth authority in `crates/crushr/src/commands/info.rs` (`build_info_truth_view`) for preservation contract wording, metadata visibility/trust classification, and archive-state wording.
 - Added canonical list fallback/result classification helper (`build_listing_truth_view`) so degraded-vs-complete listing semantics are decided once and formatting no longer re-decides fallback meaning.

@@ -7,8 +7,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_CLEANUP_06 complete** (info/introspection now derives operator-facing profile/fallback/metadata/archive-state wording from one internal truth authority before presentation)
+Current Step: **CRUSHR_CLEANUP_07 complete** (recover-mode extract orchestration no longer performs computed-and-discarded pre-analysis; recover execution/reporting now runs as one authoritative path)
 
+
+
+Latest maintenance fix (2026-03-27):
+- **CRUSHR_CLEANUP_07 complete**: removed recover-mode pre-analysis dead path in `crates/crushr/src/commands/extract.rs`; recover execution now has one authoritative orchestration path.
+- **CRUSHR_CLEANUP_07 complete**: removed now-unused recover pre-analysis wrappers from `crates/crushr/src/recover_extract_impl.rs` and `crates/crushr/src/commands/salvage.rs`.
+- **CRUSHR_CLEANUP_07 complete**: updated recover progress-phase contract expectation in `crates/crushr/tests/recovery_extract_contract.rs` to remove stale `recovery analysis` phase.
+- **CRUSHR_CLEANUP_07 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
 
 
 
@@ -444,8 +451,8 @@ Recovery should degrade in reverse order:
 
 ## Next actions
 
-1. Execute next planner packet after `CRUSHR_CLEANUP_06` closeout.
-2. Keep `crushr-info` operator-truth authority centralized in `build_info_truth_view` / `build_listing_truth_view` when adding new introspection fields.
+1. Execute next planner packet after `CRUSHR_CLEANUP_07` closeout.
+2. Keep recover orchestration authoritative in one execution path (no computed-and-discarded pre-passes in `extract` recover mode).
 
 ## Near-term product-completeness track (not active yet)
 
