@@ -7,7 +7,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 Current Phase: Phase 3 — Salvage Planning and Recovery-Graph Research Boundary
 
-Current Step: **CRUSHR_CLEANUP_08 complete** (pack discovery metadata capture is selectively restored via canonical profile-derived requirements; discovery remains policy-free for inclusion/omission decisions)
+Current Step: **CRUSHR_CLEANUP_09 complete** (pack command is physically decomposed into bounded file ownership units while preserving canonical profile/planning authority and behavior)
 
 
 
@@ -489,3 +489,9 @@ Latest maintenance fix (2026-03-23):
 - **CRUSHR_UI_POLISH_02 complete**: migrated core command presentation to shared primitives across `verify`, `extract`, `extract --recover`, `pack`, and `info`; result sections now render through one helper and verify/extract flows use explicit target/progress/result hierarchy.
 - **CRUSHR_UI_POLISH_02 complete**: added banner-based failure/warning framing for verify/refusal and recover non-canonical notes, and refreshed golden fixtures for shared output shape contracts.
 - **CRUSHR_UI_POLISH_02 validation**: `cargo fmt --all`, `cargo test -p crushr --test cli_presentation_contract`, `cargo test -p crushr --test recovery_extract_contract`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
+Latest maintenance fix (2026-03-28):
+- **CRUSHR_CLEANUP_09 complete**: physically split pack implementation into real file/module boundaries (`pack.rs` orchestration, `pack/discovery.rs`, `pack/planning.rs`, `pack/emission.rs`).
+- **CRUSHR_CLEANUP_09 complete**: removed stale inline logical-module scaffolding from top-level `pack.rs`; top-level pack entry now focuses on CLI/orchestration flow.
+- **CRUSHR_CLEANUP_09 complete**: preserved canonical authority boundaries and semantics (`metadata_capture_requirements_for_profile`, `plan_pack_profile`, plan-authoritative emission) with no behavior drift.
+- **CRUSHR_CLEANUP_09 validation**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` are green.
+

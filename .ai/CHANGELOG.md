@@ -5,6 +5,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-28 — CRUSHR_CLEANUP_09
+- Physically decomposed pack implementation ownership into real files: top-level orchestration remains in `crates/crushr/src/commands/pack.rs`, with mechanics moved to `crates/crushr/src/commands/pack/discovery.rs`, `planning.rs`, and `emission.rs`.
+- Preserved canonical authority boundaries from prior cleanup packets: discovery requirements + profile planning/warnings remain canonical and downstream emission remains plan-authoritative.
+- Removed stale in-file logical module scaffolding and reduced pack top-level file blast radius without changing behavior/contracts.
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 ## 2026-03-28 — CRUSHR_CLEANUP_08
 - Restored selective pack discovery metadata capture through canonical profile-derived requirements in `crates/crushr/src/commands/pack.rs` (`metadata_capture_requirements_for_profile` + requirements-fed `collect_files`).
 - Kept canonical planning ownership intact: discovery no longer decides omissions/warnings, and `plan_pack_profile` remains the single authority for inclusion/omission semantics.

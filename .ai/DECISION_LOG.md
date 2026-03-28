@@ -5,6 +5,22 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-28 — CRUSHR_CLEANUP_09 pack physical file decomposition
+
+- Decision:
+  - Convert pack cleanup layering into real file ownership boundaries: keep top-level orchestration in `crates/crushr/src/commands/pack.rs` and move mechanics into `crates/crushr/src/commands/pack/{discovery,planning,emission}.rs`.
+  - Keep canonical authority boundaries unchanged: profile capture requirements + omission planning remain discovery/planning-owned (`metadata_capture_requirements_for_profile`, `plan_pack_profile`), and emission remains plan-authoritative.
+  - Preserve behavior exactly (CLI/help/output, profile semantics, archive format, extract/recover/info behavior).
+- Alternatives considered:
+  1. Keep logical/internal decomposition in one physical file and add comments only.
+  2. Perform a wider cross-command utility extraction while splitting files.
+- Rationale:
+  - Packet requires physical blast-radius reduction and clearer review ownership boundaries, not semantic redesign.
+  - Direct file decomposition preserves behavior while materially improving navigation/reviewability.
+- Blast radius:
+  - `crates/crushr/src/commands/pack.rs` and new pack-local files under `crates/crushr/src/commands/pack/` only.
+  - No public CLI contract, archive format, extraction/recovery behavior, info behavior, benchmark tooling, or version changes.
+
 ## 2026-03-28 — CRUSHR_CLEANUP_08 canonical metadata-capture requirements restoration
 
 - Decision:

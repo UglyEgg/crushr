@@ -105,6 +105,7 @@ Deliverables
 - [x] CRUSHR_CLEANUP_06 — info/introspection operator-truth authority centralization (profile/fallback/metadata/archive-state reporting).
 - [x] CRUSHR_CLEANUP_07 — recover extract orchestration dead pre-analysis removal / authority clarification (no computed-and-discarded pre-pass).
 - [x] CRUSHR_CLEANUP_08 — restore selective discovery metadata capture through canonical profile-derived requirements without reintroducing discovery-owned omission policy.
+- [x] CRUSHR_CLEANUP_09 — physically decompose pack command into bounded files/modules (`pack.rs` orchestration + `pack/{discovery,planning,emission}.rs`) while preserving canonical profile/planning authority and behavior.
 
 Exit criteria
 

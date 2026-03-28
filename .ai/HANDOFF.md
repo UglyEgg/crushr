@@ -1,3 +1,9 @@
+CRUSHR_CLEANUP_09 complete (2026-03-28):
+- Completed real file-level pack decomposition: `crates/crushr/src/commands/pack.rs` now owns CLI/orchestration, and mechanics are split into `crates/crushr/src/commands/pack/discovery.rs`, `planning.rs`, and `emission.rs`.
+- Preserved authority boundaries and behavior: canonical profile capture/planning semantics and plan-authoritative emission remain intact; no CLI/archive/extract/recover/info semantics changed.
+- Removed stale inline module scaffolding from top-level pack file and reduced physical review/navigation blast radius.
+- Validation in packet: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 CRUSHR_CLEANUP_08 complete (2026-03-28):
 - Restored selective metadata capture in pack discovery via canonical profile-derived requirements (`metadata_capture_requirements_for_profile`) and threaded requirements into discovery collection.
 - Discovery remains policy-free for inclusion/omission/warnings; `plan_pack_profile` remains canonical preservation authority and warning ownership remains centralized.
