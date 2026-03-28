@@ -7,7 +7,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import pathlib
 import platform
 import shutil
@@ -22,11 +21,14 @@ from contract import (
     MANIFEST_VERSION,
     SCHEMA_VERSION,
     DictionaryExperimentModel,
+    OrderingExperimentModel,
+    OrderingStrategy,
     DictionaryTrainingRule,
     ZstdExperimentModel,
     assumptions_fingerprint,
     comparator_set,
     dictionary_model,
+    ordering_experiment_model,
     zstd_experiment_model,
 )
 
@@ -56,6 +58,14 @@ class DictionaryArtifact:
     dictionary_id: str | None
     dependency_kind: str | None
     training_provenance: dict[str, object]
+
+
+@dataclass(frozen=True)
+class OrderedInputEntry:
+    relpath: str
+    kind: str
+    size_bytes: int
+    extension: str
 
 
 def require_tool(name: str) -> None:
@@ -135,10 +145,11 @@ def validate_zstd_strategy_capability(
     *,
     dictionary_experiment: DictionaryExperimentModel,
     zstd_experiment: ZstdExperimentModel,
+    ordering_experiment: OrderingExperimentModel,
 ) -> None:
     requires_strategy_flag = any(
         comparator.tool.startswith("tar_zstd") and (comparator.zstd_strategy or "default") != "default"
-        for comparator in comparator_set(dictionary_experiment, zstd_experiment)
+        for comparator in comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment)
     )
     if not requires_strategy_flag:
         return
@@ -148,7 +159,7 @@ def validate_zstd_strategy_capability(
     requested = sorted(
         {
             comparator.zstd_strategy or "default"
-            for comparator in comparator_set(dictionary_experiment, zstd_experiment)
+            for comparator in comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment)
             if comparator.tool.startswith("tar_zstd") and (comparator.zstd_strategy or "default") != "default"
         }
     )
@@ -176,7 +187,7 @@ def build_zstd_cli_args(
 def build_tar_zstd_commands(
     *,
     archive_path: pathlib.Path,
-    input_path_rel: str,
+    ordered_inputs_path: pathlib.Path,
     extract_dir: pathlib.Path,
     zstd_level: int,
     zstd_strategy: str,
@@ -190,11 +201,13 @@ def build_tar_zstd_commands(
         "--group=0",
         "--numeric-owner",
         "--pax-option=delete=atime,delete=ctime",
+        "--no-recursion",
+        "-T",
+        str(ordered_inputs_path),
         "-I",
         build_zstd_cli_args(level=zstd_level, strategy=zstd_strategy, dictionary_path=dictionary_path),
         "-cf",
         str(archive_path),
-        input_path_rel,
     ]
     if dictionary_path is None:
         extract_cmd = ["tar", "-xf", str(archive_path), "-C", str(extract_dir)]
@@ -269,6 +282,11 @@ def parse_args() -> argparse.Namespace:
         default="default",
         help="Comma-separated zstd strategies for tar+zstd experiment matrix.",
     )
+    parser.add_argument(
+        "--ordering-strategies",
+        default="lexical",
+        help="Comma-separated deterministic ordering strategies for tar comparators.",
+    )
     return parser.parse_args()
 
 
@@ -287,6 +305,64 @@ def parse_csv_strings(raw: str) -> tuple[str, ...]:
     if not values:
         raise SystemExit("zstd strategy experiment matrix must not be empty")
     return values
+
+
+def parse_ordering_entries(dataset_root: pathlib.Path) -> list[OrderedInputEntry]:
+    entries: list[OrderedInputEntry] = [
+        OrderedInputEntry(
+            relpath=dataset_root.relative_to(dataset_root.parent).as_posix(),
+            kind="directory",
+            size_bytes=0,
+            extension="",
+        )
+    ]
+    for path in sorted(dataset_root.rglob("*")):
+        relpath = path.relative_to(dataset_root.parent).as_posix()
+        if path.is_symlink():
+            entries.append(OrderedInputEntry(relpath=relpath, kind="symlink", size_bytes=0, extension=""))
+            continue
+        if path.is_dir():
+            entries.append(OrderedInputEntry(relpath=relpath, kind="directory", size_bytes=0, extension=""))
+            continue
+        if path.is_file():
+            entries.append(
+                OrderedInputEntry(
+                    relpath=relpath,
+                    kind="file",
+                    size_bytes=path.stat().st_size,
+                    extension=path.suffix.lower().lstrip("."),
+                )
+            )
+    return entries
+
+
+def ordering_sort_key(entry: OrderedInputEntry, strategy: OrderingStrategy) -> tuple[object, ...]:
+    kind_rank = {"directory": 0, "symlink": 1, "file": 2}.get(entry.kind, 99)
+    if strategy == "lexical":
+        return (entry.relpath,)
+    if strategy == "size_ascending":
+        return (kind_rank, entry.size_bytes, entry.extension, entry.relpath)
+    if strategy == "size_descending":
+        return (kind_rank, -entry.size_bytes, entry.extension, entry.relpath)
+    if strategy == "extension_grouped":
+        return (kind_rank, entry.extension, entry.relpath)
+    if strategy == "kind_then_extension":
+        return (kind_rank, entry.extension, entry.size_bytes, entry.relpath)
+    raise ValueError(f"unsupported ordering strategy: {strategy}")
+
+
+def ordered_inputs_file(
+    *,
+    input_path: pathlib.Path,
+    strategy: OrderingStrategy,
+    order_root: pathlib.Path,
+) -> pathlib.Path:
+    order_root.mkdir(parents=True, exist_ok=True)
+    list_path = order_root / f"{input_path.name}.{strategy}.files.txt"
+    entries = parse_ordering_entries(input_path)
+    ordered = sorted(entries, key=lambda entry: ordering_sort_key(entry, strategy))
+    list_path.write_text("".join(f"{entry.relpath}\n" for entry in ordered), encoding="utf-8")
+    return list_path
 
 
 def collect_environment() -> dict[str, str]:
@@ -481,12 +557,18 @@ def zstd_comparator_label(
     *,
     tool_name: str,
     profile: str | None,
+    ordering_strategy: OrderingStrategy | None,
     zstd_level: int | None,
     zstd_strategy: str | None,
 ) -> str:
     if tool_name.startswith("tar_zstd"):
-        return f"{tool_name}_l{zstd_level or DEFAULT_LEVEL}_s{zstd_strategy or 'default'}"
-    return f"{tool_name}_{profile or 'na'}"
+        return (
+            f"{tool_name}_ord{ordering_strategy or 'na'}_l{zstd_level or DEFAULT_LEVEL}_"
+            f"s{zstd_strategy or 'default'}"
+        )
+    if tool_name == "tar_xz":
+        return f"{tool_name}_ord{ordering_strategy or 'na'}_l{DEFAULT_LEVEL}"
+    return f"{tool_name}_{profile or 'na'}_ord{ordering_strategy or 'runtime_default'}"
 
 
 def main() -> None:
@@ -507,12 +589,16 @@ def main() -> None:
         levels=parse_csv_levels(args.zstd_levels),
         strategies=parse_csv_strings(args.zstd_strategies),
     )
+    ordering_experiment = ordering_experiment_model(
+        strategies=parse_csv_strings(args.ordering_strategies),
+    )
 
     for tool in ("tar", "zstd", "xz"):
         require_tool(tool)
     validate_zstd_strategy_capability(
         dictionary_experiment=dictionary_experiment,
         zstd_experiment=zstd_experiment,
+        ordering_experiment=ordering_experiment,
     )
     if not crushr_bin.exists():
         raise SystemExit(f"crushr binary not found: {crushr_bin}")
@@ -537,15 +623,16 @@ def main() -> None:
 
     for dataset in DATASET_NAMES:
         input_path = datasets_root / dataset
-        input_path_rel = os.path.relpath(input_path, start=datasets_root.parent)
-        for comparator in comparator_set(dictionary_experiment, zstd_experiment):
+        for comparator in comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment):
             tool_name = comparator.tool
             profile = comparator.profile
+            ordering_strategy = comparator.ordering_strategy
             zstd_level = comparator.zstd_level
             zstd_strategy = comparator.zstd_strategy
             variant_id = zstd_comparator_label(
                 tool_name=tool_name,
                 profile=profile,
+                ordering_strategy=ordering_strategy,
                 zstd_level=zstd_level,
                 zstd_strategy=zstd_strategy,
             )
@@ -556,31 +643,52 @@ def main() -> None:
 
             dictionary_artifact = dictionary_disabled_artifact()
             if tool_name == "tar_zstd":
+                if ordering_strategy is None:
+                    raise SystemExit("internal error: tar_zstd comparator missing ordering strategy")
                 zstd_level = zstd_level or DEFAULT_LEVEL
                 zstd_strategy = zstd_strategy or "default"
                 archive_path = archive_dir / "archive.tar.zst"
+                ordered_inputs_path = ordered_inputs_file(
+                    input_path=input_path,
+                    strategy=ordering_strategy,
+                    order_root=work_root / "ordering_inputs" / dataset,
+                )
                 pack_cmd, extract_cmd = build_tar_zstd_commands(
                     archive_path=archive_path,
-                    input_path_rel=input_path_rel,
+                    ordered_inputs_path=ordered_inputs_path,
                     extract_dir=extract_dir,
                     zstd_level=zstd_level,
                     zstd_strategy=zstd_strategy,
                 )
             elif tool_name == "tar_zstd_dict":
+                if ordering_strategy is None:
+                    raise SystemExit("internal error: tar_zstd_dict comparator missing ordering strategy")
                 dictionary_artifact = dictionary_artifacts[dataset]
                 zstd_level = zstd_level or DEFAULT_LEVEL
                 zstd_strategy = zstd_strategy or "default"
                 archive_path = archive_dir / "archive.tar.zst"
+                ordered_inputs_path = ordered_inputs_file(
+                    input_path=input_path,
+                    strategy=ordering_strategy,
+                    order_root=work_root / "ordering_inputs" / dataset,
+                )
                 pack_cmd, extract_cmd = build_tar_zstd_commands(
                     archive_path=archive_path,
-                    input_path_rel=input_path_rel,
+                    ordered_inputs_path=ordered_inputs_path,
                     extract_dir=extract_dir,
                     zstd_level=zstd_level,
                     zstd_strategy=zstd_strategy,
                     dictionary_path=dictionary_artifact.dictionary_path,
                 )
             elif tool_name == "tar_xz":
+                if ordering_strategy is None:
+                    raise SystemExit("internal error: tar_xz comparator missing ordering strategy")
                 archive_path = archive_dir / "archive.tar.xz"
+                ordered_inputs_path = ordered_inputs_file(
+                    input_path=input_path,
+                    strategy=ordering_strategy,
+                    order_root=work_root / "ordering_inputs" / dataset,
+                )
                 pack_cmd = [
                     "tar",
                     "--sort=name",
@@ -589,11 +697,13 @@ def main() -> None:
                     "--group=0",
                     "--numeric-owner",
                     "--pax-option=delete=atime,delete=ctime",
+                    "--no-recursion",
+                    "-T",
+                    str(ordered_inputs_path),
                     "-I",
                     f"xz -{DEFAULT_LEVEL}",
                     "-cf",
                     str(archive_path),
-                    input_path_rel,
                 ]
                 extract_cmd = ["tar", "-xf", str(archive_path), "-C", str(extract_dir)]
             else:
@@ -630,6 +740,7 @@ def main() -> None:
                     "tool": tool_name,
                     "profile": profile,
                     "comparator_label": variant_id,
+                    "ordering_strategy": ordering_strategy,
                     "zstd_level": zstd_level,
                     "zstd_strategy": zstd_strategy,
                     "pack_command": " ".join(pack_cmd),
@@ -655,15 +766,20 @@ def main() -> None:
         "dataset_manifest": dataset_manifest,
         "assumptions": {
             "level": DEFAULT_LEVEL,
-            "command_set_id": assumptions_fingerprint(dictionary_experiment, zstd_experiment),
+            "command_set_id": assumptions_fingerprint(
+                dictionary_experiment,
+                zstd_experiment,
+                ordering_experiment,
+            ),
             "comparators": [
                 {
                     "tool": comparator.tool,
                     "profile": comparator.profile,
+                    "ordering_strategy": comparator.ordering_strategy,
                     "zstd_level": comparator.zstd_level,
                     "zstd_strategy": comparator.zstd_strategy,
                 }
-                for comparator in comparator_set(dictionary_experiment, zstd_experiment)
+                for comparator in comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment)
             ],
             "dictionary_experiment": {
                 "enabled": dictionary_experiment.enabled,
@@ -674,6 +790,11 @@ def main() -> None:
                 "baseline_level": DEFAULT_LEVEL,
                 "level_matrix": list(zstd_experiment.level_matrix),
                 "strategy_matrix": list(zstd_experiment.strategy_matrix),
+            },
+            "ordering_experiment": {
+                "baseline_strategy": ordering_experiment.baseline_strategy,
+                "strategy_matrix": list(ordering_experiment.strategy_matrix),
+                "applies_to_tools": ["tar_zstd", "tar_xz"],
             },
         },
         "dictionary_artifacts": [asdict(artifact) for artifact in sorted(dictionary_artifacts.values(), key=lambda a: a.cohort_label or "")],

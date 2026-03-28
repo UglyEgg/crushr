@@ -51,6 +51,7 @@
           "dataset",
           "tool",
           "comparator_label",
+          "ordering_strategy",
           "zstd_level",
           "zstd_strategy",
           "pack_command",
@@ -92,6 +93,20 @@
           },
           "comparator_label": {
             "type": "string"
+          },
+          "ordering_strategy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              null,
+              "lexical",
+              "size_ascending",
+              "size_descending",
+              "extension_grouped",
+              "kind_then_extension"
+            ]
           },
           "zstd_level": {
             "type": [
@@ -274,7 +289,8 @@
         "command_set_id",
         "comparators",
         "dictionary_experiment",
-        "zstd_experiment"
+        "zstd_experiment",
+        "ordering_experiment"
       ],
       "properties": {
         "level": {
@@ -291,6 +307,7 @@
             "required": [
               "tool",
               "profile",
+              "ordering_strategy",
               "zstd_level",
               "zstd_strategy"
             ],
@@ -320,6 +337,20 @@
                   "null"
                 ],
                 "minimum": 1
+              },
+              "ordering_strategy": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  null,
+                  "lexical",
+                  "size_ascending",
+                  "size_descending",
+                  "extension_grouped",
+                  "kind_then_extension"
+                ]
               },
               "zstd_strategy": {
                 "type": [
@@ -419,6 +450,42 @@
                   "lazy2",
                   "btlazy2",
                   "btopt"
+                ]
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "ordering_experiment": {
+          "type": "object",
+          "required": [
+            "baseline_strategy",
+            "strategy_matrix",
+            "applies_to_tools"
+          ],
+          "properties": {
+            "baseline_strategy": {
+              "const": "lexical"
+            },
+            "strategy_matrix": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "enum": [
+                  "lexical",
+                  "size_ascending",
+                  "size_descending",
+                  "extension_grouped",
+                  "kind_then_extension"
+                ]
+              }
+            },
+            "applies_to_tools": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "tar_zstd",
+                  "tar_xz"
                 ]
               }
             }

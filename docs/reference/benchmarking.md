@@ -61,13 +61,15 @@ Optional experiment comparators (enabled via harness flags):
 - `tar + zstd` with a deterministic trained dictionary (`tar_zstd_dict`)
 - `tar + zstd` level variants (controlled by `--zstd-levels`)
 - `tar + zstd` strategy variants (controlled by `--zstd-strategies`)
+- deterministic file-ordering/locality variants for tar comparators (controlled by `--ordering-strategies`)
 
 The comparator set, zstd level/strategy experiment model, dataset names, and dictionary experiment model are centralized and used by both run orchestration and benchmark assumptions fingerprinting.
+Ordering experiments are also centralized in the same model (`lexical`, `size_ascending`, `size_descending`, `extension_grouped`, `kind_then_extension`) and are applied only to tar comparators.
 
 Canonical command forms used by the harness:
 
-- `tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --pax-option=delete=atime,delete=ctime -I 'zstd -3' -cf <archive.tar.zst> <dataset>`
-- `tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --pax-option=delete=atime,delete=ctime -I 'xz -3' -cf <archive.tar.xz> <dataset>`
+- `tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --pax-option=delete=atime,delete=ctime --no-recursion -T <ordered_inputs.txt> -I 'zstd -3' -cf <archive.tar.zst>`
+- `tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --pax-option=delete=atime,delete=ctime --no-recursion -T <ordered_inputs.txt> -I 'xz -3' -cf <archive.tar.xz>`
 - `crushr pack <dataset> -o <archive.crs> --level 3 --preservation <full|basic> --silent`
 
 Extraction command forms:
@@ -107,6 +109,7 @@ Each run record includes:
 - tool
 - profile (`full`/`basic` for crushr, `null` for tar baselines)
 - `comparator_label` (explicit comparator identity in comparisons)
+- `ordering_strategy` (`null` for runtime `crushr` comparators)
 - `zstd_level` and `zstd_strategy` (explicit zstd experiment metadata, `null` for non-zstd comparators)
 - exact pack/extract command strings
 - archive path + size
@@ -250,12 +253,46 @@ Recorded metadata:
 - top-level `assumptions.zstd_experiment` captures baseline level + configured matrices
 - each comparator record carries explicit `zstd_level`/`zstd_strategy`
 - each run record carries explicit `zstd_level`/`zstd_strategy`
-- comparator labels encode zstd params (`tar_zstd_l6_sdefault`, `tar_zstd_l3_slazy`, etc.)
+- comparator labels encode ordering + zstd params (`tar_zstd_ordlexical_l6_sdefault`, `tar_zstd_ordlexical_l3_slazy`, etc.)
 
 What is being measured:
 
 - archive size and pack/extract timing deltas under controlled zstd parameter variation
 - no runtime/archive semantic changes (same `crushr` command behavior and same extraction semantics)
+
+## Ordering/locality experiments (benchmark-only)
+
+Ordering experiments are benchmark harness controls only. They do **not** change `crushr` runtime pack ordering, extraction behavior, or archive semantics.
+
+Run ordering strategies from the canonical harness:
+
+```bash
+python3 scripts/benchmark/harness.py run \
+  --datasets .bench/datasets \
+  --crushr-bin target/release/crushr \
+  --output .bench/results/benchmark_results.ordering_matrix.json \
+  --ordering-strategies lexical,size_ascending,size_descending,extension_grouped,kind_then_extension
+```
+
+Supported deterministic strategy definitions:
+
+- `lexical`: sort all archived entries by normalized relative path.
+- `size_ascending`: group by entry kind, then ascending file size, extension, and path tie-breakers.
+- `size_descending`: group by entry kind, then descending file size, extension, and path tie-breakers.
+- `extension_grouped`: group by entry kind, then extension, then path.
+- `kind_then_extension`: group by entry kind, then extension, then size, then path.
+
+Recorded metadata:
+
+- top-level `assumptions.ordering_experiment` captures baseline and configured strategy matrix
+- each comparator record includes `ordering_strategy`
+- each run record includes `ordering_strategy`
+- comparator labels encode ordering policy (`tar_zstd_ordextension_grouped_l3_sdefault`, etc.)
+
+What is being measured:
+
+- archive size and pack/extract timing deltas under deterministic input ordering/grouping policies
+- no runtime/archive semantic changes (ordering experiments apply to harness tar comparators only)
 
 ## Dictionary experiment mode (benchmark-only)
 

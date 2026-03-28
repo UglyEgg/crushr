@@ -21,18 +21,33 @@ DATASET_NAMES: tuple[str, ...] = (
     "large_stress_tree",
 )
 
+OrderingStrategy = Literal[
+    "lexical",
+    "size_ascending",
+    "size_descending",
+    "extension_grouped",
+    "kind_then_extension",
+]
+
 
 @dataclass(frozen=True)
 class Comparator:
     tool: str
     profile: str | None
+    ordering_strategy: OrderingStrategy | None = None
     zstd_level: int | None = None
     zstd_strategy: str | None = None
 
 
 BASELINE_COMPARATORS: tuple[Comparator, ...] = (
-    Comparator(tool="tar_zstd", profile=None, zstd_level=DEFAULT_LEVEL, zstd_strategy="default"),
-    Comparator(tool="tar_xz", profile=None),
+    Comparator(
+        tool="tar_zstd",
+        profile=None,
+        ordering_strategy="lexical",
+        zstd_level=DEFAULT_LEVEL,
+        zstd_strategy="default",
+    ),
+    Comparator(tool="tar_xz", profile=None, ordering_strategy="lexical"),
     Comparator(tool="crushr", profile="full"),
     Comparator(tool="crushr", profile="basic"),
 )
@@ -60,6 +75,12 @@ class DictionaryExperimentModel:
 class ZstdExperimentModel:
     level_matrix: tuple[int, ...]
     strategy_matrix: tuple[ZstdStrategy, ...]
+
+
+@dataclass(frozen=True)
+class OrderingExperimentModel:
+    baseline_strategy: OrderingStrategy
+    strategy_matrix: tuple[OrderingStrategy, ...]
 
 
 def dictionary_model(
@@ -107,11 +128,48 @@ def zstd_experiment_model(*, levels: tuple[int, ...], strategies: tuple[str, ...
     )
 
 
+def ordering_experiment_model(*, strategies: tuple[str, ...]) -> OrderingExperimentModel:
+    normalized_strategies = tuple(dict.fromkeys(strategies))
+    if not normalized_strategies:
+        normalized_strategies = ("lexical",)
+    valid: set[str] = {
+        "lexical",
+        "size_ascending",
+        "size_descending",
+        "extension_grouped",
+        "kind_then_extension",
+    }
+    if not set(normalized_strategies).issubset(valid):
+        raise ValueError(f"ordering strategies must be one of {sorted(valid)}")
+
+    ordered_matrix = tuple(strategy for strategy in valid_ordering_strategy_list() if strategy in normalized_strategies)
+    return OrderingExperimentModel(
+        baseline_strategy="lexical",
+        strategy_matrix=ordered_matrix,  # type: ignore[arg-type]
+    )
+
+
+def valid_ordering_strategy_list() -> tuple[OrderingStrategy, ...]:
+    return (
+        "lexical",
+        "size_ascending",
+        "size_descending",
+        "extension_grouped",
+        "kind_then_extension",
+    )
+
+
 def comparator_set(
     dictionary: DictionaryExperimentModel,
     zstd_experiment: ZstdExperimentModel,
+    ordering_experiment: OrderingExperimentModel,
 ) -> tuple[Comparator, ...]:
-    comparators: list[Comparator] = list(BASELINE_COMPARATORS)
+    comparators: list[Comparator] = [
+        comparator
+        for comparator in BASELINE_COMPARATORS
+        if comparator.tool == "crushr" or comparator.ordering_strategy in ordering_experiment.strategy_matrix
+    ]
+
     for level in zstd_experiment.level_matrix:
         if level == DEFAULT_LEVEL:
             continue
@@ -119,6 +177,7 @@ def comparator_set(
             Comparator(
                 tool="tar_zstd",
                 profile=None,
+                ordering_strategy=ordering_experiment.baseline_strategy,
                 zstd_level=level,
                 zstd_strategy="default",
             )
@@ -130,6 +189,7 @@ def comparator_set(
             Comparator(
                 tool="tar_zstd",
                 profile=None,
+                ordering_strategy=ordering_experiment.baseline_strategy,
                 zstd_level=DEFAULT_LEVEL,
                 zstd_strategy=strategy,
             )
@@ -139,6 +199,7 @@ def comparator_set(
             Comparator(
                 tool="tar_zstd_dict",
                 profile=None,
+                ordering_strategy=ordering_experiment.baseline_strategy,
                 zstd_level=DEFAULT_LEVEL,
                 zstd_strategy="default",
             )
@@ -149,13 +210,15 @@ def comparator_set(
 def assumptions_fingerprint(
     dictionary: DictionaryExperimentModel,
     zstd_experiment: ZstdExperimentModel,
+    ordering_experiment: OrderingExperimentModel,
 ) -> str:
-    comparators = comparator_set(dictionary, zstd_experiment)
+    comparators = comparator_set(dictionary, zstd_experiment, ordering_experiment)
     data = {
         "comparators": [
             {
                 "tool": comparator.tool,
                 "profile": comparator.profile,
+                "ordering_strategy": comparator.ordering_strategy,
                 "zstd_level": comparator.zstd_level,
                 "zstd_strategy": comparator.zstd_strategy,
             }
@@ -175,6 +238,11 @@ def assumptions_fingerprint(
             "baseline_level": DEFAULT_LEVEL,
             "level_matrix": list(zstd_experiment.level_matrix),
             "strategy_matrix": list(zstd_experiment.strategy_matrix),
+        },
+        "ordering_experiment": {
+            "baseline_strategy": ordering_experiment.baseline_strategy,
+            "strategy_matrix": list(ordering_experiment.strategy_matrix),
+            "applies_to_tools": ["tar_zstd", "tar_xz"],
         },
     }
     encoded = json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
