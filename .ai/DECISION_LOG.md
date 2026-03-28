@@ -5,6 +5,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-27 — CRUSHR_CLEANUP_07 recover pre-analysis dead-path removal
+
+- Decision:
+  - Remove recover-mode pre-analysis call from `crates/crushr/src/commands/extract.rs` because its result was computed and immediately discarded.
+  - Keep recover execution/reporting authority inside `run_recover_extract_with_progress` only; do not retain a staged pre-pass with no downstream authority.
+  - Remove now-unused wrapper `run_recovery_analysis` from `crates/crushr/src/recover_extract_impl.rs`.
+- Alternatives considered:
+  1. Keep pre-analysis call and continue discarding values with comments.
+  2. Thread pre-analysis values through recover execution/reporting despite no current authoritative consumer.
+- Rationale:
+  - Packet requires one honest recover orchestration path and forbids computed-and-discarded recovery pre-analysis.
+  - Removing dead pre-pass is the smallest truthful change and avoids introducing staged authority scaffolding without real ownership.
+- Blast radius:
+  - `crates/crushr/src/commands/extract.rs`, `crates/crushr/src/recover_extract_impl.rs`, and recover progress expectation in `crates/crushr/tests/recovery_extract_contract.rs` only.
+  - No pack/info/archive schema/format or recover trust semantics changes.
+
+
 ## 2026-03-27 — CRUSHR_CLEANUP_06 info/introspection truth authority centralization
 
 - Decision:

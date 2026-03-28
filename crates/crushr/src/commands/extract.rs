@@ -276,14 +276,6 @@ where
     F: FnMut(&'static str),
 {
     if opts.recover {
-        recover_progress("recovery analysis");
-        let analysis = recover_extract_impl::run_recovery_analysis(&opts.archive)?;
-        let _ = (
-            analysis.canonical_complete,
-            analysis.recoverable_named,
-            analysis.recoverable_anonymous,
-            analysis.unrecoverable,
-        );
         let recovered = recover_extract_impl::run_recover_extract_with_progress(
             &recover_extract_impl::RecoverExtractOptions {
                 archive: opts.archive.clone(),

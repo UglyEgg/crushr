@@ -26,8 +26,6 @@ use std::fs::{self, File};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-use crate::commands::salvage::RecoveryAnalysis;
-
 struct FileReader {
     file: File,
 }
@@ -513,10 +511,6 @@ where
             "PARTIAL"
         },
     })
-}
-
-pub fn run_recovery_analysis(archive: &Path) -> Result<RecoveryAnalysis> {
-    crate::commands::salvage::build_recovery_analysis(archive)
 }
 
 fn read_entry_bytes_strict(

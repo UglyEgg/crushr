@@ -354,50 +354,6 @@ struct BlockExportData {
     payload: Vec<u8>,
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct RecoveryAnalysis {
-    pub canonical_complete: bool,
-    pub recoverable_named: usize,
-    pub recoverable_anonymous: usize,
-    pub unrecoverable: usize,
-}
-
-pub(crate) fn build_recovery_analysis(archive: &Path) -> Result<RecoveryAnalysis> {
-    let opts = CliOptions {
-        archive: archive.to_path_buf(),
-        json: false,
-        json_out: None,
-        export_fragments: None,
-        silent: true,
-    };
-    let (plan, _archive_bytes) = build_plan(&opts)?;
-
-    let mut recoverable_named = 0usize;
-    let mut recoverable_anonymous = 0usize;
-    let mut unrecoverable = 0usize;
-
-    for file in plan.file_plans {
-        if file.status == "SALVAGEABLE" {
-            match file.recovery_classification {
-                RecoveryClassification::FullAnonymous => recoverable_anonymous += 1,
-                RecoveryClassification::PartialOrdered
-                | RecoveryClassification::PartialUnordered => recoverable_anonymous += 1,
-                RecoveryClassification::FullVerified => recoverable_named += 1,
-                RecoveryClassification::OrphanBlocks => unrecoverable += 1,
-            }
-        } else {
-            unrecoverable += 1;
-        }
-    }
-
-    Ok(RecoveryAnalysis {
-        canonical_complete: plan.index_analysis.status == "valid",
-        recoverable_named,
-        recoverable_anonymous,
-        unrecoverable,
-    })
-}
-
 fn build_plan(opts: &CliOptions) -> Result<(SalvagePlan, Vec<u8>)> {
     let reader = FileReader {
         file: File::open(&opts.archive)
