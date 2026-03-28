@@ -26,6 +26,7 @@ from contract import (
     assumptions_fingerprint,
     comparator_set,
     dictionary_model,
+    zstd_experiment_model,
 )
 
 
@@ -166,7 +167,34 @@ def parse_args() -> argparse.Namespace:
         default=65536,
         help="Target dictionary size bytes passed to zstd --train.",
     )
+    parser.add_argument(
+        "--zstd-levels",
+        default=str(DEFAULT_LEVEL),
+        help="Comma-separated zstd levels for tar+zstd experiment matrix (e.g. 1,3,6).",
+    )
+    parser.add_argument(
+        "--zstd-strategies",
+        default="default",
+        help="Comma-separated zstd strategies for tar+zstd experiment matrix.",
+    )
     return parser.parse_args()
+
+
+def parse_csv_levels(raw: str) -> tuple[int, ...]:
+    values = tuple(part.strip() for part in raw.split(",") if part.strip())
+    if not values:
+        raise SystemExit("zstd level experiment matrix must not be empty")
+    try:
+        return tuple(int(value) for value in values)
+    except ValueError as exc:
+        raise SystemExit(f"invalid zstd level list: {raw}") from exc
+
+
+def parse_csv_strings(raw: str) -> tuple[str, ...]:
+    values = tuple(part.strip() for part in raw.split(",") if part.strip())
+    if not values:
+        raise SystemExit("zstd strategy experiment matrix must not be empty")
+    return values
 
 
 def collect_environment() -> dict[str, str]:
@@ -357,6 +385,18 @@ def build_dictionary_artifacts(
     return artifacts
 
 
+def zstd_comparator_label(
+    *,
+    tool_name: str,
+    profile: str | None,
+    zstd_level: int | None,
+    zstd_strategy: str | None,
+) -> str:
+    if tool_name.startswith("tar_zstd"):
+        return f"{tool_name}_l{zstd_level or DEFAULT_LEVEL}_s{zstd_strategy or 'default'}"
+    return f"{tool_name}_{profile or 'na'}"
+
+
 def main() -> None:
     args = parse_args()
     datasets_root = pathlib.Path(args.datasets).resolve()
@@ -370,6 +410,10 @@ def main() -> None:
         max_samples=args.dictionary_max_samples,
         sample_bytes=args.dictionary_sample_bytes,
         dictionary_size_bytes=args.dictionary_size_bytes,
+    )
+    zstd_experiment = zstd_experiment_model(
+        levels=parse_csv_levels(args.zstd_levels),
+        strategies=parse_csv_strings(args.zstd_strategies),
     )
 
     for tool in ("tar", "zstd", "xz"):
@@ -398,10 +442,17 @@ def main() -> None:
     for dataset in DATASET_NAMES:
         input_path = datasets_root / dataset
         input_path_rel = os.path.relpath(input_path, start=datasets_root.parent)
-        for comparator in comparator_set(dictionary_experiment):
+        for comparator in comparator_set(dictionary_experiment, zstd_experiment):
             tool_name = comparator.tool
             profile = comparator.profile
-            variant_id = f"{tool_name}_{profile or 'na'}"
+            zstd_level = comparator.zstd_level
+            zstd_strategy = comparator.zstd_strategy
+            variant_id = zstd_comparator_label(
+                tool_name=tool_name,
+                profile=profile,
+                zstd_level=zstd_level,
+                zstd_strategy=zstd_strategy,
+            )
             archive_dir = work_root / "archives" / dataset
             extract_dir = work_root / "extracted" / dataset / variant_id
             archive_dir.mkdir(parents=True, exist_ok=True)
@@ -409,6 +460,8 @@ def main() -> None:
 
             dictionary_artifact = dictionary_disabled_artifact()
             if tool_name == "tar_zstd":
+                zstd_level = zstd_level or DEFAULT_LEVEL
+                zstd_strategy = zstd_strategy or "default"
                 archive_path = archive_dir / "archive.tar.zst"
                 pack_cmd = [
                     "tar",
@@ -419,7 +472,7 @@ def main() -> None:
                     "--numeric-owner",
                     "--pax-option=delete=atime,delete=ctime",
                     "-I",
-                    f"zstd -{DEFAULT_LEVEL}",
+                    f"zstd -{zstd_level} --strategy={zstd_strategy}",
                     "-cf",
                     str(archive_path),
                     input_path_rel,
@@ -427,6 +480,8 @@ def main() -> None:
                 extract_cmd = ["tar", "-xf", str(archive_path), "-C", str(extract_dir)]
             elif tool_name == "tar_zstd_dict":
                 dictionary_artifact = dictionary_artifacts[dataset]
+                zstd_level = zstd_level or DEFAULT_LEVEL
+                zstd_strategy = zstd_strategy or "default"
                 archive_path = archive_dir / "archive.tar.zst"
                 pack_cmd = [
                     "tar",
@@ -437,7 +492,7 @@ def main() -> None:
                     "--numeric-owner",
                     "--pax-option=delete=atime,delete=ctime",
                     "-I",
-                    f"zstd -{DEFAULT_LEVEL} -D {dictionary_artifact.dictionary_path}",
+                    f"zstd -{zstd_level} --strategy={zstd_strategy} -D {dictionary_artifact.dictionary_path}",
                     "-cf",
                     str(archive_path),
                     input_path_rel,
@@ -502,6 +557,8 @@ def main() -> None:
                     "tool": tool_name,
                     "profile": profile,
                     "comparator_label": variant_id,
+                    "zstd_level": zstd_level,
+                    "zstd_strategy": zstd_strategy,
                     "pack_command": " ".join(pack_cmd),
                     "extract_command": " ".join(extract_cmd),
                     "archive_path": str(archive_path),
@@ -525,15 +582,25 @@ def main() -> None:
         "dataset_manifest": dataset_manifest,
         "assumptions": {
             "level": DEFAULT_LEVEL,
-            "command_set_id": assumptions_fingerprint(dictionary_experiment),
+            "command_set_id": assumptions_fingerprint(dictionary_experiment, zstd_experiment),
             "comparators": [
-                {"tool": comparator.tool, "profile": comparator.profile}
-                for comparator in comparator_set(dictionary_experiment)
+                {
+                    "tool": comparator.tool,
+                    "profile": comparator.profile,
+                    "zstd_level": comparator.zstd_level,
+                    "zstd_strategy": comparator.zstd_strategy,
+                }
+                for comparator in comparator_set(dictionary_experiment, zstd_experiment)
             ],
             "dictionary_experiment": {
                 "enabled": dictionary_experiment.enabled,
                 "scope": dictionary_experiment.scope,
                 "training_rule": asdict(dictionary_experiment.training_rule),
+            },
+            "zstd_experiment": {
+                "baseline_level": DEFAULT_LEVEL,
+                "level_matrix": list(zstd_experiment.level_matrix),
+                "strategy_matrix": list(zstd_experiment.strategy_matrix),
             },
         },
         "dictionary_artifacts": [asdict(artifact) for artifact in sorted(dictionary_artifacts.values(), key=lambda a: a.cohort_label or "")],

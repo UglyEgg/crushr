@@ -5,6 +5,25 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-28 — CRUSHR_PHASE16_03 zstd level/strategy benchmark experiment lock
+
+- Decision:
+  - Extend centralized benchmark assumptions in `scripts/benchmark/contract.py` with an explicit zstd experiment model (`level_matrix`, `strategy_matrix`) and include those parameters in comparator identity/fingerprints.
+  - Keep one canonical harness entrypoint (`scripts/benchmark/harness.py`) and wire zstd experiment flags through existing `run/full` flows rather than adding ad hoc scripts.
+  - Extend benchmark output schema/results with explicit per-comparator and per-run zstd metadata (`zstd_level`, `zstd_strategy`) plus top-level `assumptions.zstd_experiment`.
+- Alternatives considered:
+  1. Keep zstd parameter tuning implicit in command strings only.
+  2. Add separate one-off scripts for level and strategy experiments.
+- Rationale:
+  - Packet scope requires deterministic, auditable zstd-native experiments without changing runtime/archive behavior.
+  - Explicit metadata keeps run comparability and review clarity while preserving benchmark-only boundaries.
+- Blast radius:
+  - `scripts/benchmark/{contract.py,run_benchmarks.py,harness.py}`
+  - `schemas/crushr-benchmark-run.v1.schema.json`
+  - `docs/reference/benchmarking.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+  - No `crushr` runtime pack/extract/info behavior changes and no archive-format changes.
+
 ## 2026-03-28 — CRUSHR_PHASE16_01 benchmark harness normalization lock
 
 - Decision:

@@ -57,10 +57,12 @@ Baseline (always):
 - `crushr pack --preservation full --level 3`
 - `crushr pack --preservation basic --level 3`
 
-Optional experiment comparator (enabled via harness flags):
+Optional experiment comparators (enabled via harness flags):
 - `tar + zstd` with a deterministic trained dictionary (`tar_zstd_dict`)
+- `tar + zstd` level variants (controlled by `--zstd-levels`)
+- `tar + zstd` strategy variants (controlled by `--zstd-strategies`)
 
-The comparator set, compression level, dataset names, and dictionary experiment model are centralized and used by both run orchestration and benchmark assumptions fingerprinting.
+The comparator set, zstd level/strategy experiment model, dataset names, and dictionary experiment model are centralized and used by both run orchestration and benchmark assumptions fingerprinting.
 
 Canonical command forms used by the harness:
 
@@ -105,6 +107,7 @@ Each run record includes:
 - tool
 - profile (`full`/`basic` for crushr, `null` for tar baselines)
 - `comparator_label` (explicit comparator identity in comparisons)
+- `zstd_level` and `zstd_strategy` (explicit zstd experiment metadata, `null` for non-zstd comparators)
 - exact pack/extract command strings
 - archive path + size
 - timing + peak RSS fields
@@ -221,6 +224,33 @@ Capture the full command stdout in `.bench/results/pack_phases_*.txt`.
 - xattr coverage is best-effort and may be partial/non-zero only on supporting filesystems.
 - Raw benchmark outputs are not performance claims until reviewed comparatively.
 
+## Zstd level/strategy experiments (benchmark-only)
+
+Zstd tuning experiments are benchmark harness controls only. They do **not** change `crushr` runtime defaults or archive semantics.
+
+Run level and strategy matrices from the canonical harness:
+
+```bash
+python3 scripts/benchmark/harness.py run \
+  --datasets .bench/datasets \
+  --crushr-bin target/release/crushr \
+  --output .bench/results/benchmark_results.zstd_matrix.json \
+  --zstd-levels 1,3,6,9 \
+  --zstd-strategies default,fast,dfast,greedy,lazy
+```
+
+Recorded metadata:
+
+- top-level `assumptions.zstd_experiment` captures baseline level + configured matrices
+- each comparator record carries explicit `zstd_level`/`zstd_strategy`
+- each run record carries explicit `zstd_level`/`zstd_strategy`
+- comparator labels encode zstd params (`tar_zstd_l6_sdefault`, `tar_zstd_l3_slazy`, etc.)
+
+What is being measured:
+
+- archive size and pack/extract timing deltas under controlled zstd parameter variation
+- no runtime/archive semantic changes (same `crushr` command behavior and same extraction semantics)
+
 ## Dictionary experiment mode (benchmark-only)
 
 Dictionary mode is a controlled benchmark experiment path. It does **not** change archive format/runtime behavior.
@@ -252,6 +282,7 @@ Non-goals for this packet:
 - no archive-format dictionary dependency semantics
 - no runtime/archive pack/extract behavior changes
 - no silent fallback; dictionary experiment runs carry explicit dependency metadata (`required_dictionary`)
+- no zstd strategy/level runtime-default changes in crushr
 
 Design framing for follow-up runtime/archive work (pending benchmark evidence):
 

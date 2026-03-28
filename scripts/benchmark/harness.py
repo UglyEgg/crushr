@@ -26,6 +26,16 @@ def add_dictionary_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--dictionary-max-samples", type=int, default=256)
     parser.add_argument("--dictionary-sample-bytes", type=int, default=16384)
     parser.add_argument("--dictionary-size-bytes", type=int, default=65536)
+    parser.add_argument(
+        "--zstd-levels",
+        default="3",
+        help="Comma-separated zstd level matrix for tar+zstd comparators (default: 3).",
+    )
+    parser.add_argument(
+        "--zstd-strategies",
+        default="default",
+        help="Comma-separated zstd strategy matrix for tar+zstd comparators (default: default).",
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -82,6 +92,10 @@ def run_benchmark_script_args(args: argparse.Namespace) -> list[str]:
         str(args.dictionary_sample_bytes),
         "--dictionary-size-bytes",
         str(args.dictionary_size_bytes),
+        "--zstd-levels",
+        args.zstd_levels,
+        "--zstd-strategies",
+        args.zstd_strategies,
     ]
 
 
