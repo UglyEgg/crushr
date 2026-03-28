@@ -5,6 +5,26 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-28 — CRUSHR_PHASE16_05 deterministic ordering/locality benchmark experiment lock
+
+- Decision:
+  - Add a centralized deterministic ordering experiment model in `scripts/benchmark/contract.py` with a bounded strategy set: `lexical`, `size_ascending`, `size_descending`, `extension_grouped`, and `kind_then_extension`.
+  - Integrate ordering experiments only through the canonical benchmark harness flow (`scripts/benchmark/harness.py` → `run_benchmarks.py`) by adding `--ordering-strategies` to `run/full`.
+  - Apply ordering strategies to tar comparators via generated explicit `tar -T` input-order files and record explicit ordering metadata in assumptions/comparator/run records plus comparator labels.
+- Alternatives considered:
+  1. Keep ordering implicit in filesystem traversal and command strings without explicit schema metadata.
+  2. Add many heuristic orderers beyond a small deterministic, explainable set.
+  3. Modify `crushr` runtime pack ordering to run the experiments.
+- Rationale:
+  - Packet scope requires benchmark-only, deterministic, auditable ordering/locality evidence without runtime/archive semantic drift.
+  - Explicit model + metadata + canonical entrypoint avoids ad hoc scripts and keeps run comparability/reproducibility.
+- Blast radius:
+  - `scripts/benchmark/{contract.py,run_benchmarks.py,harness.py}`
+  - `schemas/crushr-benchmark-run.v1.schema.json`
+  - `docs/reference/benchmarking.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+  - No `crushr` runtime/archive semantics, compression defaults, or dependency-policy changes.
+
 ## 2026-03-28 — CRUSHR_PHASE16_04 zstd strategy host-capability hardening lock
 
 - Decision:
@@ -1659,4 +1679,3 @@ Initial per-dataset zstd dictionary experiments did not produce meaningful gains
 
 ## Status
 LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit decision.
-

@@ -36,6 +36,14 @@ def add_dictionary_flags(parser: argparse.ArgumentParser) -> None:
         default="default",
         help="Comma-separated zstd strategy matrix for tar+zstd comparators (default: default).",
     )
+    parser.add_argument(
+        "--ordering-strategies",
+        default="lexical",
+        help=(
+            "Comma-separated deterministic ordering strategy matrix for tar comparators "
+            "(default: lexical)."
+        ),
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -96,6 +104,8 @@ def run_benchmark_script_args(args: argparse.Namespace) -> list[str]:
         args.zstd_levels,
         "--zstd-strategies",
         args.zstd_strategies,
+        "--ordering-strategies",
+        args.ordering_strategies,
     ]
 
 

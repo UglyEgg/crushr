@@ -5,6 +5,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-28 — CRUSHR_PHASE16_05
+- Added a centralized deterministic ordering/locality experiment model in `scripts/benchmark/contract.py` with a bounded strategy matrix (`lexical`, `size_ascending`, `size_descending`, `extension_grouped`, `kind_then_extension`) integrated into comparator identity/fingerprints.
+- Extended benchmark execution and canonical harness flags (`scripts/benchmark/run_benchmarks.py`, `scripts/benchmark/harness.py`) to support ordering/locality matrices through the same `run/full` flow without creating side-channel scripts.
+- Updated tar comparator command construction to use deterministic generated input-order files (`tar --no-recursion -T`) for reproducible ordering policy application.
+- Extended benchmark schema/output to record explicit ordering metadata (`ordering_strategy` per comparator and run, plus top-level `assumptions.ordering_experiment`) and ordering-aware comparator labels.
+- Updated benchmark reference docs with ordering/locality strategy definitions, canonical commands, measured-surface clarifications, and explicit benchmark-only runtime-boundary language.
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `python3 -m py_compile scripts/benchmark/contract.py scripts/benchmark/run_benchmarks.py scripts/benchmark/harness.py`; `python3 scripts/benchmark/harness.py run --datasets .bench/datasets --crushr-bin /bin/true --output .bench/results/benchmark_results.ordering_probe.json --ordering-strategies lexical,size_ascending` (fails in this environment because `.bench/datasets/dataset_manifest.json` is not present).
+
 ## 2026-03-28 — CRUSHR_PHASE16_04
 - Hardened zstd tar benchmark command construction in `scripts/benchmark/run_benchmarks.py` by centralizing zstd CLI argument assembly and tar+zstd command generation for both dictionary and non-dictionary comparator paths.
 - Fixed default strategy behavior to omit explicit `--strategy=` emission so level-only and baseline/default-strategy runs remain valid on reduced zstd CLI builds.
