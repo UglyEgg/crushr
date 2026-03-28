@@ -5,6 +5,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-28 — CRUSHR_PHASE16_03
+- Added a centralized zstd experiment model in `scripts/benchmark/contract.py` with deterministic level and strategy matrices integrated into comparator generation and assumptions fingerprinting.
+- Extended benchmark execution and canonical harness flags (`scripts/benchmark/run_benchmarks.py`, `scripts/benchmark/harness.py`) to support controlled zstd level/strategy experiments without creating side-channel execution paths.
+- Extended benchmark schema/output to record explicit zstd metadata (`zstd_level`, `zstd_strategy`) in both comparator assumptions and per-run records.
+- Updated benchmark reference docs with canonical zstd level/strategy experiment commands, recorded metadata semantics, and explicit benchmark-only boundary language.
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `python3 scripts/benchmark/harness.py run --datasets .bench/datasets --crushr-bin target/release/crushr --output .bench/results/benchmark_results.zstd_matrix.json --zstd-levels 1,3,6 --zstd-strategies default,fast,lazy` (fails in this environment because `zstd` is unavailable in PATH).
+
 ## 2026-03-28 — CRUSHR_PHASE16_01
 - Normalized benchmark/dataset assumptions into a single shared module (`scripts/benchmark/contract.py`) used by both dataset generation and benchmark execution.
 - Hardened dataset determinism: `generate_datasets.py` now requires explicit xattr mode (`--xattrs off|on`, default `off`) and emits stable `dataset_identity` in `dataset_manifest.json`.

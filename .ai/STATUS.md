@@ -8,16 +8,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 ## Current state (authoritative)
 
 - **Current Phase:** Phase 16 — 0.x Benchmarking and Compression Evidence.
-- **Current Step:** **CRUSHR_PHASE16_02 complete** (controlled dictionary-compression experiment integration in benchmark harness).
-- **Phase 16 benchmark/tooling status:** deterministic dataset identity, assumptions, and controlled dictionary experiment metadata are centralized and schema-backed.
+- **Current Step:** **CRUSHR_PHASE16_03 complete** (controlled zstd level/strategy experiment integration in benchmark harness).
+- **Phase 16 benchmark/tooling status:** deterministic dataset identity, assumptions, dictionary experiment metadata, and zstd level/strategy experiment metadata are centralized and schema-backed.
 - **Runtime/code status in this packet:** benchmark tooling and docs updated; no archive format or runtime extraction/pack semantics changed.
 
 ## What is now true in code (benchmark/tooling truth)
 
 - Benchmark dataset and comparator assumptions are centralized in `scripts/benchmark/contract.py` and consumed by both dataset generation and benchmark execution.
 - Dataset generation now has explicit xattr mode control (`--xattrs off|on`, default `off`) and emits a deterministic `dataset_identity` digest in `dataset_manifest.json`.
-- Benchmark execution now requires/embeds `dataset_manifest.json`, records normalized `assumptions` metadata (`level`, comparator set, command-set fingerprint, dictionary experiment config), and emits dictionary artifact provenance plus per-run dictionary dependency metadata in a consistent schema envelope.
-- Canonical benchmark command surface is `scripts/benchmark/harness.py` (`datasets`, `run`, `full`) including dictionary experiment flags to reduce invocation drift between docs and operations.
+- Benchmark execution now requires/embeds `dataset_manifest.json`, records normalized `assumptions` metadata (`level`, comparator set, command-set fingerprint, dictionary experiment config, zstd level/strategy experiment config), and emits dictionary artifact provenance plus per-run dictionary dependency/zstd metadata in a consistent schema envelope.
+- Canonical benchmark command surface is `scripts/benchmark/harness.py` (`datasets`, `run`, `full`) including dictionary and zstd experiment flags to reduce invocation drift between docs and operations.
 
 ## Open debt (intentional / deferred)
 
@@ -27,11 +27,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 ## Next permitted workstream
 
-- **Permitted next action:** execute baseline + dictionary experiment benchmark matrices in an environment with full comparator dependencies present and publish updated evidence artifacts from normalized schema.
+- **Permitted next action:** execute baseline + dictionary + zstd level/strategy experiment benchmark matrices in an environment with full comparator dependencies present and publish updated evidence artifacts from normalized schema.
 - Future packets may assume:
   - benchmark dataset/comparator assumptions are centralized in `scripts/benchmark/contract.py`,
   - `scripts/benchmark/harness.py` is the canonical benchmark command surface,
-  - benchmark output includes embedded dataset identity + assumptions metadata + dictionary provenance metadata,
+  - benchmark output includes embedded dataset identity + assumptions metadata + dictionary provenance metadata + zstd level/strategy metadata,
   - dictionary experiment results are explicitly distinguishable from non-dictionary runs,
   - xattr-inclusive datasets are opt-in and produce different dataset identities.
 
