@@ -5,6 +5,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-28 — CRUSHR_PHASE16_04 zstd strategy host-capability hardening lock
+
+- Decision:
+  - Centralize tar+zstd benchmark command construction in `scripts/benchmark/run_benchmarks.py` so strategy/level/dictionary option assembly is handled in one auditable path.
+  - Treat zstd `default` strategy as implicit and do not emit `--strategy=default` in benchmark tar command construction.
+  - For non-default strategy experiments, perform explicit host capability validation up front and fail early with a clear diagnostic when host zstd CLI lacks `--strategy=<name>` support.
+- Alternatives considered:
+  1. Keep emitting `--strategy=<name>` for every strategy including `default` and allow downstream tar failures on reduced CLI hosts.
+  2. Silently coerce unsupported non-default strategies to `default`.
+- Rationale:
+  - Packet scope requires correctness and explicit host-compatibility handling without semantic drift.
+  - Early capability diagnostics preserve canonical harness flow while preventing invalid command construction and deep failure surfaces.
+- Blast radius:
+  - `scripts/benchmark/run_benchmarks.py`
+  - `docs/reference/benchmarking.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+  - No `crushr` runtime/archive semantics or dependency-policy changes.
+
 ## 2026-03-28 — CRUSHR_PHASE16_03 zstd level/strategy benchmark experiment lock
 
 - Decision:

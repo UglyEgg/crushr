@@ -23,6 +23,7 @@ from contract import (
     SCHEMA_VERSION,
     DictionaryExperimentModel,
     DictionaryTrainingRule,
+    ZstdExperimentModel,
     assumptions_fingerprint,
     comparator_set,
     dictionary_model,
@@ -117,6 +118,97 @@ def run_with_measurement(cmd: list[str], cwd: pathlib.Path) -> CommandMeasuremen
 
 def archive_size(path: pathlib.Path) -> int:
     return path.stat().st_size
+
+
+def zstd_supports_strategy_flag() -> bool:
+    probe = subprocess.run(
+        ["zstd", "--strategy=fast", "-q", "-c"],
+        input=b"strategy-probe",
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    return probe.returncode == 0
+
+
+def validate_zstd_strategy_capability(
+    *,
+    dictionary_experiment: DictionaryExperimentModel,
+    zstd_experiment: ZstdExperimentModel,
+) -> None:
+    requires_strategy_flag = any(
+        comparator.tool.startswith("tar_zstd") and (comparator.zstd_strategy or "default") != "default"
+        for comparator in comparator_set(dictionary_experiment, zstd_experiment)
+    )
+    if not requires_strategy_flag:
+        return
+    if zstd_supports_strategy_flag():
+        return
+
+    requested = sorted(
+        {
+            comparator.zstd_strategy or "default"
+            for comparator in comparator_set(dictionary_experiment, zstd_experiment)
+            if comparator.tool.startswith("tar_zstd") and (comparator.zstd_strategy or "default") != "default"
+        }
+    )
+    raise SystemExit(
+        "host zstd CLI does not support --strategy=<name>; "
+        f"cannot run requested non-default strategy experiment(s): {', '.join(requested)}. "
+        "Use --zstd-strategies default or run on a zstd build with strategy flag support."
+    )
+
+
+def build_zstd_cli_args(
+    *,
+    level: int,
+    strategy: str,
+    dictionary_path: str | None = None,
+) -> str:
+    args = [f"zstd -{level}"]
+    if strategy != "default":
+        args.append(f"--strategy={strategy}")
+    if dictionary_path is not None:
+        args.append(f"-D {dictionary_path}")
+    return " ".join(args)
+
+
+def build_tar_zstd_commands(
+    *,
+    archive_path: pathlib.Path,
+    input_path_rel: str,
+    extract_dir: pathlib.Path,
+    zstd_level: int,
+    zstd_strategy: str,
+    dictionary_path: str | None = None,
+) -> tuple[list[str], list[str]]:
+    pack_cmd = [
+        "tar",
+        "--sort=name",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--pax-option=delete=atime,delete=ctime",
+        "-I",
+        build_zstd_cli_args(level=zstd_level, strategy=zstd_strategy, dictionary_path=dictionary_path),
+        "-cf",
+        str(archive_path),
+        input_path_rel,
+    ]
+    if dictionary_path is None:
+        extract_cmd = ["tar", "-xf", str(archive_path), "-C", str(extract_dir)]
+    else:
+        extract_cmd = [
+            "tar",
+            "-I",
+            f"zstd -d -D {dictionary_path}",
+            "-xf",
+            str(archive_path),
+            "-C",
+            str(extract_dir),
+        ]
+    return pack_cmd, extract_cmd
 
 
 def parse_args() -> argparse.Namespace:
@@ -418,6 +510,10 @@ def main() -> None:
 
     for tool in ("tar", "zstd", "xz"):
         require_tool(tool)
+    validate_zstd_strategy_capability(
+        dictionary_experiment=dictionary_experiment,
+        zstd_experiment=zstd_experiment,
+    )
     if not crushr_bin.exists():
         raise SystemExit(f"crushr binary not found: {crushr_bin}")
 
@@ -463,49 +559,26 @@ def main() -> None:
                 zstd_level = zstd_level or DEFAULT_LEVEL
                 zstd_strategy = zstd_strategy or "default"
                 archive_path = archive_dir / "archive.tar.zst"
-                pack_cmd = [
-                    "tar",
-                    "--sort=name",
-                    "--mtime=@0",
-                    "--owner=0",
-                    "--group=0",
-                    "--numeric-owner",
-                    "--pax-option=delete=atime,delete=ctime",
-                    "-I",
-                    f"zstd -{zstd_level} --strategy={zstd_strategy}",
-                    "-cf",
-                    str(archive_path),
-                    input_path_rel,
-                ]
-                extract_cmd = ["tar", "-xf", str(archive_path), "-C", str(extract_dir)]
+                pack_cmd, extract_cmd = build_tar_zstd_commands(
+                    archive_path=archive_path,
+                    input_path_rel=input_path_rel,
+                    extract_dir=extract_dir,
+                    zstd_level=zstd_level,
+                    zstd_strategy=zstd_strategy,
+                )
             elif tool_name == "tar_zstd_dict":
                 dictionary_artifact = dictionary_artifacts[dataset]
                 zstd_level = zstd_level or DEFAULT_LEVEL
                 zstd_strategy = zstd_strategy or "default"
                 archive_path = archive_dir / "archive.tar.zst"
-                pack_cmd = [
-                    "tar",
-                    "--sort=name",
-                    "--mtime=@0",
-                    "--owner=0",
-                    "--group=0",
-                    "--numeric-owner",
-                    "--pax-option=delete=atime,delete=ctime",
-                    "-I",
-                    f"zstd -{zstd_level} --strategy={zstd_strategy} -D {dictionary_artifact.dictionary_path}",
-                    "-cf",
-                    str(archive_path),
-                    input_path_rel,
-                ]
-                extract_cmd = [
-                    "tar",
-                    "-I",
-                    f"zstd -d -D {dictionary_artifact.dictionary_path}",
-                    "-xf",
-                    str(archive_path),
-                    "-C",
-                    str(extract_dir),
-                ]
+                pack_cmd, extract_cmd = build_tar_zstd_commands(
+                    archive_path=archive_path,
+                    input_path_rel=input_path_rel,
+                    extract_dir=extract_dir,
+                    zstd_level=zstd_level,
+                    zstd_strategy=zstd_strategy,
+                    dictionary_path=dictionary_artifact.dictionary_path,
+                )
             elif tool_name == "tar_xz":
                 archive_path = archive_dir / "archive.tar.xz"
                 pack_cmd = [
