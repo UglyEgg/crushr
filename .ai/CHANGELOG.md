@@ -5,6 +5,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-28 — CRUSHR_CLEANUP_10
+- Added shared extraction payload/materialization core (`crates/crushr/src/extraction_payload_core.rs`) and centralized overlapping block payload decode/read plus regular/sparse materialization helpers.
+- Updated strict and recover extraction implementations to consume shared helper mechanics (`read_entry_bytes`, `recover_partial_entry_bytes`, `write_entry_bytes`, `write_sparse_entry`) and removed duplicated local helper implementations.
+- Preserved explicit strict-vs-recover policy boundaries: strict fail-closed metadata behavior and recover metadata-degraded routing/manifest handling remain mode-local.
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 ## 2026-03-28 — CRUSHR_CLEANUP_09
 - Physically decomposed pack implementation ownership into real files: top-level orchestration remains in `crates/crushr/src/commands/pack.rs`, with mechanics moved to `crates/crushr/src/commands/pack/discovery.rs`, `planning.rs`, and `emission.rs`.
 - Preserved canonical authority boundaries from prior cleanup packets: discovery requirements + profile planning/warnings remain canonical and downstream emission remains plan-authoritative.

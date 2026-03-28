@@ -1,3 +1,9 @@
+CRUSHR_CLEANUP_10 complete (2026-03-28):
+- Added shared extraction payload/materialization helper module at `crates/crushr/src/extraction_payload_core.rs` for common block-read/decompress, entry-byte assembly, and regular/sparse write mechanics.
+- Strict and recover extraction now reuse shared helpers and no longer duplicate nontrivial payload/materialization helpers in separate files.
+- Strict-vs-recover policy boundaries remain explicit: strict keeps fail-closed metadata refusal semantics; recover keeps metadata-degraded routing + manifest ownership.
+- Validation in packet: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`.
+
 CRUSHR_CLEANUP_09 complete (2026-03-28):
 - Completed real file-level pack decomposition: `crates/crushr/src/commands/pack.rs` now owns CLI/orchestration, and mechanics are split into `crates/crushr/src/commands/pack/discovery.rs`, `planning.rs`, and `emission.rs`.
 - Preserved authority boundaries and behavior: canonical profile capture/planning semantics and plan-authoritative emission remain intact; no CLI/archive/extract/recover/info semantics changed.

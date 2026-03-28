@@ -5,6 +5,22 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-28 — CRUSHR_CLEANUP_10 strict/recover payload/materialization mechanics unification
+
+- Decision:
+  - Introduce a shared internal extraction payload/materialization module (`crates/crushr/src/extraction_payload_core.rs`) that owns overlapping block-read/decompress and entry materialization mechanics.
+  - Route both strict and recover extraction through shared helpers for entry-byte reads (`read_entry_bytes`), refused-entry partial payload reads (`recover_partial_entry_bytes`), regular writes (`write_entry_bytes`), and sparse writes (`write_sparse_entry`).
+  - Keep strict/recover policy boundaries explicit and mode-owned: strict retains fail-closed metadata handling in `strict_extract_impl::write_entry`; recover retains metadata-degraded routing/manifest ownership in `recover_extract_impl`.
+- Alternatives considered:
+  1. Keep duplicated strict/recover helper implementations and only align comments.
+  2. Fully collapse strict and recover extraction orchestration into one generic path.
+- Rationale:
+  - Packet requires deduplicating true shared mechanics (not policy) to reduce asymmetric bug-fix risk while preserving trust-model boundaries.
+  - Shared helper extraction removes nontrivial duplicated payload/materialization logic without forcing policy unification.
+- Blast radius:
+  - `crates/crushr/src/extraction_payload_core.rs` (new), `crates/crushr/src/strict_extract_impl.rs`, `crates/crushr/src/recover_extract_impl.rs`, and `crates/crushr/src/lib.rs` only.
+  - No pack/info/archive-format/CLI-surface/version semantic changes.
+
 ## 2026-03-28 — CRUSHR_CLEANUP_09 pack physical file decomposition
 
 - Decision:
