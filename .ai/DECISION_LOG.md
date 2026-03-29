@@ -5,6 +5,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-29 — CRUSHR_PHASE16_09 zstd level-sweep comparability lock
+
+- Decision:
+  - Extend benchmark zstd level-list parsing in `scripts/benchmark/run_benchmarks.py` to accept explicit range tokens (for example `1-10`) in addition to comma-separated levels while preserving deterministic normalization through the existing zstd experiment model.
+  - Keep level-sweep comparability constrained to one variable (level) by defining a summary-reporting gate that only activates when strategy is `default`, ordering is `lexical`, and content-class clustering is `off`.
+  - Emit a compact per-dataset post-run summary table (`level`, `archive_bytes`, `ratio`, `pack_ms`, `extract_ms`) to make diminishing-returns review immediately visible without changing canonical JSON output schema.
+- Alternatives considered:
+  1. Keep comma-list-only parsing and require users to enumerate `1,2,3,...,10`.
+  2. Add summary output for all matrix shapes, even multi-variable runs.
+- Rationale:
+  - Packet scope is controlled level-only evidence for default-level selection; range syntax reduces operator error and summary gating avoids mixed-variable misinterpretation.
+  - Post-run table improves review clarity while preserving schema-backed artifact truth as the canonical machine-readable record.
+- Blast radius:
+  - `scripts/benchmark/{run_benchmarks.py,harness.py}`
+  - `docs/reference/benchmarking.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+  - No `crushr` runtime/archive semantic changes.
+
 ## 2026-03-29 — CRUSHR_PHASE16_07 ordering matrix execution correctness lock
 
 - Decision:

@@ -5,6 +5,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-29 — CRUSHR_PHASE16_09
+- Expanded zstd level-list parsing in `scripts/benchmark/run_benchmarks.py` so controlled sweeps can use compact explicit ranges (for example `--zstd-levels 1-10`) in addition to comma lists.
+- Added controlled zstd level-sweep summary reporting in `scripts/benchmark/run_benchmarks.py`: for default-strategy + lexical-ordering + content-class-off runs, benchmark output now prints per-dataset `level | archive_bytes | ratio | pack_ms | extract_ms` lines after writing JSON.
+- Updated harness CLI help and benchmark docs with canonical level-sweep command guidance, summary-output shape, and diminishing-returns interpretation notes.
+- Validation: `python3 -m py_compile scripts/benchmark/contract.py scripts/benchmark/run_benchmarks.py scripts/benchmark/harness.py`; `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `python3 scripts/benchmark/harness.py run --datasets .bench/datasets --crushr-bin target/release/crushr --output .bench/results/benchmark_results.zstd_level_sweep.json --zstd-levels 1-10 --zstd-strategies default --ordering-strategies lexical --content-class-strategy off` (fails in this environment because `.bench/datasets/dataset_manifest.json` is not present).
+
 ## 2026-03-29 — CRUSHR_PHASE16_06
 - Fixed benchmark ordering tar input-list generation in `scripts/benchmark/run_benchmarks.py` so generated `-T` files are rooted to the benchmark execution context (for example `datasets/<dataset>/...`) and resolve correctly for tar ordering runs.
 - Added explicit ordered-input preflight validation (empty list, malformed/blank entries, unsafe dash-prefixed entries, missing dataset root entry, and filesystem-resolve checks) to fail early with clear diagnostics before tar execution.

@@ -8,8 +8,8 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 ## Current state (authoritative)
 
 - **Current Phase:** Phase 16 — 0.x Benchmarking and Compression Evidence.
-- **Current Step:** **CRUSHR_PHASE16_08 complete** (deterministic lightweight content-class clustering experiments are now integrated into benchmark tar comparators with explicit schema metadata).
-- **Phase 16 benchmark/tooling status:** deterministic dataset identity, assumptions, dictionary experiment metadata, zstd level/strategy experiment metadata, deterministic ordering/locality experiment metadata, deterministic content-class clustering experiment metadata, zstd strategy-capability-safe command construction, and ordering input-list path validation/rooting are centralized and schema-backed.
+- **Current Step:** **CRUSHR_PHASE16_09 complete** (zstd level sweep execution now supports compact `1-10` range syntax and emits a controlled level-sweep summary table with size/time tradeoffs for default-strategy lexical runs).
+- **Phase 16 benchmark/tooling status:** deterministic dataset identity, assumptions, dictionary experiment metadata, zstd level/strategy experiment metadata, deterministic ordering/locality experiment metadata, deterministic content-class clustering experiment metadata, zstd strategy-capability-safe command construction, ordering input-list path validation/rooting, and controlled zstd level-sweep summary reporting are centralized and schema-backed.
 - **Runtime/code status in this packet:** benchmark tooling and docs updated; no archive format or runtime extraction/pack semantics changed.
 
 ## What is now true in code (benchmark/tooling truth)
@@ -23,6 +23,8 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Ordering strategy matrices now expand to independent tar comparator variants for each requested strategy (across `tar_zstd`, `tar_xz`, and dictionary tar-zstd when enabled), with strategy-distinct comparator labels and archive filenames to prevent silent lexical-only collapse.
 - Benchmark execution now enforces ordering-matrix sanity: if more than one strategy is requested, comparator expansion and final run output must contain more than one tar ordering strategy or the harness fails early.
 - Lightweight deterministic content-class clustering (`off|lightweight_v1`) is now available for tar comparators only, and comparator labels include explicit clustering mode (`_cc<strategy>`) for auditability.
+- zstd level parsing now accepts explicit range tokens (for example `1-10`) in addition to comma-separated lists, and keeps normalized deterministic level matrices through the existing contract model.
+- Controlled single-variable zstd level sweeps (default strategy + lexical ordering + content-class off) now print a compact per-dataset summary table (`level`, `archive_bytes`, `ratio`, `pack_ms`, `extract_ms`) after JSON output for immediate time-vs-compression review.
 - Canonical benchmark command surface is `scripts/benchmark/harness.py` (`datasets`, `run`, `full`) including dictionary, zstd, ordering, and content-class experiment flags to reduce invocation drift between docs and operations.
 
 ## Open debt (intentional / deferred)
@@ -33,7 +35,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 ## Next permitted workstream
 
-- **Permitted next action:** execute baseline + dictionary + zstd level/strategy + ordering/locality + content-class clustering benchmark matrices in an environment with full comparator dependencies present and publish updated evidence artifacts from normalized schema.
+- **Permitted next action:** execute baseline + dictionary + zstd level/strategy + ordering/locality + content-class clustering benchmark matrices (including controlled `--zstd-levels 1-10` sweep runs) in an environment with full comparator dependencies present and publish updated evidence artifacts from normalized schema.
 - Future packets may assume:
   - benchmark dataset/comparator assumptions are centralized in `scripts/benchmark/contract.py`,
   - `scripts/benchmark/harness.py` is the canonical benchmark command surface,

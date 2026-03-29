@@ -264,6 +264,40 @@ Recorded metadata:
 - top-level `assumptions.zstd_experiment` captures baseline level + configured matrices
 - each comparator record carries explicit `zstd_level`/`zstd_strategy`
 
+### Level sweep for default decision (1–10)
+
+Use a single-variable level sweep (default zstd strategy, lexical ordering, no content-class clustering):
+
+```bash
+python3 scripts/benchmark/harness.py run \
+  --datasets .bench/datasets \
+  --crushr-bin target/release/crushr \
+  --output .bench/results/benchmark_results.zstd_level_sweep.json \
+  --zstd-levels 1-10 \
+  --zstd-strategies default \
+  --ordering-strategies lexical \
+  --content-class-strategy off
+```
+
+For this controlled sweep shape, the runner prints a compact table after writing JSON:
+
+```text
+Zstd level sweep summary (tar+zstd, default strategy, lexical ordering)
+  Dataset: small_mixed_tree (12345678 input bytes)
+    level | archive_bytes | ratio | pack_ms | extract_ms
+        1 |       4567890 | 0.370 |     210 |        145
+        2 |       4345678 | 0.352 |     238 |        149
+...
+       10 |       3987654 | 0.323 |     612 |        181
+```
+
+Interpretation guidance:
+
+- `ratio` = `archive_bytes / dataset input bytes` (lower is better compression).
+- Compare marginal ratio gain vs marginal `pack_ms` increase between adjacent levels.
+- Prefer the knee point where ratio improvements flatten while pack time continues to rise.
+- Keep dataset identity and assumptions fixed across reruns for comparability.
+
 ## Content-class clustering experiment (benchmark-only)
 
 Content-class clustering experiments are harness-only and do not change `crushr pack` runtime behavior or archive semantics.

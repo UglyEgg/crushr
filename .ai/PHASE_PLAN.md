@@ -144,6 +144,7 @@ Deliverables
 - [x] CRUSHR_PHASE16_06 — ordering input-list correctness hardening: deterministic tar-resolvable ordering file paths, preflight file-list validation diagnostics, and canonical tar `-T` compatibility for ordering experiments.
 - [x] CRUSHR_PHASE16_07 — ordering strategy matrix execution correctness: full tar comparator expansion per requested strategy, strategy-distinct labels/artifacts, and fail-closed anti-collapse sanity checks.
 - [x] CRUSHR_PHASE16_08 — lightweight content-class clustering experiments: deterministic tar-only content classification/grouping, explicit comparator/schema metadata, canonical harness integration, and benchmark-only documentation.
+- [x] CRUSHR_PHASE16_09 — controlled zstd level sweep experiment path: explicit `1-10` level sweep syntax support, deterministic timing/size comparability conditions, and benchmark-run summary visibility for compression-ratio vs time tradeoff interpretation.
 - benchmark harness implementation
 - raw benchmark records
 - normalized benchmark outputs
