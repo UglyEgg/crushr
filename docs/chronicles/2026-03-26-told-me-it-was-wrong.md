@@ -25,7 +25,7 @@ summary: "A benchmark run surfaced a contradiction between declared archive sema
 - **Project:** crushr
 - **Series:** Chronicles
 - **Status:** Historical snapshot
-- **Original venue:** LinkedIn
+- **Original venue:** Project Site
 
 ---
 
