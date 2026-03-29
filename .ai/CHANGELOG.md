@@ -5,6 +5,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+## 2026-03-29 — CRUSHR_PHASE16_06
+- Fixed benchmark ordering tar input-list generation in `scripts/benchmark/run_benchmarks.py` so generated `-T` files are rooted to the benchmark execution context (for example `datasets/<dataset>/...`) and resolve correctly for tar ordering runs.
+- Added explicit ordered-input preflight validation (empty list, malformed/blank entries, unsafe dash-prefixed entries, missing dataset root entry, and filesystem-resolve checks) to fail early with clear diagnostics before tar execution.
+- Hardened tar ordering command construction to use `--verbatim-files-from` for deterministic path interpretation from generated ordered-input files.
+- Updated benchmark reference docs with the ordering input-list contract and canonical tar command forms reflecting `--verbatim-files-from`.
+- Validation: `cargo fmt --all`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test --workspace`; `python3 scripts/benchmark/harness.py run --datasets .bench/datasets --crushr-bin target/release/crushr --output .bench/results/benchmark_results.ordering_check.json --workdir .bench/work-ordering --ordering-strategies lexical,size_ascending`.
+
 ## 2026-03-28 — CRUSHR_PHASE16_05
 - Added a centralized deterministic ordering/locality experiment model in `scripts/benchmark/contract.py` with a bounded strategy matrix (`lexical`, `size_ascending`, `size_descending`, `extension_grouped`, `kind_then_extension`) integrated into comparator identity/fingerprints.
 - Extended benchmark execution and canonical harness flags (`scripts/benchmark/run_benchmarks.py`, `scripts/benchmark/harness.py`) to support ordering/locality matrices through the same `run/full` flow without creating side-channel scripts.

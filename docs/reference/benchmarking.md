@@ -68,9 +68,15 @@ Ordering experiments are also centralized in the same model (`lexical`, `size_as
 
 Canonical command forms used by the harness:
 
-- `tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --pax-option=delete=atime,delete=ctime --no-recursion -T <ordered_inputs.txt> -I 'zstd -3' -cf <archive.tar.zst>`
-- `tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --pax-option=delete=atime,delete=ctime --no-recursion -T <ordered_inputs.txt> -I 'xz -3' -cf <archive.tar.xz>`
+- `tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --pax-option=delete=atime,delete=ctime --no-recursion --verbatim-files-from -T <ordered_inputs.txt> -I 'zstd -3' -cf <archive.tar.zst>`
+- `tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --pax-option=delete=atime,delete=ctime --no-recursion --verbatim-files-from -T <ordered_inputs.txt> -I 'xz -3' -cf <archive.tar.xz>`
 - `crushr pack <dataset> -o <archive.crs> --level 3 --preservation <full|basic> --silent`
+
+Ordering input list contract:
+
+- ordering files are generated deterministically per dataset/strategy
+- each line is a deterministic path relative to the benchmark execution root (e.g. `datasets/<dataset>/...` when datasets root is `.bench/datasets`)
+- harness validates ordered-input files before tar execution and fails early on empty/malformed/unresolvable entries
 
 Extraction command forms:
 
