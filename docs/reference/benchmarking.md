@@ -62,9 +62,11 @@ Optional experiment comparators (enabled via harness flags):
 - `tar + zstd` level variants (controlled by `--zstd-levels`)
 - `tar + zstd` strategy variants (controlled by `--zstd-strategies`)
 - deterministic file-ordering/locality variants for tar comparators (controlled by `--ordering-strategies`)
+- deterministic lightweight content-class clustering for tar comparators (controlled by `--content-class-strategy`)
 
-The comparator set, zstd level/strategy experiment model, dataset names, and dictionary experiment model are centralized and used by both run orchestration and benchmark assumptions fingerprinting.
+The comparator set, zstd level/strategy experiment model, dataset names, dictionary experiment model, and content-class experiment model are centralized and used by both run orchestration and benchmark assumptions fingerprinting.
 Ordering experiments are also centralized in the same model (`lexical`, `size_ascending`, `size_descending`, `extension_grouped`, `kind_then_extension`) and are applied only to tar comparators.
+Content-class clustering is benchmark-only and applied only to tar comparators. `lightweight_v1` uses file extension plus a small leading-byte sample to classify files into `structured_text_like`, `text_like`, `binary_like`, or `unknown_mixed`, then keeps deterministic ordering inside each class.
 
 Canonical command forms used by the harness:
 
@@ -116,11 +118,13 @@ Each run record includes:
 - profile (`full`/`basic` for crushr, `null` for tar baselines)
 - `comparator_label` (explicit comparator identity in comparisons)
 - `ordering_strategy` (`null` for runtime `crushr` comparators)
+- `content_class_strategy` (`off` or `lightweight_v1`)
 - `zstd_level` and `zstd_strategy` (explicit zstd experiment metadata, `null` for non-zstd comparators)
 - exact pack/extract command strings
 - archive path + size
 - timing + peak RSS fields
 - `dictionary` metadata (enabled/disabled, dictionary identity hash, cohort label, training provenance summary, dependency marker)
+- `content_classification` metadata (classifier version, deterministic class order, and per-class counts used in grouping)
 
 ## Reproducibility steps
 
@@ -132,6 +136,7 @@ python3 scripts/benchmark/harness.py full \
   --clean \
   --datasets .bench/datasets \
   --crushr-bin target/release/crushr \
+  --content-class-strategy lightweight_v1 \
   --output .bench/results/benchmark_results.json
 ```
 
@@ -258,6 +263,27 @@ Recorded metadata:
 
 - top-level `assumptions.zstd_experiment` captures baseline level + configured matrices
 - each comparator record carries explicit `zstd_level`/`zstd_strategy`
+
+## Content-class clustering experiment (benchmark-only)
+
+Content-class clustering experiments are harness-only and do not change `crushr pack` runtime behavior or archive semantics.
+
+Run from the canonical harness:
+
+```bash
+python3 scripts/benchmark/harness.py run \
+  --datasets .bench/datasets \
+  --crushr-bin target/release/crushr \
+  --output .bench/results/benchmark_results.content_class.json \
+  --ordering-strategies lexical,size_descending \
+  --content-class-strategy lightweight_v1
+```
+
+Recorded metadata:
+
+- top-level `assumptions.content_class_experiment` captures strategy, class labels/order, and classifier thresholds
+- comparator labels include a `_cc<strategy>` suffix for tar variants (example: `tar_zstd_ordlexical_l3_sdefault_cclightweight_v1`)
+- each run record includes `content_class_strategy` and `content_classification.class_counts` for reproducibility
 - each run record carries explicit `zstd_level`/`zstd_strategy`
 - comparator labels encode ordering + zstd params (`tar_zstd_ordlexical_l6_sdefault`, `tar_zstd_ordlexical_l3_slazy`, etc.)
 

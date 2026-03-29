@@ -52,6 +52,7 @@
           "tool",
           "comparator_label",
           "ordering_strategy",
+          "content_class_strategy",
           "zstd_level",
           "zstd_strategy",
           "pack_command",
@@ -62,7 +63,8 @@
           "extract_time_ms",
           "pack_peak_rss_kb",
           "extract_peak_rss_kb",
-          "dictionary"
+          "dictionary",
+          "content_classification"
         ],
         "properties": {
           "dataset": {
@@ -114,6 +116,13 @@
               "null"
             ],
             "minimum": 1
+          },
+          "content_class_strategy": {
+            "type": "string",
+            "enum": [
+              "off",
+              "lightweight_v1"
+            ]
           },
           "zstd_strategy": {
             "type": [
@@ -197,6 +206,9 @@
           },
           "dictionary": {
             "$ref": "#/$defs/dictionary_artifact"
+          },
+          "content_classification": {
+            "$ref": "#/$defs/content_classification"
           }
         },
         "additionalProperties": false
@@ -291,6 +303,8 @@
         "dictionary_experiment",
         "zstd_experiment",
         "ordering_experiment"
+        ,
+        "content_class_experiment"
       ],
       "properties": {
         "level": {
@@ -308,6 +322,7 @@
               "tool",
               "profile",
               "ordering_strategy",
+              "content_class_strategy",
               "zstd_level",
               "zstd_strategy"
             ],
@@ -367,6 +382,13 @@
                   "lazy2",
                   "btlazy2",
                   "btopt"
+                ]
+              },
+              "content_class_strategy": {
+                "type": "string",
+                "enum": [
+                  "off",
+                  "lightweight_v1"
                 ]
               }
             },
@@ -485,9 +507,64 @@
               "items": {
                 "enum": [
                   "tar_zstd",
-                  "tar_xz"
+                  "tar_xz",
+                  "tar_zstd_dict"
                 ]
               }
+            }
+          },
+          "additionalProperties": false
+        },
+        "content_class_experiment": {
+          "type": "object",
+          "required": [
+            "strategy",
+            "applies_to_tools",
+            "class_labels",
+            "classifier_version",
+            "sample_bytes",
+            "null_byte_binary_threshold",
+            "non_text_ratio_binary_threshold"
+          ],
+          "properties": {
+            "strategy": {
+              "enum": [
+                "off",
+                "lightweight_v1"
+              ]
+            },
+            "applies_to_tools": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "tar_zstd",
+                  "tar_xz",
+                  "tar_zstd_dict"
+                ]
+              }
+            },
+            "class_labels": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "structured_text_like",
+                  "text_like",
+                  "binary_like",
+                  "unknown_mixed"
+                ]
+              }
+            },
+            "classifier_version": {
+              "const": "lightweight_v1"
+            },
+            "sample_bytes": {
+              "const": 4096
+            },
+            "null_byte_binary_threshold": {
+              "const": 1
+            },
+            "non_text_ratio_binary_threshold": {
+              "const": 0.3
             }
           },
           "additionalProperties": false
@@ -503,6 +580,59 @@
     }
   },
   "$defs": {
+    "content_classification": {
+      "type": "object",
+      "required": [
+        "classifier_version",
+        "class_order",
+        "class_counts"
+      ],
+      "properties": {
+        "classifier_version": {
+          "const": "lightweight_v1"
+        },
+        "class_order": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "structured_text_like",
+              "text_like",
+              "binary_like",
+              "unknown_mixed"
+            ]
+          }
+        },
+        "class_counts": {
+          "type": "object",
+          "required": [
+            "structured_text_like",
+            "text_like",
+            "binary_like",
+            "unknown_mixed"
+          ],
+          "properties": {
+            "structured_text_like": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "text_like": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "binary_like": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unknown_mixed": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "training_provenance": {
       "type": "object",
       "required": [
