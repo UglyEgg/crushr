@@ -29,7 +29,10 @@ def add_dictionary_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--zstd-levels",
         default="3",
-        help="Comma-separated zstd level matrix for tar+zstd comparators (default: 3).",
+        help=(
+            "Comma-separated zstd level matrix for tar+zstd comparators "
+            "(supports ranges like 1-10; default: 3)."
+        ),
     )
     parser.add_argument(
         "--zstd-strategies",

@@ -323,7 +323,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--zstd-levels",
         default=str(DEFAULT_LEVEL),
-        help="Comma-separated zstd levels for tar+zstd experiment matrix (e.g. 1,3,6).",
+        help=(
+            "Comma-separated zstd levels for tar+zstd experiment matrix "
+            "(e.g. 1,3,6 or 1-10)."
+        ),
     )
     parser.add_argument(
         "--zstd-strategies",
@@ -345,13 +348,34 @@ def parse_args() -> argparse.Namespace:
 
 
 def parse_csv_levels(raw: str) -> tuple[int, ...]:
-    values = tuple(part.strip() for part in raw.split(",") if part.strip())
-    if not values:
+    tokens = tuple(part.strip() for part in raw.split(",") if part.strip())
+    if not tokens:
         raise SystemExit("zstd level experiment matrix must not be empty")
-    try:
-        return tuple(int(value) for value in values)
-    except ValueError as exc:
-        raise SystemExit(f"invalid zstd level list: {raw}") from exc
+
+    values: list[int] = []
+    for token in tokens:
+        if "-" in token:
+            parts = token.split("-", 1)
+            if len(parts) != 2:
+                raise SystemExit(f"invalid zstd level list: {raw}")
+            try:
+                start = int(parts[0])
+                end = int(parts[1])
+            except ValueError as exc:
+                raise SystemExit(f"invalid zstd level list: {raw}") from exc
+            if start > end:
+                raise SystemExit(
+                    f"invalid zstd level range '{token}': range start must be <= range end"
+                )
+            values.extend(range(start, end + 1))
+            continue
+
+        try:
+            values.append(int(token))
+        except ValueError as exc:
+            raise SystemExit(f"invalid zstd level list: {raw}") from exc
+
+    return tuple(values)
 
 
 def parse_csv_strings(raw: str) -> tuple[str, ...]:
@@ -739,6 +763,67 @@ def zstd_comparator_label(
     )
 
 
+def print_zstd_level_sweep_summary(
+    *,
+    run_records: list[dict[str, object]],
+    dataset_manifest: dict[str, object],
+    zstd_experiment: ZstdExperimentModel,
+    ordering_experiment: OrderingExperimentModel,
+    content_class_experiment: ContentClassExperimentModel,
+) -> None:
+    if len(zstd_experiment.level_matrix) <= 1:
+        return
+    if tuple(zstd_experiment.strategy_matrix) != ("default",):
+        return
+    if tuple(ordering_experiment.strategy_matrix) != ("lexical",):
+        return
+    if content_class_experiment.strategy != "off":
+        return
+
+    datasets = {
+        dataset["name"]: int(dataset["total_bytes"])
+        for dataset in dataset_manifest.get("datasets", [])
+        if isinstance(dataset, dict)
+        and isinstance(dataset.get("name"), str)
+        and isinstance(dataset.get("total_bytes"), int)
+    }
+    if not datasets:
+        return
+
+    by_dataset_level: dict[tuple[str, int], list[dict[str, object]]] = {}
+    for run in run_records:
+        if run.get("tool") != "tar_zstd":
+            continue
+        if run.get("zstd_strategy") != "default":
+            continue
+        level = run.get("zstd_level")
+        dataset = run.get("dataset")
+        if not isinstance(level, int) or not isinstance(dataset, str):
+            continue
+        by_dataset_level.setdefault((dataset, level), []).append(run)
+
+    if not by_dataset_level:
+        return
+
+    print("Zstd level sweep summary (tar+zstd, default strategy, lexical ordering)")
+    for dataset in sorted(datasets):
+        dataset_bytes = datasets[dataset]
+        print(f"  Dataset: {dataset} ({dataset_bytes} input bytes)")
+        print("    level | archive_bytes | ratio | pack_ms | extract_ms")
+        for level in zstd_experiment.level_matrix:
+            runs = by_dataset_level.get((dataset, level), [])
+            if not runs:
+                continue
+            archive_bytes = int(sum(int(run["archive_size_bytes"]) for run in runs) / len(runs))
+            pack_ms = int(sum(int(run["pack_time_ms"]) for run in runs) / len(runs))
+            extract_ms = int(sum(int(run["extract_time_ms"]) for run in runs) / len(runs))
+            ratio = archive_bytes / dataset_bytes if dataset_bytes > 0 else 0.0
+            print(
+                f"{level:>9} | {archive_bytes:>13} | {ratio:>5.3f} |"
+                f" {pack_ms:>7} | {extract_ms:>10}"
+            )
+
+
 def main() -> None:
     args = parse_args()
     datasets_root = pathlib.Path(args.datasets).resolve()
@@ -1028,6 +1113,13 @@ def main() -> None:
     }
     output_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"Wrote benchmark results: {output_path}")
+    print_zstd_level_sweep_summary(
+        run_records=run_records,
+        dataset_manifest=dataset_manifest,
+        zstd_experiment=zstd_experiment,
+        ordering_experiment=ordering_experiment,
+        content_class_experiment=content_class_experiment,
+    )
 
 
 if __name__ == "__main__":
