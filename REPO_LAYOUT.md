@@ -12,7 +12,6 @@ This document defines where active truth lives.
 - `AGENTS.md` — durable repo operating contract
 - `AI_BOOTSTRAP.md` — startup checklist
 - `REPO_GUARDRAILS.md` — implementation guardrails
-- `PROJECT_STATE.md` — concise current-state summary
 - `.ai/STATUS.md` — single source of truth for current phase/step and next action
 - `.ai/PHASE_PLAN.md` — active phase checklist
 - `.ai/DECISION_LOG.md` — resolved decisions
