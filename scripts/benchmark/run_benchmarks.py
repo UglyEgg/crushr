@@ -21,6 +21,7 @@ from contract import (
     DEFAULT_LEVEL,
     MANIFEST_VERSION,
     SCHEMA_VERSION,
+    Comparator,
     DictionaryExperimentModel,
     OrderingExperimentModel,
     OrderingStrategy,
@@ -148,9 +149,10 @@ def validate_zstd_strategy_capability(
     zstd_experiment: ZstdExperimentModel,
     ordering_experiment: OrderingExperimentModel,
 ) -> None:
+    comparators = comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment)
     requires_strategy_flag = any(
         comparator.tool.startswith("tar_zstd") and (comparator.zstd_strategy or "default") != "default"
-        for comparator in comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment)
+        for comparator in comparators
     )
     if not requires_strategy_flag:
         return
@@ -160,7 +162,7 @@ def validate_zstd_strategy_capability(
     requested = sorted(
         {
             comparator.zstd_strategy or "default"
-            for comparator in comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment)
+            for comparator in comparators
             if comparator.tool.startswith("tar_zstd") and (comparator.zstd_strategy or "default") != "default"
         }
     )
@@ -602,6 +604,25 @@ def build_dictionary_artifacts(
     return artifacts
 
 
+def validate_ordering_matrix_comparators(
+    *,
+    comparators: tuple[Comparator, ...],
+    ordering_experiment: OrderingExperimentModel,
+) -> None:
+    if len(ordering_experiment.strategy_matrix) <= 1:
+        return
+
+    tar_ordering = {
+        comparator.ordering_strategy
+        for comparator in comparators
+        if getattr(comparator, "tool", "") in {"tar_zstd", "tar_zstd_dict", "tar_xz"}
+    }
+    if len(tar_ordering) <= 1:
+        raise SystemExit(
+            "ordering strategy matrix requested multiple strategies, but comparator expansion collapsed to baseline only"
+        )
+
+
 def zstd_comparator_label(
     *,
     tool_name: str,
@@ -667,12 +688,15 @@ def main() -> None:
         work_root=work_root,
     )
 
+    comparators = comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment)
+    validate_ordering_matrix_comparators(comparators=comparators, ordering_experiment=ordering_experiment)
+
     run_records: list[dict[str, object]] = []
     benchmark_started_at = int(time.time())
 
     for dataset in DATASET_NAMES:
         input_path = datasets_root / dataset
-        for comparator in comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment):
+        for comparator in comparators:
             tool_name = comparator.tool
             profile = comparator.profile
             ordering_strategy = comparator.ordering_strategy
@@ -696,7 +720,7 @@ def main() -> None:
                     raise SystemExit("internal error: tar_zstd comparator missing ordering strategy")
                 zstd_level = zstd_level or DEFAULT_LEVEL
                 zstd_strategy = zstd_strategy or "default"
-                archive_path = archive_dir / "archive.tar.zst"
+                archive_path = archive_dir / f"archive_{variant_id}.tar.zst"
                 ordered_inputs_path = ordered_inputs_file(
                     input_path=input_path,
                     list_base_dir=datasets_root.parent,
@@ -721,7 +745,7 @@ def main() -> None:
                 dictionary_artifact = dictionary_artifacts[dataset]
                 zstd_level = zstd_level or DEFAULT_LEVEL
                 zstd_strategy = zstd_strategy or "default"
-                archive_path = archive_dir / "archive.tar.zst"
+                archive_path = archive_dir / f"archive_{variant_id}.tar.zst"
                 ordered_inputs_path = ordered_inputs_file(
                     input_path=input_path,
                     list_base_dir=datasets_root.parent,
@@ -744,7 +768,7 @@ def main() -> None:
             elif tool_name == "tar_xz":
                 if ordering_strategy is None:
                     raise SystemExit("internal error: tar_xz comparator missing ordering strategy")
-                archive_path = archive_dir / "archive.tar.xz"
+                archive_path = archive_dir / f"archive_{variant_id}.tar.xz"
                 ordered_inputs_path = ordered_inputs_file(
                     input_path=input_path,
                     list_base_dir=datasets_root.parent,
@@ -827,6 +851,17 @@ def main() -> None:
                 }
             )
 
+    if len(ordering_experiment.strategy_matrix) > 1:
+        observed_tar_ordering = {
+            run["ordering_strategy"]
+            for run in run_records
+            if run["tool"] in {"tar_zstd", "tar_zstd_dict", "tar_xz"}
+        }
+        if len(observed_tar_ordering) <= 1:
+            raise SystemExit(
+                "ordering strategy matrix requested multiple strategies, but benchmark output only recorded baseline ordering"
+            )
+
     report = {
         "schema_version": SCHEMA_VERSION,
         "benchmark_started_unix": benchmark_started_at,
@@ -847,7 +882,7 @@ def main() -> None:
                     "zstd_level": comparator.zstd_level,
                     "zstd_strategy": comparator.zstd_strategy,
                 }
-                for comparator in comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment)
+                for comparator in comparators
             ],
             "dictionary_experiment": {
                 "enabled": dictionary_experiment.enabled,
