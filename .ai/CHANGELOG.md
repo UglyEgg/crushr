@@ -1158,3 +1158,8 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added fail-closed ordering-matrix sanity checks in benchmark execution: multi-strategy requests now error if comparator expansion or observed tar run output contains only one strategy.
 - Made tar archive outputs strategy-distinct by including comparator labels in archive filenames, preventing run artifact overwrite across ordering variants.
 - Validation evidence: generated datasets, built `crushr`, ran benchmark matrix with three ordering strategies end-to-end, and confirmed JSON output includes multiple tar ordering strategies plus per-dataset/tool multi-label expansion.
+
+## 2026-03-29 — CRUSHR_PHASE16_08
+- Added centralized content-class experiment modeling in `scripts/benchmark/contract.py` with explicit strategy authority (`off|lightweight_v1`) and assumptions fingerprint integration.
+- Added deterministic lightweight content classification/grouping for tar comparator ordering inputs in `scripts/benchmark/run_benchmarks.py` (bounded class set, fixed class ordering, stable sampling thresholds) with explicit run metadata (`content_class_strategy`, `content_classification`).
+- Extended canonical harness + schema + docs (`scripts/benchmark/harness.py`, `schemas/crushr-benchmark-run.v1.schema.json`, `docs/reference/benchmarking.md`) so content-class clustering is reproducible, auditable, and explicitly benchmark-only.

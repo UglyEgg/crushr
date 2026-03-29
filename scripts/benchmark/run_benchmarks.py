@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import collections
 import hashlib
 import json
 import os
@@ -22,6 +23,8 @@ from contract import (
     MANIFEST_VERSION,
     SCHEMA_VERSION,
     Comparator,
+    ContentClassExperimentModel,
+    ContentClassName,
     DictionaryExperimentModel,
     OrderingExperimentModel,
     OrderingStrategy,
@@ -29,6 +32,7 @@ from contract import (
     ZstdExperimentModel,
     assumptions_fingerprint,
     comparator_set,
+    content_class_experiment_model,
     dictionary_model,
     ordering_experiment_model,
     zstd_experiment_model,
@@ -68,6 +72,45 @@ class OrderedInputEntry:
     kind: str
     size_bytes: int
     extension: str
+
+
+STRUCTURED_TEXT_EXTENSIONS: frozenset[str] = frozenset(
+    {"json", "jsonl", "yaml", "yml", "toml", "xml", "ini", "cfg", "csv", "tsv"}
+)
+TEXT_LIKE_EXTENSIONS: frozenset[str] = frozenset(
+    {
+        "txt",
+        "md",
+        "rst",
+        "html",
+        "htm",
+        "css",
+        "js",
+        "ts",
+        "py",
+        "rs",
+        "c",
+        "cc",
+        "cpp",
+        "h",
+        "hpp",
+        "java",
+        "go",
+        "sh",
+        "bash",
+        "zsh",
+        "sql",
+    }
+)
+CONTENT_CLASS_ORDER: tuple[ContentClassName, ...] = (
+    "structured_text_like",
+    "text_like",
+    "binary_like",
+    "unknown_mixed",
+)
+CONTENT_CLASS_SAMPLE_BYTES = 4096
+CONTENT_CLASS_BINARY_NULL_THRESHOLD = 1
+CONTENT_CLASS_BINARY_NON_TEXT_RATIO_THRESHOLD = 0.30
 
 
 def require_tool(name: str) -> None:
@@ -148,8 +191,9 @@ def validate_zstd_strategy_capability(
     dictionary_experiment: DictionaryExperimentModel,
     zstd_experiment: ZstdExperimentModel,
     ordering_experiment: OrderingExperimentModel,
+    content_class_experiment: ContentClassExperimentModel,
 ) -> None:
-    comparators = comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment)
+    comparators = comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment, content_class_experiment)
     requires_strategy_flag = any(
         comparator.tool.startswith("tar_zstd") and (comparator.zstd_strategy or "default") != "default"
         for comparator in comparators
@@ -291,6 +335,12 @@ def parse_args() -> argparse.Namespace:
         default="lexical",
         help="Comma-separated deterministic ordering strategies for tar comparators.",
     )
+    parser.add_argument(
+        "--content-class-strategy",
+        choices=("off", "lightweight_v1"),
+        default="off",
+        help="Deterministic content-class clustering strategy for tar comparators.",
+    )
     return parser.parse_args()
 
 
@@ -340,6 +390,33 @@ def parse_ordering_entries(dataset_root: pathlib.Path) -> list[OrderedInputEntry
     return entries
 
 
+def infer_content_class(entry: OrderedInputEntry, file_path: pathlib.Path) -> ContentClassName:
+    if entry.kind != "file":
+        return "unknown_mixed"
+    if entry.extension in STRUCTURED_TEXT_EXTENSIONS:
+        return "structured_text_like"
+    if entry.extension in TEXT_LIKE_EXTENSIONS:
+        return "text_like"
+
+    sample = file_path.read_bytes()[:CONTENT_CLASS_SAMPLE_BYTES]
+    if not sample:
+        return "unknown_mixed"
+
+    null_count = sample.count(0)
+    if null_count >= CONTENT_CLASS_BINARY_NULL_THRESHOLD:
+        return "binary_like"
+
+    printable = sum(
+        1
+        for byte in sample
+        if byte in {9, 10, 13} or 32 <= byte <= 126
+    )
+    non_text_ratio = 1.0 - (printable / len(sample))
+    if non_text_ratio > CONTENT_CLASS_BINARY_NON_TEXT_RATIO_THRESHOLD:
+        return "binary_like"
+    return "text_like"
+
+
 def ordering_sort_key(entry: OrderedInputEntry, strategy: OrderingStrategy) -> tuple[object, ...]:
     kind_rank = {"directory": 0, "symlink": 1, "file": 2}.get(entry.kind, 99)
     if strategy == "lexical":
@@ -360,19 +437,36 @@ def ordered_inputs_file(
     input_path: pathlib.Path,
     list_base_dir: pathlib.Path,
     strategy: OrderingStrategy,
+    content_class_experiment: ContentClassExperimentModel,
     order_root: pathlib.Path,
-) -> pathlib.Path:
+) -> tuple[pathlib.Path, dict[str, int]]:
     order_root.mkdir(parents=True, exist_ok=True)
     list_path = order_root / f"{input_path.name}.{strategy}.files.txt"
     entries = parse_ordering_entries(input_path)
     ordered = sorted(entries, key=lambda entry: ordering_sort_key(entry, strategy))
+    class_counts: collections.Counter[str] = collections.Counter()
+    if content_class_experiment.strategy != "off":
+        class_by_relpath: dict[str, ContentClassName] = {}
+        for entry in ordered:
+            resolved = input_path.parent / entry.relpath
+            content_class = infer_content_class(entry, resolved)
+            class_by_relpath[entry.relpath] = content_class
+            class_counts[content_class] += 1
+
+        ordered = sorted(
+            ordered,
+            key=lambda entry: (
+                CONTENT_CLASS_ORDER.index(class_by_relpath[entry.relpath]),
+                *ordering_sort_key(entry, strategy),
+            ),
+        )
     list_lines: list[str] = []
     for entry in ordered:
         resolved_entry = (input_path.parent / entry.relpath).resolve()
         relative_entry = resolved_entry.relative_to(list_base_dir).as_posix()
         list_lines.append(f"{relative_entry}\n")
     list_path.write_text("".join(list_lines), encoding="utf-8")
-    return list_path
+    return list_path, {name: class_counts.get(name, 0) for name in CONTENT_CLASS_ORDER}
 
 
 def validate_ordered_inputs_file(
@@ -628,17 +722,21 @@ def zstd_comparator_label(
     tool_name: str,
     profile: str | None,
     ordering_strategy: OrderingStrategy | None,
+    content_class_strategy: str,
     zstd_level: int | None,
     zstd_strategy: str | None,
 ) -> str:
     if tool_name.startswith("tar_zstd"):
         return (
             f"{tool_name}_ord{ordering_strategy or 'na'}_l{zstd_level or DEFAULT_LEVEL}_"
-            f"s{zstd_strategy or 'default'}"
+            f"s{zstd_strategy or 'default'}_cc{content_class_strategy}"
         )
     if tool_name == "tar_xz":
-        return f"{tool_name}_ord{ordering_strategy or 'na'}_l{DEFAULT_LEVEL}"
-    return f"{tool_name}_{profile or 'na'}_ord{ordering_strategy or 'runtime_default'}"
+        return f"{tool_name}_ord{ordering_strategy or 'na'}_l{DEFAULT_LEVEL}_cc{content_class_strategy}"
+    return (
+        f"{tool_name}_{profile or 'na'}_ord{ordering_strategy or 'runtime_default'}_"
+        f"ccruntime_default"
+    )
 
 
 def main() -> None:
@@ -662,6 +760,7 @@ def main() -> None:
     ordering_experiment = ordering_experiment_model(
         strategies=parse_csv_strings(args.ordering_strategies),
     )
+    content_class_experiment = content_class_experiment_model(strategy=args.content_class_strategy)
 
     for tool in ("tar", "zstd", "xz"):
         require_tool(tool)
@@ -669,6 +768,7 @@ def main() -> None:
         dictionary_experiment=dictionary_experiment,
         zstd_experiment=zstd_experiment,
         ordering_experiment=ordering_experiment,
+        content_class_experiment=content_class_experiment,
     )
     if not crushr_bin.exists():
         raise SystemExit(f"crushr binary not found: {crushr_bin}")
@@ -688,7 +788,7 @@ def main() -> None:
         work_root=work_root,
     )
 
-    comparators = comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment)
+    comparators = comparator_set(dictionary_experiment, zstd_experiment, ordering_experiment, content_class_experiment)
     validate_ordering_matrix_comparators(comparators=comparators, ordering_experiment=ordering_experiment)
 
     run_records: list[dict[str, object]] = []
@@ -702,10 +802,12 @@ def main() -> None:
             ordering_strategy = comparator.ordering_strategy
             zstd_level = comparator.zstd_level
             zstd_strategy = comparator.zstd_strategy
+            content_class_strategy = comparator.content_class_strategy
             variant_id = zstd_comparator_label(
                 tool_name=tool_name,
                 profile=profile,
                 ordering_strategy=ordering_strategy,
+                content_class_strategy=content_class_strategy,
                 zstd_level=zstd_level,
                 zstd_strategy=zstd_strategy,
             )
@@ -721,10 +823,11 @@ def main() -> None:
                 zstd_level = zstd_level or DEFAULT_LEVEL
                 zstd_strategy = zstd_strategy or "default"
                 archive_path = archive_dir / f"archive_{variant_id}.tar.zst"
-                ordered_inputs_path = ordered_inputs_file(
+                ordered_inputs_path, content_class_counts = ordered_inputs_file(
                     input_path=input_path,
                     list_base_dir=datasets_root.parent,
                     strategy=ordering_strategy,
+                    content_class_experiment=content_class_experiment,
                     order_root=work_root / "ordering_inputs" / dataset,
                 )
                 validate_ordered_inputs_file(
@@ -746,10 +849,11 @@ def main() -> None:
                 zstd_level = zstd_level or DEFAULT_LEVEL
                 zstd_strategy = zstd_strategy or "default"
                 archive_path = archive_dir / f"archive_{variant_id}.tar.zst"
-                ordered_inputs_path = ordered_inputs_file(
+                ordered_inputs_path, content_class_counts = ordered_inputs_file(
                     input_path=input_path,
                     list_base_dir=datasets_root.parent,
                     strategy=ordering_strategy,
+                    content_class_experiment=content_class_experiment,
                     order_root=work_root / "ordering_inputs" / dataset,
                 )
                 validate_ordered_inputs_file(
@@ -769,10 +873,11 @@ def main() -> None:
                 if ordering_strategy is None:
                     raise SystemExit("internal error: tar_xz comparator missing ordering strategy")
                 archive_path = archive_dir / f"archive_{variant_id}.tar.xz"
-                ordered_inputs_path = ordered_inputs_file(
+                ordered_inputs_path, content_class_counts = ordered_inputs_file(
                     input_path=input_path,
                     list_base_dir=datasets_root.parent,
                     strategy=ordering_strategy,
+                    content_class_experiment=content_class_experiment,
                     order_root=work_root / "ordering_inputs" / dataset,
                 )
                 validate_ordered_inputs_file(
@@ -799,6 +904,7 @@ def main() -> None:
                 ]
                 extract_cmd = ["tar", "-xf", str(archive_path), "-C", str(extract_dir)]
             else:
+                content_class_counts = {name: 0 for name in CONTENT_CLASS_ORDER}
                 archive_path = archive_dir / f"archive_{profile}.crs"
                 pack_cmd = [
                     str(crushr_bin),
@@ -833,6 +939,7 @@ def main() -> None:
                     "profile": profile,
                     "comparator_label": variant_id,
                     "ordering_strategy": ordering_strategy,
+                    "content_class_strategy": content_class_strategy,
                     "zstd_level": zstd_level,
                     "zstd_strategy": zstd_strategy,
                     "pack_command": " ".join(pack_cmd),
@@ -848,6 +955,11 @@ def main() -> None:
                     "extract_user_time_ms": extract_metrics.user_ms,
                     "extract_sys_time_ms": extract_metrics.sys_ms,
                     "dictionary": asdict(dictionary_artifact),
+                    "content_classification": {
+                        "classifier_version": "lightweight_v1",
+                        "class_order": list(CONTENT_CLASS_ORDER),
+                        "class_counts": content_class_counts,
+                    },
                 }
             )
 
@@ -873,12 +985,14 @@ def main() -> None:
                 dictionary_experiment,
                 zstd_experiment,
                 ordering_experiment,
+                content_class_experiment,
             ),
             "comparators": [
                 {
                     "tool": comparator.tool,
                     "profile": comparator.profile,
                     "ordering_strategy": comparator.ordering_strategy,
+                    "content_class_strategy": comparator.content_class_strategy,
                     "zstd_level": comparator.zstd_level,
                     "zstd_strategy": comparator.zstd_strategy,
                 }
@@ -897,7 +1011,16 @@ def main() -> None:
             "ordering_experiment": {
                 "baseline_strategy": ordering_experiment.baseline_strategy,
                 "strategy_matrix": list(ordering_experiment.strategy_matrix),
-                "applies_to_tools": ["tar_zstd", "tar_xz"],
+                "applies_to_tools": ["tar_zstd", "tar_xz", "tar_zstd_dict"],
+            },
+            "content_class_experiment": {
+                "strategy": content_class_experiment.strategy,
+                "applies_to_tools": list(content_class_experiment.applies_to_tools),
+                "class_labels": list(CONTENT_CLASS_ORDER),
+                "classifier_version": "lightweight_v1",
+                "sample_bytes": CONTENT_CLASS_SAMPLE_BYTES,
+                "null_byte_binary_threshold": CONTENT_CLASS_BINARY_NULL_THRESHOLD,
+                "non_text_ratio_binary_threshold": CONTENT_CLASS_BINARY_NON_TEXT_RATIO_THRESHOLD,
             },
         },
         "dictionary_artifacts": [asdict(artifact) for artifact in sorted(dictionary_artifacts.values(), key=lambda a: a.cohort_label or "")],

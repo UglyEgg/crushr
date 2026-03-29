@@ -44,6 +44,12 @@ def add_dictionary_flags(parser: argparse.ArgumentParser) -> None:
             "(default: lexical)."
         ),
     )
+    parser.add_argument(
+        "--content-class-strategy",
+        choices=("off", "lightweight_v1"),
+        default="off",
+        help="Deterministic content-class clustering strategy for tar comparators (default: off).",
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -106,6 +112,8 @@ def run_benchmark_script_args(args: argparse.Namespace) -> list[str]:
         args.zstd_strategies,
         "--ordering-strategies",
         args.ordering_strategies,
+        "--content-class-strategy",
+        args.content_class_strategy,
     ]
 
 

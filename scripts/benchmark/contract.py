@@ -28,6 +28,8 @@ OrderingStrategy = Literal[
     "extension_grouped",
     "kind_then_extension",
 ]
+ContentClassStrategy = Literal["off", "lightweight_v1"]
+ContentClassName = Literal["structured_text_like", "text_like", "binary_like", "unknown_mixed"]
 
 
 @dataclass(frozen=True)
@@ -35,6 +37,7 @@ class Comparator:
     tool: str
     profile: str | None
     ordering_strategy: OrderingStrategy | None = None
+    content_class_strategy: ContentClassStrategy = "off"
     zstd_level: int | None = None
     zstd_strategy: str | None = None
 
@@ -81,6 +84,12 @@ class ZstdExperimentModel:
 class OrderingExperimentModel:
     baseline_strategy: OrderingStrategy
     strategy_matrix: tuple[OrderingStrategy, ...]
+
+
+@dataclass(frozen=True)
+class ContentClassExperimentModel:
+    strategy: ContentClassStrategy
+    applies_to_tools: tuple[str, ...]
 
 
 def dictionary_model(
@@ -159,10 +168,21 @@ def valid_ordering_strategy_list() -> tuple[OrderingStrategy, ...]:
     )
 
 
+def content_class_experiment_model(*, strategy: str) -> ContentClassExperimentModel:
+    valid: set[str] = {"off", "lightweight_v1"}
+    if strategy not in valid:
+        raise ValueError(f"content class strategy must be one of {sorted(valid)}")
+    return ContentClassExperimentModel(
+        strategy=strategy,  # type: ignore[arg-type]
+        applies_to_tools=("tar_zstd", "tar_xz", "tar_zstd_dict"),
+    )
+
+
 def comparator_set(
     dictionary: DictionaryExperimentModel,
     zstd_experiment: ZstdExperimentModel,
     ordering_experiment: OrderingExperimentModel,
+    content_class_experiment: ContentClassExperimentModel,
 ) -> tuple[Comparator, ...]:
     comparators: list[Comparator] = [comparator for comparator in BASELINE_COMPARATORS if comparator.tool == "crushr"]
 
@@ -179,7 +199,14 @@ def comparator_set(
     seen: set[tuple[str, OrderingStrategy, int | None, str | None]] = set()
 
     for ordering_strategy in ordering_experiment.strategy_matrix:
-        comparators.append(Comparator(tool="tar_xz", profile=None, ordering_strategy=ordering_strategy))
+        comparators.append(
+            Comparator(
+                tool="tar_xz",
+                profile=None,
+                ordering_strategy=ordering_strategy,
+                content_class_strategy=content_class_experiment.strategy,
+            )
+        )
 
         for zstd_level, zstd_strategy in tar_zstd_variants:
             key = ("tar_zstd", ordering_strategy, zstd_level, zstd_strategy)
@@ -191,6 +218,7 @@ def comparator_set(
                     tool="tar_zstd",
                     profile=None,
                     ordering_strategy=ordering_strategy,
+                    content_class_strategy=content_class_experiment.strategy,
                     zstd_level=zstd_level,
                     zstd_strategy=zstd_strategy,
                 )
@@ -202,6 +230,7 @@ def comparator_set(
                     tool="tar_zstd_dict",
                     profile=None,
                     ordering_strategy=ordering_strategy,
+                    content_class_strategy=content_class_experiment.strategy,
                     zstd_level=DEFAULT_LEVEL,
                     zstd_strategy="default",
                 )
@@ -214,14 +243,16 @@ def assumptions_fingerprint(
     dictionary: DictionaryExperimentModel,
     zstd_experiment: ZstdExperimentModel,
     ordering_experiment: OrderingExperimentModel,
+    content_class_experiment: ContentClassExperimentModel,
 ) -> str:
-    comparators = comparator_set(dictionary, zstd_experiment, ordering_experiment)
+    comparators = comparator_set(dictionary, zstd_experiment, ordering_experiment, content_class_experiment)
     data = {
         "comparators": [
             {
                 "tool": comparator.tool,
                 "profile": comparator.profile,
                 "ordering_strategy": comparator.ordering_strategy,
+                "content_class_strategy": comparator.content_class_strategy,
                 "zstd_level": comparator.zstd_level,
                 "zstd_strategy": comparator.zstd_strategy,
             }
@@ -245,7 +276,16 @@ def assumptions_fingerprint(
         "ordering_experiment": {
             "baseline_strategy": ordering_experiment.baseline_strategy,
             "strategy_matrix": list(ordering_experiment.strategy_matrix),
-            "applies_to_tools": ["tar_zstd", "tar_xz"],
+            "applies_to_tools": ["tar_zstd", "tar_xz", "tar_zstd_dict"],
+        },
+        "content_class_experiment": {
+            "strategy": content_class_experiment.strategy,
+            "applies_to_tools": list(content_class_experiment.applies_to_tools),
+            "class_labels": ["structured_text_like", "text_like", "binary_like", "unknown_mixed"],
+            "classifier_version": "lightweight_v1",
+            "sample_bytes": 4096,
+            "null_byte_binary_threshold": 1,
+            "non_text_ratio_binary_threshold": 0.30,
         },
     }
     encoded = json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
