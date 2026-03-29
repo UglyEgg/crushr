@@ -1152,3 +1152,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added deterministic dictionary training/generation path in `scripts/benchmark/run_benchmarks.py` with explicit cohort labels, lexicographic sample selection, stable training manifest identity, dictionary content hash, dictionary id, and dependency metadata.
 - Extended benchmark run schema/output to carry dictionary experiment assumptions, top-level dictionary artifact provenance records, per-run comparator labels, and per-run dictionary metadata so dictionary-assisted runs are explicitly distinguishable.
 - Extended canonical harness CLI (`scripts/benchmark/harness.py`) and benchmark reference documentation to expose dictionary experiment commands while explicitly documenting benchmark-only boundaries and non-goals (no runtime/archive semantics change).
+
+## 2026-03-29 — CRUSHR_PHASE16_07
+- Fixed ordering comparator expansion so tar tools emit independent comparator variants per requested ordering strategy (instead of lexical-only collapse).
+- Added fail-closed ordering-matrix sanity checks in benchmark execution: multi-strategy requests now error if comparator expansion or observed tar run output contains only one strategy.
+- Made tar archive outputs strategy-distinct by including comparator labels in archive filenames, preventing run artifact overwrite across ordering variants.
+- Validation evidence: generated datasets, built `crushr`, ran benchmark matrix with three ordering strategies end-to-end, and confirmed JSON output includes multiple tar ordering strategies plus per-dataset/tool multi-label expansion.

@@ -164,46 +164,49 @@ def comparator_set(
     zstd_experiment: ZstdExperimentModel,
     ordering_experiment: OrderingExperimentModel,
 ) -> tuple[Comparator, ...]:
-    comparators: list[Comparator] = [
-        comparator
-        for comparator in BASELINE_COMPARATORS
-        if comparator.tool == "crushr" or comparator.ordering_strategy in ordering_experiment.strategy_matrix
-    ]
+    comparators: list[Comparator] = [comparator for comparator in BASELINE_COMPARATORS if comparator.tool == "crushr"]
 
+    tar_zstd_variants: list[tuple[int, str]] = [(DEFAULT_LEVEL, "default")]
     for level in zstd_experiment.level_matrix:
         if level == DEFAULT_LEVEL:
             continue
-        comparators.append(
-            Comparator(
-                tool="tar_zstd",
-                profile=None,
-                ordering_strategy=ordering_experiment.baseline_strategy,
-                zstd_level=level,
-                zstd_strategy="default",
-            )
-        )
+        tar_zstd_variants.append((level, "default"))
     for strategy in zstd_experiment.strategy_matrix:
         if strategy == "default":
             continue
-        comparators.append(
-            Comparator(
-                tool="tar_zstd",
-                profile=None,
-                ordering_strategy=ordering_experiment.baseline_strategy,
-                zstd_level=DEFAULT_LEVEL,
-                zstd_strategy=strategy,
+        tar_zstd_variants.append((DEFAULT_LEVEL, strategy))
+
+    seen: set[tuple[str, OrderingStrategy, int | None, str | None]] = set()
+
+    for ordering_strategy in ordering_experiment.strategy_matrix:
+        comparators.append(Comparator(tool="tar_xz", profile=None, ordering_strategy=ordering_strategy))
+
+        for zstd_level, zstd_strategy in tar_zstd_variants:
+            key = ("tar_zstd", ordering_strategy, zstd_level, zstd_strategy)
+            if key in seen:
+                continue
+            seen.add(key)
+            comparators.append(
+                Comparator(
+                    tool="tar_zstd",
+                    profile=None,
+                    ordering_strategy=ordering_strategy,
+                    zstd_level=zstd_level,
+                    zstd_strategy=zstd_strategy,
+                )
             )
-        )
-    if dictionary.enabled:
-        comparators.append(
-            Comparator(
-                tool="tar_zstd_dict",
-                profile=None,
-                ordering_strategy=ordering_experiment.baseline_strategy,
-                zstd_level=DEFAULT_LEVEL,
-                zstd_strategy="default",
+
+        if dictionary.enabled:
+            comparators.append(
+                Comparator(
+                    tool="tar_zstd_dict",
+                    profile=None,
+                    ordering_strategy=ordering_strategy,
+                    zstd_level=DEFAULT_LEVEL,
+                    zstd_strategy="default",
+                )
             )
-        )
+
     return tuple(comparators)
 
 

@@ -5,6 +5,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+## 2026-03-29 — CRUSHR_PHASE16_07 ordering matrix execution correctness lock
+
+- Decision:
+  - Expand tar comparator generation in `scripts/benchmark/contract.py` across the full requested ordering strategy matrix instead of emitting only baseline lexical ordering.
+  - Ensure tar comparator outputs are strategy-distinct in execution by emitting strategy-specific comparator labels and archive filenames in `scripts/benchmark/run_benchmarks.py`.
+  - Add fail-closed sanity checks before and after execution so multi-strategy ordering requests error out if comparator expansion or run output collapses to a single ordering strategy.
+- Alternatives considered:
+  1. Keep lexical-only comparator expansion and rely on assumptions metadata for intent.
+  2. Silently fall back to lexical ordering when expansion/output disagreement is detected.
+- Rationale:
+  - Phase 16 ordering/locality evidence is invalid if multi-strategy requests collapse to lexical-only execution.
+  - Fail-closed checks prevent misleading benchmark artifacts and make matrix correctness auditable.
+- Blast radius:
+  - `scripts/benchmark/contract.py`
+  - `scripts/benchmark/run_benchmarks.py`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+  - No runtime/archive semantic changes.
+
 ## 2026-03-28 — CRUSHR_PHASE16_05 deterministic ordering/locality benchmark experiment lock
 
 - Decision:

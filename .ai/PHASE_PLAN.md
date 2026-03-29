@@ -142,6 +142,7 @@ Deliverables
 - [x] CRUSHR_PHASE16_04 — harden zstd benchmark strategy execution against host CLI differences: centralized zstd command construction, default-strategy no-flag behavior, and early capability diagnostics for unsupported non-default strategies.
 - [x] CRUSHR_PHASE16_05 — deterministic ordering/locality benchmark experiments: centralized ordering strategy model, canonical harness integration, explicit ordering metadata in schema/results, and benchmark-only boundary documentation.
 - [x] CRUSHR_PHASE16_06 — ordering input-list correctness hardening: deterministic tar-resolvable ordering file paths, preflight file-list validation diagnostics, and canonical tar `-T` compatibility for ordering experiments.
+- [x] CRUSHR_PHASE16_07 — ordering strategy matrix execution correctness: full tar comparator expansion per requested strategy, strategy-distinct labels/artifacts, and fail-closed anti-collapse sanity checks.
 - benchmark harness implementation
 - raw benchmark records
 - normalized benchmark outputs

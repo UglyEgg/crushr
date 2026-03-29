@@ -8,7 +8,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 ## Current state (authoritative)
 
 - **Current Phase:** Phase 16 — 0.x Benchmarking and Compression Evidence.
-- **Current Step:** **CRUSHR_PHASE16_06 complete** (ordering experiment tar input generation fixed with deterministic, tar-resolvable file lists and preflight validation diagnostics).
+- **Current Step:** **CRUSHR_PHASE16_07 complete** (ordering experiment comparator expansion/execution now runs full ordering strategy matrices for tar tools with fail-closed matrix sanity checks).
 - **Phase 16 benchmark/tooling status:** deterministic dataset identity, assumptions, dictionary experiment metadata, zstd level/strategy experiment metadata, deterministic ordering/locality experiment metadata, zstd strategy-capability-safe command construction, and ordering input-list path validation/rooting are centralized and schema-backed.
 - **Runtime/code status in this packet:** benchmark tooling and docs updated; no archive format or runtime extraction/pack semantics changed.
 
@@ -20,6 +20,8 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - zstd tar comparator command construction is now centralized and capability-safe: default strategy omits explicit `--strategy` flags, and non-default strategy requests fail early with a clear host-capability diagnostic when `zstd --strategy=<name>` is unsupported.
 - Deterministic ordering/locality strategies for tar comparators (`lexical`, `size_ascending`, `size_descending`, `extension_grouped`, `kind_then_extension`) are centralized and executed through generated explicit tar input-order files.
 - Ordering input files now write deterministic benchmark-execution-root-relative paths (for example `datasets/<dataset>/...`), tar invocations use `--verbatim-files-from`, and the harness fails early with explicit diagnostics for empty/malformed/unresolvable ordering files before tar execution.
+- Ordering strategy matrices now expand to independent tar comparator variants for each requested strategy (across `tar_zstd`, `tar_xz`, and dictionary tar-zstd when enabled), with strategy-distinct comparator labels and archive filenames to prevent silent lexical-only collapse.
+- Benchmark execution now enforces ordering-matrix sanity: if more than one strategy is requested, comparator expansion and final run output must contain more than one tar ordering strategy or the harness fails early.
 - Canonical benchmark command surface is `scripts/benchmark/harness.py` (`datasets`, `run`, `full`) including dictionary, zstd, and ordering experiment flags to reduce invocation drift between docs and operations.
 
 ## Open debt (intentional / deferred)
