@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import pathlib
 import platform
 import shutil
@@ -202,6 +203,7 @@ def build_tar_zstd_commands(
         "--numeric-owner",
         "--pax-option=delete=atime,delete=ctime",
         "--no-recursion",
+        "--verbatim-files-from",
         "-T",
         str(ordered_inputs_path),
         "-I",
@@ -354,6 +356,7 @@ def ordering_sort_key(entry: OrderedInputEntry, strategy: OrderingStrategy) -> t
 def ordered_inputs_file(
     *,
     input_path: pathlib.Path,
+    list_base_dir: pathlib.Path,
     strategy: OrderingStrategy,
     order_root: pathlib.Path,
 ) -> pathlib.Path:
@@ -361,8 +364,54 @@ def ordered_inputs_file(
     list_path = order_root / f"{input_path.name}.{strategy}.files.txt"
     entries = parse_ordering_entries(input_path)
     ordered = sorted(entries, key=lambda entry: ordering_sort_key(entry, strategy))
-    list_path.write_text("".join(f"{entry.relpath}\n" for entry in ordered), encoding="utf-8")
+    list_lines: list[str] = []
+    for entry in ordered:
+        resolved_entry = (input_path.parent / entry.relpath).resolve()
+        relative_entry = resolved_entry.relative_to(list_base_dir).as_posix()
+        list_lines.append(f"{relative_entry}\n")
+    list_path.write_text("".join(list_lines), encoding="utf-8")
     return list_path
+
+
+def validate_ordered_inputs_file(
+    *,
+    list_path: pathlib.Path,
+    list_base_dir: pathlib.Path,
+    dataset_name: str,
+) -> list[pathlib.Path]:
+    raw_lines = list_path.read_text(encoding="utf-8").splitlines()
+    if not raw_lines:
+        raise SystemExit(f"ordered input list is empty for dataset {dataset_name}: {list_path}")
+
+    resolved_paths: list[pathlib.Path] = []
+    for line_no, raw_entry in enumerate(raw_lines, start=1):
+        entry = raw_entry.strip()
+        if not entry:
+            raise SystemExit(
+                f"ordered input list contains blank/whitespace-only entry at line {line_no}: {list_path}"
+            )
+        if entry.startswith("-"):
+            raise SystemExit(
+                f"ordered input list contains unsafe dash-prefixed entry at line {line_no}: {entry}"
+            )
+        path = pathlib.Path(entry)
+        if path.is_absolute():
+            raise SystemExit(
+                f"ordered input list entry must be relative to datasets root (line {line_no}): {entry} ({list_path})"
+            )
+        resolved = (list_base_dir / path).resolve()
+        if not os.path.lexists(resolved):
+            raise SystemExit(
+                f"ordered input list entry does not resolve on filesystem (line {line_no}): {entry}"
+            )
+        resolved_paths.append(resolved)
+
+    if not any(path.name == dataset_name for path in resolved_paths):
+        raise SystemExit(
+            f"ordered input list for dataset {dataset_name} is malformed: "
+            f"missing dataset root entry in {list_path}"
+        )
+    return resolved_paths
 
 
 def collect_environment() -> dict[str, str]:
@@ -650,8 +699,14 @@ def main() -> None:
                 archive_path = archive_dir / "archive.tar.zst"
                 ordered_inputs_path = ordered_inputs_file(
                     input_path=input_path,
+                    list_base_dir=datasets_root.parent,
                     strategy=ordering_strategy,
                     order_root=work_root / "ordering_inputs" / dataset,
+                )
+                validate_ordered_inputs_file(
+                    list_path=ordered_inputs_path,
+                    list_base_dir=datasets_root.parent,
+                    dataset_name=dataset,
                 )
                 pack_cmd, extract_cmd = build_tar_zstd_commands(
                     archive_path=archive_path,
@@ -669,8 +724,14 @@ def main() -> None:
                 archive_path = archive_dir / "archive.tar.zst"
                 ordered_inputs_path = ordered_inputs_file(
                     input_path=input_path,
+                    list_base_dir=datasets_root.parent,
                     strategy=ordering_strategy,
                     order_root=work_root / "ordering_inputs" / dataset,
+                )
+                validate_ordered_inputs_file(
+                    list_path=ordered_inputs_path,
+                    list_base_dir=datasets_root.parent,
+                    dataset_name=dataset,
                 )
                 pack_cmd, extract_cmd = build_tar_zstd_commands(
                     archive_path=archive_path,
@@ -686,8 +747,14 @@ def main() -> None:
                 archive_path = archive_dir / "archive.tar.xz"
                 ordered_inputs_path = ordered_inputs_file(
                     input_path=input_path,
+                    list_base_dir=datasets_root.parent,
                     strategy=ordering_strategy,
                     order_root=work_root / "ordering_inputs" / dataset,
+                )
+                validate_ordered_inputs_file(
+                    list_path=ordered_inputs_path,
+                    list_base_dir=datasets_root.parent,
+                    dataset_name=dataset,
                 )
                 pack_cmd = [
                     "tar",
@@ -698,6 +765,7 @@ def main() -> None:
                     "--numeric-owner",
                     "--pax-option=delete=atime,delete=ctime",
                     "--no-recursion",
+                    "--verbatim-files-from",
                     "-T",
                     str(ordered_inputs_path),
                     "-I",

@@ -8,8 +8,8 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 ## Current state (authoritative)
 
 - **Current Phase:** Phase 16 — 0.x Benchmarking and Compression Evidence.
-- **Current Step:** **CRUSHR_PHASE16_05 complete** (deterministic ordering/locality experiment model and harness/schema/doc integration).
-- **Phase 16 benchmark/tooling status:** deterministic dataset identity, assumptions, dictionary experiment metadata, zstd level/strategy experiment metadata, deterministic ordering/locality experiment metadata, and zstd strategy-capability-safe command construction are centralized and schema-backed.
+- **Current Step:** **CRUSHR_PHASE16_06 complete** (ordering experiment tar input generation fixed with deterministic, tar-resolvable file lists and preflight validation diagnostics).
+- **Phase 16 benchmark/tooling status:** deterministic dataset identity, assumptions, dictionary experiment metadata, zstd level/strategy experiment metadata, deterministic ordering/locality experiment metadata, zstd strategy-capability-safe command construction, and ordering input-list path validation/rooting are centralized and schema-backed.
 - **Runtime/code status in this packet:** benchmark tooling and docs updated; no archive format or runtime extraction/pack semantics changed.
 
 ## What is now true in code (benchmark/tooling truth)
@@ -19,11 +19,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Benchmark execution now requires/embeds `dataset_manifest.json`, records normalized `assumptions` metadata (`level`, comparator set, command-set fingerprint, dictionary experiment config, zstd level/strategy experiment config, ordering experiment config), and emits dictionary artifact provenance plus per-run dictionary dependency/zstd/ordering metadata in a consistent schema envelope.
 - zstd tar comparator command construction is now centralized and capability-safe: default strategy omits explicit `--strategy` flags, and non-default strategy requests fail early with a clear host-capability diagnostic when `zstd --strategy=<name>` is unsupported.
 - Deterministic ordering/locality strategies for tar comparators (`lexical`, `size_ascending`, `size_descending`, `extension_grouped`, `kind_then_extension`) are centralized and executed through generated explicit tar input-order files.
+- Ordering input files now write deterministic benchmark-execution-root-relative paths (for example `datasets/<dataset>/...`), tar invocations use `--verbatim-files-from`, and the harness fails early with explicit diagnostics for empty/malformed/unresolvable ordering files before tar execution.
 - Canonical benchmark command surface is `scripts/benchmark/harness.py` (`datasets`, `run`, `full`) including dictionary, zstd, and ordering experiment flags to reduce invocation drift between docs and operations.
 
 ## Open debt (intentional / deferred)
 
-1. **Benchmark environment portability debt:** benchmark runner still requires `tar`, `xz`, and `zstd` binaries in PATH; this environment lacked `zstd` for full matrix execution.
+1. **Benchmark environment portability debt:** benchmark runner still requires `tar`, `xz`, and `zstd` binaries in PATH.
 2. **Experimental metadata pruning direction:** FORMAT-10/11/12/13/14A/15 evidence review remains planning input, not product-surface runtime work.
 3. **Long-range platform work:** Phase 17+ roadmap items (1.x stabilization, evidence/custody layer) remain future work.
 
