@@ -12,7 +12,6 @@ copyright = "&copy; 2026 Richard Majewski • Code licensed MIT OR Apache-2.0 �
 extra_css = ["assets/stylesheets/theme.css"]
 nav = [
   { "Welcome" = "index.md" },
-  { "Why crushr" = "why-crushr.md" },
   { "User guide" = [
     { "Overview" = "guide/index.md" },
     { "Packing archives" = "guide/pack.md" },
@@ -34,18 +33,35 @@ nav = [
     { "Extent identity" = "reference/extent-identity.md" },
     { "Dictionary system" = "reference/dictionary-system.md" },
     { "Salvage model" = "reference/salvage-model.md" },
+    { "Format evolution" = "format-evolution.md" },
+  ] },
+  { "Security" = [
+    { "Overview" = "security/index.md" },
+    { "Security whitepaper" = "security/SECURITY_WHITEPAPER.md" },
+    { "Security architecture" = "security/SECURITY_ARCHITECTURE.md" },
+    { "Architectural invariants" = "security/ARCHITECTURAL_INVARIANTS.md" },
+    { "Threat model" = "security/THREAT_MODEL.md" },
+    { "Integrity guarantees" = "security/INTEGRITY_GUARANTEES.md" },
+    { "Verification specification" = "security/VERIFICATION_SPEC.md" },
+    { "Inspection and recovery contract" = "security/INSPECTION_AND_RECOVERY_CONTRACT.md" },
+    { "Security policy" = "security/SECURITY_POLICY.md" },
+    { "Risk register" = "security/RISK_REGISTER.md" },
+    { "Statement of applicability" = "security/SOA.md" },
+    { "Incident response" = "security/INCIDENT_RESPONSE.md" },
+    { "Access control" = "security/ACCESS_CONTROL.md" },
+    { "Internal audit 2026" = "security/INTERNAL_AUDIT_2026.md" },
   ] },
   { "Chronicles" = [
     { "Overview" = "chronicles/index.md" },
+    { "03/29/2026 — We Tried to Beat Compression. Compression Won." = "chronicles/2026-03-29-compression-won.md" },
     { "03/26/2026 — The Tool Told Me It Was Wrong" = "chronicles/2026-03-26-told-me-it-was-wrong.md" },
-    { "03/25/2026 - The Origin of crushr" = "chronicles/2026-03-25-the-origin-of-crushr.md" },
-    { "03/24/2026 - Feels Real" = "chronicles/2026-03-24-real-tool.md" },
-    { "03/18/2026 - Speed" = "chronicles/2026-03-18-speed.md" },
-    { "03/16/2026 - We Have Recoverability" = "chronicles/2026-03-16-we-have-recoverability.md" },
-    { "03/15/2026 - Corruption Trials" = "chronicles/2026-03-15-corruption-trials.md" },
-    { "03/13/2006 - It Begins" = "chronicles/2026-03-13-it-begins.md" },
+    { "03/25/2026 — The Origin of crushr" = "chronicles/2026-03-25-the-origin-of-crushr.md" },
+    { "03/24/2026 — Feels Like a Real Tool" = "chronicles/2026-03-24-real-tool.md" },
+    { "03/18/2026 — Speed Comes From Killing Bad Ideas Faster" = "chronicles/2026-03-18-speed.md" },
+    { "03/16/2026 — We Have Recoverability" = "chronicles/2026-03-16-we-have-recoverability.md" },
+    { "03/15/2026 — Corruption Trials" = "chronicles/2026-03-15-corruption-trials.md" },
+    { "03/13/2026 — It Begins" = "chronicles/2026-03-13-it-begins.md" },
   ] },
-  { "Format evolution" = "format-evolution.md" },
 ]
 
 [project.extra]
@@ -55,6 +71,11 @@ generator = false
 logo = "assets/crushr_icon.webp"
 favicon = "assets/favicon.png"
 features = [
+  "content.action.edit",
+  "content.action.view",
+  "content.code.annotate",
+  "content.code.copy",
+  "content.diagrams.mermaid",
   "navigation.instant",
   "navigation.tracking",
   "navigation.sections",
@@ -63,8 +84,6 @@ features = [
   "navigation.tabs",
   "navigation.tabs.sticky",
   "navigation.footer",
-  "content.action.edit",
-  "content.action.view",
   "search.highlight",
 ]
 

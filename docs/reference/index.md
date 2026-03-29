@@ -24,3 +24,13 @@ This section is intentionally narrow. It exists for readers who need the concise
 
 !!! tip "Why this section is small"
     The whitepaper explains the argument. The technical reference exists only to make the current architecture easier to implement and review.
+
+
+## Documentation roles
+
+- **Guide**: operator-facing usage and workflow material
+- **Whitepaper**: design rationale and evaluation
+- **Technical reference**: current architecture and behavior boundary
+- **Security and assurance**: guarantees, invariants, and trust model
+- **Future**: non-binding planning material
+- **Chronicles**: historical narrative, not normative behavior

@@ -1,5 +1,5 @@
 ---
-title: "We Tried to Beat Compression. Compression Won."
+title: "2026-03-29 — We Tried to Beat Compression. Compression Won."
 description: "Phase 16 findings: after exhausting realistic optimization paths, compression gains were marginal and not worth the tradeoffs."
 date: 2026-03-29
 status: Historical

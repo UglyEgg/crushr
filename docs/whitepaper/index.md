@@ -10,7 +10,7 @@ This section presents crushr as a technical format rather than an experiment dia
 | Dimension | Current answer |
 |---|---|
 | Audience | Storage engineers, systems programmers, archival practitioners, and technical reviewers |
-| Claim | crushr is a compression-oriented archive with deterministic salvage behavior under corruption |
+| Claim | crushr is a salvage-oriented archive with deterministic salvage behavior under corruption |
 | Core mechanism | Extent identity near the payload plus mirrored naming dictionaries |
 | Evaluation basis | Deterministic destructive testing across competing design branches |
 
@@ -30,3 +30,8 @@ crushr isolates the minimum architecture required to keep verified data useful a
 3. [Recovery and integrity model](recovery-model.md)
 4. [Experimental evaluation](evaluation.md)
 5. [Applicability and roadmap](applicability.md)
+
+
+## Assurance set
+
+The whitepaper explains design rationale and evaluation. The formal guarantee surface, trust boundaries, and invariants are defined separately in the [Security and assurance](../security/) section.

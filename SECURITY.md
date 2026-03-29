@@ -28,3 +28,9 @@ This project is under active development. Reported vulnerabilities will be revie
 ## Scope
 
 Security reports should be limited to genuine vulnerabilities. General bugs, correctness issues, feature requests, and support questions should be filed through the normal public issue process unless they have direct security impact.
+## Product security documentation
+
+Repository vulnerability handling is only one part of the project security story. The product security and assurance set lives under `docs/security/`.
+
+That set is maintained as a **self-assessed design alignment** against relevant ISO/IEC 27001 control principles for this project’s scope. It is not a certification statement.
+

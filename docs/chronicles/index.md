@@ -43,7 +43,7 @@ For current behavior and guarantees, see the formal docs and project control doc
 
 ## Entries
 
-- [2026-03-29  We Tried to Beat Compression. It Won](./2026-03-29-compression-won.md)
+- [2026-03-29 — We Tried to Beat Compression. Compression Won.](./2026-03-29-compression-won.md)
 - [2026-03-26 — The Tool Told Me It Was Wrong](./2026-03-26-told-me-it-was-wrong.md)
 - [2026-03-25 — The Origin of crushr](./2026-03-25-the-origin-of-crushr.md)
 - [2026-03-24 — Feels Like a Real Tool](./2026-03-24-real-tool.md)

@@ -5,19 +5,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # crushr
 
-[![Policy Gate](https://github.com/UglyEgg/crushr/actions/workflows/policy-gate.yml/badge.svg)](https://github.com/UglyEgg/crushr/actions/workflows/policy-gate.yml)
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
-[![REUSE status](https://api.reuse.software/badge/github.com/UglyEgg/crushr)](https://api.reuse.software/info/github.com/UglyEgg/crushr)
+A salvage-oriented archive format born from corruption testing.
 
-A Linux-first archive tool built to replace `tar + zstd` for workflows that care about preservation fidelity, honest recovery, and what actually happens when archives fail.
-
-Its core design question is simple:
-
-> When an archive is damaged, what can still be proven and recovered without guessing?
-
-That is the foundation.
-
-Everything else — tar-class preservation, archive inspection, future layout visibility, benchmarking, and later reproducible archive modes — sits on top of that principle rather than replacing it.
+crushr is built around a narrow claim: archive behavior after damage should be explicit, bounded, and verifiable. Standard archive functionality exists to support preservation completeness, not to redefine the project as a generic convenience-first archiver.
 
 ## Why crushr exists
 
@@ -245,6 +235,25 @@ Current behavior is intentionally fail-closed:
 - directories in listing output are derived from stored logical paths rather than treated as independent authoritative archive objects
 
 This introspection line is expected to expand further in the 0.4.x series, including richer metadata surfacing and deeper archive/layout visibility.
+
+
+
+## Security and assurance
+
+crushr publishes a self-assessed security and assurance set covering:
+- threat model
+- integrity guarantees
+- verification semantics
+- architectural invariants
+- control and audit documents
+
+crushr is **designed in alignment with ISO/IEC 27001 control principles (self-assessed)** for the subset of controls that meaningfully apply to a single-maintainer open-source archive project.
+
+This is not a certification claim. It is a public description of the project’s trust boundaries, rigor model, and control-alignment evidence.
+
+See:
+- `docs/security/`
+- `docs/SECURITY_WHITEPAPER.md` if mirrored into the site tree, or the site security section when published
 
 ## Documentation
 
