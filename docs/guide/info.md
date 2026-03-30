@@ -160,6 +160,13 @@ crushr info archive.crs --propagation --json
 
 Human mode (`--propagation`) is operator-facing and includes bounded sections for archive context, detected corruption, impact summary, and entry impacts.
 
+For dependency-dense entry impacts in human mode:
+
+- dependencies are rendered as multi-line rows
+- first 4 dependencies are shown in deterministic report order
+- any remainder is shown as `+ <n> more`
+- this summarization is human-mode only
+
 JSON mode (`--propagation --json`) remains machine-readable and separates:
 
 - dependency graph (`nodes`, `edges`)

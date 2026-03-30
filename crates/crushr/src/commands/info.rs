@@ -600,6 +600,29 @@ fn propagation_impact_kind_str(kind: &ActivatedImpactKind) -> &'static str {
     }
 }
 
+const HUMAN_PROPAGATION_DEPENDENCY_VISIBLE_LIMIT: usize = 4;
+
+fn format_human_dependency_lines(entry: &EntryImpactV1) -> Vec<String> {
+    let shown = entry
+        .dependencies
+        .iter()
+        .take(HUMAN_PROPAGATION_DEPENDENCY_VISIBLE_LIMIT)
+        .map(|dep| format!("{} ({})", dep.node, propagation_reason_str(&dep.reason)))
+        .collect::<Vec<_>>();
+    let remaining = entry
+        .dependencies
+        .len()
+        .saturating_sub(HUMAN_PROPAGATION_DEPENDENCY_VISIBLE_LIMIT);
+    if remaining == 0 {
+        shown
+    } else {
+        shown
+            .into_iter()
+            .chain(std::iter::once(format!("+ {remaining} more")))
+            .collect()
+    }
+}
+
 fn format_entry_reasons(entry: &EntryImpactV1) -> String {
     let mut reasons = entry
         .activated_causes
@@ -739,13 +762,15 @@ fn print_propagation_human(archive: &str, report: &PropagationReportV1) {
                 .collect::<Vec<_>>()
                 .join(", ");
             presenter.kv("supported trust classes", trust);
-            let dependencies = entry
-                .dependencies
-                .iter()
-                .map(|dep| format!("{} ({})", dep.node, propagation_reason_str(&dep.reason)))
-                .collect::<Vec<_>>()
-                .join(", ");
-            presenter.kv("dependencies", dependencies);
+            let dependency_lines = format_human_dependency_lines(entry);
+            if dependency_lines.is_empty() {
+                presenter.kv("dependencies", "none");
+            } else {
+                presenter.kv("dependencies", dependency_lines[0].as_str());
+                for line in dependency_lines.iter().skip(1) {
+                    presenter.kv("", line.as_str());
+                }
+            }
             println!();
         }
     }
@@ -755,6 +780,51 @@ fn print_propagation_human(archive: &str, report: &PropagationReportV1) {
         "propagation impact inspection completed",
         &[],
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{HUMAN_PROPAGATION_DEPENDENCY_VISIBLE_LIMIT, format_human_dependency_lines};
+    use crushr_core::propagation::{
+        DependencyLinkKind, EntryDependencyV1, EntryImpactV1, EntryTrustClass, FileImpactCause,
+        PropagationDependencyReason, PropagationImpactReason,
+    };
+
+    fn sample_entry_with_dependencies(count: usize) -> EntryImpactV1 {
+        EntryImpactV1 {
+            file_path: "alpha.txt".to_string(),
+            dependencies: (0..count)
+                .map(|idx| EntryDependencyV1 {
+                    node: format!("BLK3[{idx}]"),
+                    link_kind: DependencyLinkKind::Direct,
+                    reason: PropagationDependencyReason::RequiresBlockPayload,
+                })
+                .collect(),
+            activated_causes: vec![FileImpactCause {
+                cause_node: "BLK3[0]".to_string(),
+                reason: PropagationImpactReason::CorruptedRequiredBlock,
+            }],
+            canonical_blocked: true,
+            canonical_blocked_reasons: vec![PropagationImpactReason::CorruptedRequiredBlock],
+            supported_trust_classes: vec![EntryTrustClass::Unrecoverable],
+        }
+    }
+
+    #[test]
+    fn human_dependency_lines_show_remainder_count_when_summarized() {
+        let entry = sample_entry_with_dependencies(HUMAN_PROPAGATION_DEPENDENCY_VISIBLE_LIMIT + 3);
+        let lines = format_human_dependency_lines(&entry);
+        assert_eq!(lines.len(), HUMAN_PROPAGATION_DEPENDENCY_VISIBLE_LIMIT + 1);
+        assert_eq!(lines.last().expect("last"), "+ 3 more");
+    }
+
+    #[test]
+    fn human_dependency_lines_are_unsummarized_at_or_below_limit() {
+        let entry = sample_entry_with_dependencies(HUMAN_PROPAGATION_DEPENDENCY_VISIBLE_LIMIT);
+        let lines = format_human_dependency_lines(&entry);
+        assert_eq!(lines.len(), HUMAN_PROPAGATION_DEPENDENCY_VISIBLE_LIMIT);
+        assert!(!lines.iter().any(|line| line.starts_with("+ ")));
+    }
 }
 
 #[derive(Default)]
