@@ -2,8 +2,9 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::cli_presentation::{BannerLevel, CliPresenter, StatusWord, group_u64};
+use crate::extraction_payload_core::read_entry_bytes;
 use crate::format::{
-    EntryKind, IDX_MAGIC_V3, IDX_MAGIC_V4, IDX_MAGIC_V5, IDX_MAGIC_V6, IDX_MAGIC_V7,
+    Entry, EntryKind, Extent, IDX_MAGIC_V3, IDX_MAGIC_V4, IDX_MAGIC_V5, IDX_MAGIC_V6, IDX_MAGIC_V7,
     PreservationProfile,
 };
 use crate::index_codec::decode_index;
@@ -687,8 +688,17 @@ struct EntryIntrospectionRecord {
     metadata_complete: bool,
     extent_count: u64,
     size_bytes: u64,
+    payload_blake3: String,
+    logical_range: EntryLogicalRange,
+    identity_source: String,
     reason: Option<String>,
     strict_extraction_supported: bool,
+}
+
+#[derive(Clone, serde::Serialize)]
+struct EntryLogicalRange {
+    start: u64,
+    end: u64,
 }
 
 #[derive(serde::Serialize)]
@@ -699,6 +709,9 @@ struct EntryIntrospectionJson {
     metadata_complete: bool,
     extent_count: u64,
     size_bytes: u64,
+    payload_blake3: String,
+    logical_range: EntryLogicalRange,
+    identity_source: String,
     reason: Option<String>,
     strict_extraction_supported: bool,
 }
@@ -744,6 +757,7 @@ fn entry_records_from_index_bytes<R: ReadAt + Len>(
     };
     let mut records = Vec::new();
     for entry in index.entries {
+        let logical_range = logical_range_from_extents(entry.size, entry.sparse, &entry.extents);
         let payload_verified = if entry.kind == EntryKind::Regular {
             payload_validity.as_ref().is_some_and(|bad_blocks| {
                 entry
@@ -756,19 +770,72 @@ fn entry_records_from_index_bytes<R: ReadAt + Len>(
         };
         let metadata_complete = !degraded;
         let strict_extraction_supported = payload_verified && metadata_complete;
+        let identity_source = if degraded {
+            "idx3_fallback".to_string()
+        } else {
+            "canonical_index".to_string()
+        };
+        let payload_blake3 = entry_payload_blake3(reader, &entry, degraded)
+            .unwrap_or_else(|| "unavailable".to_string());
         records.push(EntryIntrospectionRecord {
-            path: entry.path,
+            path: entry.path.clone(),
             trust_class,
             payload_verified,
             metadata_complete,
             extent_count: entry.extents.len() as u64,
             size_bytes: entry.size,
+            payload_blake3,
+            logical_range,
+            identity_source,
             reason: reason.clone(),
             strict_extraction_supported,
         });
     }
     records.sort_by(|a, b| a.path.cmp(&b.path));
     Ok(records)
+}
+
+fn logical_range_from_extents(
+    size_bytes: u64,
+    sparse: bool,
+    extents: &[Extent],
+) -> EntryLogicalRange {
+    if extents.is_empty() {
+        return EntryLogicalRange { start: 0, end: 0 };
+    }
+    let start = if sparse {
+        extents
+            .iter()
+            .map(|extent| extent.logical_offset)
+            .min()
+            .unwrap_or(0)
+    } else {
+        0
+    };
+    let end = if sparse {
+        extents
+            .iter()
+            .filter_map(|extent| extent.logical_offset.checked_add(extent.len))
+            .max()
+            .unwrap_or(size_bytes)
+    } else {
+        size_bytes
+    };
+    EntryLogicalRange { start, end }
+}
+
+fn entry_payload_blake3<R: ReadAt + Len>(
+    reader: &R,
+    entry: &Entry,
+    degraded: bool,
+) -> Option<String> {
+    if degraded || entry.kind != EntryKind::Regular {
+        return None;
+    }
+    let opened = open_archive_v1(reader).ok()?;
+    let blocks = scan_blocks_v1(reader, opened.tail.footer.blocks_end_offset).ok()?;
+    let bytes = read_entry_bytes(reader, entry, &blocks).ok()?;
+    Some(blake3::hash(&bytes).to_hex().to_string())
 }
 
 fn load_entry_records<R: ReadAt + Len>(reader: &R) -> Result<Vec<EntryIntrospectionRecord>> {
@@ -1083,6 +1150,9 @@ fn run(raw_args: Vec<String>) -> Result<()> {
                     metadata_complete: record.metadata_complete,
                     extent_count: record.extent_count,
                     size_bytes: record.size_bytes,
+                    payload_blake3: record.payload_blake3.clone(),
+                    logical_range: record.logical_range.clone(),
+                    identity_source: record.identity_source.clone(),
                     reason: record.reason.clone(),
                     strict_extraction_supported: record.strict_extraction_supported,
                 };
@@ -1115,6 +1185,18 @@ fn run(raw_args: Vec<String>) -> Result<()> {
             );
             presenter.kv("extent count", group_u64(record.extent_count));
             presenter.kv("size bytes", group_u64(record.size_bytes));
+            presenter.kv("payload blake3", &record.payload_blake3);
+            presenter.kv(
+                "logical range",
+                format!(
+                    "0x{:016x}..0x{:016x} ({}..{})",
+                    record.logical_range.start,
+                    record.logical_range.end,
+                    group_u64(record.logical_range.start),
+                    group_u64(record.logical_range.end)
+                ),
+            );
+            presenter.kv("identity source", &record.identity_source);
             presenter.kv(
                 "strict extraction supported",
                 if record.strict_extraction_supported {

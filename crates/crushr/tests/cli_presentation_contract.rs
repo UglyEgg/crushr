@@ -495,6 +495,10 @@ fn info_entry_reports_truth_surface_for_exact_path_and_not_found() {
     assert!(out.contains("canonical"));
     assert!(out.contains("payload verified"));
     assert!(out.contains("true"));
+    assert!(out.contains("payload blake3"));
+    assert!(out.contains("logical range"));
+    assert!(out.contains("identity source"));
+    assert!(out.contains("canonical_index"));
     assert!(out.contains("strict extraction supported"));
 
     let not_found = run_ok(
@@ -537,6 +541,10 @@ fn info_entry_and_find_json_are_deterministic_and_find_is_sorted() {
     assert!(entry_value["metadata_complete"].is_boolean());
     assert!(entry_value["extent_count"].is_u64());
     assert!(entry_value["size_bytes"].is_u64());
+    assert!(entry_value["payload_blake3"].is_string());
+    assert!(entry_value["logical_range"]["start"].is_u64());
+    assert!(entry_value["logical_range"]["end"].is_u64());
+    assert_eq!(entry_value["identity_source"], "canonical_index");
     assert!(entry_value["strict_extraction_supported"].is_boolean());
 
     let not_found_json = run_ok(

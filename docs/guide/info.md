@@ -121,6 +121,9 @@ crushr info archive.crs --entry src/main.rs --json
 - metadata completeness status
 - extent count
 - size bytes
+- payload BLAKE3
+- logical range (`start..end`) in both hex and decimal form
+- identity source
 - strict extraction supportability for that entry
 - non-canonical reason when applicable
 

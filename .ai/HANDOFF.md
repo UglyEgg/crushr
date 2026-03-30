@@ -77,3 +77,5 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - `P17S01f0` complete: `crushr info` truth-surface expansion + wrapper binary removal to single `crushr` binary access.
 
 - `P17S02f0` complete: `crushr info --entry` + `crushr info --find` entry-level introspection expansion with deterministic human/JSON behavior.
+
+- `P17S02f1` complete: `crushr info --entry` enriched with deterministic `payload_blake3`, logical range (`start`/`end`), and `identity_source` in both human and JSON output without trust-model drift.
