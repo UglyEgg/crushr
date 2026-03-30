@@ -32,6 +32,8 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - `crushr verify`
 - `crushr info`
 - `crushr info --list`
+- `crushr info --entry`
+- `crushr info --find`
 - `crushr extract`
 - `crushr extract --recover`
 - `crushr about`
@@ -73,3 +75,5 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 ## Latest completed step
 
 - `P17S01f0` complete: `crushr info` truth-surface expansion + wrapper binary removal to single `crushr` binary access.
+
+- `P17S02f0` complete: `crushr info --entry` + `crushr info --find` entry-level introspection expansion with deterministic human/JSON behavior.

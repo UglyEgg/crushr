@@ -464,3 +464,153 @@ fn info_list_surfaces_profile_context_across_preservation_variants() {
         assert!(out.contains("scope                  regular files (metadata/index proven)"));
     }
 }
+
+#[test]
+fn info_entry_reports_truth_surface_for_exact_path_and_not_found() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    fs::create_dir_all(input_dir.join("src")).expect("create dirs");
+    fs::write(input_dir.join("src/main.rs"), b"fn main(){}\n").expect("write file");
+    fs::write(input_dir.join("src/lib.rs"), b"pub fn x(){}\n").expect("write file");
+    let archive = tmp.path().join("sample.crushr");
+
+    run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
+            .arg(&input_dir)
+            .arg("-o")
+            .arg(&archive),
+    );
+
+    let out = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .args(["--entry", "src/main.rs"]),
+    );
+    assert!(out.contains("crushr  /  entry"));
+    assert!(out.contains("logical path"));
+    assert!(out.contains("src/main.rs"));
+    assert!(out.contains("trust class"));
+    assert!(out.contains("canonical"));
+    assert!(out.contains("payload verified"));
+    assert!(out.contains("true"));
+    assert!(out.contains("strict extraction supported"));
+
+    let not_found = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .args(["--entry", "missing.txt"]),
+    );
+    assert!(not_found.contains("entry not found"));
+}
+
+#[test]
+fn info_entry_and_find_json_are_deterministic_and_find_is_sorted() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    fs::create_dir_all(input_dir.join("src/deep")).expect("create dirs");
+    fs::write(input_dir.join("src/main.rs"), b"main").expect("write file");
+    fs::write(input_dir.join("src/lib.rs"), b"lib").expect("write file");
+    fs::write(input_dir.join("src/deep/mod.rs"), b"mod").expect("write file");
+    let archive = tmp.path().join("sample.crushr");
+
+    run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
+            .arg(&input_dir)
+            .arg("-o")
+            .arg(&archive),
+    );
+
+    let entry_json = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .args(["--entry", "src/main.rs", "--json"]),
+    );
+    let entry_value: serde_json::Value = serde_json::from_str(&entry_json).expect("json");
+    assert_eq!(entry_value["path"], "src/main.rs");
+    assert_eq!(entry_value["trust_class"], "canonical");
+    assert!(entry_value["payload_verified"].is_boolean());
+    assert!(entry_value["metadata_complete"].is_boolean());
+    assert!(entry_value["extent_count"].is_u64());
+    assert!(entry_value["size_bytes"].is_u64());
+    assert!(entry_value["strict_extraction_supported"].is_boolean());
+
+    let not_found_json = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .args(["--entry", "src/nope.rs", "--json"]),
+    );
+    let not_found_value: serde_json::Value =
+        serde_json::from_str(&not_found_json).expect("json not found");
+    assert_eq!(not_found_value["found"], false);
+    assert_eq!(not_found_value["path"], "src/nope.rs");
+
+    let find_json = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .args(["--find", ".rs", "--json"]),
+    );
+    let find_value: serde_json::Value = serde_json::from_str(&find_json).expect("find json");
+    let rows = find_value.as_array().expect("array rows");
+    let paths: Vec<&str> = rows
+        .iter()
+        .map(|row| row["path"].as_str().expect("path"))
+        .collect();
+    assert_eq!(paths, vec!["src/deep/mod.rs", "src/lib.rs", "src/main.rs"]);
+    for row in rows {
+        assert_eq!(row["trust_class"], "canonical");
+    }
+
+    let no_match_json = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .args(["--find", "zzz", "--json"]),
+    );
+    let no_match_value: serde_json::Value = serde_json::from_str(&no_match_json).expect("json");
+    assert_eq!(no_match_value.as_array().expect("empty array").len(), 0);
+}
+
+#[test]
+fn info_find_human_and_info_entry_do_not_create_output_paths() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    let probe_dir = tmp.path().join("probe");
+    fs::create_dir_all(&input_dir).expect("create input");
+    fs::write(input_dir.join("a.txt"), b"a").expect("write");
+    let archive = tmp.path().join("sample.crushr");
+
+    run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
+            .arg(&input_dir)
+            .arg("-o")
+            .arg(&archive),
+    );
+
+    let out = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .current_dir(tmp.path())
+            .arg("info")
+            .arg(&archive)
+            .args(["--find", "a"]),
+    );
+    assert!(out.contains("crushr  /  find"));
+    assert!(out.contains("a.txt"));
+    assert!(!probe_dir.exists());
+
+    run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .current_dir(tmp.path())
+            .arg("info")
+            .arg(&archive)
+            .args(["--entry", "a.txt"]),
+    );
+    assert!(!probe_dir.exists());
+}

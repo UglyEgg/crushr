@@ -86,6 +86,8 @@ The project provides:
 - recovery-aware extraction with `crushr extract --recover`  
 - archive inspection with `crushr info`  
 - pre-extraction archive listing with `crushr info --list`  
+- exact entry introspection with `crushr info --entry <logical/path>`  
+- deterministic entry search with `crushr info --find <query>`  
 - binary build and environment inspection with `crushr about`  
 
 crushr archives are identified by format markers, not by filename extension.
@@ -240,6 +242,8 @@ crushr archives are inspectable without extraction.
 
 - `crushr info` provides archive-level introspection: structure, preservation profile, and declared metadata scope  
 - `crushr info --list` provides entry-level introspection: listing, classification, and attributes without extraction  
+- `crushr info --entry <logical/path>` provides exact-path truth for one entry without extraction  
+- `crushr info --find <query>` provides deterministic substring search over stable logical identities  
 
 Current behavior is fail-closed:
 
@@ -286,7 +290,7 @@ These are not part of the public documentation surface.
 
 ## Product boundary
 
-- **Stable product surface:** `pack`, `verify`, `extract`, `extract --recover`, `info`, `info --list`, `about`  
+- **Stable product surface:** `pack`, `verify`, `extract`, `extract --recover`, `info`, `info --list`, `info --entry`, `info --find`, `about`  
 - **Bounded internal surface:** workspace Rust crates/modules  
 - **Experimental/lab-only surface:** `crushr lab` and research tooling  
 

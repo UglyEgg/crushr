@@ -288,7 +288,7 @@ fn print_help() {
     presenter.section("Usage");
     presenter.kv(
         "command",
-        "crushr info <archive> [--json] [--list] [--flat] [--report propagation]",
+        "crushr info <archive> [--json] [--list] [--flat] [--entry <path>] [--find <query>] [--find-mode substring] [--find-limit <n>] [--report propagation]",
     );
     presenter.section("Flags");
     presenter.kv("--json", "emit machine-readable output");
@@ -297,6 +297,16 @@ fn print_help() {
         "list metadata/index-proven contents without extraction",
     );
     presenter.kv("--flat", "list full paths (requires --list)");
+    presenter.kv("--entry <path>", "inspect one logical entry by exact path");
+    presenter.kv("--find <query>", "find logical entries by substring");
+    presenter.kv(
+        "--find-mode substring",
+        "reserved search mode flag (substring supported)",
+    );
+    presenter.kv(
+        "--find-limit <n>",
+        "optional maximum result count for --find",
+    );
     presenter.kv("--report propagation", "emit propagation/dependency report");
     presenter.kv("-h, --help", "print this help text");
     presenter.kv("--version, -V", "print version");
@@ -646,6 +656,131 @@ struct ListingTruthView {
     result_message: &'static str,
 }
 
+#[allow(dead_code)]
+#[derive(Clone, Copy, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+enum EntryTrustClass {
+    Canonical,
+    MetadataDegraded,
+    RecoveredNamed,
+    RecoveredAnonymous,
+    Unrecoverable,
+}
+
+impl EntryTrustClass {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Canonical => "canonical",
+            Self::MetadataDegraded => "metadata_degraded",
+            Self::RecoveredNamed => "recovered_named",
+            Self::RecoveredAnonymous => "recovered_anonymous",
+            Self::Unrecoverable => "unrecoverable",
+        }
+    }
+}
+
+#[derive(Clone)]
+struct EntryIntrospectionRecord {
+    path: String,
+    trust_class: EntryTrustClass,
+    payload_verified: bool,
+    metadata_complete: bool,
+    extent_count: u64,
+    size_bytes: u64,
+    reason: Option<String>,
+    strict_extraction_supported: bool,
+}
+
+#[derive(serde::Serialize)]
+struct EntryIntrospectionJson {
+    path: String,
+    trust_class: EntryTrustClass,
+    payload_verified: bool,
+    metadata_complete: bool,
+    extent_count: u64,
+    size_bytes: u64,
+    reason: Option<String>,
+    strict_extraction_supported: bool,
+}
+
+#[derive(serde::Serialize)]
+struct EntryLookupNotFoundJson {
+    found: bool,
+    path: String,
+}
+
+#[derive(serde::Serialize)]
+struct EntryFindJsonRow {
+    path: String,
+    trust_class: EntryTrustClass,
+}
+
+fn entry_records_from_index_bytes<R: ReadAt + Len>(
+    reader: &R,
+    idx3_bytes: &[u8],
+    degraded: bool,
+) -> Result<Vec<EntryIntrospectionRecord>> {
+    let index = decode_index(idx3_bytes).context("decode IDX3 index")?;
+    let payload_validity = if degraded {
+        None
+    } else {
+        let opened = open_archive_v1(reader)?;
+        let invalid_blocks =
+            verify_block_payloads_v1(reader, opened.tail.footer.blocks_end_offset)?;
+        Some(invalid_blocks)
+    };
+    let trust_class = if degraded {
+        EntryTrustClass::MetadataDegraded
+    } else {
+        EntryTrustClass::Canonical
+    };
+    let reason = if degraded {
+        Some(
+            "archive has structural damage outside IDX3; entry evidence is index-proven only"
+                .to_string(),
+        )
+    } else {
+        None
+    };
+    let mut records = Vec::new();
+    for entry in index.entries {
+        let payload_verified = if entry.kind == EntryKind::Regular {
+            payload_validity.as_ref().is_some_and(|bad_blocks| {
+                entry
+                    .extents
+                    .iter()
+                    .all(|extent| !bad_blocks.contains(&extent.block_id))
+            })
+        } else {
+            true
+        };
+        let metadata_complete = !degraded;
+        let strict_extraction_supported = payload_verified && metadata_complete;
+        records.push(EntryIntrospectionRecord {
+            path: entry.path,
+            trust_class,
+            payload_verified,
+            metadata_complete,
+            extent_count: entry.extents.len() as u64,
+            size_bytes: entry.size,
+            reason: reason.clone(),
+            strict_extraction_supported,
+        });
+    }
+    records.sort_by(|a, b| a.path.cmp(&b.path));
+    Ok(records)
+}
+
+fn load_entry_records<R: ReadAt + Len>(reader: &R) -> Result<Vec<EntryIntrospectionRecord>> {
+    match open_archive_v1(reader) {
+        Ok(opened) => entry_records_from_index_bytes(reader, &opened.tail.idx3_bytes, false),
+        Err(_) => {
+            let idx3_bytes = read_idx3_bytes_from_footer(reader)?;
+            entry_records_from_index_bytes(reader, &idx3_bytes, true)
+        }
+    }
+}
+
 fn build_listing_truth_view(listing: &ListingLoad) -> ListingTruthView {
     if listing.degraded {
         ListingTruthView {
@@ -792,6 +927,10 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     let mut report = None;
     let mut list = false;
     let mut flat = false;
+    let mut entry = None;
+    let mut find = None;
+    let mut find_mode = "substring".to_string();
+    let mut find_limit = None;
 
     let mut args = raw_args.into_iter();
     while let Some(arg) = args.next() {
@@ -803,6 +942,19 @@ fn run(raw_args: Vec<String>) -> Result<()> {
             flat = true;
         } else if arg == "--report" {
             report = Some(args.next().context("missing value for --report")?);
+        } else if arg == "--entry" {
+            entry = Some(args.next().context("missing value for --entry")?);
+        } else if arg == "--find" {
+            find = Some(args.next().context("missing value for --find")?);
+        } else if arg == "--find-mode" {
+            find_mode = args.next().context("missing value for --find-mode")?;
+        } else if arg == "--find-limit" {
+            let raw_limit = args.next().context("missing value for --find-limit")?;
+            find_limit = Some(
+                raw_limit
+                    .parse::<usize>()
+                    .context("invalid value for --find-limit (expected integer)")?,
+            );
         } else if arg.starts_with('-') {
             bail!("unsupported flag: {arg}");
         } else if archive.is_none() {
@@ -821,9 +973,30 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     if list && report.is_some() {
         bail!("--report cannot be combined with --list");
     }
+    if list && entry.is_some() {
+        bail!("--entry cannot be combined with --list");
+    }
+    if list && find.is_some() {
+        bail!("--find cannot be combined with --list");
+    }
+    if report.is_some() && entry.is_some() {
+        bail!("--entry cannot be combined with --report");
+    }
+    if report.is_some() && find.is_some() {
+        bail!("--find cannot be combined with --report");
+    }
+    if entry.is_some() && find.is_some() {
+        bail!("--entry cannot be combined with --find");
+    }
+    if find.is_none() && (find_limit.is_some() || find_mode != "substring") {
+        bail!("--find-mode/--find-limit require --find");
+    }
+    if find_mode != "substring" {
+        bail!("unsupported find mode: {find_mode} (expected substring)");
+    }
 
     let archive = archive.context(
-        "usage: crushr info <archive> [--json] [--list] [--flat] [--report propagation]",
+        "usage: crushr info <archive> [--json] [--list] [--flat] [--entry <path>] [--find <query>] [--find-mode substring] [--find-limit <n>] [--report propagation]",
     )?;
 
     let reader = FileReader {
@@ -893,6 +1066,131 @@ fn run(raw_args: Vec<String>) -> Result<()> {
 
         presenter.result_summary(listing_truth.status, listing_truth.result_message, &rows);
 
+        return Ok(());
+    }
+
+    if let Some(entry_path) = entry {
+        let records = load_entry_records(&reader)?;
+        if let Some(record) = records
+            .iter()
+            .find(|candidate| candidate.path == entry_path)
+        {
+            if json {
+                let row = EntryIntrospectionJson {
+                    path: record.path.clone(),
+                    trust_class: record.trust_class,
+                    payload_verified: record.payload_verified,
+                    metadata_complete: record.metadata_complete,
+                    extent_count: record.extent_count,
+                    size_bytes: record.size_bytes,
+                    reason: record.reason.clone(),
+                    strict_extraction_supported: record.strict_extraction_supported,
+                };
+                println!("{}", serialize_snapshot_json(&row)?);
+                return Ok(());
+            }
+
+            let presenter = CliPresenter::new("crushr", "entry", false);
+            presenter.header();
+            presenter.section("Archive");
+            presenter.kv("path", &archive);
+            presenter.section("Entry");
+            presenter.kv("logical path", &record.path);
+            presenter.kv("trust class", record.trust_class.as_str());
+            presenter.kv(
+                "payload verified",
+                if record.payload_verified {
+                    "true"
+                } else {
+                    "false"
+                },
+            );
+            presenter.kv(
+                "metadata complete",
+                if record.metadata_complete {
+                    "true"
+                } else {
+                    "false"
+                },
+            );
+            presenter.kv("extent count", group_u64(record.extent_count));
+            presenter.kv("size bytes", group_u64(record.size_bytes));
+            presenter.kv(
+                "strict extraction supported",
+                if record.strict_extraction_supported {
+                    "true"
+                } else {
+                    "false"
+                },
+            );
+            if let Some(reason) = &record.reason {
+                presenter.kv("reason", reason);
+            }
+            presenter.result_summary(StatusWord::Complete, "entry inspection completed", &[]);
+            return Ok(());
+        }
+
+        if json {
+            let not_found = EntryLookupNotFoundJson {
+                found: false,
+                path: entry_path,
+            };
+            println!("{}", serialize_snapshot_json(&not_found)?);
+            return Ok(());
+        }
+
+        let presenter = CliPresenter::new("crushr", "entry", false);
+        presenter.header();
+        presenter.section("Archive");
+        presenter.kv("path", &archive);
+        presenter.section("Entry");
+        presenter.kv("logical path", &entry_path);
+        presenter.result_summary(StatusWord::Degraded, "entry not found", &[]);
+        return Ok(());
+    }
+
+    if let Some(query) = find {
+        let mut matches: Vec<EntryFindJsonRow> = load_entry_records(&reader)?
+            .into_iter()
+            .filter(|record| {
+                matches!(
+                    record.trust_class,
+                    EntryTrustClass::Canonical
+                        | EntryTrustClass::MetadataDegraded
+                        | EntryTrustClass::RecoveredNamed
+                ) && record.path.contains(&query)
+            })
+            .map(|record| EntryFindJsonRow {
+                path: record.path,
+                trust_class: record.trust_class,
+            })
+            .collect();
+        matches.sort_by(|a, b| a.path.cmp(&b.path));
+        if let Some(limit) = find_limit {
+            matches.truncate(limit);
+        }
+
+        if json {
+            println!("{}", serialize_snapshot_json(&matches)?);
+            return Ok(());
+        }
+
+        let presenter = CliPresenter::new("crushr", "find", false);
+        presenter.header();
+        presenter.section("Archive");
+        presenter.kv("path", &archive);
+        presenter.kv("query", &query);
+        presenter.kv("mode", &find_mode);
+        presenter.section("Matches");
+        if matches.is_empty() {
+            println!("  (no matching entries)");
+            presenter.result_summary(StatusWord::Degraded, "no matches", &[]);
+        } else {
+            for entry in &matches {
+                println!("  {:<48} {}", entry.path, entry.trust_class.as_str());
+            }
+            presenter.result_summary(StatusWord::Complete, "search completed", &[]);
+        }
         return Ok(());
     }
 
@@ -1152,12 +1450,24 @@ pub fn dispatch(args: Vec<String>) -> i32 {
             let msg = format!("{err:#}");
             if msg.contains("usage:")
                 || msg.contains("missing value for --report")
+                || msg.contains("missing value for --entry")
+                || msg.contains("missing value for --find")
+                || msg.contains("missing value for --find-mode")
+                || msg.contains("missing value for --find-limit")
                 || msg.contains("unsupported report")
+                || msg.contains("unsupported find mode")
                 || msg.contains("unsupported flag")
+                || msg.contains("invalid value for --find-limit")
                 || msg.contains("unexpected argument")
                 || msg.contains("--flat requires --list")
                 || msg.contains("--json cannot be combined with --list")
                 || msg.contains("--report cannot be combined with --list")
+                || msg.contains("--entry cannot be combined with --list")
+                || msg.contains("--find cannot be combined with --list")
+                || msg.contains("--entry cannot be combined with --report")
+                || msg.contains("--find cannot be combined with --report")
+                || msg.contains("--entry cannot be combined with --find")
+                || msg.contains("--find-mode/--find-limit require --find")
             {
                 1
             } else {

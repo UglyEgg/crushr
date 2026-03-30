@@ -1735,3 +1735,22 @@ Initial per-dataset zstd dictionary experiments did not produce meaningful gains
 
 ## Status
 LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit decision.
+
+## 2026-03-30 — P17S02f0 entry-level introspection expansion lock
+
+- Decision:
+  - Extend `crushr info` with exact entry lookup (`--entry <logical/path>`) and deterministic logical-identity search (`--find <query>`) without extraction, mutation, or repair semantics.
+  - Keep output split by mode: operator-facing human presentation by default; raw machine-readable JSON only when `--json` is explicitly requested.
+  - Reserve forward-compatible search shape by accepting `--find-mode substring` and `--find-limit <n>` while enforcing substring as the only supported mode.
+- Alternatives considered:
+  1. Keep `info --list` as the only entry-level introspection surface.
+  2. Introduce fuzzy search behavior in baseline `--find`.
+- Rationale:
+  - Packet scope requires deterministic entry truth and lookup/search without extraction side effects.
+  - Exact lookup + deterministic substring search provides bounded operator value now while preserving command-surface compatibility for future search-mode expansion.
+- Blast radius:
+  - `crates/crushr/src/commands/info.rs`
+  - `crates/crushr/tests/cli_presentation_contract.rs`
+  - `README.md`, `docs/guide/info.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+  - No archive-format, extraction behavior, recovery behavior, or dependency-policy changes.
