@@ -86,6 +86,7 @@ fn assert_valid_against_schema(validator: &JSONSchema, instance: &Value, context
         panic!("{context} failed schema validation:\n{rendered}\ninstance={instance}");
     }
 }
+
 fn as_object<'a>(value: &'a Value, context: &str) -> &'a serde_json::Map<String, Value> {
     value
         .as_object()
@@ -135,6 +136,10 @@ fn assert_schema_shape(schema: &Value, instance: &Value) {
             "nodes",
             "edges",
             "per_file_impacts",
+            "detected_corruption",
+            "required_structures",
+            "activated_impacts",
+            "entry_impacts",
         ],
         "report",
     );
@@ -171,6 +176,18 @@ fn assert_schema_shape(schema: &Value, instance: &Value) {
         last = Some(value);
     }
 
+    let detected = as_object(&instance["detected_corruption"], "detected_corruption");
+    assert_field_set(
+        detected,
+        &["structure_nodes", "blocks"],
+        "detected_corruption",
+    );
+    assert_eq!(
+        detected["structure_nodes"],
+        instance["corrupted_structure_nodes"]
+    );
+    assert_eq!(detected["blocks"], instance["corrupted_blocks"]);
+
     let allowed_node_kinds = BTreeSet::from(["footer", "tail_frame", "index", "block", "file"]);
     for node in as_array(&instance["nodes"], "nodes") {
         let node = as_object(node, "node");
@@ -184,10 +201,11 @@ fn assert_schema_shape(schema: &Value, instance: &Value) {
     }
 
     let allowed_edge_reasons = BTreeSet::from([
-        "required_for_reachability",
-        "required_for_index",
-        "required_for_extraction",
-        "required_data_block",
+        "requires_footer_reachability",
+        "requires_tail_frame",
+        "requires_index",
+        "requires_metadata_mapping",
+        "requires_block_payload",
     ]);
     let edges = as_array(&instance["edges"], "edges");
     let edges_sorted = edges
@@ -261,6 +279,70 @@ fn assert_schema_shape(schema: &Value, instance: &Value) {
         file_paths, sorted_paths,
         "per_file_impacts must be path-sorted"
     );
+
+    let required_structures = as_array(&instance["required_structures"], "required_structures");
+    assert_eq!(required_structures.len(), 3);
+
+    let allowed_impact_kinds = BTreeSet::from([
+        "blocks_canonical_extraction",
+        "causes_metadata_degraded",
+        "leaves_unrecoverable",
+    ]);
+    for impact in as_array(&instance["activated_impacts"], "activated_impacts") {
+        let impact = as_object(impact, "activated_impact");
+        assert_field_set(
+            impact,
+            &["cause_node", "reason", "impact_kind", "affected_entries"],
+            "activated_impact",
+        );
+        assert!(allowed_impact_reasons.contains(impact["reason"].as_str().unwrap()));
+        assert!(allowed_impact_kinds.contains(impact["impact_kind"].as_str().unwrap()));
+        assert_sorted_strings(
+            as_array(&impact["affected_entries"], "affected_entries"),
+            "affected_entries",
+        );
+    }
+
+    let allowed_link_kinds = BTreeSet::from(["direct", "propagated"]);
+    let allowed_trust_classes = BTreeSet::from([
+        "canonical",
+        "metadata_degraded",
+        "recovered_named",
+        "recovered_anonymous",
+        "unrecoverable",
+    ]);
+    for entry in as_array(&instance["entry_impacts"], "entry_impacts") {
+        let entry = as_object(entry, "entry_impact");
+        assert_field_set(
+            entry,
+            &[
+                "file_path",
+                "dependencies",
+                "activated_causes",
+                "canonical_blocked",
+                "canonical_blocked_reasons",
+                "supported_trust_classes",
+            ],
+            "entry_impact",
+        );
+        for dependency in as_array(&entry["dependencies"], "dependencies") {
+            let dependency = as_object(dependency, "dependency");
+            assert_field_set(dependency, &["node", "link_kind", "reason"], "dependency");
+            assert!(allowed_link_kinds.contains(dependency["link_kind"].as_str().unwrap()));
+            assert!(allowed_edge_reasons.contains(dependency["reason"].as_str().unwrap()));
+        }
+        for trust in as_array(&entry["supported_trust_classes"], "supported_trust_classes") {
+            assert!(allowed_trust_classes.contains(trust.as_str().unwrap()));
+        }
+    }
+
+    let lowered = instance.to_string().to_ascii_lowercase();
+    for forbidden in ["might", "likely", "probably", "restorable"] {
+        assert!(
+            !lowered.contains(forbidden),
+            "propagation output must not include speculative language: {forbidden}"
+        );
+    }
 }
 
 #[test]
@@ -300,6 +382,10 @@ fn propagation_report_healthy_archive_has_deterministic_graph_shape() {
     assert_eq!(report["nodes"][1]["id"], "structure:tail_frame");
     assert_eq!(report["nodes"][2]["id"], "structure:idx3");
     assert_eq!(report["per_file_impacts"][0]["file_path"], "a.txt");
+    assert_eq!(
+        report["entry_impacts"][0]["supported_trust_classes"],
+        serde_json::json!(["canonical"])
+    );
     assert_eq!(report["corrupted_blocks"], serde_json::json!([]));
     assert_eq!(report["corrupted_structure_nodes"], serde_json::json!([]));
 
@@ -366,16 +452,11 @@ fn propagation_report_matches_extract_refusal_for_single_corrupted_block() {
         .map(|r| r["path"].as_str().unwrap().to_string())
         .collect();
 
-    let impacted: Vec<String> = report["per_file_impacts"]
+    let impacted: Vec<String> = report["entry_impacts"]
         .as_array()
         .unwrap()
         .iter()
-        .filter(|f| {
-            !f["actual_impacts_from_current_corruption"]
-                .as_array()
-                .unwrap()
-                .is_empty()
-        })
+        .filter(|f| !f["activated_causes"].as_array().unwrap().is_empty())
         .map(|f| f["file_path"].as_str().unwrap().to_string())
         .collect();
 
@@ -387,6 +468,20 @@ fn propagation_report_matches_extract_refusal_for_single_corrupted_block() {
         );
     }
     assert_eq!(report["corrupted_blocks"].as_array().unwrap().len(), 1);
+
+    let impacted_entries = report["entry_impacts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|entry| !entry["activated_causes"].as_array().unwrap().is_empty())
+        .collect::<Vec<_>>();
+    assert!(impacted_entries.iter().all(|entry| {
+        entry["supported_trust_classes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|class| class.as_str() != Some("canonical"))
+    }));
 
     let _ = fs::remove_dir_all(&root);
 }

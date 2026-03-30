@@ -7,13 +7,19 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 ## Intent
 
-This contract defines a deterministic explanatory graph for archive-impact reasoning.
+This contract defines a deterministic explanatory propagation surface for archive-impact reasoning.
 
 It is explanatory and bounded. It is not a repair, reconstruction, or recovery plan.
 
 ## Scope
 
-Applies to the current graph-reporting surface for archive structures, required blocks, and affected file entries.
+Applies to:
+
+- structure/block dependency graph (`nodes`, `edges`)
+- detected corruption inputs (`detected_corruption`)
+- required cross-entry structures (`required_structures`)
+- activated impacts caused by currently detected corruption (`activated_impacts`)
+- per-entry dependency and impact explanation (`entry_impacts`)
 
 ## Command surface
 
@@ -21,9 +27,15 @@ Applies to the current graph-reporting surface for archive structures, required 
 
 ## Semantics
 
-- direct dependency is encoded as an edge with a bounded reason
-- propagated impact explains which files depend on which required structures or blocks
-- actual impact is the subset activated by currently detected corruption
+- direct and propagated per-entry dependencies are explicit with bounded reasons
+- graph structure is distinct from currently activated impact
+- entry-level canonical blocking and trust-class support are evidence-only
+- trust classes remain bounded to:
+  - `canonical`
+  - `metadata_degraded`
+  - `recovered_named`
+  - `recovered_anonymous`
+  - `unrecoverable`
 
 ## Determinism
 
@@ -31,11 +43,13 @@ For identical archive bytes:
 
 - nodes are deterministic
 - edges are deterministic
-- per-file impact lists are deterministic
+- detected corruption ordering is deterministic
+- activated impact ordering is deterministic
+- entry impact ordering is deterministic
 - reason values are bounded and stable
 
 ## Limits and non-inferences
 
-- this contract does not imply recovery or repair availability
+- this contract does not imply repair or speculative reconstruction availability
 - it does not estimate speculative survivability
 - it does not override extraction trust classification or fail-closed behavior

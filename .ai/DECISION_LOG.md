@@ -1,4 +1,25 @@
 
+
+## 2026-03-30 — P17S03f0 propagation truth-surface expansion contract
+
+- Decision:
+  - Keep `crushr info --report propagation` as the single propagation-report surface and expand it in place.
+  - Add explicit top-level semantic separation for graph/dependencies, detected corruption, activated impacts, and per-entry impact classification support.
+  - Use bounded deterministic reason enums and explicit direct/propagated dependency markers for entry dependencies.
+  - Keep reporting explanatory only; no extraction behavior, recovery behavior, or trust taxonomy changes.
+- Alternatives considered:
+  1. Add a new parallel propagation-report command or report kind.
+  2. Keep raw graph-only output and force downstream consumers to infer activated impact/classification.
+- Rationale:
+  - Packet scope requires stronger operator truth for dependency/impact explanation while preserving existing command surface and deterministic semantics.
+- Blast radius:
+  - `crates/crushr-core/src/propagation.rs`
+  - `crates/crushr-core/tests/propagation_graph_v1.rs`
+  - `schemas/crushr-propagation-graph.v1.schema.json`
+  - `.ai/contracts/PROPAGATION_GRAPH_V1.md`
+  - `docs/guide/info.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
 ## 2026-03-30 — P17S02f1 entry truth-surface enrichment contract
 
 - Decision:

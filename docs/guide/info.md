@@ -147,6 +147,31 @@ Search scope is bounded to stable known identity classes (`canonical`, `metadata
 - `--find-mode substring` (currently the only supported mode)
 - `--find-limit <n>`
 
+
+## `crushr info --report propagation`
+
+Use this when you need deterministic dependency and impact explanation without extraction.
+
+```bash
+crushr info archive.crs --json --report propagation
+```
+
+The propagation report separates:
+
+- dependency graph (`nodes`, `edges`)
+- currently detected corruption (`detected_corruption`)
+- activated impact from current corruption (`activated_impacts`)
+- per-entry dependency + impact explanation (`entry_impacts`)
+
+Per-entry explanation includes:
+
+- direct vs propagated dependencies
+- bounded dependency reasons (for example `requires_index`, `requires_block_payload`)
+- whether canonical extraction is currently blocked
+- trust classes supported by current evidence only
+
+The report is explanatory only. It does not imply repair behavior and does not make speculative survivability claims.
+
 ## `info` versus extraction outcomes
 
 This is one of the most important distinctions in crushr.

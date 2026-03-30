@@ -109,3 +109,18 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - Kept trust semantics unchanged (no new trust classes, no extraction behavior change, no archive-physical offsets exposed).
 - Updated CLI presentation tests and guide documentation for the expanded `--entry` truth surface.
 - Next: Phase 17 follow-on introspection packets outside this bounded step.
+
+
+## 2026-03-30 — Active Step Update (P17S03f0)
+
+- Completed: Phase 17 Step 03 fix 0 (`P17S03f0`).
+- Hardened `crushr info --report propagation` into an explanatory truth surface that explicitly separates:
+  - deterministic dependency graph (`nodes`, `edges`)
+  - detected corruption inputs (`detected_corruption`)
+  - currently activated impacts (`activated_impacts`)
+  - per-entry dependency + impact classification support (`entry_impacts`)
+- Added bounded, stable dependency reasons and direct/propagated entry dependency semantics.
+- Added deterministic entry-level canonical blocking + trust-class support explanation aligned to existing trust classes.
+- Updated propagation schema/contract/tests and guide docs for the expanded report shape.
+- Next: follow-on Phase 17 introspection packets outside this bounded step.
+
