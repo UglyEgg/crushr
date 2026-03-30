@@ -189,6 +189,7 @@ Milestone packets
 - [x] P17S02f1 — enrich `crushr info --entry` truth surface with deterministic proof/range/identity detail (`payload_blake3`, `logical_range`, `identity_source`) in human + JSON output.
 - [x] P17S02f2 — add clap-generated shell completion command (`crushr completion <bash|zsh|fish>`) with stdout-only deterministic output and CLI/docs/tests coverage.
 - [x] P17S02f3 — add clap-derived man page generation command (`crushr man [--out-dir <path>]`) covering root + canonical subcommand pages with deterministic output and concise docs/tests.
+- [x] P17S02f4 — align README command-surface/product-boundary text with canonical CLI (`info`, `extract`, `verify`, `pack`, `about`, `completion`, `man`) including `info --propagation` coverage and concise command descriptions.
 - [x] P17S03f0 — harden `crushr info --report propagation` with deterministic entry dependency visibility, activated impact separation, and entry-level trust-class explanatory support.
 - [x] P17S03f1 — retire `--report propagation`; add canonical `crushr info --propagation` surface with default human output and explicit `--json` machine mode.
 - [x] P17S03f2 — improve `crushr info --propagation` human readability for dependency-dense entry impacts with deterministic multi-line dependency summarization and explicit remainder counts (human mode only).
