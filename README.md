@@ -265,6 +265,18 @@ Examples:
 - Zsh: `crushr completion zsh > "${fpath[1]}/_crushr"`
 - Fish: `crushr completion fish > ~/.config/fish/completions/crushr.fish`
 
+## Man pages
+
+Generate man pages directly from the clap command model:
+
+- `crushr man`
+- `crushr man --out-dir ./man`
+
+Example:
+
+- `crushr man --out-dir ./man`
+- `man ./man/crushr.1`
+
 ## Security and assurance
 
 crushr publishes a self-assessed security and assurance set covering:

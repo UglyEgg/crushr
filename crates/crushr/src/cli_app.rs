@@ -7,8 +7,12 @@ use clap_complete::{
     Generator,
     shells::{Bash, Fish, Zsh},
 };
+use clap_mangen::Man;
 use crushr::cli_presentation::CliPresenter;
-use std::io;
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum AppCommand {
@@ -18,6 +22,7 @@ enum AppCommand {
     Info,
     About,
     Completion,
+    Man,
     Salvage,
     Lab,
 }
@@ -31,6 +36,7 @@ impl AppCommand {
             "info" => Some(Self::Info),
             "about" => Some(Self::About),
             "completion" => Some(Self::Completion),
+            "man" => Some(Self::Man),
             "salvage" => Some(Self::Salvage),
             "lab" => Some(Self::Lab),
             _ => None,
@@ -91,6 +97,7 @@ fn run(args: Vec<String>) -> Result<i32> {
             0
         }
         AppCommand::Completion => run_completion(rest)?,
+        AppCommand::Man => run_man(rest)?,
         AppCommand::Salvage => crushr::commands::salvage::dispatch(rest),
         AppCommand::Lab => crushr::commands::lab::dispatch(rest)?,
     };
@@ -113,6 +120,7 @@ fn print_help() {
         ("info", "inspect archive metadata/reporting"),
         ("about", "product identity and build metadata"),
         ("completion", "generate shell completion script"),
+        ("man", "generate clap-derived man pages"),
     ] {
         presenter.kv(command, description);
     }
@@ -142,7 +150,7 @@ fn run_completion(args: Vec<String>) -> Result<i32> {
 }
 
 fn generate_completion<G: Generator>(generator: G) {
-    let mut cmd = completion_spec_command();
+    let mut cmd = cli_spec_command();
     clap_complete::generate(generator, &mut cmd, "crushr", &mut io::stdout());
 }
 
@@ -158,7 +166,61 @@ fn completion_command() -> Command {
         )
 }
 
-fn completion_spec_command() -> Command {
+fn run_man(args: Vec<String>) -> Result<i32> {
+    let matches = man_command()
+        .try_get_matches_from(std::iter::once("crushr man".to_string()).chain(args))?;
+    let out_dir = matches
+        .get_one::<PathBuf>("out-dir")
+        .cloned()
+        .unwrap_or_else(|| PathBuf::from("."));
+    fs::create_dir_all(&out_dir)?;
+
+    for (page_name, command) in man_page_commands() {
+        write_man_page(&out_dir, &page_name, command)?;
+    }
+
+    Ok(0)
+}
+
+fn man_command() -> Command {
+    Command::new("crushr man")
+        .disable_help_subcommand(true)
+        .arg(
+            Arg::new("out-dir")
+                .long("out-dir")
+                .value_name("path")
+                .value_parser(value_parser!(PathBuf))
+                .help("output directory for generated man pages"),
+        )
+}
+
+fn man_page_commands() -> Vec<(String, Command)> {
+    let spec = cli_spec_command();
+    let mut pages = Vec::with_capacity(7);
+    pages.push(("crushr".to_string(), spec.clone()));
+
+    for subcommand_name in ["info", "extract", "verify", "pack", "about", "completion"] {
+        let sub = spec
+            .find_subcommand(subcommand_name)
+            .expect("subcommand exists in canonical CLI definition");
+        let page_name = format!("crushr-{subcommand_name}");
+        pages.push((
+            page_name.clone(),
+            sub.clone().bin_name(format!("crushr {subcommand_name}")),
+        ));
+    }
+
+    pages
+}
+
+fn write_man_page(out_dir: &Path, page_name: &str, command: Command) -> Result<()> {
+    let mut rendered = Vec::new();
+    Man::new(command).render(&mut rendered)?;
+    fs::write(out_dir.join(format!("{page_name}.1")), rendered)?;
+    Ok(())
+}
+
+fn cli_spec_command() -> Command {
     Command::new("crushr")
         .subcommand(Command::new("pack"))
         .subcommand(
@@ -214,6 +276,14 @@ fn completion_spec_command() -> Command {
                 Arg::new("shell")
                     .value_parser(["bash", "zsh", "fish"])
                     .required(true),
+            ),
+        )
+        .subcommand(
+            Command::new("man").arg(
+                Arg::new("out-dir")
+                    .long("out-dir")
+                    .value_name("path")
+                    .value_parser(value_parser!(PathBuf)),
             ),
         )
         .subcommand(Command::new("salvage"))

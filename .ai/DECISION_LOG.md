@@ -1848,3 +1848,21 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `README.md`, `docs/guide/info.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
   - No archive-format, extraction behavior, recovery behavior, or dependency-policy changes.
+
+## 2026-03-30 — P17S02f3 clap-derived man page generation lock
+
+- Decision:
+  - Add canonical man-page generation at `crushr man` with optional output directory flag `--out-dir <path>`.
+  - Generate man pages from the same clap command model used for CLI command metadata/completion coverage; do not add hand-authored man content.
+  - Emit exactly the canonical root/subcommand pages (`crushr`, `info`, `extract`, `verify`, `pack`, `about`, `completion`) as section-1 roff files.
+- Alternatives considered:
+  1. Add manually maintained `.1` files to the repository.
+  2. Add a separate command-definition source dedicated to docs.
+- Rationale:
+  - Packet requires generated, low-maintenance man docs derived from canonical CLI definitions with deterministic outputs.
+- Blast radius:
+  - `crates/crushr/src/cli_app.rs`
+  - `crates/crushr/Cargo.toml`, `Cargo.lock`
+  - `crates/crushr/tests/cli_contract_surface.rs`
+  - `README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
