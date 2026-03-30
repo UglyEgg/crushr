@@ -7,6 +7,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
+## 2026-03-30 — P17S02f1
+- Enriched `crushr info --entry` truth surface (human + JSON) with deterministic proof/range/identity detail: `payload_blake3`, `logical_range.start`, `logical_range.end`, and `identity_source`.
+- Added human entry rows for payload BLAKE3, logical range in both hex and decimal, and identity source.
+- Kept bounded packet constraints intact: logical offsets only, no archive-physical offsets, no per-extent verbose table, no new trust classes, and no extraction behavior changes.
+- Updated deterministic CLI presentation coverage and guide documentation to lock the expanded `--entry` output shape.
+- Validation: `cargo fmt --all`; `cargo clippy -p crushr --tests -- -D warnings`; `cargo test -p crushr --test cli_presentation_contract`; `cargo test --workspace` (fails in this environment for `comparison_output_schemas` due missing `crushr-salvage` binary resolution).
+
 ## 2026-03-29 — CRUSHR_PHASE16_09
 - Expanded zstd level-list parsing in `scripts/benchmark/run_benchmarks.py` so controlled sweeps can use compact explicit ranges (for example `--zstd-levels 1-10`) in addition to comma lists.
 - Added controlled zstd level-sweep summary reporting in `scripts/benchmark/run_benchmarks.py`: for default-strategy + lexical-ordering + content-class-off runs, benchmark output now prints per-dataset `level | archive_bytes | ratio | pack_ms | extract_ms` lines after writing JSON.

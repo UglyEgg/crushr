@@ -97,3 +97,15 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - Added deterministic not-found and zero-match behavior for `--entry`/`--find`.
 - Updated tests and docs for the expanded `info` introspection surface.
 - Next: follow-on Phase 17 introspection packets (propagation/impact extensions remain separate scope).
+
+## 2026-03-30 — Active Step Update (P17S02f1)
+
+- Completed: Phase 17 Step 02 fix 1 (`P17S02f1`).
+- Enriched `crushr info --entry` with additional deterministic proof/structure detail in both human and JSON outputs:
+  - `payload_blake3`
+  - `logical_range.start` / `logical_range.end`
+  - `identity_source`
+- Added human-readable entry rows for payload BLAKE3, logical range (`hex + decimal`), and identity source.
+- Kept trust semantics unchanged (no new trust classes, no extraction behavior change, no archive-physical offsets exposed).
+- Updated CLI presentation tests and guide documentation for the expanded `--entry` truth surface.
+- Next: Phase 17 follow-on introspection packets outside this bounded step.

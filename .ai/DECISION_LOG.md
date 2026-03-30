@@ -1,4 +1,21 @@
 
+## 2026-03-30 — P17S02f1 entry truth-surface enrichment contract
+
+- Decision:
+  - Extend `crushr info --entry` to include deterministic proof-bearing and structural entry fields in human and JSON output: `payload_blake3`, `logical_range.start`, `logical_range.end`, and `identity_source`.
+  - Keep new detail strictly logical/index-oriented; do not expose archive-physical offsets or add per-extent verbose tables.
+  - Preserve existing trust semantics and extraction behavior (no new trust classes, no behavior drift in strict/recover flows).
+- Alternatives considered:
+  1. Expose archive-physical extent offset data directly in `--entry`.
+  2. Add a detailed per-extent table as part of this packet.
+- Rationale:
+  - Packet scope requires richer entry truth without widening trust/extraction semantics or moving into physical-layout operator surfaces.
+- Blast radius:
+  - `crates/crushr/src/commands/info.rs`
+  - `crates/crushr/tests/cli_presentation_contract.rs`
+  - `docs/guide/info.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
 ## 2026-03-30 — P17S01f0 info truth-surface expansion + wrapper binary removal
 
 - Decision:
