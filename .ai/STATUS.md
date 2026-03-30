@@ -146,3 +146,14 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - Included `info` introspection flags (`--list`, `--entry`, `--find`, `--propagation`) plus primary command surface coverage (`extract` / `verify` / `pack` / `about`).
 - Added CLI tests for command existence, non-empty output, and expected completion token coverage; updated concise README installation examples.
 - Next: follow-on Phase 17 introspection packets outside this bounded step.
+
+## 2026-03-30 — Active Step Update (P17S03f2)
+
+- Completed: Phase 17 Step 03 fix 2 (`P17S03f2`).
+- Improved `crushr info --propagation` human output readability for dependency-dense entries:
+  - dependencies are rendered as multi-line rows in deterministic dependency order
+  - first 4 dependencies are shown; remaining dependencies are summarized as `+ <n> more`
+- Kept propagation JSON behavior unchanged (`--propagation --json` remains full machine-readable truth with unchanged semantics).
+- Added deterministic coverage for human-mode dependency summarization and key operator-facing fields (reason, consequence, canonical blocked, trust-class support).
+- Updated `docs/guide/info.md` to document the human-mode-only dependency summarization rule.
+- Next: follow-on Phase 17 introspection packets outside this bounded step.

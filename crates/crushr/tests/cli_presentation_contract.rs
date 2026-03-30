@@ -691,6 +691,52 @@ fn info_propagation_human_is_default_and_has_operator_sections() {
 }
 
 #[test]
+fn info_propagation_human_summarizes_dense_dependencies_deterministically() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    fs::create_dir_all(&input_dir).expect("create input");
+    let large_payload = vec![b'x'; 80 * 1024 * 1024];
+    fs::write(input_dir.join("dense.bin"), large_payload).expect("write");
+    let archive = tmp.path().join("dense.crushr");
+
+    run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
+            .arg(&input_dir)
+            .arg("-o")
+            .arg(&archive),
+    );
+
+    let mut bytes = fs::read(&archive).expect("read archive");
+    let first_payload_byte = bytes
+        .iter()
+        .position(|byte| *byte == b'x')
+        .expect("find payload byte");
+    bytes[first_payload_byte] ^= 1;
+    fs::write(&archive, bytes).expect("rewrite archive");
+
+    let human = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .arg("--propagation"),
+    );
+    assert!(human.contains("dependencies"));
+    assert!(human.contains("reasons"));
+    assert!(human.contains("consequence"));
+    assert!(human.contains("canonical extraction blocked"));
+    assert!(human.contains("supported trust classes"));
+
+    let human_second = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .arg("--propagation"),
+    );
+    assert_eq!(human, human_second);
+}
+
+#[test]
 fn info_report_propagation_surface_is_retired() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let input_dir = tmp.path().join("input");

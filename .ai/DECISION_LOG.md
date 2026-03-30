@@ -1,5 +1,23 @@
 
 
+## 2026-03-30 — P17S03f2 propagation human-output density cleanup lock
+
+- Decision:
+  - Keep propagation JSON contract/semantics unchanged.
+  - Improve `crushr info --propagation` human-mode entry-impact readability by replacing single-line dense dependency rows with deterministic multi-line rendering.
+  - Apply deterministic summarization in human mode only: show the first 4 dependencies in report order and then emit `+ <n> more` when additional dependencies exist.
+- Alternatives considered:
+  1. Keep single-line dependency rendering and rely on terminal wrapping.
+  2. Introduce terminal-width-dependent wrapping logic.
+- Rationale:
+  - Packet scope is UX readability polish without changing propagation meaning, trust model, JSON behavior, or command surface.
+  - Fixed-count deterministic summarization preserves scanability and repeatability across environments.
+- Blast radius:
+  - `crates/crushr/src/commands/info.rs`
+  - `crates/crushr/tests/cli_presentation_contract.rs`
+  - `docs/guide/info.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
 ## 2026-03-30 — P17S03f1 propagation surface rename + human-default lock
 
 - Decision:

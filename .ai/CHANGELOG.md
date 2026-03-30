@@ -7,6 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
+## 2026-03-30 — P17S03f2
+- Improved `crushr info --propagation` human-mode readability for dependency-dense entry impacts by replacing one-line dependency walls with deterministic multi-line dependency rows.
+- Added deterministic human summarization rule: show first 4 dependencies (report order) and, when needed, append explicit remainder line `+ <n> more`.
+- Kept propagation JSON contract unchanged (`--propagation --json` remains full machine-readable truth).
+- Added tests covering deterministic summarization behavior and visibility of key operator-facing entry-impact fields.
+- Updated guide documentation to describe the human-mode-only dependency summarization behavior.
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_presentation_contract`; `cargo test -p crushr commands::info::tests -- --nocapture`.
+
 ## 2026-03-30 — P17S02f2
 - Added `crushr completion <bash|zsh|fish>` command to generate shell completion scripts from clap.
 - Completion output is deterministic, printed to stdout, and performs no file writes or side effects.
