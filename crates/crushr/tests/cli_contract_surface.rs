@@ -29,7 +29,14 @@ fn canonical_command_surface_is_locked() {
     );
 
     for command in [
-        "pack", "extract", "verify", "info", "about", "salvage", "lab",
+        "pack",
+        "extract",
+        "verify",
+        "info",
+        "about",
+        "completion",
+        "salvage",
+        "lab",
     ] {
         assert!(help.contains(command), "missing command {command}\n{help}");
     }
@@ -54,6 +61,44 @@ fn canonical_command_surface_is_locked() {
         assert!(
             stderr.contains("unknown command"),
             "expected unknown command for {legacy}"
+        );
+    }
+}
+
+#[test]
+fn completion_command_exists_and_emits_non_empty_output() {
+    for shell in ["bash", "zsh", "fish"] {
+        let out =
+            run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args(["completion", shell]));
+        assert!(
+            out.status.success(),
+            "completion command failed for {shell}\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let text = String::from_utf8(out.stdout).expect("stdout utf8");
+        assert!(
+            !text.trim().is_empty(),
+            "completion output should not be empty for {shell}"
+        );
+    }
+}
+
+#[test]
+fn completion_includes_info_and_primary_command_surface() {
+    let bash =
+        run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args(["completion", "bash"]));
+
+    for token in ["--list", "--entry", "--find", "--propagation"] {
+        assert!(
+            bash.contains(token),
+            "bash completion missing info flag token: {token}"
+        );
+    }
+    for token in ["extract", "verify", "pack", "about"] {
+        assert!(
+            bash.contains(token),
+            "bash completion missing primary command token: {token}"
         );
     }
 }

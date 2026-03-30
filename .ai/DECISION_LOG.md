@@ -82,6 +82,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 > **Current-truth note:** This file is historical rationale, not authoritative current product vocabulary. When historical entries use superseded terms such as `salvage`, wrapper-binary product surfaces, or removed concepts such as `fsck`, those entries remain historical only. Current canonical truth is defined by `.ai/STATUS.md`, `.ai/PHASE_PLAN.md`, `.ai/contracts/README.md`, and the aligned public documentation.
 
+## 2026-03-30 — P17S02f2 shell completion command lock
+
+- Decision:
+  - Add a canonical shell completion surface at `crushr completion <bash|zsh|fish>`.
+  - Generate completion scripts from clap only; do not add manual completion artifacts in-repo.
+  - Emit completion scripts to stdout only with no file writes or other side effects.
+  - Ensure completion surface includes current `info` introspection flags (`--list`, `--entry`, `--find`, `--propagation`) and primary commands (`extract`, `verify`, `pack`, `about`).
+- Alternatives considered:
+  1. Keep no completion command and rely on manual docs/discovery.
+  2. Add hand-written shell completion files per shell.
+- Rationale:
+  - Packet requires deterministic, low-maintenance completion generation sourced from CLI definition while preserving current command semantics.
+- Blast radius:
+  - `crates/crushr/src/cli_app.rs`
+  - `crates/crushr/tests/{cli_contract_surface.rs,cli_presentation_contract.rs}`
+  - `README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
 
 ## 2026-03-29 — CRUSHR_PHASE16_09 zstd level-sweep comparability lock
 

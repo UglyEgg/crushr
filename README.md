@@ -249,6 +249,22 @@ Current behavior is fail-closed:
 - if required metadata is missing, structure is not invented  
 - directory views are derived from stored logical paths  
 
+## Shell completions
+
+Generate shell completion scripts directly from the clap command model:
+
+- `crushr completion bash`
+- `crushr completion zsh`
+- `crushr completion fish`
+
+The command prints the completion script to stdout and does not write files.
+
+Examples:
+
+- Bash: `crushr completion bash > /etc/bash_completion.d/crushr`
+- Zsh: `crushr completion zsh > "${fpath[1]}/_crushr"`
+- Fish: `crushr completion fish > ~/.config/fish/completions/crushr.fish`
+
 ## Security and assurance
 
 crushr publishes a self-assessed security and assurance set covering:

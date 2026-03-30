@@ -143,7 +143,14 @@ fn root_help_lists_canonical_suite_and_demotes_legacy_surface() {
     let out = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("--help"));
 
     for token in [
-        "pack", "extract", "verify", "info", "about", "salvage", "lab",
+        "pack",
+        "extract",
+        "verify",
+        "info",
+        "about",
+        "completion",
+        "salvage",
+        "lab",
     ] {
         assert!(
             out.contains(token),
