@@ -15,52 +15,57 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
    - `.ai/INDEX.md`
    - `.ai/STATUS.md`
    - `.ai/PHASE_PLAN.md`
+   - `.ai/contracts/README.md`
    - `.ai/DECISION_LOG.md`
-2. Treat `.ai/STATUS.md` as authoritative current state.
-3. Do not infer active work from old historical sections; use `Current Step` in `STATUS.md`.
+2. Treat `.ai/STATUS.md` as authoritative for current truth.
+3. Treat `.ai/DECISION_LOG.md` and `.ai/CHANGELOG.md` as historical evidence, not active state.
 
 ## Where the repository stands
 
-- Phase 16 benchmark packets `CRUSHR_PHASE16_01`, `CRUSHR_PHASE16_02`, `CRUSHR_PHASE16_03`, `CRUSHR_PHASE16_04`, `CRUSHR_PHASE16_05`, `CRUSHR_PHASE16_06`, `CRUSHR_PHASE16_07`, `CRUSHR_PHASE16_08`, and `CRUSHR_PHASE16_09` are complete.
-- Benchmark command surface is canonically `python3 scripts/benchmark/harness.py <datasets|run|full>` with dictionary, zstd level/strategy, ordering/locality, and content-class clustering experiment flags on `run/full`.
-- Dataset generation defaults to `--xattrs off` and emits stable `dataset_identity` in `dataset_manifest.json`.
-- Full benchmark matrix execution still depends on host comparator tools (`tar`, `xz`, `zstd`), and non-default zstd strategy experiments now require host `--strategy=<name>` support with early capability failure when unavailable.
+- Phase 15 and Phase 16 are complete.
+- Current work is documentation/control-surface alignment before Phase 17 feature work.
+- Public and builder-facing docs are being normalized to one vocabulary and one command surface.
 
-## Code assumptions you can rely on
+## Canonical product surface
 
-- Pack preservation-profile authority is centralized (plan-owned, not discovery-owned).
-- Recover metadata-degraded routing is centralized.
-- Strict/recover restoration and payload/materialization mechanics are shared where truly common.
-- Strict vs recover trust-policy boundaries remain explicit and must not be collapsed.
-- Info/listing truth/report wording is centrally classified before rendering.
-- Benchmark assumptions + dictionary + zstd + ordering + content-class experiment models are centralized in `scripts/benchmark/contract.py` and embedded into run output (`assumptions` + `dataset_manifest` + `dictionary_artifacts` + per-run `dictionary` + per-run `ordering_strategy` + per-run `content_class_strategy` + per-run `content_classification` + per-run `zstd_level`/`zstd_strategy`).
-- Ordering tar input-list generation is now deterministic and validated before execution (non-empty, well-formed, and filesystem-resolvable), with paths rooted to the benchmark execution context (for example `datasets/<dataset>/...`) for stable tar `-T` behavior.
-- Ordering strategy matrices now expand to per-strategy tar comparator runs (instead of lexical-only collapse), with fail-closed checks for both comparator expansion and observed run output when multiple strategies are requested.
-- Content-class clustering strategy `lightweight_v1` is deterministic and tar-only; comparator labels now carry `_cc<strategy>` suffixes and assumptions/runs persist classifier thresholds and per-class counts for reproducibility.
-- Zstd level matrix parsing now supports compact range tokens (for example `--zstd-levels 1-10`) as well as comma lists.
-- Controlled zstd level sweeps (default strategy + lexical ordering + content-class off) now print per-dataset `level | archive_bytes | ratio | pack_ms | extract_ms` summaries for immediate diminishing-returns review.
+- `crushr pack`
+- `crushr verify`
+- `crushr info`
+- `crushr info --list`
+- `crushr extract`
+- `crushr extract --recover`
+- `crushr about`
 
-## Open debt to keep explicit
+## Non-canonical surface
 
-- Planner must choose next active packet/workstream.
-- Experimental FORMAT metadata-pruning results are still planning input, not product-runtime commitments.
-- Long-range phases (16+) remain roadmap, not active implementation.
+- `crushr lab` is internal development harness only.
+- Wrapper binaries are not canonical product surface.
+- `fsck` is not a live product concept.
 
-## Guardrails for the next builder
+## Builder guardrails
 
-- Do not modify runtime behavior unless packet scope explicitly requires it.
-- Do not reintroduce split authorities that cleanup packets removed.
-- Preserve trust-model boundaries (`canonical` strict vs `recover` outputs).
-- If any architectural/contract conflict appears, stop and escalate per `AGENTS.md` decision protocol.
+- Do not reintroduce `salvage` as current product vocabulary.
+- Do not describe crushr as a repair or fixer tool.
+- Do not collapse validation and verification into one concept.
+- Do not document wrapper binaries as public command surface.
+- Do not let historical notes override current canonical docs.
+
+## Trust model you can rely on
+
+- payload integrity is independent from metadata completeness
+- strict extraction is fail-closed
+- recovery is explicit through `extract --recover`
+- trust-bearing non-canonical results are classified explicitly as:
+  - `canonical`
+  - `metadata_degraded`
+  - `recovered_named`
+  - `recovered_anonymous`
+  - `unrecoverable`
 
 ## Evidence map
 
-- Detailed packet history: `.ai/CHANGELOG.md`
-- Decision rationale and blast radius: `.ai/DECISION_LOG.md`
-- Hostile review findings/report: `.ai/COMPLETION_NOTES_CRUSHR_HOSTILE_REVIEW_01.md`
-
-
-Guardrail: Do not introduce compression features that increase dependency coupling or reduce failure transparency.
-
-
-Guardrail: Do not propose runtime/archive dictionary support unless results clear the locked dictionary evaluation gate and preserve integrity-first behavior.
+- current truth: `.ai/STATUS.md`
+- sequencing: `.ai/PHASE_PLAN.md`
+- non-negotiable boundaries: `.ai/contracts/README.md`
+- historical rationale: `.ai/DECISION_LOG.md`
+- chronology: `.ai/CHANGELOG.md`

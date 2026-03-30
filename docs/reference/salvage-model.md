@@ -3,57 +3,80 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
-# Salvage Model
+# Recovery classification model
 
-The salvage model defines how crushr behaves under corruption.
+*Legacy filename retained for continuity.*
 
-## States
+This page documents the recovery classification model used by crushr. The filename retains earlier naming for continuity with historical material and related internal references, but current product terminology uses **recover** / **recovery** and the trust classes described below.
 
-| State | Meaning |
-|------|--------|
-| intact | full recovery with names |
-| degraded | payload recovered, naming partial |
-| anonymous | payload recovered, names lost |
-| failed | insufficient data to verify payload |
+## Intent
 
-## Algorithm
+This page defines how crushr classifies extraction outcomes when strict canonical extraction is not possible.
 
-1. Scan for valid extent identities
-2. Validate hashes
-3. Group extents by original file mapping (if dictionary valid)
-4. Reconstruct files
-5. Assign names if dictionary passes validation
+The model is built on a core architectural boundary: payload integrity and metadata completeness are independent dimensions.
 
-## Key rule
+## Guarantees
 
-> Naming is optional. Payload integrity is not.
+- Verified data is never silently corrupted or misrepresented
+- Unverifiable data is never presented as valid
+- Degraded or partial results are explicitly labeled and structured
+- Archive processing fails closed when required truth cannot be established
+- Filesystem writes are constrained and cannot escape intended boundaries
 
-## Failure handling
+## Behavior
 
-- Never guess names
-- Never reconstruct partial extents
-- Never trust invalid metadata
+### Core model
 
-## Output guarantees
+crushr does not treat metadata loss as equivalent to payload corruption.
 
-- All output files are hash-verified
-- No corrupted data is emitted silently
+A payload may remain cryptographically verified even when its original identity, path, or surrounding structural metadata is incomplete. Recovery classification exists to make that distinction explicit.
 
-## Example
+### Trust classes
 
-Corrupt archive:
+Recovery and extraction results are classified into the following trust classes:
 
-- 80% extents valid
-- dictionary lost
+- `canonical` — payload integrity is verified and required metadata is intact
+- `metadata_degraded` — payload integrity is verified, but metadata or structure is incomplete
+- `recovered_named` — payload integrity is verified and identity has been reconstructed within defined constraints
+- `recovered_anonymous` — payload integrity is verified but no reliable identity remains
+- `unrecoverable` — payload integrity cannot be proven to required standards
 
-Result:
+These classes describe what can be proven from surviving archive evidence. They do not imply reconstruction, repair, or guessed certainty.
 
-- 80% data recovered
-- files emitted as anonymous blocks
+### Recovery behavior
 
-This is correct behavior.
+- `crushr extract` remains strict and requires canonical extraction conditions
+- `crushr extract --recover` allows classified output when strict canonical extraction is not possible
+- Recovery never reconstructs, infers, or repairs missing data
+- Anonymous recovery uses deterministic naming and structured manifest output
 
+### Deterministic anonymous naming
+
+Anonymous recovered files follow the deterministic naming policy:
+
+- high-confidence classification → `file_<id>.<ext>`
+- medium-confidence classification → `file_<id>.probable-<type>.bin`
+- low/unknown confidence → `file_<id>.bin`
+
+The recovery manifest preserves classification and identity metadata for all recovered outputs.
+
+## Boundaries / Non-goals
+
+This model does not describe repair, best-effort reconstruction, or hidden failure smoothing.
+
+Non-goals:
+
+- No best-effort reconstruction
+- No hidden failure smoothing
+- No compression-first tradeoffs
+- No external decode dependencies
 
 ## Schema contract
 
-Machine-readable salvage output is defined by `schemas/crushr-salvage-plan.v3.schema.json`. Classification and provenance values are closed vocabularies and must match schema enums exactly.
+Machine-readable recovery output is defined by `schemas/crushr-salvage-plan.v3.schema.json`.
+
+Legacy schema naming is retained for continuity. Classification and provenance values must still match the schema contract exactly where that schema remains active.
+
+## Notes on legacy terminology
+
+Earlier project material used different terminology while the recovery surface was still evolving. That historical naming is preserved only where continuity requires it. The canonical current model is the recovery classification model described on this page.

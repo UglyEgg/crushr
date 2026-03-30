@@ -13,6 +13,11 @@ original_date: 2026-03-15
 summary: "Summarizes 540 deterministic corruption trials and explains why orphan evidence emerged as the key archive-design problem."
 ---
 
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Corruption Trials
 
 > _Chronicles entry — originally published externally and preserved here as a historical milestone._

@@ -26,3 +26,27 @@ AI continuity workspace for crushr.
 - `CHANGELOG.md` — completed-step history
 - `HANDOFF.md` — short takeover instructions
 - `BACKLOG.md` — deferred/non-active work only
+
+## Documentation rigor rule
+
+AI-facing control docs must use the same canonical vocabulary as public product docs.
+
+Use:
+
+- **validate** = structural correctness
+- **verify** = integrity correctness
+- **recover** / **recovery** = explicit bounded non-canonical extraction path
+- trust classes:
+  - `canonical`
+  - `metadata_degraded`
+  - `recovered_named`
+  - `recovered_anonymous`
+  - `unrecoverable`
+
+Do not reintroduce as current product language:
+
+- salvage
+- fsck
+- repair
+- fixer semantics
+- wrapper binaries as canonical product surface

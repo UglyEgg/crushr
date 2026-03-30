@@ -5,6 +5,8 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/CHANGELOG.md
 
+> **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
+
 ## 2026-03-29 — CRUSHR_PHASE16_09
 - Expanded zstd level-list parsing in `scripts/benchmark/run_benchmarks.py` so controlled sweeps can use compact explicit ranges (for example `--zstd-levels 1-10`) in addition to comma lists.
 - Added controlled zstd level-sweep summary reporting in `scripts/benchmark/run_benchmarks.py`: for default-strategy + lexical-ordering + content-class-off runs, benchmark output now prints per-dataset `level | archive_bytes | ratio | pack_ms | extract_ms` lines after writing JSON.

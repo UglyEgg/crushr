@@ -1,6 +1,25 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Security Architecture
 
-This diagram is a **high-level security architecture view**, not a literal control-flow graph. It shows where crushr establishes trust, where strict and recovery policies diverge, and where output safety is enforced before filesystem writes occur.
+## Intent
+
+This page defines the security-relevant control flow and architectural trust boundaries of crushr.
+
+## Guarantees
+
+- Verified data is never silently corrupted or misrepresented
+- Unverifiable data is never presented as valid
+- Degraded or partial results are explicitly labeled and structured
+- Archive processing fails closed when required truth cannot be established
+- Filesystem writes are constrained and cannot escape intended boundaries
+
+## Behavior
+
+### Control flow
 
 ```mermaid
 flowchart TD
@@ -33,63 +52,54 @@ flowchart TD
     L --> M["Structured Results / Manifest / Exit Codes"]
 ```
 
-## Interpretation
+### Validation layers
 
-### Trust Establishment
-crushr treats all archive input as hostile until structural, reference, and integrity checks establish enough truth for the requested operation.
+The system evaluates archives in layers:
 
-### Validation Stages
-The system validates in layers:
-- structural / parse correctness
-- index, reference, and component consistency
-- integrity of components required for the requested operation
-- metadata and extraction-safety checks appropriate to the active mode
+1. structural validation
+2. index and reference validation
+3. integrity verification
+4. metadata and policy assessment
+5. extraction safety enforcement
 
-These are not interchangeable. Earlier failures prevent later trust-bearing work.
+### Mode behavior
 
-### Mode Split
-#### Strict / Default Mode
-- requires verified truth for the requested operation
-- refuses extraction when required integrity or required metadata cannot be established
-- does not downgrade silently
+#### Strict / default
 
-#### Recover / Salvage Mode
-- is explicitly opt-in
-- prefers verified truth
-- may route affected items into explicit degraded / partial outcomes when policy permits
-- refuses affected output when required truth is unavailable
-- never presents degraded recovery as full success
+- requires canonical extraction conditions
+- refuses output when required truth cannot be established
+- never routes degraded output into ordinary success
 
-### Output Safety Boundary
-Even verified or explicitly degraded recovery paths must pass extraction-safety checks before any filesystem write occurs. Path confinement and write-target checks remain mandatory regardless of mode.
+#### Recover
 
-## Enforcement Points
+- permits explicit non-canonical routing only within policy boundaries
+- preserves trust classification rather than flattening outcomes into success
+- never presents degraded recovery as canonical extraction
 
-| Stage | Enforced Invariants |
-|------|--------------------|
-| Structural / Parse Validation | I6, I8 |
-| Integrity and Component Validation | I1, I5 |
-| Strict Failure Paths | I2, I10 |
-| Recover / Salvage Routing | I3, I7, I10 |
-| Extraction Safety Boundary | I9 |
-| Structured Output / Exit Codes | I3, I10 |
+### Extraction safety boundary
 
-## Key Properties
+Even canonical or explicitly classified recovery paths must pass extraction-safety checks before any filesystem write occurs. Path confinement and write-target checks remain mandatory regardless of mode.
 
-### No Unverified Data Flow
-There is no trust-bearing path from input to output that bypasses the relevant validation for the active mode.
+### Architectural invariants relationship
 
-### Explicit Degradation
-Recovery-capable paths are explicit, policy-bound, and reported. crushr does not collapse degraded states into ordinary success.
+| Control Path | Relevant Invariants |
+|---|---|
+| Validation Before Use | I1, I2, I5 |
+| Recover Routing | I2, I3, I7, I10 |
+| Extraction Safety | I9, I10 |
+| Explicit Classification | I3, I4, I10 |
 
-### Controlled Materialization
-Filesystem writes occur only after validation, policy checks, and path-confinement checks succeed.
+## Boundaries / Non-goals
+
+This page does not define user workflow, benchmark behavior, or historical terminology. It defines the security-relevant architecture only.
+
+Non-goals:
+
+- No best-effort reconstruction
+- No hidden failure smoothing
+- No compression-first tradeoffs
+- No external decode dependencies
 
 ## Summary
 
-crushr enforces a validation-first, mode-aware architecture:
-- input is hostile
-- trust is established in layers
-- strict mode requires verified truth
-- recovery mode makes degradation explicit
-- output is trustworthy, explicitly degraded, or absent
+Recovery-capable paths are explicit, policy-bound, and reported. crushr does not collapse degraded states into ordinary success.

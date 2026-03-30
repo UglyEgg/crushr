@@ -1,34 +1,47 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # crushr Security Whitepaper
 
-## Overview
+## Intent
 
-crushr is a **salvage-oriented archive format born from corruption testing**.
+crushr is a deterministic archive system that preserves and exposes data truth under failure.
 
-Its primary concern is not generic archiving convenience. Its primary concern is what an archive format is allowed to claim after damage, partial corruption, or structural inconsistency.
+This whitepaper explains the security rationale behind that model: what the system is allowed to claim after corruption, partial damage, structural inconsistency, or metadata loss.
 
-The system is designed around integrity, verifiability, and explicit failure behavior. It treats all input as potentially hostile and requires validation before data is trusted, returned, or written.
+## Guarantees
 
-Near-`tar` functionality exists because preservation claims are incomplete if the format cannot also perform the ordinary archive tasks surrounding those claims. That functionality supports completeness. It is not the center of the project.
+- Verified data is never silently corrupted or misrepresented
+- Unverifiable data is never presented as valid
+- Degraded or partial results are explicitly labeled and structured
+- Archive processing fails closed when required truth cannot be established
+- Filesystem writes are constrained and cannot escape intended boundaries
 
-## Design Philosophy
+## Behavior
+
+### Design philosophy
 
 crushr is guided by a small set of strict principles:
 
 - integrity over convenience
 - explicit behavior over implicit assumptions
 - determinism over ambiguity
-- verifiable output over best-effort recovery
+- verifiable output over permissive recovery behavior
 
 These principles are enforced through architectural constraints rather than optional features.
 
-## Threat Model Summary
+### Threat model summary
 
 crushr assumes:
+
 - all input archives are untrusted
 - archive structure and metadata may be malicious or corrupted
 - damage may be partial, localized, or deliberately induced
 
 The system is explicitly designed to resist:
+
 - undetected data modification
 - structural manipulation
 - path traversal during extraction
@@ -36,137 +49,58 @@ The system is explicitly designed to resist:
 
 crushr does not claim confidentiality guarantees and does not assume trusted environments.
 
-## Integrity Model
+### Integrity model
 
 Integrity is enforced through:
-- integrity verification over archive components
-- structural validation of archive layout
-- consistency checks between references and data
 
-Data is only considered valid if:
+- structural validation of archive layout and references
+- integrity verification of payload-bearing or truth-bearing components
+- policy checks tied to the requested operation
+
+Data is only considered trustworthy for a requested operation if:
+
 - structural checks pass
-- required components for the requested operation are present and verifiable
+- required components for that operation are present and acceptable
+- required payload or truth-bearing components verify successfully
 - metadata and extraction targets satisfy the active policy
 
-If these conditions fail, the data is rejected or isolated from trust-bearing paths.
+If these conditions fail, the result is refused or classified explicitly under recovery policy.
 
-## Verification Pipeline
+### Verification pipeline
 
-Validation occurs in defined layers:
+Assessment occurs in defined layers:
 
-1. structural / parse validation
+1. structural validation
 2. index, reference, and component validation
-3. integrity verification of components required for the requested operation
+3. integrity verification for the requested operation
 4. metadata and policy assessment appropriate to strict or recover behavior
 5. extraction safety and path-confinement validation before filesystem writes
 
-Strict mode requires verified truth for the requested operation.
-Recover / salvage mode may permit explicitly degraded handling for affected items, but only within published policy boundaries and never as silent success.
+Strict mode requires canonical extraction conditions.
+Recover mode permits explicitly classified non-canonical outcomes only within published policy boundaries and never as silent success.
 
-## Failure Semantics
+### Recovery boundary
 
-crushr follows fail-closed behavior for trust-bearing decisions:
+crushr supports a controlled recovery surface with strict constraints:
 
-- corrupted or unverifiable data is never returned as valid
-- strict/default operations terminate explicitly when required truth is unavailable
-- recover/salvage paths may return only explicitly bounded degraded results where policy permits
-- exit codes classify failure type
-- structured output describes failure conditions
+- only verified payload data may enter trust-bearing recovery outputs
+- metadata-degraded or partial outcomes are explicitly classified
+- unverifiable regions are excluded from trust-bearing output
+- filesystem safety rules remain mandatory regardless of mode
 
-Ambiguous or silent failure modes are not permitted.
+The system does not perform heuristic reconstruction, inferred repair, or hidden failure smoothing.
 
-## Recovery Model
+## Boundaries / Non-goals
 
-crushr supports a controlled salvage mode with strict constraints:
+This whitepaper does not claim confidentiality, availability, or formal certification. It describes integrity, trust classification, and bounded extraction behavior.
 
-- recovery is opt-in only
-- only independently verified data is recovered as verified
-- metadata-degraded or partial outcomes are explicitly labeled
-- corrupted or unverifiable regions are excluded from trust-bearing outputs
+Non-goals:
 
-The system does not perform heuristic reconstruction or inference.
+- No best-effort reconstruction
+- No hidden failure smoothing
+- No compression-first tradeoffs
+- No external decode dependencies
 
-## Extraction Safety
+## Summary
 
-To prevent filesystem compromise:
-- paths are normalized prior to extraction
-- absolute paths are rejected
-- traversal sequences are rejected
-- outputs are constrained to the intended destination
-- affected entries are refused or skipped when safe materialization cannot be guaranteed
-
-No archive input is allowed to influence filesystem behavior outside defined boundaries.
-
-## Determinism
-
-crushr aims for deterministic behavior:
-- identical inputs produce identical trust decisions
-- validation results are consistent across runs
-- structured output is stable and machine-readable where contracts define it
-
-This supports reproducibility, auditing, and forensic-style analysis after damage.
-
-## Architectural Invariants
-
-The system is governed by explicit invariants, including:
-- no unverified data may be returned
-- no silent data loss
-- no heuristic reconstruction
-- all failures must be observable and classifiable
-
-These invariants are treated as constraints, not suggestions.
-
-## Security Posture
-
-crushr is designed for environments where:
-- data integrity matters more than convenience
-- input cannot be trusted
-- failure must be explicit and diagnosable
-- post-damage reasoning must be bounded and honest
-
-The system prioritizes correctness and transparency over convenience-first behavior.
-
-## Alignment with ISO/IEC 27001 Control Principles
-
-crushr is **designed in alignment with ISO/IEC 27001 control principles (self-assessed)** for the subset of controls that meaningfully apply to a single-maintainer, open-source archive project.
-
-This is an engineering and documentation claim, not a certification claim.
-
-In practical terms, the project maintains public evidence for:
-- defined trust boundaries and risk treatment
-- policy-governed fail-closed behavior
-- access and release authority boundaries
-- incident handling expectations
-- explicit verification and audit-oriented outputs
-- documented architectural invariants and change-discipline expectations
-
-Relevant supporting documents include:
-- `docs/security/SECURITY_POLICY.md`
-- `docs/security/THREAT_MODEL.md`
-- `docs/security/RISK_REGISTER.md`
-- `docs/security/SOA.md`
-- `docs/security/ACCESS_CONTROL.md`
-- `docs/security/INCIDENT_RESPONSE.md`
-- `docs/security/ARCHITECTURAL_INVARIANTS.md`
-- `docs/security/VERIFICATION_SPEC.md`
-- `docs/security/SECURITY_ARCHITECTURE.md`
-
-This alignment is scoped and self-assessed. It does **not** claim:
-- ISO/IEC 27001 certification
-- formal external audit
-- applicability of every Annex A control to this project’s scope
-
-## Limitations
-
-crushr does not provide:
-- confidentiality guarantees
-- availability guarantees under adversarial conditions
-- full recovery from corruption
-
-Its guarantees are limited to the correctness of what it verifies and the honesty of what it refuses to claim.
-
-## Conclusion
-
-crushr is not designed to “try its best.”
-
-It is designed to define, as precisely as possible, what remains trustworthy after damage and to fail clearly when that boundary is crossed.
+crushr's security posture is built around one principle: the system may only claim what surviving evidence can justify for the requested operation.

@@ -3,62 +3,75 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
-# crushr Development Status
+# crushr Phase Plan
 
-## Current state (authoritative)
+This document defines the high-level development phases for crushr after the core archive architecture and preservation model were established.
 
-- **Current Phase:** Phase 16 — 0.x Benchmarking and Compression Evidence.
-- **Current Step:** **CRUSHR_PHASE16_09 complete** (zstd level sweep execution now supports compact `1-10` range syntax and emits a controlled level-sweep summary table with size/time tradeoffs for default-strategy lexical runs).
-- **Phase 16 benchmark/tooling status:** deterministic dataset identity, assumptions, dictionary experiment metadata, zstd level/strategy experiment metadata, deterministic ordering/locality experiment metadata, deterministic content-class clustering experiment metadata, zstd strategy-capability-safe command construction, ordering input-list path validation/rooting, and controlled zstd level-sweep summary reporting are centralized and schema-backed.
-- **Runtime/code status in this packet:** benchmark tooling and docs updated; no archive format or runtime extraction/pack semantics changed.
+The project is sequenced across three maturity bands:
 
-## What is now true in code (benchmark/tooling truth)
+- **0.x** — product proof, stabilization, preservation scope, introspection, benchmarking, and contract hardening
+- **1.x** — stable preservation platform with locked contracts and workflow maturity
+- **2.x** — evidence-grade extension layer (custody, signing, classification expansion)
 
-- Benchmark dataset and comparator assumptions are centralized in `scripts/benchmark/contract.py` and consumed by both dataset generation and benchmark execution.
-- Dataset generation now has explicit xattr mode control (`--xattrs off|on`, default `off`) and emits a deterministic `dataset_identity` digest in `dataset_manifest.json`.
-- Benchmark execution now requires/embeds `dataset_manifest.json`, records normalized `assumptions` metadata (`level`, comparator set, command-set fingerprint, dictionary experiment config, zstd level/strategy experiment config, ordering experiment config, content-class experiment config), and emits dictionary artifact provenance plus per-run dictionary dependency/zstd/ordering/content-class metadata in a consistent schema envelope.
-- zstd tar comparator command construction is now centralized and capability-safe: default strategy omits explicit `--strategy` flags, and non-default strategy requests fail early with a clear host-capability diagnostic when `zstd --strategy=<name>` is unsupported.
-- Deterministic ordering/locality strategies for tar comparators (`lexical`, `size_ascending`, `size_descending`, `extension_grouped`, `kind_then_extension`) are centralized and executed through generated explicit tar input-order files.
-- Ordering input files now write deterministic benchmark-execution-root-relative paths (for example `datasets/<dataset>/...`), tar invocations use `--verbatim-files-from`, and the harness fails early with explicit diagnostics for empty/malformed/unresolvable ordering files before tar execution.
-- Ordering strategy matrices now expand to independent tar comparator variants for each requested strategy (across `tar_zstd`, `tar_xz`, and dictionary tar-zstd when enabled), with strategy-distinct comparator labels and archive filenames to prevent silent lexical-only collapse.
-- Benchmark execution now enforces ordering-matrix sanity: if more than one strategy is requested, comparator expansion and final run output must contain more than one tar ordering strategy or the harness fails early.
-- Lightweight deterministic content-class clustering (`off|lightweight_v1`) is now available for tar comparators only, and comparator labels include explicit clustering mode (`_cc<strategy>`) for auditability.
-- zstd level parsing now accepts explicit range tokens (for example `1-10`) in addition to comma-separated lists, and keeps normalized deterministic level matrices through the existing contract model.
-- Controlled single-variable zstd level sweeps (default strategy + lexical ordering + content-class off) now print a compact per-dataset summary table (`level`, `archive_bytes`, `ratio`, `pack_ms`, `extract_ms`) after JSON output for immediate time-vs-compression review.
-- Canonical benchmark command surface is `scripts/benchmark/harness.py` (`datasets`, `run`, `full`) including dictionary, zstd, ordering, and content-class experiment flags to reduce invocation drift between docs and operations.
+## Current architectural identity
 
-## Open debt (intentional / deferred)
+crushr is a deterministic archive system built around:
 
-1. **Benchmark environment portability debt:** benchmark runner still requires `tar`, `xz`, and `zstd` binaries in PATH.
-2. **Experimental metadata pruning direction:** FORMAT-10/11/12/13/14A/15 evidence review remains planning input, not product-surface runtime work.
-3. **Long-range platform work:** Phase 17+ roadmap items (1.x stabilization, evidence/custody layer) remain future work.
+- explicit separation of payload integrity from metadata completeness
+- deterministic validation and verification behavior
+- explicit trust classification for non-canonical outcomes
+- fail-closed strict extraction semantics
+- bounded explicit recovery through `extract --recover`
+- archive introspection without extraction
+- Linux-first preservation fidelity layered onto an integrity-first model
 
-## Next permitted workstream
+crushr prioritizes data integrity, explicit truth, and bounded failure behavior over maximum compression ratio.
 
-- **Permitted next action:** execute baseline + dictionary + zstd level/strategy + ordering/locality + content-class clustering benchmark matrices (including controlled `--zstd-levels 1-10` sweep runs) in an environment with full comparator dependencies present and publish updated evidence artifacts from normalized schema.
-- Future packets may assume:
-  - benchmark dataset/comparator assumptions are centralized in `scripts/benchmark/contract.py`,
-  - `scripts/benchmark/harness.py` is the canonical benchmark command surface,
-  - benchmark output includes embedded dataset identity + assumptions metadata + dictionary provenance metadata + zstd level/strategy metadata + ordering strategy metadata + content-class strategy/classification metadata,
-  - dictionary experiment results are explicitly distinguishable from non-dictionary runs,
-  - xattr-inclusive datasets are opt-in and produce different dataset identities.
+## Phase status
 
-## Active constraints
+- [x] Phase 15 — Dictionary hardening and namespace factoring
+- [x] Phase 16 — Benchmarking and compression evidence
+- [ ] Documentation alignment pass — builder/control-doc and public-doc normalization
+- [ ] Phase 17 — Introspection and truth-surface expansion
+- [ ] Phase 18+ — subsequent roadmap phases as explicitly approved
 
-- Workspace crate policy remains locked: resolver `3`, edition `2024`, MSRV `1.88`; publish intent rules remain enforced.
-- Policy gates remain active (secrets/audit/MSRV/style/version drift).
-- `crushr-extract` remains integrity-first strict canonical extraction; no speculative reconstruction.
-- `crushr-extract --recover` remains explicitly trust-segregated and non-canonical.
-- `crushr-salvage` remains research-only output.
-- Do not rerun or broaden expensive full matrix comparison workloads unless explicitly requested.
+## Documentation alignment pass (current)
 
-## Historical notes
+### Goal
 
-- Full packet-by-packet chronology remains in `.ai/CHANGELOG.md`.
-- Architectural/policy decisions remain in `.ai/DECISION_LOG.md`.
+Bring `.ai/`, contract, and public documentation onto one canonical vocabulary and one coherent product surface.
 
+### Required outcomes
 
-Phase 16 operating under integrity-first compression constraint (see DECISION_LOG: CRUSHR_PHASE16_IDENTITY_GUARDRAIL)
+- no current product language uses `salvage` as a live operator-facing term
+- no current product language uses `fsck` as a live command or mental model
+- wrapper binaries are not documented as canonical product surface
+- validation vs verification are defined consistently
+- recovery and trust classes are defined consistently
+- public docs and builder-facing `.ai/` docs do not contradict each other
 
+### Guardrails
 
-Phase 16 dictionary experiments remain benchmark-only; runtime/archive dictionary dependency is out of scope unless future evidence clears the locked evaluation gate.
+- do not rewrite historical chronology as if it never happened
+- do not invent new command surfaces
+- do not broaden public claims beyond current product behavior
+- do not let builder-facing docs drift into obsolete vocabulary
+
+## Phase 17 — Introspection and truth surfaces (next after alignment)
+
+### Goal
+
+Expand archive introspection so container truth, entry truth, and structural visibility become richer without weakening fail-closed semantics.
+
+### Focus areas
+
+- deeper archive/container introspection
+- richer `info --list` entry attributes and trust context
+- improved archive-layout visibility
+- explicit truth-surface reporting without extraction
+
+### Guardrails
+
+- introspection is explanatory, not repair behavior
+- recovery remains explicit and bounded
+- payload integrity and metadata completeness remain distinct

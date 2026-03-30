@@ -3,92 +3,42 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
-# Extraction Result Contract v1 (`crushr-extract --json`)
+# Extraction Result Contract v1 (`crushr extract --json`)
 
-This document defines the current stable JSON result contract emitted by:
+## Intent
 
-- `crushr-extract --json`
-
-This contract formalizes the currently implemented minimal v1 extraction surface.
+This document defines the deterministic machine-readable extraction result contract emitted by `crushr extract --json`.
 
 ## Scope
 
-This contract currently applies to:
-
-- structurally valid minimal v1 archives
-- regular-file extraction only
-- one-block-per-file mapping
+This contract applies to the current extraction reporting surface.
 
 No speculative recovery, repair, or reconstruction behavior is part of this contract.
 
-## Result envelopes
+## Result categories
 
-`crushr-extract --json` emits exactly one of the following envelopes.
+Machine-readable extraction output must distinguish:
 
-### 1) Success envelope
+- successful canonical extraction
+- explicit non-canonical or partially refused extraction outcomes where policy permits them
+- structural/open/parse/verification error conditions
 
-Used when no files are refused.
+## Reporting rule
 
-```json
-{
-  "overall_status": "success",
-  "maximal_safe_set_computed": true,
-  "safe_files": [{"path": "..."}],
-  "refused_files": [],
-  "safe_file_count": 1,
-  "refused_file_count": 0
-}
-```
+Any non-canonical or refused outcome must remain explicit in machine-readable output.
 
-### 2) Partial refusal envelope
+Strict extraction and recover-capable extraction must not collapse into the same undifferentiated success surface.
 
-Used when one or more files are refused because required blocks are corrupted.
+## Determinism
 
-```json
-{
-  "overall_status": "partial_refusal",
-  "maximal_safe_set_computed": true,
-  "safe_files": [{"path": "..."}],
-  "refused_files": [{"path": "...", "reason": "corrupted_required_blocks"}],
-  "safe_file_count": 1,
-  "refused_file_count": 1
-}
-```
+For identical archive bytes, flags, and requested operation:
 
-### 3) Error envelope
+- result category is deterministic
+- ordered file/report lists are deterministic
+- refusal or classification reasons are deterministic
 
-Used for structural/open/parse failures (exit code `2`).
+## Vocabulary rule
 
-```json
-{
-  "overall_status": "error",
-  "error": "..."
-}
-```
+Use current canonical product vocabulary in future revisions of this contract.
 
-The success/partial fields are not emitted for the error envelope.
-
-## Field semantics
-
-- `overall_status`
-  - `success`: all extractable files extracted.
-  - `partial_refusal`: some files extracted, some refused.
-  - `error`: extraction did not produce a result set due to structural/open/parse failure.
-- `maximal_safe_set_computed`
-  - Always `true` for success/partial envelopes in current minimal v1 scope.
-- `safe_files`
-  - Deterministically ordered list of extracted files.
-- `refused_files`
-  - Deterministically ordered list of refused files.
-  - `reason` currently has one stable value: `corrupted_required_blocks`.
-- `safe_file_count` / `refused_file_count`
-  - Exact counts of entries in `safe_files` / `refused_files`.
-
-## Deterministic ordering
-
-For identical archive bytes and extraction flags:
-
-- `safe_files` order is deterministic
-- `refused_files` order is deterministic
-
-Current minimal v1 behavior orders file-path-based report entries lexicographically by stored path.
+Historical field names may remain only where compatibility requires them.

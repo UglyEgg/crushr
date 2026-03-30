@@ -5,6 +5,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # .ai/DECISION_LOG.md
 
+> **Current-truth note:** This file is historical rationale, not authoritative current product vocabulary. When historical entries use superseded terms such as `salvage`, wrapper-binary product surfaces, or removed concepts such as `fsck`, those entries remain historical only. Current canonical truth is defined by `.ai/STATUS.md`, `.ai/PHASE_PLAN.md`, `.ai/contracts/README.md`, and the aligned public documentation.
+
+
 ## 2026-03-29 — CRUSHR_PHASE16_09 zstd level-sweep comparability lock
 
 - Decision:

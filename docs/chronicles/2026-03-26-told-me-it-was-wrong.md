@@ -16,6 +16,11 @@ original_date: 2026-03-26
 summary: "A benchmark run surfaced a contradiction between declared archive semantics and runtime behavior, demonstrating the value of explicit contracts and observability in crushr."
 ---
 
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # The Tool Told Me It Was Wrong
 
 > _Chronicles entry — originally published externally and preserved here as a historical milestone._

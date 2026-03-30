@@ -10,7 +10,7 @@ This section presents crushr as a technical format rather than an experiment dia
 | Dimension | Current answer |
 |---|---|
 | Audience | Storage engineers, systems programmers, archival practitioners, and technical reviewers |
-| Claim | crushr is a salvage-oriented archive with deterministic salvage behavior under corruption |
+| Claim | crushr is an integrity-first archive with deterministic recovery behavior under corruption |
 | Core mechanism | Extent identity near the payload plus mirrored naming dictionaries |
 | Evaluation basis | Deterministic destructive testing across competing design branches |
 

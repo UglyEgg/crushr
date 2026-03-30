@@ -5,24 +5,36 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # Benchmark contract (v0.4.17)
 
+## Intent
+
 This page defines the locked benchmark methodology for crushr.
 
-It is intentionally about **measurement contract**, not optimization outcomes.
+It describes the measurement contract used to evaluate compression, packing, and extraction behavior. It does not redefine product guarantees, recovery vocabulary, or operator-facing trust classes.
 
-## Principles
+## Guarantees
+
+- Benchmark runs are attributable to dataset, command, comparator, and environment
+- Preservation profile is explicit for every crushr benchmark run
+- Results are recorded exactly as observed
+- Missing metrics are reported explicitly rather than silently omitted
+- Benchmark methodology remains reproducible and reviewable
+
+## Behavior
+
+### Principles
 
 1. Benchmarks must be reproducible.
 2. Benchmark runs must be attributable to dataset, tool/profile, command, and environment.
 3. Preservation profile must be explicit for every crushr run.
 4. Results are recorded exactly as observed; no silent exclusions.
 
-## Dataset classes
+### Dataset classes
 
 Deterministic datasets are generated through the canonical harness entrypoint:
 
 - `scripts/benchmark/harness.py datasets`
 
-Legacy direct script paths (`generate_datasets.py`, `run_benchmarks.py`) are compatibility shims; use `harness.py` for reproducible operations and docs parity.
+Legacy direct script paths (`generate_datasets.py`, `run_benchmarks.py`) are compatibility shims; use `harness.py` for reproducible operations and documentation parity.
 
 Generated under `.bench/datasets/`:
 
@@ -45,11 +57,11 @@ Determinism controls:
 - fixed generation seed
 - deterministic payload bytes from digest expansion
 - fixed mtime for generated files/directories
-- emitted `dataset_manifest.json` with counts/byte totals
+- emitted `dataset_manifest.json` with counts and byte totals
 
-## Comparison set and commands
+### Comparison set and commands
 
-The benchmark harness executes a centralized comparator set from `scripts/benchmark/contract.py`:
+The benchmark harness executes a centralized comparator set from `scripts/benchmark/contract.py`.
 
 Baseline (always):
 - `tar + zstd` (`zstd -3`)
@@ -64,8 +76,10 @@ Optional experiment comparators (enabled via harness flags):
 - deterministic file-ordering/locality variants for tar comparators (controlled by `--ordering-strategies`)
 - deterministic lightweight content-class clustering for tar comparators (controlled by `--content-class-strategy`)
 
-The comparator set, zstd level/strategy experiment model, dataset names, dictionary experiment model, and content-class experiment model are centralized and used by both run orchestration and benchmark assumptions fingerprinting.
-Ordering experiments are also centralized in the same model (`lexical`, `size_ascending`, `size_descending`, `extension_grouped`, `kind_then_extension`) and are applied only to tar comparators.
+The comparator set, zstd level and strategy experiment model, dataset names, dictionary experiment model, and content-class experiment model are centralized and used by both run orchestration and benchmark assumptions fingerprinting.
+
+Ordering experiments are centralized in the same model (`lexical`, `size_ascending`, `size_descending`, `extension_grouped`, `kind_then_extension`) and are applied only to tar comparators.
+
 Content-class clustering is benchmark-only and applied only to tar comparators. `lightweight_v1` uses file extension plus a small leading-byte sample to classify files into `structured_text_like`, `text_like`, `binary_like`, or `unknown_mixed`, then keeps deterministic ordering inside each class.
 
 Canonical command forms used by the harness:
@@ -74,18 +88,12 @@ Canonical command forms used by the harness:
 - `tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --pax-option=delete=atime,delete=ctime --no-recursion --verbatim-files-from -T <ordered_inputs.txt> -I 'xz -3' -cf <archive.tar.xz>`
 - `crushr pack <dataset> -o <archive.crs> --level 3 --preservation <full|basic> --silent`
 
-Ordering input list contract:
-
-- ordering files are generated deterministically per dataset/strategy
-- each line is a deterministic path relative to the benchmark execution root (e.g. `datasets/<dataset>/...` when datasets root is `.bench/datasets`)
-- harness validates ordered-input files before tar execution and fails early on empty/malformed/unresolvable entries
-
 Extraction command forms:
 
 - `tar -xf <archive.tar.zst|archive.tar.xz> -C <out_dir>`
 - `crushr extract <archive.crs> -o <out_dir> --all --overwrite --silent`
 
-## Metrics
+### Metrics
 
 Required:
 
@@ -98,35 +106,7 @@ Optional (captured when available):
 
 - CPU timings (`*_user_time_ms`, `*_sys_time_ms`)
 
-## Result format
-
-Structured output:
-
-- JSON file produced by `scripts/benchmark/run_benchmarks.py`
-- schema: `schemas/crushr-benchmark-run.v1.schema.json`
-
-Top-level benchmark output also includes:
-
-- `dataset_manifest` (embedded dataset identity, generation controls, and counts)
-- `assumptions` (level, comparator set, deterministic command-set fingerprint, and dictionary experiment config)
-- `dictionary_artifacts` (deterministic dictionary identity/provenance records for experiment cohorts)
-
-Each run record includes:
-
-- dataset
-- tool
-- profile (`full`/`basic` for crushr, `null` for tar baselines)
-- `comparator_label` (explicit comparator identity in comparisons)
-- `ordering_strategy` (`null` for runtime `crushr` comparators)
-- `content_class_strategy` (`off` or `lightweight_v1`)
-- `zstd_level` and `zstd_strategy` (explicit zstd experiment metadata, `null` for non-zstd comparators)
-- exact pack/extract command strings
-- archive path + size
-- timing + peak RSS fields
-- `dictionary` metadata (enabled/disabled, dictionary identity hash, cohort label, training provenance summary, dependency marker)
-- `content_classification` metadata (classifier version, deterministic class order, and per-class counts used in grouping)
-
-## Reproducibility steps
+### Reproducibility steps
 
 From repo root:
 
@@ -143,70 +123,17 @@ python3 scripts/benchmark/harness.py full \
 Environment assumptions:
 
 - Linux host
-- GNU tar with `--sort`/`--pax-option`
+- GNU tar with `--sort` / `--pax-option`
 - `zstd`, `xz`, and `time` available in `PATH`
 - filesystem with symlink support
 - xattrs are disabled by default (`--xattrs off`) for host-independent dataset identity
-- optional xattr-inclusive runs must set `--xattrs on`, which changes dataset identity and should not be mixed with default results
+- optional xattr-inclusive runs must set `--xattrs on`, which changes dataset identity and must not be mixed with default results
 
-## Pack phase attribution (v0.4.17+)
+### Pack phase attribution (v0.4.17+)
 
 `crushr pack` supports explicit pack-phase timing output with `--profile-pack`.
 
-This is attribution-only instrumentation for local investigation; it is not a benchmark-score mode and is never enabled by default.
-
-### Commands for local operator runs (Rich)
-
-From repo root:
-
-```bash
-cargo build --release -p crushr
-python3 scripts/benchmark/generate_datasets.py --clean --output .bench/datasets
-```
-
-1) Medium dataset (`full` profile):
-
-```bash
-target/release/crushr pack .bench/datasets/medium_realistic_tree \
-  -o .bench/results/medium_realistic_tree.full.profiled.crs \
-  --level 3 \
-  --preservation full \
-  --profile-pack \
-  --silent | tee .bench/results/pack_phases_medium_full.txt
-```
-
-2) Medium dataset (`basic` profile):
-
-```bash
-target/release/crushr pack .bench/datasets/medium_realistic_tree \
-  -o .bench/results/medium_realistic_tree.basic.profiled.crs \
-  --level 3 \
-  --preservation basic \
-  --profile-pack \
-  --silent | tee .bench/results/pack_phases_medium_basic.txt
-```
-
-3) Large dataset (`full` profile):
-
-```bash
-target/release/crushr pack .bench/datasets/large_stress_tree \
-  -o .bench/results/large_stress_tree.full.profiled.crs \
-  --level 3 \
-  --preservation full \
-  --profile-pack \
-  --silent | tee .bench/results/pack_phases_large_full.txt
-```
-
-4) Large dataset (`basic` profile):
-
-```bash
-target/release/crushr pack .bench/datasets/large_stress_tree \
-  -o .bench/results/large_stress_tree.basic.profiled.crs \
-  --level 3 \
-  --preservation basic \
-  --profile-pack \
-  --silent | tee .bench/results/pack_phases_large_basic.txt
-```
+This is attribution-only instrumentation for local investigation. It is not a benchmark-score mode and is never enabled by default.
 
 ### Expected output shape
 
@@ -222,179 +149,19 @@ Pack phases
   finalization      <ms>
 ```
 
-Capture the full command stdout in `.bench/results/pack_phases_*.txt`.
+### Limitations
 
-### Interpretation hints
+- Peak RSS and CPU fields depend on the `time` implementation on the host
+- xattr coverage is best-effort and may be partial on supporting filesystems only
+- Raw benchmark outputs are not product claims until reviewed comparatively
 
-- `compression` dominant: codec work is primary pack bottleneck.
-- `hashing` dominant: digest work is disproportionate vs compression.
-- `metadata` dominant: input walk/planning and metadata capture are likely scaling poorly.
-- `finalization` dominant: tail/index closeout may be doing too much late work.
-- Large `full` vs `basic` attribution gaps suggest metadata-envelope cost concentration.
+## Boundaries / Non-goals
 
-## Limitations
+This page does not define recovery semantics, extraction trust classes, or product identity.
 
-- Peak RSS and CPU fields depend on `time` implementation on host.
-- xattr coverage is best-effort and may be partial/non-zero only on supporting filesystems.
-- Raw benchmark outputs are not performance claims until reviewed comparatively.
+Non-goals:
 
-## Zstd level/strategy experiments (benchmark-only)
-
-Zstd tuning experiments are benchmark harness controls only. They do **not** change `crushr` runtime defaults or archive semantics.
-
-Run level and strategy matrices from the canonical harness:
-
-```bash
-python3 scripts/benchmark/harness.py run \
-  --datasets .bench/datasets \
-  --crushr-bin target/release/crushr \
-  --output .bench/results/benchmark_results.zstd_matrix.json \
-  --zstd-levels 1,3,6,9 \
-  --zstd-strategies default,fast,dfast,greedy,lazy
-```
-
-Host zstd CLI capability behavior:
-
-- `default` strategy does not emit an explicit zstd strategy flag.
-- Non-default strategies require host zstd CLI support for `--strategy=<name>`.
-- If non-default strategies are requested on a host without strategy-flag support, the harness fails early with a clear capability error before running tar commands.
-
-Recorded metadata:
-
-- top-level `assumptions.zstd_experiment` captures baseline level + configured matrices
-- each comparator record carries explicit `zstd_level`/`zstd_strategy`
-
-### Level sweep for default decision (1–10)
-
-Use a single-variable level sweep (default zstd strategy, lexical ordering, no content-class clustering):
-
-```bash
-python3 scripts/benchmark/harness.py run \
-  --datasets .bench/datasets \
-  --crushr-bin target/release/crushr \
-  --output .bench/results/benchmark_results.zstd_level_sweep.json \
-  --zstd-levels 1-10 \
-  --zstd-strategies default \
-  --ordering-strategies lexical \
-  --content-class-strategy off
-```
-
-For this controlled sweep shape, the runner prints a compact table after writing JSON:
-
-```text
-Zstd level sweep summary (tar+zstd, default strategy, lexical ordering)
-  Dataset: small_mixed_tree (12345678 input bytes)
-    level | archive_bytes | ratio | pack_ms | extract_ms
-        1 |       4567890 | 0.370 |     210 |        145
-        2 |       4345678 | 0.352 |     238 |        149
-...
-       10 |       3987654 | 0.323 |     612 |        181
-```
-
-Interpretation guidance:
-
-- `ratio` = `archive_bytes / dataset input bytes` (lower is better compression).
-- Compare marginal ratio gain vs marginal `pack_ms` increase between adjacent levels.
-- Prefer the knee point where ratio improvements flatten while pack time continues to rise.
-- Keep dataset identity and assumptions fixed across reruns for comparability.
-
-## Content-class clustering experiment (benchmark-only)
-
-Content-class clustering experiments are harness-only and do not change `crushr pack` runtime behavior or archive semantics.
-
-Run from the canonical harness:
-
-```bash
-python3 scripts/benchmark/harness.py run \
-  --datasets .bench/datasets \
-  --crushr-bin target/release/crushr \
-  --output .bench/results/benchmark_results.content_class.json \
-  --ordering-strategies lexical,size_descending \
-  --content-class-strategy lightweight_v1
-```
-
-Recorded metadata:
-
-- top-level `assumptions.content_class_experiment` captures strategy, class labels/order, and classifier thresholds
-- comparator labels include a `_cc<strategy>` suffix for tar variants (example: `tar_zstd_ordlexical_l3_sdefault_cclightweight_v1`)
-- each run record includes `content_class_strategy` and `content_classification.class_counts` for reproducibility
-- each run record carries explicit `zstd_level`/`zstd_strategy`
-- comparator labels encode ordering + zstd params (`tar_zstd_ordlexical_l6_sdefault`, `tar_zstd_ordlexical_l3_slazy`, etc.)
-
-What is being measured:
-
-- archive size and pack/extract timing deltas under controlled zstd parameter variation
-- no runtime/archive semantic changes (same `crushr` command behavior and same extraction semantics)
-
-## Ordering/locality experiments (benchmark-only)
-
-Ordering experiments are benchmark harness controls only. They do **not** change `crushr` runtime pack ordering, extraction behavior, or archive semantics.
-
-Run ordering strategies from the canonical harness:
-
-```bash
-python3 scripts/benchmark/harness.py run \
-  --datasets .bench/datasets \
-  --crushr-bin target/release/crushr \
-  --output .bench/results/benchmark_results.ordering_matrix.json \
-  --ordering-strategies lexical,size_ascending,size_descending,extension_grouped,kind_then_extension
-```
-
-Supported deterministic strategy definitions:
-
-- `lexical`: sort all archived entries by normalized relative path.
-- `size_ascending`: group by entry kind, then ascending file size, extension, and path tie-breakers.
-- `size_descending`: group by entry kind, then descending file size, extension, and path tie-breakers.
-- `extension_grouped`: group by entry kind, then extension, then path.
-- `kind_then_extension`: group by entry kind, then extension, then size, then path.
-
-Recorded metadata:
-
-- top-level `assumptions.ordering_experiment` captures baseline and configured strategy matrix
-- each comparator record includes `ordering_strategy`
-- each run record includes `ordering_strategy`
-- comparator labels encode ordering policy (`tar_zstd_ordextension_grouped_l3_sdefault`, etc.)
-
-What is being measured:
-
-- archive size and pack/extract timing deltas under deterministic input ordering/grouping policies
-- no runtime/archive semantic changes (ordering experiments apply to harness tar comparators only)
-
-## Dictionary experiment mode (benchmark-only)
-
-Dictionary mode is a controlled benchmark experiment path. It does **not** change archive format/runtime behavior.
-
-Enable it from the canonical harness command surface:
-
-```bash
-python3 scripts/benchmark/harness.py run \
-  --datasets .bench/datasets \
-  --crushr-bin target/release/crushr \
-  --output .bench/results/benchmark_results.dict.json \
-  --dictionary-experiment on \
-  --dictionary-scope per_dataset
-```
-
-Determinism and provenance model:
-
-- training input selection is explicit and deterministic (`lexicographic_relative_path`, then capped by `--dictionary-max-samples`)
-- per-sample read size is explicit (`--dictionary-sample-bytes`)
-- dictionary size target is explicit (`--dictionary-size-bytes`)
-- each trained dictionary has:
-  - `dictionary_content_hash` (content digest)
-  - `dictionary_id` (stable identity derived from scope/cohort/training manifest + content hash)
-  - `cohort_label` and `cohort_datasets`
-  - `training_manifest_id` and per-sample digest list
-
-Non-goals for this packet:
-
-- no archive-format dictionary dependency semantics
-- no runtime/archive pack/extract behavior changes
-- no silent fallback; dictionary experiment runs carry explicit dependency metadata (`required_dictionary`)
-- no zstd strategy/level runtime-default changes in crushr
-
-Design framing for follow-up runtime/archive work (pending benchmark evidence):
-
-- dictionary identity must stay explicit
-- dependency edges must stay explicit and auditable
-- survivability should favor payload-adjacent or checkpoint-local placements over hidden centralized dictionary dependencies
+- No best-effort reconstruction
+- No hidden failure smoothing
+- No compression-first tradeoffs
+- No external decode dependencies

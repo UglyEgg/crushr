@@ -32,7 +32,7 @@ nav = [
     { "Archive format boundary" = "reference/archive-format.md" },
     { "Extent identity" = "reference/extent-identity.md" },
     { "Dictionary system" = "reference/dictionary-system.md" },
-    { "Salvage model" = "reference/salvage-model.md" },
+    { "Recovery classification model" = "reference/salvage-model.md" },
     { "Format evolution" = "format-evolution.md" },
   ] },
   { "Security" = [

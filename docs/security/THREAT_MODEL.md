@@ -1,95 +1,78 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # Threat Model
 
-## Purpose
-Define the adversarial conditions under which crushr operates and the boundaries of its guarantees.
+## Intent
 
-## Assets
-- archive payload data
-- archive structure
-- integrity signals and verification outputs
-- recovery outputs
+This page identifies the primary threats crushr is designed to resist within its actual scope.
 
-## Trust Model
+## Guarantees
 
-Trusted:
-- crushr implementation as built from source
-- verified archive data after validation
+- Verified data is never silently corrupted or misrepresented
+- Unverifiable data is never presented as valid
+- Degraded or partial results are explicitly labeled and structured
+- Archive processing fails closed when required truth cannot be established
+- Filesystem writes are constrained and cannot escape intended boundaries
 
-Untrusted:
-- all input archives
-- all external file paths
-- all metadata until validated
-- runtime environment
+## Behavior
 
-## Adversary Capabilities
+### Assumptions
 
-The adversary may:
-- craft malicious archives
-- modify archive contents or structure
-- inject malformed metadata
-- attempt path traversal during extraction
-- induce partial corruption
-- attempt to cause silent data loss or misinterpretation
+Treat as untrusted until validated or verified as required by the operation:
 
-The adversary may not:
-- modify verified data without detection, assuming integrity primitives hold
+- all archive bytes
+- all archive structure and metadata
+- all paths and extraction targets
+- all externally supplied archives regardless of source
 
-## Threat Categories
+### Primary threats
 
-### T1: Integrity Subversion
-Goal: modify archive contents without detection  
-Mitigation:
-- explicit integrity verification
-- fail-closed on mismatch
+1. **Undetected archive corruption**
+   - payload or truth-bearing data modified without operator awareness
 
-### T2: Structural Manipulation
-Goal: corrupt index or metadata to mislead extraction  
-Mitigation:
-- strict parsing and validation
-- reject inconsistent structures
+2. **Structural manipulation**
+   - malformed indexes, invalid offsets, impossible references, or inconsistent layout intended to confuse processing
 
-### T3: Path Traversal / Escape
-Goal: write files outside intended extraction directory  
-Mitigation:
-- normalize paths
-- reject absolute paths and traversal sequences
+3. **Extraction path escape**
+   - absolute paths, traversal sequences, or unsafe targets intended to escape the destination boundary
 
-### T4: Silent Data Loss
-Goal: cause partial recovery without user awareness  
-Mitigation:
-- explicit salvage mode
-- mandatory reporting of missing or corrupt data
+4. **Silent non-canonical output**
+   - degraded or partial recovery presented as ordinary success
 
-### T5: Malformed Input Exploitation
-Goal: trigger undefined behavior or crashes  
-Mitigation:
-- defensive parsing
-- explicit error handling
-- no unsafe assumptions
+5. **Malicious metadata influence**
+   - names, paths, or metadata attempting to influence extraction or reporting outside the validated boundary
 
-## Trust Boundaries
+### Trust boundaries
 
-1. Archive Input Boundary
-   - all archives treated as hostile until verified
+1. **Archive input boundary**
+   - all archives treated as hostile until the requested checks succeed
 
-2. Verification Boundary
-   - only verified data is eligible for extraction or reporting
+2. **Verification boundary**
+   - only verified payload or truth-bearing data is eligible for trust-bearing output
 
-3. Extraction Boundary
-   - filesystem writes constrained and validated
+3. **Extraction boundary**
+   - filesystem writes remain constrained and validated regardless of mode
 
-## Security Guarantees
+## Security guarantees
 
-- no undetected modification of verified data
+- no undetected modification of verified payload data within the archive model
 - no silent partial recovery
-- no extraction outside intended directory
-- no interpretation of unverified data as valid
+- no extraction outside the intended directory
+- no interpretation of unverified data as trustworthy
 
-## Non-Goals
+## Boundaries / Non-goals
 
-- confidentiality guarantees
-- availability guarantees under adversarial conditions
-- recovery of corrupted data beyond verified extents
+This model does not claim confidentiality guarantees, availability guarantees under adversarial conditions, or recovery of unverifiable data.
+
+Non-goals:
+
+- No best-effort reconstruction
+- No hidden failure smoothing
+- No compression-first tradeoffs
+- No external decode dependencies
 
 ## Summary
 

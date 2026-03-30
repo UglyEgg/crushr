@@ -13,6 +13,11 @@ original_date: YYYY-MM-DD
 summary: "<1-2 sentence summary>"
 ---
 
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # <TITLE>
 
 > _Chronicles entry — originally published externally and preserved here as a historical milestone._

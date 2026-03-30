@@ -1,3 +1,8 @@
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 ---
 title: "Chronicles"
 description: "Historical public milestones and project snapshots preserved from external writing."

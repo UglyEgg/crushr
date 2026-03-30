@@ -3,12 +3,40 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
-# Security Model
+# Project Scope
 
-crushr processes untrusted archive bytes and may write files to disk.
+## Intent
 
-Requirements:
-- all parsers are length-bounded and reject malformed lengths
-- extraction must defend against path traversal and unsafe symlink restoration
-- corruption analysis must never require executing arbitrary content
-- fuzzing of parsers is a required hardening activity, not a future nice-to-have
+crushr is a deterministic archive system that preserves and exposes data truth under failure.
+
+It is built around one core distinction: payload integrity is independent from metadata completeness.
+
+## In scope
+
+- deterministic validation and verification
+- strict fail-closed extraction
+- explicit bounded recovery through `extract --recover`
+- archive and entry introspection without extraction
+- explicit trust classification for non-canonical outcomes
+- Linux-first preservation fidelity layered onto an integrity-first model
+
+## Out of scope
+
+- parity reconstruction
+- speculative decompression
+- heuristic recovery logic
+- automatic archive repair
+- fixer-tool semantics
+- hidden failure smoothing
+
+## Trust-bearing output classes
+
+- `canonical`
+- `metadata_degraded`
+- `recovered_named`
+- `recovered_anonymous`
+- `unrecoverable`
+
+## Scope rule
+
+The system guarantees correctness of what it returns, not completeness of what corruption destroyed.

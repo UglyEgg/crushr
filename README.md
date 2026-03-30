@@ -3,73 +3,98 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
+[![Policy Gate](https://github.com/UglyEgg/crushr/actions/workflows/policy-gate.yml/badge.svg)](https://github.com/UglyEgg/crushr/actions/workflows/policy-gate.yml)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
+[![REUSE status](https://api.reuse.software/badge/github.com/UglyEgg/crushr)](https://api.reuse.software/info/github.com/UglyEgg/crushr)
+
 # crushr
 
-A salvage-oriented archive format born from corruption testing.
+A deterministic archive system that preserves and exposes data truth under failure.
 
-crushr is built around a narrow claim: archive behavior after damage should be explicit, bounded, and verifiable. Standard archive functionality exists to support preservation completeness, not to redefine the project as a generic convenience-first archiver.
+crushr is built around a narrow claim: archive behavior after damage should be explicit, bounded, and verifiable. Standard archive functionality exists to support preservation completeness, not to redefine the project as a convenience-first archiver.
+
+## Intent
+
+crushr is designed to preserve and expose the truth about data, especially under partial failure or corruption.
+
+crushr prioritizes data integrity, explicit truth, and bounded failure behavior over maximum compression ratio.
+
+It is not a convenience-first archive format. It is a system that defines what is known, what is degraded, and what must be refused.
+
+## Guarantees
+
+- Verified data is never silently corrupted or misrepresented  
+- Unverifiable data is never presented as valid  
+- Degraded or partial results are explicitly labeled and structured  
+- Archive processing fails closed when required truth cannot be established  
+- Filesystem writes are constrained and cannot escape intended boundaries  
+
+## Behavior
+
+### Validation vs Verification
+
+crushr enforces a strict separation between:
+
+- **Validation** — structural correctness of archive components  
+- **Verification** — integrity correctness of data via cryptographic proof (BLAKE3)  
+
+No output is considered trustworthy without explicit verification.
+
+### Output Classification
+
+All extraction and recovery results are classified into explicit trust classes:
+
+- `canonical` — payload integrity is verified and required metadata is intact  
+- `metadata_degraded` — payload integrity is verified, but metadata or structure is incomplete  
+- `recovered_named` — payload integrity is verified and identity has been reconstructed within defined constraints  
+- `recovered_anonymous` — payload integrity is verified but no reliable identity remains  
+- `unrecoverable` — payload integrity cannot be proven to required standards  
+
+These classes reflect the separation of payload integrity from metadata integrity.
+
+### Processing Modes
+
+- **Strict / Default**
+  - Requires verified payload integrity and required metadata  
+  - Refuses output when canonical guarantees cannot be established  
+
+- **Recover**
+  - Allows extraction of data that can be cryptographically verified  
+  - Produces classified output when metadata or structure is incomplete  
+  - Does not reconstruct, infer, or repair missing data  
 
 ## Why crushr exists
 
-Most archive tooling assumes the happy path:
+Most archive tooling assumes intact metadata, trustworthy structure, and clean success/failure outcomes.
 
-- metadata is intact
-- structure is trustworthy
-- extraction either works or fails cleanly
-- archives remain black boxes until you unpack them
+crushr is built around the opposite assumption:
 
-crushr was built around the opposite assumption:
+- data can be partially damaged  
+- structure can be incomplete  
+- metadata can be lost  
+- partial truth still has value  
 
-- things fail
-- data gets damaged
-- partial truth still matters
-- and the tool should say clearly what is canonical, what is degraded, what was recovered, and what is lost
-
-The goal is not just to compress files.
-
-The goal is to preserve Linux filesystem state honestly, recover what can be proven, and avoid pretending certainty where none exists.
+The system makes all outcomes explicit rather than assuming correctness.
 
 ## What crushr is now
 
-crushr has moved beyond a format experiment.
+The project provides:
 
-Today, the project provides:
+- archive creation with `crushr pack`  
+- integrity verification and strict-extraction viability checks with `crushr verify`  
+- strict extraction with `crushr extract`  
+- recovery-aware extraction with `crushr extract --recover`  
+- archive inspection with `crushr info`  
+- pre-extraction archive listing with `crushr info --list`  
+- binary build and environment inspection with `crushr about`  
 
-- archive creation with `crushr pack`
-- strict verification with `crushr verify`
-- strict extraction with `crushr extract`
-- recovery-aware extraction with `crushr extract --recover`
-- archive inspection with `crushr info`
-- pre-extraction archive listing with `crushr info --list`
-- a shared, product-grade CLI surface across the canonical commands
-
-crushr archives are identified by crushr format markers, not by filename extension.
+crushr archives are identified by format markers, not by filename extension.
 
 The canonical default extension is:
 
 - `.crs`
 
 If no extension is supplied for `pack -o`, `.crs` is appended automatically.
-
-## Canonical command surface
-
-The canonical public tool surface is:
-
-- `crushr pack`
-- `crushr verify`
-- `crushr extract`
-- `crushr extract --recover`
-- `crushr info`
-- `crushr info --list`
-- `crushr about`
-
-Thin wrapper binaries are retained for convenience and map to the canonical `crushr` commands:
-
-- `crushr-pack` → `crushr pack ...`
-- `crushr-extract` → `crushr extract ...`
-- `crushr-info` → `crushr info ...`
-
-Each wrapper provides the same baseline control mechanics: `--help`, `--version`, and `about`.
 
 ## Core design principles
 
@@ -79,78 +104,70 @@ If a path, file identity, or recovery outcome cannot be proven from surviving ar
 
 ### Separate trust classes explicitly
 
-Recovery and extraction outcomes distinguish between:
-
-- `canonical`
-- `metadata_degraded`
-- `recovered_named`
-- `recovered_anonymous`
-- `unrecoverable`
-
-This prevents degraded or partial output from being confused with fully canonical extraction.
+All output is classified into explicit trust classes rather than presented as uniformly valid.
 
 ### Fail closed by default
 
-Strict commands refuse clearly when canonical guarantees cannot be met. Recovery is explicit.
+Strict operations refuse when canonical guarantees cannot be met. Recovery is explicit.
 
 ### Linux-first honesty
 
-crushr is designed first for real Linux archival workflows. Other platforms may be supported later, but they are not allowed to redefine the core metadata model.
+crushr is designed for real Linux archival workflows. Other platforms are not allowed to redefine the core metadata model.
 
 ### Archives should be inspectable
 
-Archives should not remain opaque until extraction. Listing, structural inspection, metadata visibility, and later spatial introspection are part of the product direction.
+Archives are not opaque containers. Inspection, listing, and metadata visibility are first-class capabilities.
 
 ## Recovery model
 
 `crushr extract` is strict by default.
 
-If strict canonical extraction cannot be completed, the command should refuse clearly and direct the operator to recovery mode:
+If strict canonical extraction cannot be completed, the command refuses and requires explicit recovery mode:
 
-- `crushr extract ...` → strict canonical extraction only
-- `crushr extract --recover ...` → recovery-aware extraction
+- `crushr extract ...` → strict canonical extraction only  
+- `crushr extract --recover ...` → recovery-aware extraction  
 
 Recovery-aware extraction separates output by trust class:
 
-- `canonical/`
-- `metadata_degraded/`
-- `recovered_named/`
-- `_crushr_recovery/anonymous/`
-- `_crushr_recovery/manifest.json`
+- `canonical/`  
+- `metadata_degraded/`  
+- `recovered_named/`  
+- `_crushr_recovery/anonymous/`  
+- `_crushr_recovery/manifest.json`  
 
 Recovery results are reported explicitly as:
 
-- `canonical`
-- `metadata_degraded`
-- `recovered_named`
-- `recovered_anonymous`
-- `unrecoverable`
+- `canonical`  
+- `metadata_degraded`  
+- `recovered_named`  
+- `recovered_anonymous`  
+- `unrecoverable`  
 
 Anonymous recovered files follow a deterministic naming policy:
 
-- high-confidence classification → `file_<id>.<ext>`
-- medium-confidence classification → `file_<id>.probable-<type>.bin`
-- low/unknown confidence → `file_<id>.bin`
+- high-confidence classification → `file_<id>.<ext>`  
+- medium-confidence classification → `file_<id>.probable-<type>.bin`  
+- low/unknown confidence → `file_<id>.bin`  
 
 The recovery manifest preserves structured classification and identity metadata for all recovered outputs.
 
 ## Linux-first preservation model
 
-crushr's foundational philosophy is recoverability and truthful inspection. Tar-style preservation is a secondary but increasingly important capability layered onto that foundation.
+crushr's foundational model is the separation of payload integrity from metadata integrity. Tar-style preservation is layered onto that foundation.
 
 ### Preservation profiles
 
 `crushr pack` supports explicit archive preservation contracts:
 
-- `--preservation full` (default)
-- `--preservation basic`
-- `--preservation payload-only`
+- `--preservation full` (default)  
+- `--preservation basic`  
+- `--preservation payload-only`  
 
 The selected preservation profile is recorded in archive metadata and shown by `crushr info`.
 
 #### full
 
-Preserves the complete Linux-first metadata and entry-kind set crushr currently supports.
+Preserves the complete Linux-first metadata and entry-kind set currently supported.
 
 #### basic
 
@@ -158,14 +175,14 @@ Preserves regular files, directories, empty directories, symlinks, hard links, m
 
 Intentionally omits:
 
-- xattrs
-- uid/gid
-- uname/gname
-- ACLs
-- SELinux labels
-- Linux capabilities
-- FIFOs
-- device nodes
+- xattrs  
+- uid/gid  
+- uname/gname  
+- ACLs  
+- SELinux labels  
+- Linux capabilities  
+- FIFOs  
+- device nodes  
 
 #### payload-only
 
@@ -173,18 +190,18 @@ Preserves only regular-file payload bytes plus logical tree reconstruction direc
 
 Intentionally omits:
 
-- symlink semantics
-- hard link semantics
-- mode
-- mtime
-- sparse semantics
-- xattrs
-- ownership
-- ACLs
-- SELinux labels
-- Linux capabilities
-- FIFOs
-- device nodes
+- symlink semantics  
+- hard link semantics  
+- mode  
+- mtime  
+- sparse semantics  
+- xattrs  
+- ownership  
+- ACLs  
+- SELinux labels  
+- Linux capabilities  
+- FIFOs  
+- device nodes  
 
 If a selected profile excludes an entry kind, crushr warns and omits it rather than fabricating an alternate representation.
 
@@ -192,157 +209,131 @@ If a selected profile excludes an entry kind, crushr warns and omits it rather t
 
 With `--preservation full`, crushr currently preserves:
 
-- regular files
-- directories
-- empty directories
-- symlinks and link targets
-- hard links
-- sparse files
-- FIFOs
-- char/block device nodes
-- file mode / permissions
-- modification time (`mtime`)
-- extended attributes (`xattrs`)
-- numeric ownership (`uid` / `gid`)
-- optional ownership names (`uname` / `gname`) when available
-- POSIX ACL metadata (`system.posix_acl_access`, `system.posix_acl_default`)
-- SELinux label metadata (`security.selinux`)
-- Linux file capability metadata (`security.capability`)
+- regular files  
+- directories  
+- empty directories  
+- symlinks and link targets  
+- hard links  
+- sparse files  
+- FIFOs  
+- char/block device nodes  
+- file mode / permissions  
+- modification time (`mtime`)  
+- extended attributes (`xattrs`)  
+- numeric ownership (`uid` / `gid`)  
+- optional ownership names (`uname` / `gname`) when available  
+- POSIX ACL metadata (`system.posix_acl_access`, `system.posix_acl_default`)  
+- SELinux label metadata (`security.selinux`)  
+- Linux file capability metadata (`security.capability`)  
 
 Where preservation or restoration cannot be applied due to platform or permission constraints, crushr degrades honestly and warns rather than silently pretending success.
 
 ### Long-term preservation goal
 
-crushr’s long-term goal is broad Linux-first archive fidelity suitable for serious tar-based workflows.
+crushr aims to support Linux-first archive fidelity suitable for serious tar-based workflows.
 
-That means, over time, supporting as much tar-class behavior as is practical and honest, including metadata and entry classes beyond simple payload preservation.
-
-This is a staged roadmap goal, not a claim that crushr already has full tar parity in every environment.
+This is a staged goal. Full parity is not implied.
 
 ## Archive introspection
 
-crushr archives are no longer black boxes.
+crushr archives are inspectable without extraction.
 
-`crushr info --list` provides pre-extraction logical archive listing using archive metadata rather than payload extraction.
+- `crushr info` provides archive-level introspection: structure, preservation profile, and declared metadata scope  
+- `crushr info --list` provides entry-level introspection: listing, classification, and attributes without extraction  
 
-`crushr info` is archive-contract introspection: it reports preservation profile, metadata and entry-kind visibility, and what the archive intended to carry.
-It does **not** claim extraction-time metadata restore outcomes; `metadata_degraded` remains an extraction/recovery result class.
+Current behavior is fail-closed:
 
-Current behavior is intentionally fail-closed:
-
-- if archive structure can be proven, crushr lists it
-- if metadata needed for listing is unavailable, crushr does not invent structure
-- directories in listing output are derived from stored logical paths rather than treated as independent authoritative archive objects
-
-This introspection line is expected to expand further in the 0.4.x series, including richer metadata surfacing and deeper archive/layout visibility.
-
-
+- if structure can be proven, it is reported  
+- if required metadata is missing, structure is not invented  
+- directory views are derived from stored logical paths  
 
 ## Security and assurance
 
 crushr publishes a self-assessed security and assurance set covering:
-- threat model
-- integrity guarantees
-- verification semantics
-- architectural invariants
-- control and audit documents
 
-crushr is **designed in alignment with ISO/IEC 27001 control principles (self-assessed)** for the subset of controls that meaningfully apply to a single-maintainer open-source archive project.
+- threat model  
+- integrity guarantees  
+- verification semantics  
+- architectural invariants  
+- control and audit documents  
 
-This is not a certification claim. It is a public description of the project’s trust boundaries, rigor model, and control-alignment evidence.
+crushr is designed in alignment with ISO/IEC 27001 control principles (self-assessed) for relevant controls.
 
-See:
-- `docs/security/`
-- `docs/SECURITY_WHITEPAPER.md` if mirrored into the site tree, or the site security section when published
+This is not a certification claim.
 
 ## Documentation
 
-Public product, reference, and historical material lives under `docs/`.
+Public material lives under `docs/`.
 
 Primary entry points:
 
-- `docs/index.md` — site landing page
-- `docs/why-crushr.md` — positioning and legitimacy
-- `docs/whitepaper/index.md` — technical whitepaper
-- `docs/reference/index.md` — concise technical reference
-- `docs/chronicles/index.md` — historical project milestones and public writing
+- `docs/index.md` — site landing page  
+- `docs/why-crushr.md` — positioning  
+- `docs/whitepaper/index.md` — technical whitepaper  
+- `docs/reference/index.md` — concise technical reference  
+- `docs/chronicles/index.md` — historical development  
 
-The published docs site targets **Zensical** via `zensical.toml`.
+Canonical behavior and guarantees are defined by this README and the security documentation.
 
 ## Internal project control
 
-The repository also contains internal planning and control material under:
+Internal planning and control material exists under:
 
-- `.ai/` — active project-control documents
-- `.ai/contracts/` — policy and interface contracts used during development
+- `.ai/`  
+- `.ai/contracts/`  
 
-These files are not part of the public documentation site and should be treated as internal engineering/project-control material.
+These are not part of the public documentation surface.
 
 ## Product boundary
 
-Current boundary classes:
+- **Stable product surface:** `pack`, `verify`, `extract`, `extract --recover`, `info`, `info --list`, `about`  
+- **Bounded internal surface:** workspace Rust crates/modules  
+- **Experimental/lab-only surface:** `crushr lab` and research tooling  
 
-- **Stable product surface:** user-facing CLI behavior and machine-readable outputs of `crushr pack`, `crushr verify`, `crushr extract`, `crushr extract --recover`, `crushr info`, `crushr info --list`, and thin wrappers over those commands
-- **Bounded internal surface:** workspace Rust crates/modules used to implement the tool suite
-- **Experimental/lab-only surface:** `crushr lab`, corruption research workflows, format-comparison tooling, and research schemas/artifacts
-- **Removed primary surface:** standalone salvage as a normal operator-facing command
+`crushr lab` is an internal development harness used to evaluate potential features under controlled conditions.
 
-Treat these boundaries as canonical unless explicitly revised by a future decision.
+It is not part of the user-facing product surface and is not covered by stability guarantees. Only behavior that demonstrates clear value and aligns with crushr’s guarantees is promoted into the canonical system.
 
 ## CLI presentation
 
-Public-facing commands share one operator-facing presentation system:
+Commands share a consistent presentation model:
 
-- consistent title/header structure
-- consistent section and summary layout
-- shared status vocabulary
-- shared semantic color usage
-- shared progress rendering for long-running operations
-- restrained motion only for active work
-- stable final summaries suitable for terminal use and copy/paste
-
-The CLI is designed to feel calm, explicit, and trustworthy rather than flashy.
+- structured output  
+- consistent terminology  
+- deterministic summaries  
+- restrained motion for active operations  
 
 ### Silent/scriptable mode
 
-Script-oriented paths support quiet machine-friendly execution where applicable.
-
-Silent mode suppresses interactive multi-line presentation and emits deterministic concise summaries suitable for automation.
+Script-oriented paths emit concise deterministic output suitable for automation.
 
 ## Evidence-oriented workflow
 
-crushr is designed to fit evidence-aware and failure-aware workflows:
-
-1. Media or source material is acquired externally.
-2. Files are packaged into crushr archives.
-3. Verification establishes what remains trustworthy.
-4. Strict extraction returns only canonical outputs.
-5. Recovery-aware extraction returns outputs with explicit trust segregation.
-6. Later reviewers can rerun verification and recovery against the same archive and receive deterministic classifications.
+1. Data is collected  
+2. Archives are created  
+3. `verify` establishes integrity and strict-extraction viability  
+4. `extract` returns canonical output when possible  
+5. `extract --recover` returns classified output when required  
+6. Results remain reproducible and verifiable  
 
 ## Roadmap direction
 
-Near-term priorities continue along these lines:
-
-- finish Linux-first preservation and recovery semantics
-- improve archive inspection and metadata visibility
-- add deeper introspection of container/layout structure
-- begin benchmark and compression analysis once core semantics stabilize
-- explore reproducible archive mode in the future
+- complete Linux-first preservation semantics  
+- expand archive introspection  
+- deepen structural visibility  
+- begin compression benchmarking once semantics stabilize  
+- explore reproducible archive modes  
 
 ## Product version governance
 
-- Root `VERSION` is the canonical product version source (strict SemVer only, no `v` prefix).
-- Human version bumps should edit `VERSION` only, then run `./scripts/sync-version.sh` to propagate `workspace.package.version`.
-- Validate drift with `./scripts/check-version-sync.sh`.
+- `VERSION` is the canonical version source  
+- update `VERSION`, then run sync scripts  
+- validate with version checks  
 
 ## License
 
-Code in this repository is dual-licensed under **MIT OR Apache-2.0**.
+Code is dual-licensed under MIT OR Apache-2.0.
 
-- You may use, modify, and distribute code under either license at your option.
-- Contributions are accepted under the same dual-license terms unless explicitly stated otherwise.
+Documentation and diagrams are licensed under CC-BY-4.0.
 
-Documentation and diagrams (Markdown and visual assets) are licensed under **CC-BY-4.0**.
-
-This repository is structured for REUSE compliance with SPDX headers and `REUSE.toml` metadata.
+The repository follows REUSE compliance with SPDX metadata.

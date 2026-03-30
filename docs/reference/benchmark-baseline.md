@@ -5,22 +5,38 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # Benchmark baseline (v0.4.15)
 
-## Overview
+## Intent
 
-This baseline run executes the CRUSHR_BENCHMARK_01 matrix once across all deterministic benchmark datasets:
+This page records a specific benchmark baseline run against the locked benchmark contract.
+
+It is an evidence artifact, not a product-positioning page and not a guarantee document.
+
+## Guarantees
+
+- Results are reported exactly as observed for this run
+- Missing metrics are disclosed explicitly
+- Environment context is recorded with the run
+- Comparative conclusions are bounded to the recorded dataset and host profile
+- No unsupported performance claim is implied beyond the captured evidence
+
+## Behavior
+
+### Overview
+
+This baseline run executes the `CRUSHR_BENCHMARK_01` matrix once across all deterministic benchmark datasets:
 
 - `tar + zstd` (`zstd -3`)
 - `tar + xz` (`xz -3`)
 - `crushr pack --preservation full --level 3`
 - `crushr pack --preservation basic --level 3`
 
-Payload-only profile was not included in this baseline because it is optional in the packet.
+Payload-only profile was not included in this baseline because it was optional in the packet.
 
 Raw data artifact:
 
 - `docs/reference/benchmarks/benchmark_results_v0.4.15.json`
 
-## Environment summary
+### Environment summary
 
 - Date (UTC): 2026-03-26
 - OS/kernel: Linux 6.12.47 (Ubuntu-based container host)
@@ -28,7 +44,7 @@ Raw data artifact:
 - RAM: 17 GiB
 - Filesystem: `ext4`
 
-## Size comparison
+### Size comparison
 
 Archive size in bytes (lower is better):
 
@@ -40,11 +56,11 @@ Archive size in bytes (lower is better):
 
 Key size takeaways:
 
-- `crushr` is larger than both tar baselines on every dataset in this run.
-- `crushr basic` is consistently slightly smaller than `crushr full` (small but measurable).
-- `tar+xz` dominates size on `large_stress_tree` (very large margin), but pays heavily in pack time.
+- `crushr` is larger than both tar baselines on every dataset in this run
+- `crushr basic` is consistently slightly smaller than `crushr full`
+- `tar+xz` dominates size on `large_stress_tree`, but pays heavily in pack time
 
-## Pack time comparison
+### Pack time comparison
 
 Pack wall time in ms (lower is better):
 
@@ -56,11 +72,11 @@ Pack wall time in ms (lower is better):
 
 Pack-time takeaways:
 
-- `tar+zstd` is fastest on all datasets.
-- `crushr` is much faster than `tar+xz` for packing, especially on medium/large datasets.
-- `crushr basic` is slightly slower than `crushr full` in this run.
+- `tar+zstd` is fastest on all datasets
+- `crushr` is much faster than `tar+xz` for packing, especially on medium and large datasets
+- `crushr basic` is slightly slower than `crushr full` in this run
 
-## Extract time comparison
+### Extract time comparison
 
 Extract wall time in ms (lower is better):
 
@@ -72,11 +88,11 @@ Extract wall time in ms (lower is better):
 
 Extract-time takeaways:
 
-- `tar+zstd` is fastest on all datasets.
-- `crushr` is faster than `tar+xz` on small and medium extraction, but slower than `tar+xz` on large extraction.
-- `crushr basic` is slightly better than full on small/medium extract, but worse on large extract.
+- `tar+zstd` is fastest on all datasets
+- `crushr` is faster than `tar+xz` on small and medium extraction, but slower than `tar+xz` on large extraction
+- `crushr basic` is slightly better than full on small and medium extraction, but worse on large extraction
 
-## Memory behavior
+### Memory behavior
 
 `peak_rss_kb` values are `null` for all runs in this environment.
 
@@ -84,40 +100,51 @@ Reason: benchmark harness falls back to wall-clock-only timing when GNU `/usr/bi
 
 Resulting memory conclusion:
 
-- No valid peak RSS comparison can be made from this baseline run.
+- no valid peak RSS comparison can be made from this baseline run
 
-## Observations
+### Observations
 
 Where crushr is better:
 
-- Pack speed vs `tar+xz` on all datasets.
-- Extract speed vs `tar+xz` on small and medium datasets.
+- pack speed vs `tar+xz` on all datasets
+- extract speed vs `tar+xz` on small and medium datasets
 
 Where crushr is worse:
 
-- Archive size vs both tar baselines on all datasets.
-- Pack speed vs `tar+zstd` on all datasets.
-- Extract speed vs `tar+zstd` on all datasets.
-- Extract speed vs `tar+xz` on `large_stress_tree`.
+- archive size vs both tar baselines on all datasets
+- pack speed vs `tar+zstd` on all datasets
+- extract speed vs `tar+zstd` on all datasets
+- extract speed vs `tar+xz` on `large_stress_tree`
 
 Where results are roughly equivalent:
 
-- `crushr full` vs `crushr basic` archive sizes are close; basic is consistently slightly smaller.
-- `crushr full` vs `crushr basic` pack/extract times are in the same broad range, with dataset-dependent lead changes.
+- `crushr full` vs `crushr basic` archive sizes are close
+- `crushr full` vs `crushr basic` pack and extract times are in the same broad range, with dataset-dependent lead changes
 
 Surprising findings:
 
-- `tar+xz` produced dramatically smaller output on `large_stress_tree` (about 3.7x smaller than `tar+zstd` and `crushr`), but with very high pack-time cost.
-- On large extraction only, `tar+xz` outperformed both crushr modes despite being slower than crushr on small/medium extraction.
+- `tar+xz` produced dramatically smaller output on `large_stress_tree`, but with very high pack-time cost
+- on large extraction only, `tar+xz` outperformed both crushr modes despite being slower than crushr on small and medium extraction
 
-## Known caveats
+### Known caveats
 
-- This is a single full-suite run; no statistical confidence interval is claimed.
-- Peak RSS is missing in this environment (`/usr/bin/time` unavailable).
-- CPU time fields are also absent for the same reason.
-- Results are tied to this host profile (3 vCPU, ext4, containerized runtime).
-- Dataset representativeness is bounded to current deterministic synthetic families (`small_mixed_tree`, `medium_realistic_tree`, `large_stress_tree`).
+- this is a single full-suite run; no statistical confidence interval is claimed
+- peak RSS is missing in this environment (`/usr/bin/time` unavailable)
+- CPU time fields are also absent for the same reason
+- results are tied to this host profile (3 vCPU, ext4, containerized runtime)
+- dataset representativeness is bounded to the current deterministic synthetic families
 
-## Follow-up attribution status
+### Follow-up attribution status
 
 As of `v0.4.17`, pack-phase attribution is available through `crushr pack --profile-pack` (see `docs/reference/benchmarking.md`) so future benchmark investigations can break pack-time cost down by internal phase rather than treating pack as a single undifferentiated bucket.
+
+## Boundaries / Non-goals
+
+This page does not define product guarantees, recovery semantics, or canonical vocabulary.
+
+Non-goals:
+
+- No best-effort reconstruction
+- No hidden failure smoothing
+- No compression-first tradeoffs
+- No external decode dependencies

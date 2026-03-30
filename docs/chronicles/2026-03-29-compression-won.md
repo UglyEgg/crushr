@@ -15,6 +15,11 @@ original_date: 2026-03-29
 summary: "We pushed on every reasonable compression lever and found the same answer each time: the gains weren’t worth the cost."
 ---
 
+<!--
+SPDX-License-Identifier: CC-BY-4.0
+SPDX-FileCopyrightText: 2026 Richard Majewski
+-->
+
 # We Tried to Beat Compression. Compression Won.
 
 > _Chronicles entry — originally published externally and preserved here as a historical milestone._
