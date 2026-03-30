@@ -146,7 +146,7 @@ pub(super) fn resolve_salvage_bin() -> Result<PathBuf> {
         }
     }
 
-    if let Ok(path) = std::env::var("CARGO_BIN_EXE_crushr-salvage") {
+    if let Ok(path) = std::env::var("CARGO_BIN_EXE_crushr") {
         let candidate = PathBuf::from(path);
         if candidate.is_file() {
             return Ok(candidate);

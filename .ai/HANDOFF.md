@@ -69,3 +69,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - non-negotiable boundaries: `.ai/contracts/README.md`
 - historical rationale: `.ai/DECISION_LOG.md`
 - chronology: `.ai/CHANGELOG.md`
+
+## Latest completed step
+
+- `P17S01f0` complete: `crushr info` truth-surface expansion + wrapper binary removal to single `crushr` binary access.

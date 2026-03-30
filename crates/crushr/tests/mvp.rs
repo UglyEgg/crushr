@@ -27,7 +27,7 @@ fn root_extract_roundtrip_from_canonical_archive() {
     fs::write(in_dir.join("sub/b.json"), br#"{"k":"v","n":1}"#).unwrap();
 
     let archive = td.path().join("test.crushr");
-    let pack_bin = std::path::Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let pack_bin = std::path::Path::new(env!("CARGO_BIN_EXE_crushr"));
     let root_bin = std::path::Path::new(env!("CARGO_BIN_EXE_crushr"));
 
     run(std::process::Command::new(pack_bin).args([
@@ -65,8 +65,8 @@ fn canonical_crushr_extract_roundtrip_via_crushr_pack_archive() {
     fs::write(in_dir.join("sub/b.json"), br#"{"k":"v","n":1}"#).unwrap();
 
     let archive = td.path().join("canonical-test.crushr");
-    let pack_bin = std::path::Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
-    let extract_bin = std::path::Path::new(env!("CARGO_BIN_EXE_crushr-extract"));
+    let pack_bin = std::path::Path::new(env!("CARGO_BIN_EXE_crushr"));
+    let extract_bin = std::path::Path::new(env!("CARGO_BIN_EXE_crushr"));
 
     run(std::process::Command::new(pack_bin).args([
         in_dir.to_str().unwrap(),

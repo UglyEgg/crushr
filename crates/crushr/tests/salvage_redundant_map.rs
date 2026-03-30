@@ -68,8 +68,8 @@ fn run_salvage(salvage_bin: &Path, archive: &Path, out: &Path) -> Value {
 
 #[test]
 fn salvage_prefers_primary_when_index_valid() {
-    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
-    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive.crushr");
 
@@ -89,8 +89,8 @@ fn salvage_prefers_primary_when_index_valid() {
 
 #[test]
 fn salvage_uses_redundant_mapping_when_primary_index_is_damaged() {
-    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
-    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive.crushr");
 
@@ -114,8 +114,8 @@ fn salvage_uses_redundant_mapping_when_primary_index_is_damaged() {
 
 #[test]
 fn salvage_rejects_invalid_redundant_map_and_keeps_orphan_boundary() {
-    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
-    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive.crushr");
 
@@ -145,8 +145,8 @@ fn salvage_rejects_invalid_redundant_map_and_keeps_orphan_boundary() {
 
 #[test]
 fn salvage_backward_compatible_without_ledger() {
-    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
-    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive.crushr");
 
@@ -165,8 +165,8 @@ fn salvage_backward_compatible_without_ledger() {
 
 #[test]
 fn salvage_is_deterministic_when_using_redundant_map() {
-    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
-    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive.crushr");
 

@@ -34,19 +34,19 @@ impl RefusalExitPolicy {
     }
 }
 
-const USAGE: &str = "usage: crushr-extract <archive> -o <out-dir> [--all] [PATH ...] [--overwrite] [--recover] [--refusal-exit <success|partial-failure>] [--json] [--silent]\n       crushr-extract --verify <archive> [--json] [--silent]";
+const USAGE: &str = "usage: crushr extract <archive> -o <out-dir> [--all] [PATH ...] [--overwrite] [--recover] [--refusal-exit <success|partial-failure>] [--json] [--silent]\n       crushr verify <archive> [--json] [--silent]";
 
 fn print_help() {
-    let presenter = CliPresenter::new("crushr-extract", "help", false);
+    let presenter = CliPresenter::new("crushr", "extract", false);
     presenter.header();
     presenter.section("Usage");
     presenter.kv(
         "extract",
-        "usage: crushr-extract <archive> -o <out-dir> [--all] [PATH ...] [--overwrite] [--recover] [--refusal-exit <success|partial-failure>] [--json] [--silent]",
+        "usage: crushr extract <archive> -o <out-dir> [--all] [PATH ...] [--overwrite] [--recover] [--refusal-exit <success|partial-failure>] [--json] [--silent]",
     );
     presenter.kv(
         "verify",
-        "usage: crushr-extract --verify <archive> [--json] [--silent]",
+        "usage: crushr verify <archive> [--json] [--silent]",
     );
     presenter.section("Flags");
     presenter.kv("-o, --output <out-dir>", "extraction destination");
@@ -426,8 +426,7 @@ pub fn dispatch(args: Vec<String>) -> i32 {
 
     match opts.mode {
         CliMode::Extract => {
-            let presenter =
-                CliPresenter::new("crushr-extract", "extract", opts.silent && !opts.json);
+            let presenter = CliPresenter::new("crushr", "extract", opts.silent && !opts.json);
             let mut active_phase: Option<crate::cli_presentation::ActivePhase<'_>> = None;
             if !opts.json && !opts.silent {
                 presenter.header();
@@ -582,8 +581,7 @@ pub fn dispatch(args: Vec<String>) -> i32 {
             }
         }
         CliMode::Verify => {
-            let presenter =
-                CliPresenter::new("crushr-extract", "verify", opts.silent && !opts.json);
+            let presenter = CliPresenter::new("crushr", "verify", opts.silent && !opts.json);
             let progress = if opts.json || opts.silent {
                 None
             } else {

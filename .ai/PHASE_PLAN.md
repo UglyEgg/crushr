@@ -313,3 +313,5 @@ Latest priority doctrine
 - Phase 15 hardening/cleanup closeout is complete (through CRUSHR_CLEANUP_10 + continuity reconciliation packet CRUSHR_CLEANUP_11).
 - Next planner-issued packet should explicitly select the active Phase 16+ workstream rather than relying on historical “next” notes.
 - Keep evidence/custody features on the long-range roadmap rather than inside the current 0.x core unless explicitly promoted by decision.
+
+- [x] P17S01f0 — Expand `crushr info` archive-level truth summary and remove wrapper binaries from source/build/test surfaces.

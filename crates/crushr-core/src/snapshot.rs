@@ -158,7 +158,7 @@ pub fn info_envelope_from_open_archive(
     generated_at_utc: &str,
 ) -> SnapshotEnvelope<InfoSnapshotV1> {
     SnapshotEnvelope::new(
-        "crushr-info",
+        "crushr info",
         tool_version,
         generated_at_utc,
         ArchiveFingerprint::from_tail_hashes(
@@ -340,7 +340,7 @@ mod tests {
         let value: serde_json::Value = serde_json::from_str(&json).unwrap();
 
         assert_eq!(value["schema_version"], 1);
-        assert_eq!(value["tool"], "crushr-info");
+        assert_eq!(value["tool"], "crushr info");
         assert_eq!(value["tool_version"], "0.2.2");
         assert!(value["archive_fingerprint"].is_string());
 
@@ -428,7 +428,7 @@ mod tests {
                 "-p",
                 "crushr",
                 "--bin",
-                "crushr-info",
+                "crushr info",
                 "--",
                 path.to_str().unwrap(),
                 "--json",
@@ -447,7 +447,7 @@ mod tests {
 
         let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
         assert_eq!(value["schema_version"], 1);
-        assert_eq!(value["tool"], "crushr-info");
+        assert_eq!(value["tool"], "crushr info");
         assert_eq!(value["payload"]["summary"]["raw_idx3_len"], 8);
     }
 
@@ -613,7 +613,7 @@ mod tests {
                 "-p",
                 "crushr",
                 "--bin",
-                "crushr-info",
+                "crushr info",
                 "--",
                 path.to_str().unwrap(),
                 "--json",
@@ -648,7 +648,7 @@ mod tests {
                 "-p",
                 "crushr",
                 "--bin",
-                "crushr-info",
+                "crushr info",
                 "--",
                 path.to_str().unwrap(),
                 "--json",

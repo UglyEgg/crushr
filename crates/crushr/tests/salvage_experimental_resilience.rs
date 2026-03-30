@@ -89,7 +89,7 @@ fn run_salvage(salvage_bin: &Path, archive: &Path, out: &Path) -> Value {
 #[test]
 fn experimental_archive_uses_checkpoint_path_when_primary_and_ledger_are_unusable() {
     let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
-    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive.crushr");
 
@@ -155,7 +155,7 @@ fn format04_comparison_command_is_invokable() {
 #[test]
 fn file_identity_archive_uses_file_identity_path_when_primary_and_ledger_are_unusable() {
     let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
-    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive-file-identity.crushr");
 
@@ -178,7 +178,7 @@ fn file_identity_archive_uses_file_identity_path_when_primary_and_ledger_are_unu
 #[test]
 fn file_identity_archive_recovers_via_bootstrap_scan_when_tail_is_truncated() {
     let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
-    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive-truncated-tail.crushr");
 
@@ -206,7 +206,7 @@ fn file_identity_archive_recovers_via_bootstrap_scan_when_tail_is_truncated() {
 #[test]
 fn format05_archive_recovers_via_payload_block_identity_when_index_is_unusable() {
     let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
-    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive-format05.crushr");
 
@@ -249,7 +249,7 @@ fn format05_comparison_command_is_invokable() {
 #[test]
 fn format06_archive_uses_manifest_path_when_primary_and_ledger_are_unusable() {
     let pack_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
-    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr-salvage"));
+    let salvage_bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let td = TempDir::new().unwrap();
     let archive = td.path().join("archive-format06.crushr");
 

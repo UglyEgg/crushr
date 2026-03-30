@@ -188,6 +188,39 @@ struct CompressionSummary {
     level: Option<String>,
 }
 
+#[derive(serde::Serialize)]
+struct InfoJsonStructureSummary {
+    extents: u64,
+    dictionaries: u64,
+    has_tail_frame: bool,
+}
+
+#[derive(serde::Serialize)]
+struct InfoJsonVerificationSummary {
+    extents_valid: bool,
+    dictionaries_valid: bool,
+    tail_frame_valid: bool,
+}
+
+#[derive(serde::Serialize)]
+struct InfoJsonTruthSurface {
+    format_version: String,
+    global_flags: String,
+    preservation_profile: String,
+    total_entries: u64,
+    structure: InfoJsonStructureSummary,
+    verification: InfoJsonVerificationSummary,
+    strict_extraction_supported: bool,
+}
+
+fn strict_extraction_supported(
+    extents_valid: bool,
+    dictionaries_valid: bool,
+    tail_frame_valid: bool,
+) -> bool {
+    extents_valid && dictionaries_valid && tail_frame_valid
+}
+
 fn compression_summary_from_blocks<R: ReadAt + Len>(
     reader: &R,
     blocks_end_offset: u64,
@@ -250,12 +283,12 @@ fn codec_name(codec: u32) -> &'static str {
 }
 
 fn print_help() {
-    let presenter = CliPresenter::new("crushr-info", "help", false);
+    let presenter = CliPresenter::new("crushr", "info", false);
     presenter.header();
     presenter.section("Usage");
     presenter.kv(
         "command",
-        "crushr-info <archive> [--json] [--list] [--flat] [--report propagation]",
+        "crushr info <archive> [--json] [--list] [--flat] [--report propagation]",
     );
     presenter.section("Flags");
     presenter.kv("--json", "emit machine-readable output");
@@ -710,7 +743,7 @@ fn load_listing_paths<R: ReadAt + Len>(reader: &R) -> Result<ListingLoad> {
                                 "archive structure is degraded; listing unavailable ({open_err:#})"
                             ),
                             format!("IDX3 could not be proven for listing ({idx_err:#})"),
-                            "for recovery-oriented evidence, run `crushr salvage <archive>`"
+                            "for recovery-oriented evidence, run `crushr extract --recover <archive>`"
                                 .to_string(),
                         ],
                         degraded: true,
@@ -790,7 +823,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     }
 
     let archive = archive.context(
-        "usage: crushr-info <archive> [--json] [--list] [--flat] [--report propagation]",
+        "usage: crushr info <archive> [--json] [--list] [--flat] [--report propagation]",
     )?;
 
     let reader = FileReader {
@@ -808,7 +841,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     if list {
         let listing = load_listing_paths(&reader)?;
         let listing_truth = build_listing_truth_view(&listing);
-        let presenter = CliPresenter::new("crushr-info", "list", false);
+        let presenter = CliPresenter::new("crushr", "list", false);
         presenter.header();
         presenter.section("Archive");
         presenter.kv("path", &archive);
@@ -866,15 +899,67 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     let opened = open_archive_v1(&reader)?;
     let snapshot =
         info_envelope_from_open_archive(&opened, crate::product_version(), "1970-01-01T00:00:00Z");
-    let rendered = serialize_snapshot_json(&snapshot)?;
+
+    let index_summary = summarize_index(&opened.tail.idx3_bytes);
+    let extent_count = index_summary.as_ref().map(|s| s.extent_count).unwrap_or(0);
+    let total_entries = index_summary
+        .as_ref()
+        .map(|s| {
+            s.regular_file_count
+                .saturating_add(s.directory_count)
+                .saturating_add(s.symlink_count)
+                .saturating_add(s.fifo_count)
+                .saturating_add(s.char_device_count)
+                .saturating_add(s.block_device_count)
+        })
+        .unwrap_or(0);
+    let extents_valid = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)
+        .map(|bad| bad.is_empty())
+        .unwrap_or(false);
+    let dictionaries_valid = opened.tail.dct1.is_some() || !snapshot.payload.summary.has_dct1;
+    let tail_frame_valid = !snapshot.payload.tail_frames.is_empty();
+    let strict_supported =
+        strict_extraction_supported(extents_valid, dictionaries_valid, tail_frame_valid);
+
     if json {
-        println!("{rendered}");
+        let format_version = if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V7) {
+            "v7"
+        } else if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V6) {
+            "v6"
+        } else if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V5) {
+            "v5"
+        } else if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V4) {
+            "v4"
+        } else {
+            "v3"
+        };
+        let truth = InfoJsonTruthSurface {
+            format_version: format_version.to_string(),
+            global_flags: "none".to_string(),
+            preservation_profile: index_summary
+                .as_ref()
+                .map(|summary| summary.preservation_profile.as_str().to_string())
+                .unwrap_or_else(|| PreservationProfile::Full.as_str().to_string()),
+            total_entries,
+            structure: InfoJsonStructureSummary {
+                extents: extent_count,
+                dictionaries: snapshot.payload.dicts.count as u64,
+                has_tail_frame: !snapshot.payload.tail_frames.is_empty(),
+            },
+            verification: InfoJsonVerificationSummary {
+                extents_valid,
+                dictionaries_valid,
+                tail_frame_valid,
+            },
+            strict_extraction_supported: strict_supported,
+        };
+        println!("{}", serialize_snapshot_json(&truth)?);
         return Ok(());
     }
 
     let archive_blake3 = snapshot.archive_fingerprint.0.clone();
 
-    let presenter = CliPresenter::new("crushr-info", "info", false);
+    let presenter = CliPresenter::new("crushr", "info", false);
     presenter.header();
     presenter.section("Archive");
     presenter.kv("path", &archive);
@@ -897,7 +982,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         "IDX?"
     };
     presenter.kv("format markers", format!("FTR4 + {idx_marker}"));
-    let index_summary = summarize_index(&opened.tail.idx3_bytes);
+    presenter.kv("global flags", "none");
     let info_truth = build_info_truth_view(index_summary.as_ref());
     presenter.section("Preservation");
     presenter.kv(
@@ -1026,6 +1111,34 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         "level",
         compression_level_display(compression.and_then(|summary| summary.level)),
     );
+
+    presenter.section("Verification");
+    presenter.kv(
+        "extent verification",
+        if extents_valid { "valid" } else { "invalid" },
+    );
+    presenter.kv(
+        "dictionary validity",
+        if dictionaries_valid {
+            "valid"
+        } else {
+            "invalid"
+        },
+    );
+    presenter.kv(
+        "tail-frame validity",
+        if tail_frame_valid { "valid" } else { "invalid" },
+    );
+
+    presenter.section("Extraction viability");
+    presenter.kv(
+        "strict_extraction_supported",
+        if strict_supported { "true" } else { "false" },
+    );
+    if !strict_supported {
+        presenter
+            .info_note("strict extraction is not supported; recovery is required for any output");
+    }
 
     presenter.result_summary(StatusWord::Complete, "archive inspection completed", &[]);
     Ok(())

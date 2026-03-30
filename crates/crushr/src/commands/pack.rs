@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 const ZSTD_CODEC: u32 = 1;
-const PRODUCTION_USAGE: &str = "usage: crushr-pack <input>... -o <archive> [--level <n>] [--preservation <full|basic|payload-only>] [--profile-pack] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --preservation <name>                      preservation profile: full | basic | payload-only (default: full)\n  --profile-pack                             emit deterministic pack phase timing breakdown\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
+const PRODUCTION_USAGE: &str = "usage: crushr pack <input>... -o <archive> [--level <n>] [--preservation <full|basic|payload-only>] [--profile-pack] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --preservation <name>                      preservation profile: full | basic | payload-only (default: full)\n  --profile-pack                             emit deterministic pack phase timing breakdown\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
 
 const LAB_EXPERIMENTAL_USAGE: &str = "usage: crushr lab pack-experimental <input>... -o <archive> [--level <n>] [--experimental-self-describing-extents] [--experimental-file-identity-extents] [--experimental-self-identifying-blocks] [--experimental-file-manifest-checkpoints] [--metadata-profile <payload_only|payload_plus_manifest|payload_plus_path|full_current_experimental|extent_identity_only|extent_identity_inline_path|extent_identity_distributed_names|extent_identity_path_dict_single|extent_identity_path_dict_header_tail|extent_identity_path_dict_quasi_uniform|extent_identity_path_dict_factored_header_tail>] [--placement-strategy <fixed_spread|hash_spread|golden_spread>] [--silent]\n\nFlags:\n  -o, --output <archive>                     output archive path\n  --level <n>                                zstd compression level (default: 3)\n  --experimental-self-describing-extents     emit self-describing extent + checkpoint metadata\n  --experimental-file-identity-extents       emit file-identity extent + verified path-map metadata + distributed bootstrap anchors\n  --experimental-self-identifying-blocks     emit payload block identity + repeated verified path checkpoints\n  --experimental-file-manifest-checkpoints   emit distributed file-manifest checkpoints for recovery verification\n  --metadata-profile <name>                  experimental metadata pruning profile: payload_only | payload_plus_manifest | payload_plus_path | full_current_experimental | extent_identity_only | extent_identity_inline_path | extent_identity_distributed_names | extent_identity_path_dict_single | extent_identity_path_dict_header_tail | extent_identity_path_dict_quasi_uniform | extent_identity_path_dict_factored_header_tail\n  --placement-strategy <name>                metadata checkpoint placement strategy (experimental only): fixed_spread | hash_spread | golden_spread\n  --silent                                   emit deterministic one-line summary output\n  -h, --help                                 print this help text";
 
@@ -74,13 +74,13 @@ impl PackCliSurface {
 }
 
 fn print_help(surface: PackCliSurface) {
-    let presenter = CliPresenter::new("crushr-pack", "help", false);
+    let presenter = CliPresenter::new("crushr", "pack", false);
     presenter.header();
     presenter.section("Usage");
     match surface {
         PackCliSurface::Production => presenter.kv(
             "command",
-            "usage: crushr-pack <input>... -o <archive> [--level <n>] [--preservation <full|basic|payload-only>] [--profile-pack] [--silent]",
+            "usage: crushr pack <input>... -o <archive> [--level <n>] [--preservation <full|basic|payload-only>] [--profile-pack] [--silent]",
         ),
         PackCliSurface::LabExperimental => presenter.kv(
             "command",
@@ -824,7 +824,7 @@ fn run(raw_args: Vec<String>, surface: PackCliSurface) -> Result<()> {
         );
     }
 
-    let presenter = CliPresenter::new("crushr-pack", "pack", silent);
+    let presenter = CliPresenter::new("crushr", "pack", silent);
     presenter.header();
     presenter.section("Target");
     presenter.kv("archive", output.display());
