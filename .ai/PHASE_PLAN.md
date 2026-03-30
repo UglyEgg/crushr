@@ -187,6 +187,7 @@ Milestone packets
 - [x] CRUSHR_PRESERVATION_05 — add explicit `--preservation <full|basic|payload-only>` profile contract, record profile in archive metadata, make strict/recover canonical semantics profile-aware, and show profile in `info`.
 - [x] CRUSHR_PRESERVATION_FIX_06 — enforce extraction-time profile authority so omitted metadata classes are not restoration-attempted/warned in strict or recover paths, while full-profile behavior stays unchanged.
 - [x] P17S02f1 — enrich `crushr info --entry` truth surface with deterministic proof/range/identity detail (`payload_blake3`, `logical_range`, `identity_source`) in human + JSON output.
+- [x] P17S03f0 — harden `crushr info --report propagation` with deterministic entry dependency visibility, activated impact separation, and entry-level trust-class explanatory support.
 
 Constraints
 

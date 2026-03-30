@@ -11,7 +11,11 @@
     "corrupted_blocks",
     "nodes",
     "edges",
-    "per_file_impacts"
+    "per_file_impacts",
+    "detected_corruption",
+    "required_structures",
+    "activated_impacts",
+    "entry_impacts"
   ],
   "properties": {
     "report_version": {"type": "integer", "const": 1},
@@ -54,10 +58,11 @@
           "reason": {
             "type": "string",
             "enum": [
-              "required_for_reachability",
-              "required_for_index",
-              "required_for_extraction",
-              "required_data_block"
+              "requires_footer_reachability",
+              "requires_tail_frame",
+              "requires_index",
+              "requires_metadata_mapping",
+              "requires_block_payload"
             ]
           }
         }
@@ -90,6 +95,82 @@
           }
         }
       }
+    },
+    "detected_corruption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["structure_nodes", "blocks"],
+      "properties": {
+        "structure_nodes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "enum": ["structure:ftr4", "structure:tail_frame", "structure:idx3"]}
+        },
+        "blocks": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "required_structures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["structure_node", "reason", "required_for_all_entries"],
+        "properties": {
+          "structure_node": {"type": "string", "enum": ["structure:ftr4", "structure:tail_frame", "structure:idx3"]},
+          "reason": {"type": "string", "enum": ["requires_footer_reachability", "requires_tail_frame", "requires_index"]},
+          "required_for_all_entries": {"type": "boolean"}
+        }
+      }
+    },
+    "activated_impacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cause_node", "reason", "impact_kind", "affected_entries"],
+        "properties": {
+          "cause_node": {"type": "string"},
+          "reason": {"type": "string", "enum": ["corrupted_required_structure", "corrupted_required_block"]},
+          "impact_kind": {"type": "string", "enum": ["blocks_canonical_extraction", "causes_metadata_degraded", "leaves_unrecoverable"]},
+          "affected_entries": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "entry_impacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file_path",
+          "dependencies",
+          "activated_causes",
+          "canonical_blocked",
+          "canonical_blocked_reasons",
+          "supported_trust_classes"
+        ],
+        "properties": {
+          "file_path": {"type": "string"},
+          "dependencies": {"type": "array", "items": {"$ref": "#/$defs/entryDependency"}},
+          "activated_causes": {"type": "array", "items": {"$ref": "#/$defs/fileImpactCause"}},
+          "canonical_blocked": {"type": "boolean"},
+          "canonical_blocked_reasons": {
+            "type": "array",
+            "items": {"type": "string", "enum": ["corrupted_required_structure", "corrupted_required_block"]}
+          },
+          "supported_trust_classes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["canonical", "metadata_degraded", "recovered_named", "recovered_anonymous", "unrecoverable"]
+            }
+          }
+        }
+      }
     }
   },
   "$defs": {
@@ -102,6 +183,25 @@
         "reason": {
           "type": "string",
           "enum": ["corrupted_required_structure", "corrupted_required_block"]
+        }
+      }
+    },
+    "entryDependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node", "link_kind", "reason"],
+      "properties": {
+        "node": {"type": "string"},
+        "link_kind": {"type": "string", "enum": ["direct", "propagated"]},
+        "reason": {
+          "type": "string",
+          "enum": [
+            "requires_footer_reachability",
+            "requires_tail_frame",
+            "requires_index",
+            "requires_metadata_mapping",
+            "requires_block_payload"
+          ]
         }
       }
     }

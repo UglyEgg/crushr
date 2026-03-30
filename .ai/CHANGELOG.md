@@ -7,6 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
+
+## 2026-03-30 — P17S03f0
+- Expanded `crushr info --report propagation` JSON surface from a raw graph into explicit explanatory sections: `detected_corruption`, `required_structures`, `activated_impacts`, and `entry_impacts`.
+- Added deterministic per-entry dependency detail with bounded dependency reasons and direct/propagated link semantics.
+- Added deterministic entry-level canonical blocking and trust-class support explanation aligned with `canonical`, `metadata_degraded`, `recovered_named`, `recovered_anonymous`, and `unrecoverable`.
+- Updated propagation schema/contract docs and guide docs to document bounded semantics and graph vs activated-impact separation.
+- Validation: `cargo fmt --all`; `cargo test -p crushr-core --test propagation_graph_v1`; `cargo test -p crushr-core propagation -- --nocapture`; `cargo test -p crushr --test cli_presentation_contract`.
+
 ## 2026-03-30 — P17S02f1
 - Enriched `crushr info --entry` truth surface (human + JSON) with deterministic proof/range/identity detail: `payload_blake3`, `logical_range.start`, `logical_range.end`, and `identity_source`.
 - Added human entry rows for payload BLAKE3, logical range in both hex and decimal, and identity source.
