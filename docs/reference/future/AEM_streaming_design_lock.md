@@ -129,6 +129,8 @@ But the currently preferred preserved command concept is:
 
 ### Boundary rule
 
+AEM generation must be derived exclusively from stabilized introspection surfaces (info, info --entry, info --propagation) and must not introduce independent truth semantics.
+
 The `crushr` binary should touch AEMs only through explicit forensic commands.
 
 Normal commands must **not** consult AEMs implicitly:
