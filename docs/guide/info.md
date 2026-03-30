@@ -151,15 +151,18 @@ Modes:
 - --json → full propagation graph
 
 
-## `crushr info --report propagation`
+## `crushr info --propagation`
 
 Use this when you need deterministic dependency and impact explanation without extraction.
 
 ```bash
-crushr info archive.crs --json --report propagation
+crushr info archive.crs --propagation
+crushr info archive.crs --propagation --json
 ```
 
-The propagation report separates:
+Human mode (`--propagation`) is operator-facing and includes bounded sections for archive context, detected corruption, impact summary, and entry impacts.
+
+JSON mode (`--propagation --json`) remains machine-readable and separates:
 
 - dependency graph (`nodes`, `edges`)
 - currently detected corruption (`detected_corruption`)

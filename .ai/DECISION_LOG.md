@@ -1,5 +1,25 @@
 
 
+## 2026-03-30 — P17S03f1 propagation surface rename + human-default lock
+
+- Decision:
+  - Retire `crushr info --report propagation` from canonical CLI surface and require `crushr info --propagation`.
+  - Keep machine-readable propagation output under explicit `--json` only (`crushr info --propagation --json`).
+  - Add bounded human-readable default presentation for `--propagation` using standard CLI sections and entry-centered impact explanation.
+  - Preserve existing propagation JSON semantics/ordering from P17S03f0; no trust-model or extraction behavior changes.
+- Alternatives considered:
+  1. Keep `--report propagation` and add `--propagation` as equivalent aliases.
+  2. Keep propagation JSON-only and defer human presentation.
+- Rationale:
+  - Packet requires operator-facing propagation introspection while preserving deterministic machine consumption and avoiding report-family drift.
+- Blast radius:
+  - `crates/crushr/src/commands/info.rs`
+  - `crates/crushr/tests/cli_presentation_contract.rs`
+  - `crates/crushr-core/tests/propagation_graph_v1.rs`
+  - `docs/guide/info.md`
+  - `.ai/contracts/PROPAGATION_GRAPH_V1.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
 ## 2026-03-30 — P17S03f0 propagation truth-surface expansion contract
 
 - Decision:

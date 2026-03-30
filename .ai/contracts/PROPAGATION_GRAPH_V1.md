@@ -3,7 +3,7 @@ SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
 -->
 
-# Propagation Graph v1 (`crushr info --json --report propagation`)
+# Propagation Graph v1 (`crushr info --propagation --json`)
 
 ## Intent
 
@@ -23,7 +23,7 @@ Applies to:
 
 ## Command surface
 
-- `crushr info <archive> --json --report propagation`
+- `crushr info <archive> --propagation --json`
 
 ## Semantics
 
