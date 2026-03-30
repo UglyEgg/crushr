@@ -567,18 +567,18 @@ fn propagation_report_with_structural_fallback<R: ReadAt + Len>(
 
 fn propagation_reason_str(reason: &PropagationDependencyReason) -> &'static str {
     match reason {
-        PropagationDependencyReason::RequiresFooterReachability => "requires_footer_reachability",
-        PropagationDependencyReason::RequiresTailFrame => "requires_tail_frame",
-        PropagationDependencyReason::RequiresIndex => "requires_index",
-        PropagationDependencyReason::RequiresMetadataMapping => "requires_metadata_mapping",
-        PropagationDependencyReason::RequiresBlockPayload => "requires_block_payload",
+        PropagationDependencyReason::RequiresFooterReachability => "requires archive footer",
+        PropagationDependencyReason::RequiresTailFrame => "requires tail frame",
+        PropagationDependencyReason::RequiresIndex => "requires index",
+        PropagationDependencyReason::RequiresMetadataMapping => "requires metadata mapping",
+        PropagationDependencyReason::RequiresBlockPayload => "requires block payload",
     }
 }
 
 fn propagation_impact_reason_str(reason: &PropagationImpactReason) -> &'static str {
     match reason {
-        PropagationImpactReason::CorruptedRequiredStructure => "corrupted_required_structure",
-        PropagationImpactReason::CorruptedRequiredBlock => "corrupted_required_block",
+        PropagationImpactReason::CorruptedRequiredStructure => "corrupted required structure",
+        PropagationImpactReason::CorruptedRequiredBlock => "corrupted required block",
     }
 }
 
@@ -594,9 +594,18 @@ fn propagation_trust_class_str(trust: &PropagationEntryTrustClass) -> &'static s
 
 fn propagation_impact_kind_str(kind: &ActivatedImpactKind) -> &'static str {
     match kind {
-        ActivatedImpactKind::BlocksCanonicalExtraction => "blocks_canonical_extraction",
-        ActivatedImpactKind::CausesMetadataDegraded => "causes_metadata_degraded",
-        ActivatedImpactKind::LeavesUnrecoverable => "leaves_unrecoverable",
+        ActivatedImpactKind::BlocksCanonicalExtraction => "blocks canonical extraction",
+        ActivatedImpactKind::CausesMetadataDegraded => "causes metadata-degraded outcomes",
+        ActivatedImpactKind::LeavesUnrecoverable => "can leave data unrecoverable",
+    }
+}
+
+fn structure_label(node: &str) -> String {
+    match node {
+        STRUCTURE_FTR4 => "archive footer".to_string(),
+        STRUCTURE_TAIL_FRAME => "tail frame".to_string(),
+        STRUCTURE_IDX3 => "index".to_string(),
+        _ => node.strip_prefix("structure:").unwrap_or(node).to_string(),
     }
 }
 
@@ -607,7 +616,13 @@ fn format_human_dependency_lines(entry: &EntryImpactV1) -> Vec<String> {
         .dependencies
         .iter()
         .take(HUMAN_PROPAGATION_DEPENDENCY_VISIBLE_LIMIT)
-        .map(|dep| format!("{} ({})", dep.node, propagation_reason_str(&dep.reason)))
+        .map(|dep| {
+            format!(
+                "{} ({})",
+                structure_label(&dep.node),
+                propagation_reason_str(&dep.reason)
+            )
+        })
         .collect::<Vec<_>>();
     let remaining = entry
         .dependencies
@@ -641,21 +656,21 @@ fn format_entry_reasons(entry: &EntryImpactV1) -> String {
 fn format_entry_consequences(entry: &EntryImpactV1) -> String {
     let mut out = Vec::new();
     if entry.canonical_blocked {
-        out.push("blocks_canonical_extraction");
+        out.push("blocks canonical extraction");
     }
     if entry
         .supported_trust_classes
         .iter()
         .any(|trust| matches!(trust, PropagationEntryTrustClass::MetadataDegraded))
     {
-        out.push("causes_metadata_degraded");
+        out.push("can cause metadata-degraded outcomes");
     }
     if entry
         .supported_trust_classes
         .iter()
         .any(|trust| matches!(trust, PropagationEntryTrustClass::Unrecoverable))
     {
-        out.push("leaves_unrecoverable");
+        out.push("can leave data unrecoverable");
     }
     if out.is_empty() {
         "none".to_string()
@@ -679,7 +694,13 @@ fn print_propagation_human(archive: &str, report: &PropagationReportV1) {
         if report.detected_corruption.structure_nodes.is_empty() {
             "none".to_string()
         } else {
-            report.detected_corruption.structure_nodes.join(", ")
+            report
+                .detected_corruption
+                .structure_nodes
+                .iter()
+                .map(|node| structure_label(node))
+                .collect::<Vec<_>>()
+                .join(", ")
         },
     );
     presenter.kv(
@@ -720,7 +741,7 @@ fn print_propagation_human(archive: &str, report: &PropagationReportV1) {
         presenter.section("Required structures");
         for required in &report.required_structures {
             presenter.kv(
-                &required.structure_node,
+                &structure_label(&required.structure_node),
                 propagation_reason_str(&required.reason),
             );
         }
@@ -735,7 +756,7 @@ fn print_propagation_human(archive: &str, report: &PropagationReportV1) {
                 propagation_impact_kind_str(&impact.impact_kind),
                 impact.affected_entries.len()
             );
-            presenter.kv(&impact.cause_node, detail);
+            presenter.kv(&structure_label(&impact.cause_node), detail);
         }
     }
 

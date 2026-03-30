@@ -1866,3 +1866,20 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `crates/crushr/tests/cli_contract_surface.rs`
   - `README.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-03-30 — P17S02f5 presentation-contract restoration lock
+
+- Decision:
+  - Restore and lock operator-facing presentation contracts for `crushr about`, root `crushr --help`, and `crushr info --propagation` (human mode).
+  - Remove `salvage` from user-facing command/help/about/completion/man surfaces; keep bounded non-primary visibility to `lab` only.
+  - Map propagation human output away from internal model identifiers/tokens to operator-safe terminology (`archive footer`, `tail frame`, `index`, `requires index`) while preserving JSON contract semantics.
+- Alternatives considered:
+  1. Keep internal identifier/token exposure in propagation human mode for technical precision.
+  2. Keep `salvage` listed in help/about as a non-primary command.
+- Rationale:
+  - Packet scope is hard alignment to previously locked presentation decisions and explicit operator-facing abstraction boundaries.
+  - Human-mode readability and abstraction must not leak implementation vocabulary.
+- Blast radius:
+  - `crates/crushr/src/{about.rs,cli_app.rs,commands/info.rs}`
+  - `crates/crushr/tests/{cli_contract_surface.rs,cli_presentation_contract.rs,golden/about.txt}`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

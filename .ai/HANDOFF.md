@@ -88,3 +88,4 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - `P17S02f2` complete: added clap-generated shell completion output for `bash`/`zsh`/`fish` via `crushr completion <shell>` with stdout-only behavior and deterministic CLI token coverage.
 - `P17S02f3` complete: added clap-derived man-page generation via `crushr man [--out-dir <path>]` for root + canonical subcommand pages with deterministic output and contract tests.
 - `P17S02f4` complete: aligned README command-surface/product-boundary summaries to the canonical CLI, including `completion`, `man`, and `info --propagation` with concise behavior-accurate descriptions.
+- `P17S02f5` complete: restored locked presentation contract for `about` and root `help`, removed `salvage` from user-facing command surfaces, and mapped propagation human output away from internal structure/reason identifiers while preserving JSON semantics.

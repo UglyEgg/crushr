@@ -126,10 +126,7 @@ fn print_help() {
     }
 
     presenter.section("Bounded non-primary commands");
-    for (command, description) in [
-        ("salvage", "experimental salvage planner"),
-        ("lab", "research harness"),
-    ] {
+    for (command, description) in [("lab", "research harness")] {
         presenter.kv(command, description);
     }
 }
@@ -286,6 +283,5 @@ fn cli_spec_command() -> Command {
                     .value_parser(value_parser!(PathBuf)),
             ),
         )
-        .subcommand(Command::new("salvage"))
         .subcommand(Command::new("lab"))
 }

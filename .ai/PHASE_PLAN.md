@@ -323,3 +323,4 @@ Latest priority doctrine
 
 - [x] P17S01f0 — Expand `crushr info` archive-level truth summary and remove wrapper binaries from source/build/test surfaces.
 - [x] P17S02f0 — Add `crushr info --entry` and `crushr info --find` deterministic introspection surfaces (human + JSON), with search-shape reservation via `--find-mode`/`--find-limit`.
+- [x] P17S02f5 — restore presentation contract for `about`/`help` and operator-safe `info --propagation` human output (no `salvage` in user-facing surfaces; JSON unchanged).
