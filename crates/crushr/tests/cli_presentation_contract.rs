@@ -622,3 +622,90 @@ fn info_find_human_and_info_entry_do_not_create_output_paths() {
     );
     assert!(!probe_dir.exists());
 }
+
+#[test]
+fn info_propagation_human_is_default_and_has_operator_sections() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    fs::create_dir_all(&input_dir).expect("create input");
+    fs::write(input_dir.join("a.txt"), b"alpha").expect("write");
+    fs::write(input_dir.join("b.txt"), b"beta").expect("write");
+    let archive = tmp.path().join("sample.crushr");
+
+    run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
+            .arg(&input_dir)
+            .arg("-o")
+            .arg(&archive),
+    );
+
+    let mut bytes = fs::read(&archive).expect("read archive");
+    let first_payload_byte = bytes
+        .iter()
+        .position(|byte| *byte == b'a')
+        .expect("find payload byte");
+    bytes[first_payload_byte] ^= 1;
+    fs::write(&archive, bytes).expect("rewrite archive");
+
+    let human = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .arg("--propagation"),
+    );
+    assert!(human.contains("crushr  /  propagation"));
+    assert!(human.contains("Archive"));
+    assert!(human.contains("Detected corruption"));
+    assert!(human.contains("Impact summary"));
+    assert!(human.contains("Entry impacts"));
+    assert!(human.contains("canonical extraction blocked"));
+    assert!(human.contains("supported trust classes"));
+    assert!(human.contains("unrecoverable"));
+    assert!(!human.contains("\"report_version\""));
+
+    let human_second = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .arg("--propagation"),
+    );
+    assert_eq!(human, human_second);
+
+    let json = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .args(["--propagation", "--json"]),
+    );
+    let json_value: serde_json::Value = serde_json::from_str(&json).expect("json");
+    assert_eq!(json_value["report_kind"], "corruption_propagation_graph");
+    assert!(json_value["entry_impacts"].is_array());
+}
+
+#[test]
+fn info_report_propagation_surface_is_retired() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    fs::create_dir_all(&input_dir).expect("create input");
+    fs::write(input_dir.join("a.txt"), b"a").expect("write");
+    let archive = tmp.path().join("sample.crushr");
+
+    run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
+            .arg(&input_dir)
+            .arg("-o")
+            .arg(&archive),
+    );
+
+    let out = run_any(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .args(["--report", "propagation"]),
+    );
+    assert_eq!(out.status.code(), Some(1));
+    let stderr = String::from_utf8(out.stderr).expect("stderr utf8");
+    assert!(stderr.contains("--report is retired; use --propagation"));
+}

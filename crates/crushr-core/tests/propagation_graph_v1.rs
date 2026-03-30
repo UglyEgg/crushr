@@ -365,12 +365,7 @@ fn propagation_report_healthy_archive_has_deterministic_graph_shape() {
 
     let out = run_bin(
         "crushr-info",
-        &[
-            archive.to_str().unwrap(),
-            "--json",
-            "--report",
-            "propagation",
-        ],
+        &[archive.to_str().unwrap(), "--propagation", "--json"],
     );
     assert_ok(&out);
 
@@ -415,12 +410,7 @@ fn propagation_report_matches_extract_refusal_for_single_corrupted_block() {
 
     let report_out = run_bin(
         "crushr-info",
-        &[
-            archive.to_str().unwrap(),
-            "--json",
-            "--report",
-            "propagation",
-        ],
+        &[archive.to_str().unwrap(), "--propagation", "--json"],
     );
     assert_ok(&report_out);
     let report = parse_json(&report_out);
@@ -508,12 +498,7 @@ fn propagation_report_boundary_for_structural_open_failure_is_explicit() {
 
     let info = run_bin(
         "crushr-info",
-        &[
-            archive.to_str().unwrap(),
-            "--json",
-            "--report",
-            "propagation",
-        ],
+        &[archive.to_str().unwrap(), "--propagation", "--json"],
     );
     assert_ok(&info);
     let report = parse_json(&info);
@@ -557,22 +542,12 @@ fn propagation_report_json_is_byte_stable_for_same_archive() {
 
     let a = run_bin(
         "crushr-info",
-        &[
-            archive.to_str().unwrap(),
-            "--json",
-            "--report",
-            "propagation",
-        ],
+        &[archive.to_str().unwrap(), "--propagation", "--json"],
     );
     assert_ok(&a);
     let b = run_bin(
         "crushr-info",
-        &[
-            archive.to_str().unwrap(),
-            "--json",
-            "--report",
-            "propagation",
-        ],
+        &[archive.to_str().unwrap(), "--propagation", "--json"],
     );
     assert_ok(&b);
 

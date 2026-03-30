@@ -80,4 +80,4 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 - `P17S02f1` complete: `crushr info --entry` enriched with deterministic `payload_blake3`, logical range (`start`/`end`), and `identity_source` in both human and JSON output without trust-model drift.
 - `P17S03f0` complete: `crushr info --report propagation` now provides explicit dependency, detected-corruption, activated-impact, and per-entry trust-class explanatory sections with deterministic bounded reasons.
-
+- `P17S03f1` complete: propagation surface renamed to `crushr info --propagation`, with default operator-facing human output and explicit `--propagation --json` machine output while preserving deterministic propagation semantics.

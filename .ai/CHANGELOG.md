@@ -8,6 +8,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
 
+## 2026-03-30 — P17S03f1
+- Retired `crushr info --report propagation` and promoted the canonical propagation surface to `crushr info --propagation` (human default) and `crushr info --propagation --json` (machine-readable).
+- Added bounded operator-facing propagation presentation sections: Archive, Detected corruption, Impact summary, Required structures, Activated impacts, and Entry impacts.
+- Kept propagation JSON semantics unchanged in meaning and deterministic ordering in explicit JSON mode.
+- Updated propagation CLI tests to lock: renamed flags, human default output, trust-class visibility, deterministic human output, and retirement behavior for old `--report propagation`.
+- Updated guide and contract docs to remove old canonical wording and document the new propagation surface.
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_presentation_contract`; `cargo test -p crushr-core --test propagation_graph_v1`.
+
 ## 2026-03-30 — P17S03f0
 - Expanded `crushr info --report propagation` JSON surface from a raw graph into explicit explanatory sections: `detected_corruption`, `required_structures`, `activated_impacts`, and `entry_impacts`.
 - Added deterministic per-entry dependency detail with bounded dependency reasons and direct/propagated link semantics.

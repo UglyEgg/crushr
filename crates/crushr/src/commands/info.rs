@@ -14,7 +14,9 @@ use crushr_core::{
     io::{Len, ReadAt},
     open::open_archive_v1,
     propagation::{
-        FileDependencyV1, STRUCTURE_FTR4, STRUCTURE_IDX3, STRUCTURE_TAIL_FRAME,
+        ActivatedImpactKind, EntryImpactV1, EntryTrustClass as PropagationEntryTrustClass,
+        FileDependencyV1, PropagationDependencyReason, PropagationImpactReason,
+        PropagationReportV1, STRUCTURE_FTR4, STRUCTURE_IDX3, STRUCTURE_TAIL_FRAME,
         build_propagation_report_v1, build_structural_failure_report_v1,
     },
     snapshot::{info_envelope_from_open_archive, serialize_snapshot_json},
@@ -289,7 +291,7 @@ fn print_help() {
     presenter.section("Usage");
     presenter.kv(
         "command",
-        "crushr info <archive> [--json] [--list] [--flat] [--entry <path>] [--find <query>] [--find-mode substring] [--find-limit <n>] [--report propagation]",
+        "crushr info <archive> [--json] [--list] [--flat] [--entry <path>] [--find <query>] [--find-mode substring] [--find-limit <n>] [--propagation]",
     );
     presenter.section("Flags");
     presenter.kv("--json", "emit machine-readable output");
@@ -308,7 +310,10 @@ fn print_help() {
         "--find-limit <n>",
         "optional maximum result count for --find",
     );
-    presenter.kv("--report propagation", "emit propagation/dependency report");
+    presenter.kv(
+        "--propagation",
+        "show propagation/dependency impact explanation",
+    );
     presenter.kv("-h, --help", "print this help text");
     presenter.kv("--version, -V", "print version");
 }
@@ -471,7 +476,9 @@ fn build_info_truth_view(summary: Option<&IndexSummary>) -> InfoTruthView {
     }
 }
 
-fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> Result<String> {
+fn propagation_report_with_structural_fallback<R: ReadAt + Len>(
+    reader: &R,
+) -> Result<PropagationReportV1> {
     let mut corrupted_structures = BTreeSet::new();
     let mut corrupted_blocks = BTreeSet::new();
     let mut file_dependencies = Vec::new();
@@ -483,7 +490,7 @@ fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> R
             STRUCTURE_TAIL_FRAME,
             STRUCTURE_IDX3,
         ]);
-        return Ok(serialize_snapshot_json(&report)?);
+        return Ok(report);
     }
 
     let footer_offset = archive_len - FTR4_LEN as u64;
@@ -494,7 +501,7 @@ fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> R
             STRUCTURE_TAIL_FRAME,
             STRUCTURE_IDX3,
         ]);
-        return Ok(serialize_snapshot_json(&report)?);
+        return Ok(report);
     }
 
     let footer = match Ftr4::read_from(Cursor::new(&footer_bytes)) {
@@ -505,7 +512,7 @@ fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> R
                 STRUCTURE_TAIL_FRAME,
                 STRUCTURE_IDX3,
             ]);
-            return Ok(serialize_snapshot_json(&report)?);
+            return Ok(report);
         }
     };
 
@@ -551,9 +558,203 @@ fn propagation_report_with_structural_fallback<R: ReadAt + Len>(reader: &R) -> R
         corrupted_blocks = values;
     }
 
-    let report =
-        build_propagation_report_v1(&file_dependencies, &corrupted_structures, &corrupted_blocks);
-    Ok(serialize_snapshot_json(&report)?)
+    Ok(build_propagation_report_v1(
+        &file_dependencies,
+        &corrupted_structures,
+        &corrupted_blocks,
+    ))
+}
+
+fn propagation_reason_str(reason: &PropagationDependencyReason) -> &'static str {
+    match reason {
+        PropagationDependencyReason::RequiresFooterReachability => "requires_footer_reachability",
+        PropagationDependencyReason::RequiresTailFrame => "requires_tail_frame",
+        PropagationDependencyReason::RequiresIndex => "requires_index",
+        PropagationDependencyReason::RequiresMetadataMapping => "requires_metadata_mapping",
+        PropagationDependencyReason::RequiresBlockPayload => "requires_block_payload",
+    }
+}
+
+fn propagation_impact_reason_str(reason: &PropagationImpactReason) -> &'static str {
+    match reason {
+        PropagationImpactReason::CorruptedRequiredStructure => "corrupted_required_structure",
+        PropagationImpactReason::CorruptedRequiredBlock => "corrupted_required_block",
+    }
+}
+
+fn propagation_trust_class_str(trust: &PropagationEntryTrustClass) -> &'static str {
+    match trust {
+        PropagationEntryTrustClass::Canonical => "canonical",
+        PropagationEntryTrustClass::MetadataDegraded => "metadata_degraded",
+        PropagationEntryTrustClass::RecoveredNamed => "recovered_named",
+        PropagationEntryTrustClass::RecoveredAnonymous => "recovered_anonymous",
+        PropagationEntryTrustClass::Unrecoverable => "unrecoverable",
+    }
+}
+
+fn propagation_impact_kind_str(kind: &ActivatedImpactKind) -> &'static str {
+    match kind {
+        ActivatedImpactKind::BlocksCanonicalExtraction => "blocks_canonical_extraction",
+        ActivatedImpactKind::CausesMetadataDegraded => "causes_metadata_degraded",
+        ActivatedImpactKind::LeavesUnrecoverable => "leaves_unrecoverable",
+    }
+}
+
+fn format_entry_reasons(entry: &EntryImpactV1) -> String {
+    let mut reasons = entry
+        .activated_causes
+        .iter()
+        .map(|cause| propagation_impact_reason_str(&cause.reason))
+        .collect::<Vec<_>>();
+    reasons.sort_unstable();
+    reasons.dedup();
+    if reasons.is_empty() {
+        "none".to_string()
+    } else {
+        reasons.join(", ")
+    }
+}
+
+fn format_entry_consequences(entry: &EntryImpactV1) -> String {
+    let mut out = Vec::new();
+    if entry.canonical_blocked {
+        out.push("blocks_canonical_extraction");
+    }
+    if entry
+        .supported_trust_classes
+        .iter()
+        .any(|trust| matches!(trust, PropagationEntryTrustClass::MetadataDegraded))
+    {
+        out.push("causes_metadata_degraded");
+    }
+    if entry
+        .supported_trust_classes
+        .iter()
+        .any(|trust| matches!(trust, PropagationEntryTrustClass::Unrecoverable))
+    {
+        out.push("leaves_unrecoverable");
+    }
+    if out.is_empty() {
+        "none".to_string()
+    } else {
+        out.join(", ")
+    }
+}
+
+fn print_propagation_human(archive: &str, report: &PropagationReportV1) {
+    let presenter = CliPresenter::new("crushr", "propagation", false);
+    presenter.header();
+
+    presenter.section("Archive");
+    presenter.kv("path", archive);
+    presenter.kv("format family", &report.format_family);
+    presenter.kv("report version", report.report_version);
+
+    presenter.section("Detected corruption");
+    presenter.kv(
+        "corrupted structures",
+        if report.detected_corruption.structure_nodes.is_empty() {
+            "none".to_string()
+        } else {
+            report.detected_corruption.structure_nodes.join(", ")
+        },
+    );
+    presenter.kv(
+        "corrupted blocks",
+        if report.detected_corruption.blocks.is_empty() {
+            "none".to_string()
+        } else {
+            report
+                .detected_corruption
+                .blocks
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        },
+    );
+
+    let impacted_entries = report
+        .entry_impacts
+        .iter()
+        .filter(|entry| !entry.activated_causes.is_empty())
+        .collect::<Vec<_>>();
+    let blocked_entries = impacted_entries
+        .iter()
+        .filter(|entry| entry.canonical_blocked)
+        .count();
+
+    presenter.section("Impact summary");
+    presenter.kv_number("total entries", report.entry_impacts.len() as u64);
+    presenter.kv_number("impacted entries", impacted_entries.len() as u64);
+    presenter.kv_number("blocked canonical entries", blocked_entries as u64);
+    presenter.kv_number(
+        "activated impact causes",
+        report.activated_impacts.len() as u64,
+    );
+
+    if !report.required_structures.is_empty() {
+        presenter.section("Required structures");
+        for required in &report.required_structures {
+            presenter.kv(
+                &required.structure_node,
+                propagation_reason_str(&required.reason),
+            );
+        }
+    }
+
+    if !report.activated_impacts.is_empty() {
+        presenter.section("Activated impacts");
+        for impact in &report.activated_impacts {
+            let detail = format!(
+                "reason={} consequence={} affected_entries={}",
+                propagation_impact_reason_str(&impact.reason),
+                propagation_impact_kind_str(&impact.impact_kind),
+                impact.affected_entries.len()
+            );
+            presenter.kv(&impact.cause_node, detail);
+        }
+    }
+
+    presenter.section("Entry impacts");
+    if impacted_entries.is_empty() {
+        presenter.info_note("no currently activated entry impact from detected corruption");
+    } else {
+        for entry in impacted_entries {
+            presenter.kv("entry", &entry.file_path);
+            presenter.kv("reasons", format_entry_reasons(entry));
+            presenter.kv("consequence", format_entry_consequences(entry));
+            presenter.kv(
+                "canonical extraction blocked",
+                if entry.canonical_blocked {
+                    "true"
+                } else {
+                    "false"
+                },
+            );
+            let trust = entry
+                .supported_trust_classes
+                .iter()
+                .map(propagation_trust_class_str)
+                .collect::<Vec<_>>()
+                .join(", ");
+            presenter.kv("supported trust classes", trust);
+            let dependencies = entry
+                .dependencies
+                .iter()
+                .map(|dep| format!("{} ({})", dep.node, propagation_reason_str(&dep.reason)))
+                .collect::<Vec<_>>()
+                .join(", ");
+            presenter.kv("dependencies", dependencies);
+            println!();
+        }
+    }
+
+    presenter.result_summary(
+        StatusWord::Complete,
+        "propagation impact inspection completed",
+        &[],
+    );
 }
 
 #[derive(Default)]
@@ -991,7 +1192,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
 
     let mut archive = None;
     let mut json = false;
-    let mut report = None;
+    let mut propagation = false;
     let mut list = false;
     let mut flat = false;
     let mut entry = None;
@@ -1007,8 +1208,10 @@ fn run(raw_args: Vec<String>) -> Result<()> {
             list = true;
         } else if arg == "--flat" {
             flat = true;
+        } else if arg == "--propagation" {
+            propagation = true;
         } else if arg == "--report" {
-            report = Some(args.next().context("missing value for --report")?);
+            bail!("--report is retired; use --propagation");
         } else if arg == "--entry" {
             entry = Some(args.next().context("missing value for --entry")?);
         } else if arg == "--find" {
@@ -1037,8 +1240,8 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     if list && json {
         bail!("--json cannot be combined with --list");
     }
-    if list && report.is_some() {
-        bail!("--report cannot be combined with --list");
+    if list && propagation {
+        bail!("--propagation cannot be combined with --list");
     }
     if list && entry.is_some() {
         bail!("--entry cannot be combined with --list");
@@ -1046,11 +1249,11 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     if list && find.is_some() {
         bail!("--find cannot be combined with --list");
     }
-    if report.is_some() && entry.is_some() {
-        bail!("--entry cannot be combined with --report");
+    if propagation && entry.is_some() {
+        bail!("--entry cannot be combined with --propagation");
     }
-    if report.is_some() && find.is_some() {
-        bail!("--find cannot be combined with --report");
+    if propagation && find.is_some() {
+        bail!("--find cannot be combined with --propagation");
     }
     if entry.is_some() && find.is_some() {
         bail!("--entry cannot be combined with --find");
@@ -1063,18 +1266,20 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     }
 
     let archive = archive.context(
-        "usage: crushr info <archive> [--json] [--list] [--flat] [--entry <path>] [--find <query>] [--find-mode substring] [--find-limit <n>] [--report propagation]",
+        "usage: crushr info <archive> [--json] [--list] [--flat] [--entry <path>] [--find <query>] [--find-mode substring] [--find-limit <n>] [--propagation]",
     )?;
 
     let reader = FileReader {
         file: File::open(&archive).with_context(|| format!("open {archive}"))?,
     };
 
-    if let Some(report_kind) = report {
-        if report_kind != "propagation" {
-            bail!("unsupported report: {report_kind} (expected propagation)");
+    if propagation {
+        let report = propagation_report_with_structural_fallback(&reader)?;
+        if json {
+            println!("{}", serialize_snapshot_json(&report)?);
+        } else {
+            print_propagation_human(&archive, &report);
         }
-        println!("{}", propagation_report_with_structural_fallback(&reader)?);
         return Ok(());
     }
 
@@ -1531,23 +1736,22 @@ pub fn dispatch(args: Vec<String>) -> i32 {
             eprintln!("{err:#}");
             let msg = format!("{err:#}");
             if msg.contains("usage:")
-                || msg.contains("missing value for --report")
                 || msg.contains("missing value for --entry")
                 || msg.contains("missing value for --find")
                 || msg.contains("missing value for --find-mode")
                 || msg.contains("missing value for --find-limit")
-                || msg.contains("unsupported report")
+                || msg.contains("--report is retired")
                 || msg.contains("unsupported find mode")
                 || msg.contains("unsupported flag")
                 || msg.contains("invalid value for --find-limit")
                 || msg.contains("unexpected argument")
                 || msg.contains("--flat requires --list")
                 || msg.contains("--json cannot be combined with --list")
-                || msg.contains("--report cannot be combined with --list")
+                || msg.contains("--propagation cannot be combined with --list")
                 || msg.contains("--entry cannot be combined with --list")
                 || msg.contains("--find cannot be combined with --list")
-                || msg.contains("--entry cannot be combined with --report")
-                || msg.contains("--find cannot be combined with --report")
+                || msg.contains("--entry cannot be combined with --propagation")
+                || msg.contains("--find cannot be combined with --propagation")
                 || msg.contains("--entry cannot be combined with --find")
                 || msg.contains("--find-mode/--find-limit require --find")
             {

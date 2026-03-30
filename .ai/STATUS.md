@@ -124,3 +124,13 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - Updated propagation schema/contract/tests and guide docs for the expanded report shape.
 - Next: follow-on Phase 17 introspection packets outside this bounded step.
 
+## 2026-03-30 — Active Step Update (P17S03f1)
+
+- Completed: Phase 17 Step 03 fix 1 (`P17S03f1`).
+- Retired `crushr info --report propagation` and promoted the canonical propagation surface to:
+  - `crushr info --propagation`
+  - `crushr info --propagation --json`
+- Implemented operator-facing default human presentation for propagation with bounded sections covering archive context, detected corruption, impact summary, activated impacts, and entry impacts.
+- Preserved machine-readable propagation semantics and deterministic ordering in explicit JSON mode (`--propagation --json`).
+- Updated CLI tests, propagation contract docs, and guide docs to reflect the renamed surface and default human mode.
+- Next: follow-on Phase 17 introspection packets outside this bounded step.
