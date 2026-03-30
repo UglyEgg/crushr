@@ -104,6 +104,78 @@ fn completion_includes_info_and_primary_command_surface() {
 }
 
 #[test]
+fn man_command_exists_and_generates_expected_pages() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let out_dir = temp.path().join("man");
+    let out = run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        "man",
+        "--out-dir",
+        out_dir.to_str().expect("utf8"),
+    ]));
+    assert!(
+        out.status.success(),
+        "man generation failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    for page in [
+        "crushr.1",
+        "crushr-info.1",
+        "crushr-extract.1",
+        "crushr-verify.1",
+        "crushr-pack.1",
+        "crushr-about.1",
+        "crushr-completion.1",
+    ] {
+        let path = out_dir.join(page);
+        assert!(
+            path.exists(),
+            "missing generated man page: {}",
+            path.display()
+        );
+        let bytes = std::fs::read(&path).expect("read page");
+        assert!(!bytes.is_empty(), "generated man page is empty: {}", page);
+    }
+}
+
+#[test]
+fn man_generation_is_deterministic_across_runs() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let out_dir = temp.path().join("man");
+    let run_once = || {
+        run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+            "man",
+            "--out-dir",
+            out_dir.to_str().expect("utf8"),
+        ]))
+    };
+
+    let first = run_once();
+    assert!(
+        first.status.success(),
+        "first man generation failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&first.stdout),
+        String::from_utf8_lossy(&first.stderr)
+    );
+    let first_page = std::fs::read(out_dir.join("crushr.1")).expect("read first page");
+
+    let second = run_once();
+    assert!(
+        second.status.success(),
+        "second man generation failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&second.stdout),
+        String::from_utf8_lossy(&second.stderr)
+    );
+    let second_page = std::fs::read(out_dir.join("crushr.1")).expect("read second page");
+
+    assert_eq!(
+        first_page, second_page,
+        "man generation must be deterministic across runs"
+    );
+}
+
+#[test]
 fn pack_defaults_to_crs_extension_when_output_has_none() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let input_dir = tmp.path().join("input");

@@ -7,6 +7,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
+## 2026-03-30 — P17S02f3
+- Added `crushr man` and `crushr man --out-dir <path>` to generate section-1 man pages from the clap command model (no manual man content).
+- Added deterministic generation coverage for root + canonical subcommand pages: `crushr`, `crushr-info`, `crushr-extract`, `crushr-verify`, `crushr-pack`, `crushr-about`, and `crushr-completion`.
+- Added CLI contract tests covering command existence, generated-file presence/non-empty checks, and deterministic repeated output.
+- Updated README with concise man-page generation usage.
+- Validation: `cargo fmt`; `cargo test -p crushr --test cli_contract_surface`.
+
 ## 2026-03-30 — P17S03f2
 - Improved `crushr info --propagation` human-mode readability for dependency-dense entry impacts by replacing one-line dependency walls with deterministic multi-line dependency rows.
 - Added deterministic human summarization rule: show first 4 dependencies (report order) and, when needed, append explicit remainder line `+ <n> more`.

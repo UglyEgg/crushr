@@ -157,3 +157,21 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - Added deterministic coverage for human-mode dependency summarization and key operator-facing fields (reason, consequence, canonical blocked, trust-class support).
 - Updated `docs/guide/info.md` to document the human-mode-only dependency summarization rule.
 - Next: follow-on Phase 17 introspection packets outside this bounded step.
+
+## 2026-03-30 — Active Step Update (P17S02f3)
+
+- Completed: Phase 17 Step 02 fix 3 (`P17S02f3`).
+- Added deterministic clap-derived man page generation surface:
+  - `crushr man`
+  - `crushr man --out-dir <path>`
+- Man pages now generate for root and canonical subcommands:
+  - `crushr.1`
+  - `crushr-info.1`
+  - `crushr-extract.1`
+  - `crushr-verify.1`
+  - `crushr-pack.1`
+  - `crushr-about.1`
+  - `crushr-completion.1`
+- Added CLI tests for command presence, generated-file existence/non-empty checks, and deterministic repeated output.
+- Updated README with concise man-page generation usage examples.
+- Next: follow-on Phase 17 introspection packets outside this bounded step.
