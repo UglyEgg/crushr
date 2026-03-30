@@ -1,5 +1,3 @@
-# Updated docs/guide/info.md
-
 <!--
 SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski
@@ -48,6 +46,7 @@ Lists archive contents without extraction.
 If crushr cannot prove the listing, it does not guess.
 
 Use:
+
 - `--entry` for a single path
 - `--find` for search
 
@@ -131,7 +130,7 @@ Unsupported modes produce deterministic errors.
 
 ## `crushr info --propagation`
 
-Explains *why* entries are impacted.
+Explains _why_ entries are impacted.
 
 crushr info archive.crs --propagation
 crushr info archive.crs --propagation --json
@@ -149,7 +148,6 @@ Modes:
 
 - default → human-readable explanation
 - --json → full propagation graph
-
 
 ## `crushr info --propagation`
 
@@ -191,16 +189,19 @@ Rules:
 ## `info` vs `verify` vs extraction
 
 info:
+
 - what exists
 - what can be proven
 - what can be inspected
 - whether strict extraction is supportable
 
 verify:
+
 - whether strict extraction requirements are satisfied
 - whether recovery is required
 
 extract:
+
 - what was actually restored
 - final trust-class outcomes
 
