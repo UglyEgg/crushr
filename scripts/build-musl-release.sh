@@ -124,11 +124,6 @@ mkdir -p "$CACHE_ROOT/target"
 if [[ ${#BINS[@]} -eq 0 ]]; then
     BINS=(
         crushr
-        crushr-pack
-        crushr-extract
-        crushr-info
-        crushr-salvage
-        crushr-lab
     )
 fi
 
