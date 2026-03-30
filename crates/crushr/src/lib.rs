@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
-//! Library support crate for the `crushr-*` binaries.
+//! Library support crate for the `crushr` binary.
 //!
 //! ## Boundary policy
-//! - Stable product surface: CLI tools (`crushr-pack`, `crushr-info`,
-//!   `crushr-extract`, `crushr-extract --verify`).
+//! - Stable product surface: `crushr` subcommands (`pack`, `info`, `extract`, `verify`).
 //! - Bounded internal surface: `format` and `index_codec` modules, used by this
 //!   repository's binaries/tests.
 //! - Internal-only implementation: extraction path confinement helpers are kept
@@ -28,7 +27,6 @@ mod recover_extract_impl;
 mod recovery_classification;
 mod restoration_core;
 pub mod strict_extract_impl;
-pub mod wrapper_cli;
 
 pub mod versioning;
 

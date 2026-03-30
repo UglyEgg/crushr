@@ -67,13 +67,12 @@ fn pack_defaults_to_crs_extension_when_output_has_none() {
     let archive_without_ext = tmp.path().join("sample");
     let expected_archive = tmp.path().join("sample.crs");
 
-    let out = run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input_dir.to_str().expect("utf8"),
-            "-o",
-            archive_without_ext.to_str().expect("utf8"),
-        ]),
-    );
+    let out = run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        "pack",
+        input_dir.to_str().expect("utf8"),
+        "-o",
+        archive_without_ext.to_str().expect("utf8"),
+    ]));
     assert!(out.status.success(), "pack failed");
     assert!(
         expected_archive.exists(),
@@ -86,57 +85,34 @@ fn pack_defaults_to_crs_extension_when_output_has_none() {
 }
 
 #[test]
-fn wrappers_expose_consistent_help_version_and_about() {
+fn root_cli_help_version_and_about_are_consistent() {
+    let help = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("--help"));
+    assert!(help.contains("crushr <command> [args...]"));
+
     let version = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("--version"));
+    assert!(!version.trim().is_empty());
 
-    for (wrapper, canonical_usage) in [
-        (
-            env!("CARGO_BIN_EXE_crushr-pack"),
-            "canonical equivalent: crushr pack",
-        ),
-        (
-            env!("CARGO_BIN_EXE_crushr-extract"),
-            "canonical equivalent: crushr extract",
-        ),
-        (
-            env!("CARGO_BIN_EXE_crushr-info"),
-            "canonical equivalent: crushr info",
-        ),
-        (
-            env!("CARGO_BIN_EXE_crushr-salvage"),
-            "canonical equivalent: crushr salvage",
-        ),
-    ] {
-        let help = run_ok(Command::new(Path::new(wrapper)).arg("--help"));
-        assert!(help.contains("wrapper over canonical crushr CLI"));
-        assert!(help.contains(canonical_usage));
-
-        let wrapper_version = run_ok(Command::new(Path::new(wrapper)).arg("--version"));
-        assert_eq!(wrapper_version, version, "version mismatch for {wrapper}");
-
-        let wrapper_about = run_ok(Command::new(Path::new(wrapper)).arg("about"));
-        let root_about = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("about"));
-        assert_eq!(wrapper_about, root_about, "about mismatch for {wrapper}");
-    }
+    let about = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("about"));
+    assert!(about.contains("crushr"));
 }
 
 #[test]
 fn undocumented_wrapper_argument_aliases_are_rejected() {
     for wrapper in [
-        env!("CARGO_BIN_EXE_crushr-pack"),
-        env!("CARGO_BIN_EXE_crushr-extract"),
-        env!("CARGO_BIN_EXE_crushr-info"),
-        env!("CARGO_BIN_EXE_crushr-salvage"),
+        env!("CARGO_BIN_EXE_crushr"),
+        env!("CARGO_BIN_EXE_crushr"),
+        env!("CARGO_BIN_EXE_crushr"),
+        env!("CARGO_BIN_EXE_crushr"),
     ] {
         let out = run(Command::new(Path::new(wrapper)).args(["placeholder", "--help"]));
         assert!(
             !out.status.success(),
-            "wrapper accepted hidden help alias position: {wrapper}"
+            "unexpected help alias acceptance: {wrapper}"
         );
         let stdout = String::from_utf8(out.stdout).expect("stdout utf8");
         assert!(
-            !stdout.contains("wrapper over canonical crushr CLI"),
-            "wrapper leaked hidden help alias behavior: {wrapper}"
+            !stdout.contains("canonical equivalent:"),
+            "unexpected wrapper help behavior leaked: {wrapper}"
         );
     }
 }
@@ -168,13 +144,12 @@ fn shared_flags_json_and_silent_are_consistent_when_combined() {
     std::fs::write(input_dir.join("a.txt"), b"alpha").expect("write file");
     let archive = tmp.path().join("sample.crushr");
 
-    let pack = run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input_dir.to_str().expect("utf8"),
-            "-o",
-            archive.to_str().expect("utf8"),
-        ]),
-    );
+    let pack = run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        "pack",
+        input_dir.to_str().expect("utf8"),
+        "-o",
+        archive.to_str().expect("utf8"),
+    ]));
     assert!(pack.status.success(), "pack failed");
 
     let verify_json_silent = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
@@ -204,29 +179,27 @@ fn pack_profile_flag_emits_phase_breakdown_only_when_explicitly_requested() {
     std::fs::write(input_dir.join("a.txt"), b"alpha").expect("write file");
     let archive = tmp.path().join("sample.crs");
 
-    let baseline = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input_dir.to_str().expect("utf8"),
-            "-o",
-            archive.to_str().expect("utf8"),
-            "--silent",
-        ]),
-    );
+    let baseline = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        "pack",
+        input_dir.to_str().expect("utf8"),
+        "-o",
+        archive.to_str().expect("utf8"),
+        "--silent",
+    ]));
     assert!(
         !baseline.contains("Pack phases"),
         "pack phase breakdown must not print by default"
     );
 
     let archive_profiled = tmp.path().join("sample_profiled.crs");
-    let profiled = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input_dir.to_str().expect("utf8"),
-            "-o",
-            archive_profiled.to_str().expect("utf8"),
-            "--silent",
-            "--profile-pack",
-        ]),
-    );
+    let profiled = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        "pack",
+        input_dir.to_str().expect("utf8"),
+        "-o",
+        archive_profiled.to_str().expect("utf8"),
+        "--silent",
+        "--profile-pack",
+    ]));
     assert!(profiled.contains("Pack phases"));
     for phase in [
         "discovery",

@@ -83,7 +83,7 @@ fn canonical_extractor_rejects_parent_traversal() {
     let out_dir = td.path().join("out");
     fs::create_dir_all(&out_dir).unwrap();
 
-    let out = std::process::Command::new(env!("CARGO_BIN_EXE_crushr-extract"))
+    let out = std::process::Command::new(env!("CARGO_BIN_EXE_crushr"))
         .args([archive.to_str().unwrap(), "-o", out_dir.to_str().unwrap()])
         .output()
         .expect("run crushr-extract");
@@ -100,7 +100,7 @@ fn canonical_extractor_rejects_absolute_path() {
     let out_dir = td.path().join("out");
     fs::create_dir_all(&out_dir).unwrap();
 
-    let out = std::process::Command::new(env!("CARGO_BIN_EXE_crushr-extract"))
+    let out = std::process::Command::new(env!("CARGO_BIN_EXE_crushr"))
         .args([archive.to_str().unwrap(), "-o", out_dir.to_str().unwrap()])
         .output()
         .expect("run crushr-extract");
@@ -116,7 +116,7 @@ fn root_crushr_extract_delegates_to_strict_for_all_entries() {
     fs::write(in_dir.join("safe/dir/file.txt"), b"hello").unwrap();
 
     let archive = td.path().join("root-all.crushr");
-    let pack = std::process::Command::new(env!("CARGO_BIN_EXE_crushr-pack"))
+    let pack = std::process::Command::new(env!("CARGO_BIN_EXE_crushr"))
         .args([
             in_dir.to_str().unwrap(),
             "-o",
@@ -165,7 +165,7 @@ fn root_crushr_extract_delegates_to_strict_for_path_filtered_mode() {
     fs::write(in_dir.join("safe/dir/file.txt"), b"hello").unwrap();
 
     let archive = td.path().join("root-filtered.crushr");
-    let pack = std::process::Command::new(env!("CARGO_BIN_EXE_crushr-pack"))
+    let pack = std::process::Command::new(env!("CARGO_BIN_EXE_crushr"))
         .args([
             in_dir.to_str().unwrap(),
             "-o",

@@ -75,3 +75,12 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - introspection is explanatory, not repair behavior
 - recovery remains explicit and bounded
 - payload integrity and metadata completeness remain distinct
+
+## 2026-03-30 — Active Step Update (P17S01f0)
+
+- Completed: Phase 17 Step 01 fix 0 (`P17S01f0`).
+- Implemented archive-level truth summary expansion for `crushr info` (human + JSON), including deterministic structural summary, verification summary, and explicit `strict_extraction_supported`.
+- Removed wrapper binaries from `crushr` build targets and source files; command access is now via `crushr` subcommands.
+- Updated tests and schema contracts to match the single-binary command surface and new `crushr info` JSON truth shape.
+- Next: Phase 17 follow-on introspection packets (entry-level/propagation work remains out of scope for this step).
+

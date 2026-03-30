@@ -119,23 +119,19 @@ fn mixed_tree_roundtrip_preserves_baseline_metadata_and_xattrs() {
     }
 
     let archive = td.path().join("meta.crs");
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input.to_str().unwrap(),
-            "-o",
-            archive.to_str().unwrap(),
-            "--level",
-            "3",
-        ]),
-    );
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        input.to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+        "--level",
+        "3",
+    ]));
 
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract"))).args([
-            archive.to_str().unwrap(),
-            "-o",
-            output.to_str().unwrap(),
-        ]),
-    );
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        archive.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+    ]));
 
     let extracted_file = output.join("nested/data.txt");
     let extracted_meta = fs::metadata(&extracted_file).unwrap();
@@ -172,7 +168,7 @@ fn mixed_tree_roundtrip_preserves_baseline_metadata_and_xattrs() {
     let empty_dir = output.join("nested/empty");
     assert!(empty_dir.is_dir());
 
-    let info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+    let info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
         .arg(archive)
         .output()
         .expect("run info");
@@ -196,15 +192,13 @@ fn extraction_refuses_when_ownership_restore_is_not_permitted() {
     fs::write(&file_path, b"payload").unwrap();
 
     let archive = td.path().join("meta.crs");
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input.to_str().unwrap(),
-            "-o",
-            archive.to_str().unwrap(),
-            "--level",
-            "3",
-        ]),
-    );
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        input.to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+        "--level",
+        "3",
+    ]));
     mutate_index_in_place(&archive, |index| {
         for entry in &mut index.entries {
             entry.uid = 0;
@@ -213,7 +207,7 @@ fn extraction_refuses_when_ownership_restore_is_not_permitted() {
     });
 
     let output = td.path().join("output");
-    let out = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+    let out = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
         .args([archive.to_str().unwrap(), "-o", output.to_str().unwrap()])
         .output()
         .expect("run extract");
@@ -229,7 +223,7 @@ fn extraction_refuses_when_ownership_restore_is_not_permitted() {
     assert!(stderr.contains("ownership"));
 
     let recover_out = td.path().join("recover");
-    let recover = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+    let recover = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
         .args([
             archive.to_str().unwrap(),
             "-o",
@@ -273,15 +267,13 @@ fn basic_and_payload_only_skip_omitted_metadata_restore_attempts() {
 
     for profile in ["basic", "payload-only"] {
         let archive = td.path().join(format!("{profile}.crs"));
-        run(
-            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-                input.to_str().unwrap(),
-                "-o",
-                archive.to_str().unwrap(),
-                "--preservation",
-                profile,
-            ]),
-        );
+        run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+            input.to_str().unwrap(),
+            "-o",
+            archive.to_str().unwrap(),
+            "--preservation",
+            profile,
+        ]));
         mutate_index_in_place(&archive, |index| {
             for entry in &mut index.entries {
                 entry.uid = 0;
@@ -293,7 +285,7 @@ fn basic_and_payload_only_skip_omitted_metadata_restore_attempts() {
         });
 
         let strict_out = td.path().join(format!("strict-{profile}"));
-        let strict = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+        let strict = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
             .args([
                 archive.to_str().unwrap(),
                 "-o",
@@ -314,7 +306,7 @@ fn basic_and_payload_only_skip_omitted_metadata_restore_attempts() {
         assert!(!strict_stderr.contains("WARNING[capability-restore]"));
 
         let recover_out = td.path().join(format!("recover-{profile}"));
-        let recover = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+        let recover = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
             .args([
                 archive.to_str().unwrap(),
                 "-o",
@@ -351,15 +343,13 @@ fn non_regular_entries_fail_closed_and_recover_as_metadata_degraded() {
     run(Command::new("mkfifo").arg(input.join("named.pipe")));
 
     let archive = td.path().join("nonregular.crs");
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input.to_str().unwrap(),
-            "-o",
-            archive.to_str().unwrap(),
-            "--level",
-            "3",
-        ]),
-    );
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        input.to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+        "--level",
+        "3",
+    ]));
 
     mutate_index_in_place(&archive, |index| {
         for entry in &mut index.entries {
@@ -371,7 +361,7 @@ fn non_regular_entries_fail_closed_and_recover_as_metadata_degraded() {
     });
 
     let strict_out = td.path().join("strict-out");
-    let strict = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+    let strict = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
         .args([
             archive.to_str().unwrap(),
             "-o",
@@ -390,7 +380,7 @@ fn non_regular_entries_fail_closed_and_recover_as_metadata_degraded() {
     assert!(strict_stderr.contains("ownership"));
 
     let recover_out = td.path().join("recover-out");
-    let recover = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+    let recover = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
         .args([
             archive.to_str().unwrap(),
             "-o",
@@ -444,17 +434,15 @@ fn basic_profile_omitted_metadata_does_not_trigger_non_regular_degradation() {
     run(Command::new("mkfifo").arg(input.join("named.pipe")));
 
     let archive = td.path().join("basic.crs");
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input.to_str().unwrap(),
-            "-o",
-            archive.to_str().unwrap(),
-            "--level",
-            "3",
-            "--preservation",
-            "basic",
-        ]),
-    );
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        input.to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+        "--level",
+        "3",
+        "--preservation",
+        "basic",
+    ]));
 
     mutate_index_in_place(&archive, |index| {
         for entry in &mut index.entries {
@@ -466,7 +454,7 @@ fn basic_profile_omitted_metadata_does_not_trigger_non_regular_degradation() {
     });
 
     let recover_out = td.path().join("recover-out");
-    let recover = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+    let recover = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
         .args([
             archive.to_str().unwrap(),
             "-o",
@@ -516,16 +504,14 @@ fn info_reports_acl_presence_when_acl_is_captured() {
     }
 
     let archive = td.path().join("meta.crs");
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input.to_str().unwrap(),
-            "-o",
-            archive.to_str().unwrap(),
-            "--level",
-            "3",
-        ]),
-    );
-    let info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        input.to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+        "--level",
+        "3",
+    ]));
+    let info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
         .arg(&archive)
         .output()
         .expect("run info");
@@ -565,22 +551,18 @@ fn sparse_and_fifo_roundtrip_preserve_entry_kinds() {
     run(Command::new("mkfifo").arg(&fifo_path));
 
     let archive = td.path().join("specials.crs");
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input.to_str().unwrap(),
-            "-o",
-            archive.to_str().unwrap(),
-            "--level",
-            "3",
-        ]),
-    );
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract"))).args([
-            archive.to_str().unwrap(),
-            "-o",
-            output.to_str().unwrap(),
-        ]),
-    );
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        input.to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+        "--level",
+        "3",
+    ]));
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        archive.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+    ]));
 
     let src_sparse_meta = fs::metadata(&sparse_path).unwrap();
     let out_sparse_meta = fs::metadata(output.join("sparse.bin")).unwrap();
@@ -613,17 +595,15 @@ fn device_node_restore_is_truthful_when_unprivileged() {
     fs::write(input.join("seed.txt"), b"seed").unwrap();
 
     let archive = td.path().join("device.crs");
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input.to_str().unwrap(),
-            "-o",
-            archive.to_str().unwrap(),
-            "--level",
-            "3",
-        ]),
-    );
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        input.to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+        "--level",
+        "3",
+    ]));
     let output = td.path().join("output");
-    let out = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+    let out = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
         .args([archive.to_str().unwrap(), "-o", output.to_str().unwrap()])
         .output()
         .expect("run extract");
@@ -651,15 +631,13 @@ fn ownership_name_enrichment_is_captured_without_placeholders() {
     fs::write(input.join("file.txt"), b"payload").unwrap();
 
     let archive = td.path().join("owners.crs");
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input.to_str().unwrap(),
-            "-o",
-            archive.to_str().unwrap(),
-            "--level",
-            "3",
-        ]),
-    );
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        input.to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+        "--level",
+        "3",
+    ]));
 
     let reader = FileReader {
         file: fs::File::open(&archive).unwrap(),
@@ -687,13 +665,11 @@ fn preservation_profile_defaults_to_full_and_info_reports_it() {
     fs::write(input.join("file.txt"), b"payload").unwrap();
     let archive = td.path().join("default.crs");
 
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input.to_str().unwrap(),
-            "-o",
-            archive.to_str().unwrap(),
-        ]),
-    );
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        input.to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+    ]));
 
     let reader = FileReader {
         file: fs::File::open(&archive).unwrap(),
@@ -702,7 +678,7 @@ fn preservation_profile_defaults_to_full_and_info_reports_it() {
     let index = decode_index(&open.tail.idx3_bytes).unwrap();
     assert_eq!(index.preservation_profile, PreservationProfile::Full);
 
-    let info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+    let info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
         .arg(&archive)
         .output()
         .expect("run info");
@@ -725,7 +701,7 @@ fn basic_profile_omits_special_entries_and_metadata() {
     let _ = xattr::set(&file_path, "user.crushr.basic", b"drop-me");
     let archive = td.path().join("basic.crs");
 
-    let pack = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+    let pack = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
         .args([
             input.to_str().unwrap(),
             "-o",
@@ -774,15 +750,13 @@ fn payload_only_drops_link_semantics_and_legacy_idx6_defaults_full() {
     symlink("file.txt", input.join("file.link")).unwrap();
     let archive = td.path().join("payload.crs");
 
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input.to_str().unwrap(),
-            "-o",
-            archive.to_str().unwrap(),
-            "--preservation",
-            "payload-only",
-        ]),
-    );
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        input.to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+        "--preservation",
+        "payload-only",
+    ]));
 
     let reader = FileReader {
         file: fs::File::open(&archive).unwrap(),
@@ -820,16 +794,14 @@ fn info_surfaces_profile_aware_metadata_scope_for_basic_and_payload_only() {
     fs::write(input.join("file.txt"), b"payload").unwrap();
 
     let basic_archive = td.path().join("basic-info.crs");
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input.to_str().unwrap(),
-            "-o",
-            basic_archive.to_str().unwrap(),
-            "--preservation",
-            "basic",
-        ]),
-    );
-    let basic_info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        input.to_str().unwrap(),
+        "-o",
+        basic_archive.to_str().unwrap(),
+        "--preservation",
+        "basic",
+    ]));
+    let basic_info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
         .arg(&basic_archive)
         .output()
         .expect("run info basic");
@@ -840,16 +812,14 @@ fn info_surfaces_profile_aware_metadata_scope_for_basic_and_payload_only() {
     assert!(basic_out.contains("ownership              omitted by profile"));
 
     let payload_archive = td.path().join("payload-info.crs");
-    run(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).args([
-            input.to_str().unwrap(),
-            "-o",
-            payload_archive.to_str().unwrap(),
-            "--preservation",
-            "payload-only",
-        ]),
-    );
-    let payload_info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+    run(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
+        input.to_str().unwrap(),
+        "-o",
+        payload_archive.to_str().unwrap(),
+        "--preservation",
+        "payload-only",
+    ]));
+    let payload_info = Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
         .arg(&payload_archive)
         .output()
         .expect("run info payload");

@@ -1,5 +1,5 @@
 
-crushr-info  /  info
+crushr  /  info
 ════════════════════════════════════════════════════════════════════════
 
 Archive
@@ -7,6 +7,7 @@ Archive
   size bytes             1,193
   blake3                 <DYNAMIC>
   format markers         FTR4 + IDX7
+  global flags           none
 
 Preservation
   profile                full
@@ -49,6 +50,14 @@ Metadata
 Compression
   method                 zstd
   level                  3
+
+Verification
+  extent verification    valid
+  dictionary validity    valid
+  tail-frame validity    valid
+
+Extraction viability
+  strict_extraction_supported true
 
 Result
   status                 COMPLETE

@@ -42,8 +42,8 @@ fn unique_dir(prefix: &str) -> PathBuf {
 
 fn run_bin(bin: &str, args: &[&str]) -> std::process::Output {
     let bin_path = match bin {
-        "crushr-pack" => Path::new(env!("CARGO_BIN_EXE_crushr-pack")),
-        "crushr-extract" => Path::new(env!("CARGO_BIN_EXE_crushr-extract")),
+        "crushr-pack" => Path::new(env!("CARGO_BIN_EXE_crushr")),
+        "crushr-extract" => Path::new(env!("CARGO_BIN_EXE_crushr")),
         _ => panic!("unsupported binary in test: {bin}"),
     };
     Command::new(bin_path).args(args).output().unwrap()

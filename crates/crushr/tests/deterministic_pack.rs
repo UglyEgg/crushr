@@ -62,7 +62,7 @@ fn crushr_pack_repeated_runs_are_byte_identical() {
     fs::write(input.join("a-dir/aaa.txt"), b"a").unwrap();
     fs::write(input.join("root.txt"), b"root").unwrap();
 
-    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let one = td.path().join("one.crs");
     let two = td.path().join("two.crs");
 
@@ -95,7 +95,7 @@ fn crushr_pack_index_order_and_metadata_are_normalized() {
     fs::write(input.join("a/two.txt"), b"2").unwrap();
 
     let archive = td.path().join("out.crs");
-    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     run(Command::new(bin).args([
         input.to_str().unwrap(),
         "-o",
@@ -136,7 +136,7 @@ fn crushr_pack_index_order_and_metadata_are_normalized() {
 
 #[test]
 fn crushr_pack_help_is_production_focused() {
-    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let out = Command::new(bin).arg("--help").output().expect("run help");
     assert!(out.status.success());
 
@@ -155,7 +155,7 @@ fn crushr_pack_rejects_experimental_writer_flags() {
     fs::create_dir_all(&input).unwrap();
     fs::write(input.join("payload.txt"), b"payload").unwrap();
 
-    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let self_describing_archive = td.path().join("self-describing.crushr");
     let self_describing = Command::new(bin)
         .args([
@@ -203,7 +203,7 @@ fn crushr_pack_distinct_standalone_paths_succeed() {
     fs::write(&right, b"right").unwrap();
 
     let archive = td.path().join("distinct.crs");
-    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     run(Command::new(bin).args([
         left.to_str().unwrap(),
         right.to_str().unwrap(),
@@ -229,7 +229,7 @@ fn crushr_pack_rejects_duplicate_basename_collisions_before_archive_create() {
     fs::write(&right, b"right").unwrap();
 
     let archive = td.path().join("collision.crs");
-    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let out = Command::new(bin)
         .args([
             left.to_str().unwrap(),
@@ -264,7 +264,7 @@ fn crushr_pack_rejects_normalized_path_collisions() {
     fs::write(tree_root.join("dir/item.txt"), b"tree").unwrap();
 
     let archive = td.path().join("normalized-collision.crs");
-    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let out = Command::new(bin)
         .args([
             standalone.to_str().unwrap(),
@@ -372,7 +372,7 @@ fn crushr_pack_rejects_walked_tree_to_walked_tree_collisions_with_ordered_source
     fs::write(&second_file, b"two").unwrap();
 
     let archive = td.path().join("tree-tree-collision.crs");
-    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let out = Command::new(bin)
         .args([
             first.to_str().unwrap(),
@@ -414,7 +414,7 @@ fn crushr_pack_rejects_three_way_collisions_with_stable_source_ordering() {
     fs::write(&c_file, b"c").unwrap();
 
     let archive = td.path().join("three-way-collision.crs");
-    let bin = Path::new(env!("CARGO_BIN_EXE_crushr-pack"));
+    let bin = Path::new(env!("CARGO_BIN_EXE_crushr"));
     let out = Command::new(bin)
         .args([
             a_file.to_str().unwrap(),

@@ -50,25 +50,26 @@ fn verify_output_is_deterministic_and_uses_shared_status_words() {
     let archive = tmp.path().join("sample.crushr");
 
     run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
             .arg(&input_dir)
             .arg("-o")
             .arg(&archive),
     );
 
     let first = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
-            .arg("--verify")
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("verify")
             .arg(&archive),
     );
     let second = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
-            .arg("--verify")
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("verify")
             .arg(&archive),
     );
 
     assert_eq!(first, second);
-    assert!(first.contains("crushr-extract  /  verify"));
+    assert!(first.contains("crushr  /  verify"));
     assert!(first.contains("Progress"));
     assert!(first.contains("archive open / header read"));
     assert!(first.contains("metadata/index scan"));
@@ -89,7 +90,8 @@ fn silent_mode_emits_one_line_summary_for_public_commands() {
     let extract_out = tmp.path().join("extract");
 
     let pack_out = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
             .arg(&input_dir)
             .arg("-o")
             .arg(&archive)
@@ -99,7 +101,8 @@ fn silent_mode_emits_one_line_summary_for_public_commands() {
     assert!(pack_out.contains("status=COMPLETE"));
 
     let extract_out_text = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("extract")
             .arg(&archive)
             .arg("-o")
             .arg(&extract_out)
@@ -109,8 +112,8 @@ fn silent_mode_emits_one_line_summary_for_public_commands() {
     assert!(extract_out_text.contains("status=COMPLETE"));
 
     let verify_out = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
-            .arg("--verify")
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("verify")
             .arg(&archive)
             .arg("--silent"),
     );
@@ -118,15 +121,18 @@ fn silent_mode_emits_one_line_summary_for_public_commands() {
     assert!(verify_out.contains("status=VERIFIED"));
 
     let salvage_out = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-salvage")))
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("salvage")
             .arg(&archive)
             .arg("--silent"),
     );
     assert_eq!(salvage_out.lines().count(), 1);
     assert!(salvage_out.contains("status=DEGRADED"));
 
-    let salvage_human =
-        run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-salvage"))).arg(&archive));
+    let salvage_human = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .args(["salvage", archive.to_str().expect("utf8")]),
+    );
     assert!(salvage_human.contains("Evidence"));
     assert!(salvage_human.contains("verified files"));
     assert!(salvage_human.contains("rejected/unresolved"));
@@ -168,8 +174,8 @@ fn verify_invalid_archive_uses_operator_surface_without_parser_leakage() {
     fs::write(&archive, vec![0u8; 4096]).expect("write invalid archive");
 
     let out = run_any(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
-            .arg("--verify")
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("verify")
             .arg(&archive),
     );
     assert!(!out.status.success());
@@ -209,16 +215,14 @@ fn about_command_matches_locked_output_shape() {
 
 #[test]
 fn canonical_help_commands_are_available() {
-    let pack = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack"))).arg("--help"));
-    assert!(pack.contains("usage: crushr-pack"));
+    let pack = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("--help"));
+    assert!(pack.contains("crushr <command>"));
 
-    let extract =
-        run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract"))).arg("--help"));
-    assert!(extract.contains("usage: crushr-extract"));
+    let extract = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("--help"));
+    assert!(extract.contains("extract"));
 
-    let salvage =
-        run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-salvage"))).arg("--help"));
-    assert!(salvage.contains("usage: crushr-salvage"));
+    let salvage = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("--help"));
+    assert!(salvage.contains("salvage"));
 }
 
 #[test]
@@ -233,26 +237,32 @@ fn section_layout_matches_goldens() {
     fs::write(&bad_archive, b"bad").expect("bad archive");
 
     let pack_out = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
             .arg(&input_dir)
             .arg("-o")
             .arg(&archive),
     );
     let verify_ok_out = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
-            .arg("--verify")
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("verify")
             .arg(&archive),
     );
     let verify_bad = run_any(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
-            .arg("--verify")
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("verify")
             .arg(&bad_archive),
     );
     assert!(!verify_bad.status.success());
     let verify_bad_out = String::from_utf8(verify_bad.stdout).expect("stdout utf8");
-    let info_out = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info"))).arg(&archive));
-    let salvage_out =
-        run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-salvage"))).arg(&archive));
+    let info_out = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .args(["info", archive.to_str().expect("utf8")]),
+    );
+    let salvage_out = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .args(["salvage", archive.to_str().expect("utf8")]),
+    );
 
     let base = Path::new("tests/golden");
     let expected_pack = fs::read_to_string(base.join("pack.txt")).expect("golden pack");
@@ -288,7 +298,8 @@ fn non_tty_output_has_no_motion_control_artifacts() {
     let recover_out = tmp.path().join("recover");
 
     run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
             .arg(&input_dir)
             .arg("-o")
             .arg(&archive),
@@ -296,28 +307,31 @@ fn non_tty_output_has_no_motion_control_artifacts() {
 
     for output in [
         run_ok(
-            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
                 .env("CRUSHR_MOTION", "full")
+                .arg("pack")
                 .arg(&input_dir)
                 .arg("-o")
                 .arg(tmp.path().join("second.crushr")),
         ),
         run_ok(
-            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
                 .env("CRUSHR_MOTION", "full")
-                .arg("--verify")
+                .arg("verify")
                 .arg(&archive),
         ),
         run_ok(
-            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
                 .env("CRUSHR_MOTION", "full")
+                .arg("extract")
                 .arg(&archive)
                 .arg("-o")
                 .arg(&extract_out),
         ),
         run_ok(
-            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-extract")))
+            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
                 .env("CRUSHR_MOTION", "full")
+                .arg("extract")
                 .arg(&archive)
                 .arg("-o")
                 .arg(&recover_out)
@@ -346,18 +360,20 @@ fn info_list_tree_and_flat_are_deterministic() {
     let archive = tmp.path().join("sample.crushr");
 
     run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
             .arg(&input_dir)
             .arg("-o")
             .arg(&archive),
     );
 
     let tree_out = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
             .arg(&archive)
             .arg("--list"),
     );
-    assert!(tree_out.contains("crushr-info  /  list"));
+    assert!(tree_out.contains("crushr  /  list"));
     assert!(tree_out.contains("├── docs/"));
     assert!(tree_out.contains("│   ├── nested/"));
     assert!(tree_out.contains("│   │   └── deep.txt"));
@@ -365,7 +381,8 @@ fn info_list_tree_and_flat_are_deterministic() {
     assert!(tree_out.contains("└── alpha.txt"));
 
     let flat_out = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
             .arg(&archive)
             .arg("--list")
             .arg("--flat"),
@@ -386,7 +403,8 @@ fn info_list_degrades_honestly_when_listing_proof_is_unavailable() {
     let archive = tmp.path().join("sample.crushr");
 
     run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
             .arg(&input_dir)
             .arg("-o")
             .arg(&archive),
@@ -397,14 +415,15 @@ fn info_list_degrades_honestly_when_listing_proof_is_unavailable() {
     fs::write(&archive, archive_bytes).expect("rewrite archive");
 
     let out = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
             .arg(&archive)
             .arg("--list"),
     );
 
     assert!(out.contains("WARNING:"));
     assert!(out.contains("IDX3 could not be proven"));
-    assert!(out.contains("crushr salvage"));
+    assert!(out.contains("crushr extract --recover"));
     assert!(out.contains("(no provable paths)"));
     assert!(out.contains("status                 DEGRADED"));
 }
@@ -423,7 +442,8 @@ fn info_list_surfaces_profile_context_across_preservation_variants() {
     ] {
         let archive = tmp.path().join(format!("{profile}.crushr"));
         run_ok(
-            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-pack")))
+            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+                .arg("pack")
                 .arg(&input_dir)
                 .arg("-o")
                 .arg(&archive)
@@ -432,7 +452,8 @@ fn info_list_surfaces_profile_context_across_preservation_variants() {
         );
 
         let out = run_ok(
-            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr-info")))
+            Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+                .arg("info")
                 .arg(&archive)
                 .arg("--list"),
         );

@@ -23,7 +23,7 @@ use std::fs::File;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-const USAGE: &str = "usage: crushr-salvage <archive> [--json] [--json-out <path>] [--export-fragments <dir>] [--silent]";
+const USAGE: &str = "usage: crushr salvage <archive> [--json] [--json-out <path>] [--export-fragments <dir>] [--silent]";
 const RESEARCH_LABEL: &str = "UNVERIFIED_RESEARCH_OUTPUT";
 #[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
 enum MappingProvenance {
@@ -811,7 +811,7 @@ fn run(args: Vec<String>) -> Result<()> {
     } else if opts.json {
         println!("{rendered}");
     } else {
-        let presenter = CliPresenter::new("crushr-salvage", "plan", opts.silent);
+        let presenter = CliPresenter::new("crushr", "salvage", opts.silent);
         presenter.header();
         presenter.section("Archive");
         presenter.kv("archive", &plan.archive.archive_path);

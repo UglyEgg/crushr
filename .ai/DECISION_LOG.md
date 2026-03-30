@@ -1,3 +1,20 @@
+
+## 2026-03-30 — P17S01f0 info truth-surface expansion + wrapper binary removal
+
+- Decision:
+  - Promote `crushr info` JSON output to an archive-level truth surface including structure, verification, and explicit strict extraction viability (`strict_extraction_supported`).
+  - Add deterministic human-output sections for verification and extraction viability in `crushr info`.
+  - Remove wrapper binaries (`crushr-pack`, `crushr-extract`, `crushr-info`, `crushr-salvage`) from `crates/crushr` bin targets and source files; use subcommands via `crushr` only.
+- Alternatives considered:
+  1. Keep wrapper binaries as compatibility shims.
+  2. Keep legacy info JSON envelope and only add new human rows.
+- Rationale:
+  - Phase 17 packet requires single-binary product access and explicit truth-surface semantics without extraction.
+- Blast radius:
+  - `crates/crushr/src/commands/{info,pack,extract,salvage}.rs`
+  - `crates/crushr/Cargo.toml`, `crates/crushr/src/lib.rs`, removed wrapper sources
+  - `schemas/crushr-info.v1.schema.json`, CLI/presentation tests, and core tests invoking legacy binary names.
+
 <!--
 SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski

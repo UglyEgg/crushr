@@ -58,8 +58,16 @@ fn ensure_bins_built() {
 }
 
 fn run_bin(bin: &str, args: &[&str]) -> std::process::Output {
-    let bin_path = workspace_root().join(format!("target/debug/{bin}"));
-    Command::new(bin_path).args(args).output().unwrap()
+    let bin_path = workspace_root().join("target/debug/crushr");
+    let mut cmd = Command::new(bin_path);
+    let sub = match bin {
+        "crushr-pack" => "pack",
+        "crushr-extract" => "extract",
+        "crushr-info" => "info",
+        "crushr-salvage" => "salvage",
+        _ => bin,
+    };
+    cmd.arg(sub).args(args).output().unwrap()
 }
 
 fn assert_ok(out: &std::process::Output) {
@@ -95,7 +103,7 @@ fn first_e2e_corruption_experiment_loop() {
     let clean_info = run_bin("crushr-info", &[clean_archive.to_str().unwrap(), "--json"]);
     assert_ok(&clean_info);
     let clean_info_json: Value = serde_json::from_slice(&clean_info.stdout).unwrap();
-    assert_eq!(clean_info_json["tool"], "crushr-info");
+    assert!(clean_info_json["strict_extraction_supported"].is_boolean());
 
     let clean_verify = run_bin(
         "crushr-extract",

@@ -1171,3 +1171,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added centralized content-class experiment modeling in `scripts/benchmark/contract.py` with explicit strategy authority (`off|lightweight_v1`) and assumptions fingerprint integration.
 - Added deterministic lightweight content classification/grouping for tar comparator ordering inputs in `scripts/benchmark/run_benchmarks.py` (bounded class set, fixed class ordering, stable sampling thresholds) with explicit run metadata (`content_class_strategy`, `content_classification`).
 - Extended canonical harness + schema + docs (`scripts/benchmark/harness.py`, `schemas/crushr-benchmark-run.v1.schema.json`, `docs/reference/benchmarking.md`) so content-class clustering is reproducible, auditable, and explicitly benchmark-only.
+
+## 2026-03-30 — P17S01f0
+- Expanded `crushr info` human output with deterministic archive-level verification summary and extraction viability (`strict_extraction_supported`).
+- Changed `crushr info --json` to emit archive-level truth-surface JSON fields (`format_version`, `global_flags`, `preservation_profile`, `structure`, `verification`, `strict_extraction_supported`).
+- Removed wrapper binaries (`crushr-pack`, `crushr-extract`, `crushr-info`, `crushr-salvage`) from `crates/crushr` bin targets and deleted wrapper source files.
+- Updated schema/tests/golden outputs for single-binary subcommand invocation and new info truth reporting.
+- Validation: `cargo fmt --all`; `cargo test --workspace --no-run`; `cargo test -p crushr --test cli_contract_surface`; `cargo test -p crushr --test cli_presentation_contract`; `cargo test -p crushr-core --test snapshot_schema_contracts_v1`.
+
