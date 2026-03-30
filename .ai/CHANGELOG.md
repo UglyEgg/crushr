@@ -7,6 +7,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
+
+## 2026-03-30 — P17S02f4
+- Aligned README command-surface sections to the current canonical CLI: `info`, `extract`, `verify`, `pack`, `about`, `completion`, and `man`.
+- Added explicit README introspection coverage for `crushr info --propagation` alongside `--list`, `--entry`, and `--find`.
+- Updated concise command descriptions to match current behavior and removed product-boundary drift from command summaries.
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface`.
+
 ## 2026-03-30 — P17S02f3
 - Added `crushr man` and `crushr man --out-dir <path>` to generate section-1 man pages from the clap command model (no manual man content).
 - Added deterministic generation coverage for root + canonical subcommand pages: `crushr`, `crushr-info`, `crushr-extract`, `crushr-verify`, `crushr-pack`, `crushr-about`, and `crushr-completion`.

@@ -78,15 +78,14 @@ The system makes all outcomes explicit rather than assuming correctness.
 
 The project provides:
 
-- archive creation with `crushr pack`  
-- integrity verification and strict-extraction viability checks with `crushr verify`  
+- deterministic archive creation with `crushr pack`  
+- integrity and structure validation with `crushr verify`  
 - strict extraction with `crushr extract`  
 - recovery-aware extraction with `crushr extract --recover`  
-- archive inspection with `crushr info`  
-- pre-extraction archive listing with `crushr info --list`  
-- exact entry introspection with `crushr info --entry <logical/path>`  
-- deterministic entry search with `crushr info --find <query>`  
-- binary build and environment inspection with `crushr about`  
+- archive introspection with `crushr info` (`--list`, `--entry`, `--find`, `--propagation`)  
+- build and identity details with `crushr about`  
+- shell completion generation with `crushr completion`  
+- man page generation with `crushr man`  
 
 crushr archives are identified by format markers, not by filename extension.
 
@@ -242,6 +241,7 @@ crushr archives are inspectable without extraction.
 - `crushr info --list` provides entry-level introspection: listing, classification, and attributes without extraction  
 - `crushr info --entry <logical/path>` provides exact-path truth for one entry without extraction  
 - `crushr info --find <query>` provides deterministic substring search over stable logical identities  
+- `crushr info --propagation` provides dependency and impact visibility for detected corruption paths  
 
 Current behavior is fail-closed:
 
@@ -316,7 +316,7 @@ These are not part of the public documentation surface.
 
 ## Product boundary
 
-- **Stable product surface:** `pack`, `verify`, `extract`, `extract --recover`, `info`, `info --list`, `info --entry`, `info --find`, `about`  
+- **Stable product surface:** `info`, `extract`, `verify`, `pack`, `about`, `completion`, `man`  
 - **Bounded internal surface:** workspace Rust crates/modules  
 - **Experimental/lab-only surface:** `crushr lab` and research tooling  
 

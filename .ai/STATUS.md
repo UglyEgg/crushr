@@ -175,3 +175,11 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - Added CLI tests for command presence, generated-file existence/non-empty checks, and deterministic repeated output.
 - Updated README with concise man-page generation usage examples.
 - Next: follow-on Phase 17 introspection packets outside this bounded step.
+
+## 2026-03-30 — Active Step Update (P17S02f4)
+
+- Completed: Phase 17 Step 02 fix 4 (`P17S02f4`).
+- Aligned README command-surface/product-boundary wording to the current canonical CLI surface.
+- Added explicit README coverage for `completion`, `man`, and `info --propagation` in concise command summaries without expanding into full reference material.
+- Removed command-surface drift in README by using one consistent canonical command list and short behavior-accurate descriptions.
+- Next: follow-on Phase 17 introspection packets outside this bounded step.
