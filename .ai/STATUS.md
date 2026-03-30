@@ -134,3 +134,15 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - Preserved machine-readable propagation semantics and deterministic ordering in explicit JSON mode (`--propagation --json`).
 - Updated CLI tests, propagation contract docs, and guide docs to reflect the renamed surface and default human mode.
 - Next: follow-on Phase 17 introspection packets outside this bounded step.
+
+## 2026-03-30 — Active Step Update (P17S02f2)
+
+- Completed: Phase 17 Step 02 fix 2 (`P17S02f2`).
+- Added deterministic shell completion generation command:
+  - `crushr completion bash`
+  - `crushr completion zsh`
+  - `crushr completion fish`
+- Completion scripts are generated from clap and written to stdout only (no files or side effects).
+- Included `info` introspection flags (`--list`, `--entry`, `--find`, `--propagation`) plus primary command surface coverage (`extract` / `verify` / `pack` / `about`).
+- Added CLI tests for command existence, non-empty output, and expected completion token coverage; updated concise README installation examples.
+- Next: follow-on Phase 17 introspection packets outside this bounded step.

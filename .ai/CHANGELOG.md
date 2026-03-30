@@ -7,6 +7,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
+## 2026-03-30 — P17S02f2
+- Added `crushr completion <bash|zsh|fish>` command to generate shell completion scripts from clap.
+- Completion output is deterministic, printed to stdout, and performs no file writes or side effects.
+- Completion coverage includes `info` introspection flags (`--list`, `--entry`, `--find`, `--propagation`) and core commands (`extract`, `verify`, `pack`, `about`).
+- Updated root help/tests to include the new `completion` command and added explicit completion command tests for non-empty output/no panic expectations.
+- Added concise README guidance for generating and installing Bash/Zsh/Fish completions.
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
 
 ## 2026-03-30 — P17S03f1
 - Retired `crushr info --report propagation` and promoted the canonical propagation surface to `crushr info --propagation` (human default) and `crushr info --propagation --json` (machine-readable).
