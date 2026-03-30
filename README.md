@@ -9,9 +9,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # crushr
 
-A deterministic archive system that preserves and exposes data truth under failure.
-
-crushr is built around a narrow claim: archive behavior after damage should be explicit, bounded, and verifiable. Standard archive functionality exists to support preservation completeness, not to redefine the project as a convenience-first archiver.
+crushr is a deterministic archive system that preserves and exposes data truth under failure. It is designed for workflows where verifiable payload integrity, explicit metadata handling, and bounded degraded outcomes matter more than generic convenience or maximum compression ratio.
 
 ## Intent
 

@@ -5,7 +5,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # Inspecting archives
 
-Use `crushr info` when you want to understand an archive without extracting it.
+Use `crushr info` when you want to inspect an archive without extracting it.
 
 Basic forms:
 
@@ -16,16 +16,21 @@ crushr info <archive.crs> --entry <logical/path>
 crushr info <archive.crs> --find <query>
 ```
 
+`info` is an introspection surface. It does not extract files, mutate the archive, or write to the filesystem.
+
 ## `crushr info`
 
-This shows the archive contract and structure in human-readable form.
+This shows the archive contract and archive-level truth surface in human-readable form.
 
 Typical sections include:
 
+- archive path
+- format version
+- global flags
 - preservation profile
-- metadata visibility
-- entry-kind summary
-- format/structural information
+- structural summary
+- verification summary
+- whether strict extraction is supportable
 
 ### Example
 
@@ -34,6 +39,10 @@ crushr info archive.crs
 ```
 
 ## What the sections mean
+
+### Archive
+
+This identifies the archive being inspected.
 
 ### Preservation
 
@@ -49,7 +58,39 @@ Profiles:
 - `basic`
 - `payload-only`
 
-### Metadata
+### Structure
+
+Structure rows summarize the archive container itself.
+
+Typical fields may include:
+
+- format version
+- global flags
+- entry count (when derivable)
+- extent count
+- dictionary count
+- tail-frame presence
+
+This is archive-level structure, not extraction output.
+
+### Verification
+
+Verification rows summarize whether the components required for inspection and strict extraction remain acceptable.
+
+Typical fields may include:
+
+- extent validity summary
+- dictionary validity summary
+- tail-frame validity summary
+- `strict_extraction_supported`
+
+`strict_extraction_supported` is the archive-level answer to:
+
+> If I run `crushr extract` in strict/default mode, is the archive in a state that supports that path?
+
+If the answer is `false`, inspection remains possible, but strict extraction is not supportable from current surviving evidence.
+
+### Metadata visibility
 
 Metadata rows use states such as:
 
@@ -98,11 +139,10 @@ If crushr cannot prove the listing, it does not guess.
 
 ### What it currently focuses on
 
-`info --list` intentionally focuses on regular file listing readability.
+`info --list` intentionally focuses on readable entry introspection rather than turning output into a low-level archive dump.
 
-Non-regular entry kinds are still represented at the archive-summary level and through scope/context notes, rather than turning the list output into a cluttered dump.
-
-That is by design.
+Use `--entry` for full detail on one path.
+Use `--find` for deterministic name/path search.
 
 ## `crushr info --entry`
 
@@ -113,7 +153,9 @@ crushr info archive.crs --entry src/main.rs
 crushr info archive.crs --entry src/main.rs --json
 ```
 
-`--entry` reports one deterministic truth surface for the requested path:
+`--entry` reports one deterministic truth surface for the requested path.
+
+Typical fields include:
 
 - logical path
 - trust class
@@ -127,7 +169,46 @@ crushr info archive.crs --entry src/main.rs --json
 - strict extraction supportability for that entry
 - non-canonical reason when applicable
 
-If the path is missing, output is explicit (`entry not found` in human mode, deterministic not-found object in JSON mode).
+### Trust classes
+
+`--entry` uses the canonical user-visible trust classes:
+
+- `canonical`
+- `metadata_degraded`
+- `recovered_named`
+- `recovered_anonymous`
+- `unrecoverable`
+
+These classes reflect crushr's core distinction:
+
+- payload integrity is independent from metadata completeness
+
+### Payload BLAKE3
+
+`payload_blake3` is reported when the entry's payload proof can be produced deterministically for this introspection surface.
+
+If that proof cannot be produced for the entry in its current state, the value is reported deterministically as unavailable rather than guessed.
+
+### Logical range
+
+The logical range describes the entry in logical file space.
+
+It is not an archive-physical address.
+
+Human-readable output may show the range in both hexadecimal and decimal form. JSON output should be treated as the precise machine-readable source.
+
+### Identity source
+
+`identity_source` explains where the current entry identity came from, such as canonical metadata or another bounded non-speculative source.
+
+This is especially useful when inspecting degraded or recovered entries.
+
+### Not found behavior
+
+If the path is missing:
+
+- human mode reports an explicit not-found result
+- JSON mode returns a deterministic not-found object rather than silently falling back to search behavior
 
 ## `crushr info --find`
 
@@ -140,9 +221,27 @@ crushr info archive.crs --find .rs --json
 
 Baseline matching is deterministic substring search with deterministic lexical ordering by logical path.
 
-Search scope is bounded to stable known identity classes (`canonical`, `metadata_degraded`, `recovered_named` when present in archive evidence). Anonymous or invented identities are not searched.
+### Search scope
 
-`--find` CLI shape reserves forward-compatible flags:
+Search is bounded to stable known identities:
+
+- `canonical`
+- `metadata_degraded`
+- `recovered_named`
+
+Anonymous or invented identities are not searched.
+
+`unrecoverable` entries may appear only when stable logical identity already exists in surviving archive evidence.
+
+### Output behavior
+
+By default, `--find` uses the standard crushr CLI presentation system.
+
+Use `--json` when you want raw machine-readable output.
+
+### Reserved forward-compatible flags
+
+`--find` already reserves compatible CLI shape for future extension:
 
 - `--find-mode substring` (currently the only supported mode)
 - `--find-limit <n>`
@@ -172,25 +271,33 @@ Per-entry explanation includes:
 
 The report is explanatory only. It does not imply repair behavior and does not make speculative survivability claims.
 
-## `info` versus extraction outcomes
+Any unsupported `--find-mode` value is a deterministic error.
 
-This is one of the most important distinctions in crushr.
+## `info` versus `verify` versus extraction
+
+This distinction matters.
 
 ### `info` tells you:
 - what the archive contains
 - what the archive profile promised
-- which metadata classes are in scope
+- what structure and verification state are visible
+- what can be inspected without extraction
+- whether strict extraction is supportable from current archive evidence
+
+### `verify` tells you:
+- whether required integrity and consistency checks support strict extraction
+- whether inconsistency requires `crushr extract --recover`
 
 ### extraction tells you:
-- what the target environment successfully restored
+- what the target environment actually restored
 - whether results stayed canonical
-- whether anything became `metadata_degraded`
+- whether anything became `metadata_degraded`, `recovered_named`, `recovered_anonymous`, or `unrecoverable`
 
 That is why `info` may show:
 - ACLs present
 - SELinux labels present
 
-while extraction may still yield metadata-degraded results if your system cannot apply them.
+while extraction may still yield non-canonical results if your target environment cannot apply them or required extraction conditions are not satisfied.
 
 ## Common workflow
 
@@ -201,10 +308,17 @@ crushr info archive.crs
 crushr info archive.crs --list
 ```
 
+Then use targeted introspection if needed:
+
+```bash
+crushr info archive.crs --entry src/main.rs
+crushr info archive.crs --find src
+```
+
 Then choose:
-- `crushr verify` if you want archive-level integrity
-- `crushr extract` for strict restoration
-- `crushr extract --recover` for best available proven recovery
+- `crushr verify` if you want strict-extraction viability and archive integrity assessment
+- `crushr extract` for strict canonical restoration
+- `crushr extract --recover` for explicit bounded recovery when strict extraction is not supportable
 
 ## Summary
 
@@ -212,7 +326,14 @@ Use `info` to answer:
 - what profile was used?
 - what kinds of entries are here?
 - what metadata classes are included?
-- what can be listed without extraction?
+- what can be inspected without extraction?
+- is strict extraction supportable?
+- what do we know about this specific entry?
+- which known entries match this search?
+
+Use `verify` to answer:
+- do current checks support strict extraction?
 
 Use extraction to answer:
 - what actually restored?
+
