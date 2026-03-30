@@ -315,3 +315,4 @@ Latest priority doctrine
 - Keep evidence/custody features on the long-range roadmap rather than inside the current 0.x core unless explicitly promoted by decision.
 
 - [x] P17S01f0 — Expand `crushr info` archive-level truth summary and remove wrapper binaries from source/build/test surfaces.
+- [x] P17S02f0 — Add `crushr info --entry` and `crushr info --find` deterministic introspection surfaces (human + JSON), with search-shape reservation via `--find-mode`/`--find-limit`.

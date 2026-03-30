@@ -1179,3 +1179,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Updated schema/tests/golden outputs for single-binary subcommand invocation and new info truth reporting.
 - Validation: `cargo fmt --all`; `cargo test --workspace --no-run`; `cargo test -p crushr --test cli_contract_surface`; `cargo test -p crushr --test cli_presentation_contract`; `cargo test -p crushr-core --test snapshot_schema_contracts_v1`.
 
+
+## 2026-03-30 — P17S02f0
+- Added `crushr info --entry <logical/path>` for exact entry introspection without extraction, with deterministic human output and deterministic JSON output (`--json`).
+- Added `crushr info --find <query>` for deterministic substring search over stable logical entry identities, with lexical ordering and deterministic empty-result behavior.
+- Reserved future-compatible search CLI shape with `--find-mode substring` and `--find-limit <n>` argument handling.
+- Added integration coverage for: entry success/not-found, find multi-match/zero-match, lexical ordering, JSON/human output behavior, trust class visibility, and no output-path side effects.
+- Updated README and guide docs for the expanded introspection command surface.

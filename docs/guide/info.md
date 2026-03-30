@@ -12,6 +12,8 @@ Basic forms:
 ```bash
 crushr info <archive.crs>
 crushr info <archive.crs> --list
+crushr info <archive.crs> --entry <logical/path>
+crushr info <archive.crs> --find <query>
 ```
 
 ## `crushr info`
@@ -101,6 +103,46 @@ If crushr cannot prove the listing, it does not guess.
 Non-regular entry kinds are still represented at the archive-summary level and through scope/context notes, rather than turning the list output into a cluttered dump.
 
 That is by design.
+
+## `crushr info --entry`
+
+Use this for exact logical-path lookup without extraction.
+
+```bash
+crushr info archive.crs --entry src/main.rs
+crushr info archive.crs --entry src/main.rs --json
+```
+
+`--entry` reports one deterministic truth surface for the requested path:
+
+- logical path
+- trust class
+- payload verification status
+- metadata completeness status
+- extent count
+- size bytes
+- strict extraction supportability for that entry
+- non-canonical reason when applicable
+
+If the path is missing, output is explicit (`entry not found` in human mode, deterministic not-found object in JSON mode).
+
+## `crushr info --find`
+
+Use this to search known logical identities without extraction.
+
+```bash
+crushr info archive.crs --find src
+crushr info archive.crs --find .rs --json
+```
+
+Baseline matching is deterministic substring search with deterministic lexical ordering by logical path.
+
+Search scope is bounded to stable known identity classes (`canonical`, `metadata_degraded`, `recovered_named` when present in archive evidence). Anonymous or invented identities are not searched.
+
+`--find` CLI shape reserves forward-compatible flags:
+
+- `--find-mode substring` (currently the only supported mode)
+- `--find-limit <n>`
 
 ## `info` versus extraction outcomes
 

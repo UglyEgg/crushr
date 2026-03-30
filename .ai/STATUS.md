@@ -84,3 +84,16 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - Updated tests and schema contracts to match the single-binary command surface and new `crushr info` JSON truth shape.
 - Next: Phase 17 follow-on introspection packets (entry-level/propagation work remains out of scope for this step).
 
+
+## 2026-03-30 — Active Step Update (P17S02f0)
+
+- Completed: Phase 17 Step 02 fix 0 (`P17S02f0`).
+- Added entry-level introspection commands:
+  - `crushr info --entry <logical/path>` (exact path lookup; human + JSON)
+  - `crushr info --find <query>` (deterministic substring search; human + JSON)
+- Reserved forward-compatible search CLI shape:
+  - `--find-mode substring` (currently enforced)
+  - `--find-limit <n>`
+- Added deterministic not-found and zero-match behavior for `--entry`/`--find`.
+- Updated tests and docs for the expanded `info` introspection surface.
+- Next: follow-on Phase 17 introspection packets (propagation/impact extensions remain separate scope).
