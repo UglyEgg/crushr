@@ -289,7 +289,6 @@ fn shared_flags_json_and_silent_are_consistent_when_combined() {
     ]));
     assert!(verify_json_silent.trim_start().starts_with('{'));
     assert!(!verify_json_silent.contains("status=VERIFIED"));
-
 }
 
 #[test]
