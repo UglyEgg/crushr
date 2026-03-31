@@ -183,3 +183,16 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - Added explicit README coverage for `completion`, `man`, and `info --propagation` in concise command summaries without expanding into full reference material.
 - Removed command-surface drift in README by using one consistent canonical command list and short behavior-accurate descriptions.
 - Next: follow-on Phase 17 introspection packets outside this bounded step.
+
+
+## 2026-03-31 — Active Step Update (P17S03f3)
+
+- Completed: Phase 17 Step 03 fix 3 (`P17S03f3`).
+- Fixed `crushr info --entry` regression by hardening archive-path handling to fail fast on non-regular archive paths instead of entering blocking/open-ended execution.
+- Adjusted archive-path preflight to follow symlinks and accept symlink-to-regular-file archives while still failing fast on non-regular/invalid targets.
+- Preserved and validated both required argument orders as equivalent:
+  - `crushr info <archive> --entry <path>`
+  - `crushr info --entry <path> <archive>`
+- Added CLI presentation coverage for argument-order equivalence plus deterministic failures for missing archive, malformed `--entry`, and invalid archive-path type.
+- Restored canonical product version to `0.4.20` (`VERSION` + workspace package version sync).
+- Next: follow-on Phase 17 introspection packets outside this bounded regression fix.

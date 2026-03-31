@@ -88,3 +88,4 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - `P17S02f2` complete: added clap-generated shell completion output for `bash`/`zsh`/`fish` via `crushr completion <shell>` with stdout-only behavior and deterministic CLI token coverage.
 - `P17S02f3` complete: added clap-derived man-page generation via `crushr man [--out-dir <path>]` for root + canonical subcommand pages with deterministic output and contract tests.
 - `P17S02f4` complete: aligned README command-surface/product-boundary summaries to the canonical CLI, including `completion`, `man`, and `info --propagation` with concise behavior-accurate descriptions.
+- `P17S03f3` complete: fixed `info --entry` regression with deterministic archive preflight that still accepts symlink-to-regular-file archives, preserves both supported argument orders, and includes regression coverage for malformed/missing/invalid archive arguments.

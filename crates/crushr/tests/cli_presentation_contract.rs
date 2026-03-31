@@ -518,6 +518,86 @@ fn info_entry_reports_truth_surface_for_exact_path_and_not_found() {
 }
 
 #[test]
+fn info_entry_accepts_both_argument_orders_and_errors_deterministically() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    fs::create_dir_all(input_dir.join("src")).expect("create dirs");
+    fs::write(
+        input_dir.join("src/main.rs"),
+        b"fn main(){}
+",
+    )
+    .expect("write file");
+    let archive = tmp.path().join("sample.crushr");
+
+    run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
+            .arg(&input_dir)
+            .arg("-o")
+            .arg(&archive),
+    );
+
+    let archive_first = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .args(["--entry", "src/main.rs"]),
+    );
+    assert!(archive_first.contains("src/main.rs"));
+
+    let entry_first = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .args(["--entry", "src/main.rs"])
+            .arg(&archive),
+    );
+    assert_eq!(archive_first, entry_first);
+
+    let missing_archive = run_any(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .args(["--entry", "src/main.rs"]),
+    );
+    assert!(!missing_archive.status.success());
+    assert!(
+        String::from_utf8_lossy(&missing_archive.stderr).contains("usage: crushr info <archive>")
+    );
+
+    let archive_symlink = tmp.path().join("sample-link.crushr");
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&archive, &archive_symlink).expect("symlink archive");
+    let symlink_out = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .args(["--entry", "src/main.rs"])
+            .arg(&archive_symlink),
+    );
+    assert!(symlink_out.contains("src/main.rs"));
+
+    let invalid_archive = run_any(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .args(["--entry", "src/main.rs"])
+            .arg(input_dir.to_str().expect("utf8")),
+    );
+    assert!(!invalid_archive.status.success());
+    assert!(
+        String::from_utf8_lossy(&invalid_archive.stderr)
+            .contains("archive path is not a regular file")
+    );
+
+    let malformed = run_any(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .arg("--entry"),
+    );
+    assert!(!malformed.status.success());
+    assert!(String::from_utf8_lossy(&malformed.stderr).contains("missing value for --entry"));
+}
+
+#[test]
 fn info_entry_and_find_json_are_deterministic_and_find_is_sorted() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let input_dir = tmp.path().join("input");

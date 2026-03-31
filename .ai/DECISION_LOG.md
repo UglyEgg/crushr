@@ -1866,3 +1866,38 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `crates/crushr/tests/cli_contract_surface.rs`
   - `README.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+
+## 2026-03-31 — P17S03f3 info --entry deterministic archive-path validation lock
+
+- Decision:
+  - Keep `info --entry` command surface unchanged while making archive-path preflight deterministic: archive input must be a regular file before open/read flow.
+  - Preserve both accepted argument orders (`info <archive> --entry <path>` and `info --entry <path> <archive>`) as equivalent behavior.
+  - Treat malformed args and invalid archive-path type as deterministic non-zero errors with no partial execution.
+- Alternatives considered:
+  1. Add new positional/flag aliases for archive path disambiguation.
+  2. Keep existing archive-open flow and rely on OS-level behavior for invalid path types.
+- Rationale:
+  - Packet scope is a blocking regression fix requiring deterministic termination and no hanging behavior.
+  - Early regular-file validation removes blocking/open-ended archive open behavior without widening CLI surface.
+- Blast radius:
+  - `crates/crushr/src/commands/info.rs`
+  - `crates/crushr/tests/cli_presentation_contract.rs`
+  - `VERSION`, `Cargo.toml`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+
+## 2026-03-31 — P17S03f3 follow-up: symlink-to-regular archive acceptance
+
+- Decision:
+  - Keep deterministic archive preflight for `crushr info --entry` but follow symlinks (`metadata`) so symlink-to-regular-file archive paths remain valid.
+  - Continue rejecting non-regular archive targets with deterministic non-zero error behavior.
+- Alternatives considered:
+  1. Keep strict non-symlink policy via `symlink_metadata`.
+  2. Remove archive preflight entirely and rely on lower-level open/read behavior.
+- Rationale:
+  - Packet requires fixing hang without overconstraining valid archive inputs.
+- Blast radius:
+  - `crates/crushr/src/commands/info.rs`
+  - `crates/crushr/tests/cli_presentation_contract.rs`
+  - `.ai/{STATUS.md,DECISION_LOG.md,CHANGELOG.md}`

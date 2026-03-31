@@ -8,6 +8,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
 
+## 2026-03-31 — P17S03f3
+- Fixed `crushr info --entry` regression causing hanging/open-ended behavior on invalid archive-path states by adding deterministic archive regular-file preflight before archive open/read flow.
+- Follow-up: preflight now follows symlinks so symlink-to-regular-file archive paths remain valid while non-regular/invalid targets still fail deterministically.
+- Preserved and validated equivalent behavior for both supported argument orders: `info <archive> --entry <path>` and `info --entry <path> <archive>`.
+- Added deterministic regression tests for missing archive, malformed `--entry` usage, and invalid archive path type (non-regular file) with non-zero error behavior.
+- Restored canonical product version to `0.4.20` (`VERSION` + workspace package version sync).
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_presentation_contract info_entry_accepts_both_argument_orders_and_errors_deterministically`; `cargo test -p crushr --test cli_presentation_contract info_entry_reports_truth_surface_for_exact_path_and_not_found`; `cargo test -p crushr --test cli_presentation_contract info_entry_and_find_json_are_deterministic_and_find_is_sorted`; `cargo test -p crushr --test version_contract`.
+
 ## 2026-03-30 — P17S02f4
 - Aligned README command-surface sections to the current canonical CLI: `info`, `extract`, `verify`, `pack`, `about`, `completion`, and `man`.
 - Added explicit README introspection coverage for `crushr info --propagation` alongside `--list`, `--entry`, and `--find`.
