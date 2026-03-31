@@ -1263,3 +1263,8 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Removed salvage-root-specific test and golden artifacts; CLI contract/presentation tests now enforce rejection (`unknown command`) and absence in help/completion/man surfaces.
 - Updated technical reference surface from `docs/reference/salvage-model.md` to `docs/reference/recovery-model.md`.
 - Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-03-31 — P17S02f7
+- Audited README command surface against the current CLI and confirmed canonical user-facing commands remain `pack`, `extract`, `verify`, `info`, `about`, `completion`, and `man` (with `lab` bounded non-primary).
+- Added explicit active versioning-discipline language to `.ai/STATUS.md` and `.ai/PHASE_PLAN.md`: `VERSION` is canonical, runtime/Cargo versions must stay aligned, and builders do not perform ad hoc bumps.
+- Validation: `cargo test -p crushr --test version_contract`; `./scripts/check-version-sync.sh`.

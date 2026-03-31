@@ -39,6 +39,21 @@
   - `docs/reference/{index.md,recovery-model.md,salvage-model.md (removed)}`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
 
+## 2026-03-31 — P17S02f7 version-governance and README-surface alignment lock
+
+- Decision:
+  - Keep README command-surface wording aligned to current canonical CLI: `pack`, `extract`, `verify`, `info`, `about`, `completion`, `man`; keep `lab` bounded non-primary only.
+  - Make active control docs explicitly state version governance: root `VERSION` is canonical, `workspace.package.version` and user-facing runtime version output must remain aligned, and builders do not apply ad hoc bumps.
+- Alternatives considered:
+  1. Rely on historical decision entries/tests only without explicit current-truth wording in active control docs.
+  2. Introduce a new versioning scheme in this packet.
+- Rationale:
+  - Packet scope is final alignment/housekeeping before Phase 17 closeout; explicit active wording reduces last-mile drift risk.
+  - Existing versioning policy is already locked; this packet clarifies/enforces rather than redesigning policy.
+- Blast radius:
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+  - No CLI/runtime behavior changes.
+
 ## 2026-03-30 — P17S03f1 propagation surface rename + human-default lock
 
 - Decision:
