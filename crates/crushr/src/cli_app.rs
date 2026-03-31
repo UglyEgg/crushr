@@ -126,9 +126,7 @@ fn print_help() {
     }
 
     presenter.section("Bounded non-primary commands");
-    for (command, description) in [("lab", "research harness")] {
-        presenter.kv(command, description);
-    }
+    presenter.kv("lab", "research harness");
 }
 
 fn run_completion(args: Vec<String>) -> Result<i32> {
