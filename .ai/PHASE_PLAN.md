@@ -193,6 +193,7 @@ Milestone packets
 - [x] P17S03f0 — harden `crushr info --report propagation` with deterministic entry dependency visibility, activated impact separation, and entry-level trust-class explanatory support.
 - [x] P17S03f1 — retire `--report propagation`; add canonical `crushr info --propagation` surface with default human output and explicit `--json` machine mode.
 - [x] P17S03f2 — improve `crushr info --propagation` human readability for dependency-dense entry impacts with deterministic multi-line dependency summarization and explicit remainder counts (human mode only).
+- [x] P17S03f3 — rebuild `crushr info --entry` correctness: deterministic dual-order parsing, non-regular archive rejection without hang paths, symlink-to-regular-file acceptance, and regression coverage.
 
 Constraints
 

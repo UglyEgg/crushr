@@ -89,3 +89,4 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - `P17S02f3` complete: added clap-derived man-page generation via `crushr man [--out-dir <path>]` for root + canonical subcommand pages with deterministic output and contract tests.
 - `P17S02f4` complete: aligned README command-surface/product-boundary summaries to the canonical CLI, including `completion`, `man`, and `info --propagation` with concise behavior-accurate descriptions.
 - `P17S02f5` complete: restored locked presentation contract for `about` and root `help`, removed `salvage` from user-facing command surfaces, and mapped propagation human output away from internal structure/reason identifiers while preserving JSON semantics.
+- `P17S03f3` complete: rebuilt `info --entry` correctness to guarantee deterministic dual-order parsing, non-regular archive rejection without hangs (including FIFO), symlink-to-regular-file acceptance, and explicit malformed-usage errors.
