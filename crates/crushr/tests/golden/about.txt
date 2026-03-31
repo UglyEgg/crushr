@@ -2,7 +2,7 @@
 crushr  /  about
 ════════════════════════════════════════════════════════════════════════
 
-  Deterministic archives with verifiable structure and explicit outcomes.
+  “𝘞𝘩𝘦𝘯 𝘵𝘩𝘦 𝘢𝘳𝘤𝘩𝘪𝘷𝘦 𝘣𝘳𝘦𝘢𝘬𝘴, 𝘵𝘩𝘦 𝘵𝘳𝘶𝘵𝘩 𝘴𝘩𝘰𝘶𝘭𝘥𝘯’𝘵.”
 
 Build
   version                0.2.2
@@ -15,20 +15,8 @@ Behavior
   pack                   deterministic archive creation
   extract                strict extraction (verification-gated)
   verify                 structural and integrity validation
-  salvage                research-mode recovery planning (non-canonical)
-
-Data Model
-  tail-framed archive layout
-  index + ledger backed structure
-  optional dictionary support
-  deterministic output contracts
+  recover                explicit bounded recovery (non-canonical)
 
 Built with
   Rust • clap • serde • zstd • blake3
-  Notices                THIRD_PARTY_NOTICES.md
   Source                 https://github.com/UglyEgg/crushr
-
-Support
-  If something looks wrong, attach:
-    crushr info <archive> --json
-    crushr extract --verify <archive>

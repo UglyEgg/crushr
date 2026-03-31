@@ -149,7 +149,7 @@ fn root_help_lists_canonical_suite_and_demotes_legacy_surface() {
         "info",
         "about",
         "completion",
-        "salvage",
+        "man",
         "lab",
     ] {
         assert!(
@@ -157,6 +157,7 @@ fn root_help_lists_canonical_suite_and_demotes_legacy_surface() {
             "root help missing canonical command token: {token}\n{out}"
         );
     }
+    assert!(!out.contains("salvage"));
     for legacy in [
         "\n  append",
         "\n  list",
@@ -205,19 +206,19 @@ fn about_command_matches_locked_output_shape() {
     assert!(out.contains("crushr  /  about"));
     assert!(out.contains("Build"));
     assert!(out.contains("Behavior"));
-    assert!(out.contains("Data Model"));
     assert!(out.contains("Built with"));
-    assert!(out.contains("Support"));
+    assert!(!out.contains("Data Model"));
+    assert!(!out.contains("Support"));
+    assert!(!out.contains("Notices"));
     assert!(out.contains("pack"));
     assert!(out.contains("deterministic archive creation"));
     assert!(out.contains("extract"));
     assert!(out.contains("strict extraction (verification-gated)"));
     assert!(out.contains("verify"));
     assert!(out.contains("structural and integrity validation"));
-    assert!(out.contains("salvage"));
-    assert!(out.contains("research-mode recovery planning (non-canonical)"));
-    assert!(out.contains("crushr info <archive> --json"));
-    assert!(out.contains("crushr extract --verify <archive>"));
+    assert!(out.contains("recover"));
+    assert!(out.contains("explicit bounded recovery (non-canonical)"));
+    assert!(!out.contains("salvage"));
 }
 
 #[test]
@@ -228,8 +229,9 @@ fn canonical_help_commands_are_available() {
     let extract = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("--help"));
     assert!(extract.contains("extract"));
 
-    let salvage = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("--help"));
-    assert!(salvage.contains("salvage"));
+    let help = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).arg("--help"));
+    assert!(!help.contains("salvage"));
+    assert!(help.contains("lab"));
 }
 
 #[test]
@@ -670,6 +672,16 @@ fn info_propagation_human_is_default_and_has_operator_sections() {
     assert!(human.contains("supported trust classes"));
     assert!(human.contains("unrecoverable"));
     assert!(!human.contains("\"report_version\""));
+    assert!(!human.contains("structure:ftr4"));
+    assert!(!human.contains("structure:tail_frame"));
+    assert!(!human.contains("structure:idx3"));
+    assert!(!human.contains("requires_footer_reachability"));
+    assert!(!human.contains("requires_tail_frame"));
+    assert!(!human.contains("requires_index"));
+    assert!(human.contains("archive footer"));
+    assert!(human.contains("tail frame"));
+    assert!(human.contains("index"));
+    assert!(human.contains("requires index"));
 
     let human_second = run_ok(
         Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))

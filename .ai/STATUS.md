@@ -183,3 +183,16 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - Added explicit README coverage for `completion`, `man`, and `info --propagation` in concise command summaries without expanding into full reference material.
 - Removed command-surface drift in README by using one consistent canonical command list and short behavior-accurate descriptions.
 - Next: follow-on Phase 17 introspection packets outside this bounded step.
+
+## 2026-03-30 — Active Step Update (P17S02f5)
+
+- Completed: Phase 17 Step 02 fix 5 (`P17S02f5`).
+- Restored `crushr about` to the locked presentation contract:
+  - italicized quoted tagline
+  - sections limited to Build / Behavior / Built with / Source
+  - removed Data Model, Support, Notices, and all `salvage` references
+  - Behavior now uses `recover` with explicit bounded non-canonical wording.
+- Corrected root help presentation so canonical commands are `pack`, `extract`, `verify`, `info`, `about`, `completion`, and `man`, while bounded non-primary commands include only `lab`.
+- Hardened `crushr info --propagation` human mode to map internal identifiers/reason tokens to operator-safe language (for example archive footer / tail frame / index, and `requires index`) while keeping JSON output unchanged.
+- Added/updated tests to lock about/help constraints and propagation human-output abstraction boundaries.
+- Next: follow-on Phase 17 introspection packets outside this bounded step.

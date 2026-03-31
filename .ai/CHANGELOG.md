@@ -1239,3 +1239,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Reserved future-compatible search CLI shape with `--find-mode substring` and `--find-limit <n>` argument handling.
 - Added integration coverage for: entry success/not-found, find multi-match/zero-match, lexical ordering, JSON/human output behavior, trust class visibility, and no output-path side effects.
 - Updated README and guide docs for the expanded introspection command surface.
+
+## 2026-03-30 — P17S02f5
+- Restored `crushr about` output to the locked presentation shape with the required italicized quoted tagline, bounded sections (Build / Behavior / Built with / Source), and removal of `Data Model`, `Support`, `Notices`, and all `salvage` references.
+- Updated root `crushr --help` presentation contract: canonical commands now include `pack`, `extract`, `verify`, `info`, `about`, `completion`, `man`; bounded non-primary command list contains only `lab`.
+- Removed `salvage` from generated user-facing command metadata surfaces by excluding it from clap-derived completion/man specification output.
+- Hardened `crushr info --propagation` human output to map internal structure/reason identifiers to operator-facing language (archive footer / tail frame / index, requires index) while leaving JSON behavior unchanged.
+- Added/updated CLI tests and about golden expectations to enforce absence of forbidden terms/tokens and presence of operator-safe replacements.
+- Validation: `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

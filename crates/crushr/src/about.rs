@@ -60,7 +60,7 @@ pub fn render_about(metadata: &BuildMetadata) -> String {
     line(
         &mut out,
         VisualToken::SecondaryText,
-        "  Deterministic archives with verifiable structure and explicit outcomes.",
+        "  “𝘞𝘩𝘦𝘯 𝘵𝘩𝘦 𝘢𝘳𝘤𝘩𝘪𝘷𝘦 𝘣𝘳𝘦𝘢𝘬𝘴, 𝘵𝘩𝘦 𝘵𝘳𝘶𝘵𝘩 𝘴𝘩𝘰𝘶𝘭𝘥𝘯’𝘵.”",
     );
     out.push('\n');
 
@@ -82,31 +82,8 @@ pub fn render_about(metadata: &BuildMetadata) -> String {
     kv_line(&mut out, "verify", "structural and integrity validation");
     kv_line(
         &mut out,
-        "salvage",
-        "research-mode recovery planning (non-canonical)",
-    );
-
-    out.push('\n');
-    line(&mut out, VisualToken::SectionHeader, "Data Model");
-    line(
-        &mut out,
-        VisualToken::SecondaryText,
-        "  tail-framed archive layout",
-    );
-    line(
-        &mut out,
-        VisualToken::SecondaryText,
-        "  index + ledger backed structure",
-    );
-    line(
-        &mut out,
-        VisualToken::SecondaryText,
-        "  optional dictionary support",
-    );
-    line(
-        &mut out,
-        VisualToken::SecondaryText,
-        "  deterministic output contracts",
+        "recover",
+        "explicit bounded recovery (non-canonical)",
     );
 
     out.push('\n');
@@ -116,26 +93,7 @@ pub fn render_about(metadata: &BuildMetadata) -> String {
         VisualToken::SecondaryText,
         "  Rust • clap • serde • zstd • blake3",
     );
-    kv_line(&mut out, "Notices", "THIRD_PARTY_NOTICES.md");
     kv_line(&mut out, "Source", "https://github.com/UglyEgg/crushr");
-
-    out.push('\n');
-    line(&mut out, VisualToken::SectionHeader, "Support");
-    line(
-        &mut out,
-        VisualToken::SecondaryText,
-        "  If something looks wrong, attach:",
-    );
-    line(
-        &mut out,
-        VisualToken::SecondaryText,
-        "    crushr info <archive> --json",
-    );
-    line(
-        &mut out,
-        VisualToken::SecondaryText,
-        "    crushr extract --verify <archive>",
-    );
 
     out
 }

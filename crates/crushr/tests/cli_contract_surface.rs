@@ -35,11 +35,12 @@ fn canonical_command_surface_is_locked() {
         "info",
         "about",
         "completion",
-        "salvage",
+        "man",
         "lab",
     ] {
         assert!(help.contains(command), "missing command {command}\n{help}");
     }
+    assert!(!help.contains("salvage"));
 
     for legacy in [
         "append",
