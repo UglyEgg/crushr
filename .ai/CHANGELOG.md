@@ -7,6 +7,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
+## 2026-03-31 — P17S03f3
+- Rebuilt `crushr info --entry` archive-input correctness by adding pre-open archive path validation that follows symlinks and rejects non-regular archive inputs deterministically with `archive path is not a regular file`.
+- Preserved supported deterministic argument forms with identical behavior:
+  - `crushr info <archive> --entry <path>`
+  - `crushr info --entry <path> <archive>`
+- Added deterministic CLI coverage for both argument orders, malformed usage (`missing archive`, `missing value for --entry`), symlink-to-regular-file success, and non-regular archive rejection for directory and FIFO.
+- Added bounded timeout execution coverage for FIFO input to guard against hanging behavior in `info --entry`.
+- Confirmed version baseline remains aligned to accepted project state (`0.4.20`) via `version_contract`.
+- Validation: `cargo test -p crushr --test cli_presentation_contract -- --nocapture`; `cargo test -p crushr --test version_contract`.
+
 
 ## 2026-03-30 — P17S02f4
 - Aligned README command-surface sections to the current canonical CLI: `info`, `extract`, `verify`, `pack`, `about`, `completion`, and `man`.

@@ -26,7 +26,7 @@ use crushr_format::blk3::{BLK3_MAGIC, read_blk3_header};
 use crushr_format::ftr4::{FTR4_LEN, Ftr4};
 use crushr_format::tailframe::parse_tail_frame;
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::Cursor;
 
 struct FileReader {
@@ -1359,6 +1359,10 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     let archive = archive.context(
         "usage: crushr info <archive> [--json] [--list] [--flat] [--entry <path>] [--find <query>] [--find-mode substring] [--find-limit <n>] [--propagation]",
     )?;
+    let archive_metadata = fs::metadata(&archive).with_context(|| format!("open {archive}"))?;
+    if !archive_metadata.file_type().is_file() {
+        bail!("archive path is not a regular file");
+    }
 
     let reader = FileReader {
         file: File::open(&archive).with_context(|| format!("open {archive}"))?,

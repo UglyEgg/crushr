@@ -196,3 +196,21 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - Hardened `crushr info --propagation` human mode to map internal identifiers/reason tokens to operator-safe language (for example archive footer / tail frame / index, and `requires index`) while keeping JSON output unchanged.
 - Added/updated tests to lock about/help constraints and propagation human-output abstraction boundaries.
 - Next: follow-on Phase 17 introspection packets outside this bounded step.
+
+## 2026-03-31 — Active Step Update (P17S03f3)
+
+- Completed: Phase 17 Step 03 fix 3 (`P17S03f3`).
+- Rebuilt `crushr info --entry` archive-input gate and argument-order correctness without changing command surface:
+  - both forms are supported deterministically:
+    - `crushr info <archive> --entry <path>`
+    - `crushr info --entry <path> <archive>`
+  - archive path is now validated pre-open via symlink-following metadata and rejects non-regular paths with:
+    - `archive path is not a regular file`
+- Added deterministic test coverage for:
+  - both argument orders
+  - malformed usage (`missing archive`, `missing value for --entry`)
+  - symlink-to-regular-file acceptance
+  - non-regular path rejection (directory/FIFO) with bounded timeout check to guard against hangs
+  - version baseline lock through existing `version_contract` run
+- Baseline version remains aligned to accepted project state: `0.4.20`.
+- Next: follow-on Phase 17 introspection packets outside this bounded step.

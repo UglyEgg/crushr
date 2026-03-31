@@ -3,7 +3,9 @@
 
 use std::fs;
 use std::path::Path;
-use std::process::{Command, Output};
+use std::process::{Command, Output, Stdio};
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 
 fn run_ok(cmd: &mut Command) -> String {
     let out = cmd.output().expect("run command");
@@ -19,6 +21,23 @@ fn run_ok(cmd: &mut Command) -> String {
 
 fn run_any(cmd: &mut Command) -> Output {
     cmd.output().expect("run command")
+}
+
+fn run_with_timeout(cmd: &mut Command, timeout: Duration) -> Output {
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = cmd.spawn().expect("spawn command");
+    let start = Instant::now();
+    loop {
+        if let Some(_status) = child.try_wait().expect("poll command") {
+            return child.wait_with_output().expect("collect output");
+        }
+        if start.elapsed() > timeout {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("command hung: {:?}", cmd);
+        }
+        sleep(Duration::from_millis(10));
+    }
 }
 
 fn normalize_paths(text: String, tmp: &Path) -> String {
@@ -517,6 +536,120 @@ fn info_entry_reports_truth_surface_for_exact_path_and_not_found() {
             .args(["--entry", "missing.txt"]),
     );
     assert!(not_found.contains("entry not found"));
+}
+
+#[test]
+fn info_entry_accepts_both_argument_orders_and_rejects_malformed_usage() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    fs::create_dir_all(&input_dir).expect("create input");
+    fs::write(input_dir.join("a.txt"), b"alpha").expect("write file");
+    let archive = tmp.path().join("sample.crushr");
+
+    run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
+            .arg(&input_dir)
+            .arg("-o")
+            .arg(&archive),
+    );
+
+    let archive_then_entry = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .args(["--entry", "a.txt"]),
+    );
+    assert!(archive_then_entry.contains("entry inspection completed"));
+
+    let entry_then_archive = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .args(["--entry", "a.txt"])
+            .arg(&archive),
+    );
+    assert!(entry_then_archive.contains("entry inspection completed"));
+
+    let missing_archive = run_any(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .args(["--entry", "a.txt"]),
+    );
+    assert!(!missing_archive.status.success());
+    assert!(
+        String::from_utf8_lossy(&missing_archive.stderr).contains("usage: crushr info <archive>")
+    );
+
+    let missing_entry_value = run_any(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .arg(&archive)
+            .arg("--entry"),
+    );
+    assert!(!missing_entry_value.status.success());
+    assert!(
+        String::from_utf8_lossy(&missing_entry_value.stderr).contains("missing value for --entry")
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn info_entry_rejects_non_regular_archive_paths_without_hanging_and_accepts_symlink_file() {
+    use std::os::unix::fs::symlink;
+
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let input_dir = tmp.path().join("input");
+    fs::create_dir_all(&input_dir).expect("create input");
+    fs::write(input_dir.join("a.txt"), b"alpha").expect("write file");
+    let archive = tmp.path().join("sample.crushr");
+
+    run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("pack")
+            .arg(&input_dir)
+            .arg("-o")
+            .arg(&archive),
+    );
+
+    let symlink_archive = tmp.path().join("sample-link.crushr");
+    symlink(&archive, &symlink_archive).expect("create symlink");
+    let symlink_out = run_ok(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .args(["--entry", "a.txt"])
+            .arg(&symlink_archive),
+    );
+    assert!(symlink_out.contains("entry inspection completed"));
+
+    let directory_out = run_any(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .args(["--entry", "a.txt"])
+            .arg(tmp.path()),
+    );
+    assert!(!directory_out.status.success());
+    assert!(
+        String::from_utf8_lossy(&directory_out.stderr)
+            .contains("archive path is not a regular file")
+    );
+
+    let fifo_path = tmp.path().join("sample.fifo");
+    let mkfifo = Command::new("mkfifo")
+        .arg(&fifo_path)
+        .status()
+        .expect("mkfifo");
+    assert!(mkfifo.success(), "mkfifo failed with status {mkfifo:?}");
+    let fifo_out = run_with_timeout(
+        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
+            .arg("info")
+            .args(["--entry", "a.txt"])
+            .arg(&fifo_path),
+        Duration::from_secs(2),
+    );
+    assert!(!fifo_out.status.success());
+    assert!(
+        String::from_utf8_lossy(&fifo_out.stderr).contains("archive path is not a regular file")
+    );
 }
 
 #[test]
