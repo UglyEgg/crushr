@@ -587,7 +587,9 @@ fn info_entry_accepts_both_argument_orders_and_rejects_malformed_usage() {
             .arg("--entry"),
     );
     assert!(!missing_entry_value.status.success());
-    assert!(String::from_utf8_lossy(&missing_entry_value.stderr).contains("missing value for --entry"));
+    assert!(
+        String::from_utf8_lossy(&missing_entry_value.stderr).contains("missing value for --entry")
+    );
 }
 
 #[cfg(unix)]
@@ -627,11 +629,15 @@ fn info_entry_rejects_non_regular_archive_paths_without_hanging_and_accepts_syml
     );
     assert!(!directory_out.status.success());
     assert!(
-        String::from_utf8_lossy(&directory_out.stderr).contains("archive path is not a regular file")
+        String::from_utf8_lossy(&directory_out.stderr)
+            .contains("archive path is not a regular file")
     );
 
     let fifo_path = tmp.path().join("sample.fifo");
-    let mkfifo = Command::new("mkfifo").arg(&fifo_path).status().expect("mkfifo");
+    let mkfifo = Command::new("mkfifo")
+        .arg(&fifo_path)
+        .status()
+        .expect("mkfifo");
     assert!(mkfifo.success(), "mkfifo failed with status {mkfifo:?}");
     let fifo_out = run_with_timeout(
         Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
@@ -641,7 +647,9 @@ fn info_entry_rejects_non_regular_archive_paths_without_hanging_and_accepts_syml
         Duration::from_secs(2),
     );
     assert!(!fifo_out.status.success());
-    assert!(String::from_utf8_lossy(&fifo_out.stderr).contains("archive path is not a regular file"));
+    assert!(
+        String::from_utf8_lossy(&fifo_out.stderr).contains("archive path is not a regular file")
+    );
 }
 
 #[test]
