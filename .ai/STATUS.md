@@ -27,6 +27,13 @@ crushr is a deterministic archive system built around:
 
 crushr prioritizes data integrity, explicit truth, and bounded failure behavior over maximum compression ratio.
 
+## Active versioning discipline (current truth)
+
+- Canonical project version source: root `VERSION` file.
+- Accepted version synchronization rule: `workspace.package.version` in root `Cargo.toml` and user-facing runtime version output must match `VERSION`.
+- Builder rule: do not invent ad hoc version bumps; apply only the locked project versioning policy and keep user-facing version aligned to accepted repo truth.
+- Current accepted version baseline: `0.4.20`.
+
 ## Phase status
 
 - [x] Phase 15 — Dictionary hardening and namespace factoring
@@ -214,3 +221,27 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - version baseline lock through existing `version_contract` run
 - Baseline version remains aligned to accepted project state: `0.4.20`.
 - Next: follow-on Phase 17 introspection packets outside this bounded step.
+
+## 2026-03-31 — Active Step Update (P17S02f6)
+
+- Completed: Phase 17 Step 02 fix 6 (`P17S02f6`).
+- Removed legacy runtime command surface `crushr salvage` from command parsing/dispatch and removed the in-tree salvage command implementation module.
+- Deleted salvage-specific test/golden coverage that depended on the removed runtime command and replaced coverage with explicit command-rejection + absence assertions for help/completion/man surfaces.
+- Updated active reference docs to remove the salvage-model page from the canonical reference index and replaced it with a recovery-model page aligned to `extract --recover`.
+- Validation:
+  - `cargo fmt --all`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Next: continue Phase 17 follow-on packets; preserve `lab` as the only bounded non-primary command in root help.
+
+## 2026-03-31 — Active Step Update (P17S02f7)
+
+- Completed: Phase 17 Step 02 fix 7 (`P17S02f7`).
+- Audited README command surface and confirmed canonical command list is aligned to current CLI (`pack`, `extract`, `verify`, `info`, `about`, `completion`, `man`) with `lab` bounded non-primary.
+- Added explicit versioning discipline to active control truth:
+  - `VERSION` is canonical
+  - runtime/Cargo version surfaces must match accepted repo truth
+  - no ad hoc version bumps by builders
+- Validation:
+  - `cargo test -p crushr --test version_contract`
+  - `./scripts/check-version-sync.sh`
+- Next: final Phase 17 closure packet sequencing as directed by planner/user.

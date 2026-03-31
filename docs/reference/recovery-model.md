@@ -5,9 +5,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 # Recovery classification model
 
-*Legacy filename retained for continuity.*
-
-This page documents the recovery classification model used by crushr. The filename retains earlier naming for continuity with historical material and related internal references, but current product terminology uses **recover** / **recovery** and the trust classes described below.
+This page documents the recovery classification model used by crushr.
 
 ## Intent
 
@@ -73,10 +71,4 @@ Non-goals:
 
 ## Schema contract
 
-Machine-readable recovery output is defined by `schemas/crushr-salvage-plan.v3.schema.json`.
-
-Legacy schema naming is retained for continuity. Classification and provenance values must still match the schema contract exactly where that schema remains active.
-
-## Notes on legacy terminology
-
-Earlier project material used different terminology while the recovery surface was still evolving. That historical naming is preserved only where continuity requires it. The canonical current model is the recovery classification model described on this page.
+Machine-readable recovery output is defined by `schemas/crushr-extract-result.v1.schema.json`.

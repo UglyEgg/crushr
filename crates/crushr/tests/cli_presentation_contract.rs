@@ -138,23 +138,6 @@ fn silent_mode_emits_one_line_summary_for_public_commands() {
     );
     assert_eq!(verify_out.lines().count(), 1);
     assert!(verify_out.contains("status=VERIFIED"));
-
-    let salvage_out = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
-            .arg("salvage")
-            .arg(&archive)
-            .arg("--silent"),
-    );
-    assert_eq!(salvage_out.lines().count(), 1);
-    assert!(salvage_out.contains("status=DEGRADED"));
-
-    let salvage_human = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
-            .args(["salvage", archive.to_str().expect("utf8")]),
-    );
-    assert!(salvage_human.contains("Evidence"));
-    assert!(salvage_human.contains("verified files"));
-    assert!(salvage_human.contains("rejected/unresolved"));
 }
 
 #[test]
@@ -287,11 +270,6 @@ fn section_layout_matches_goldens() {
         Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
             .args(["info", archive.to_str().expect("utf8")]),
     );
-    let salvage_out = run_ok(
-        Command::new(Path::new(env!("CARGO_BIN_EXE_crushr")))
-            .args(["salvage", archive.to_str().expect("utf8")]),
-    );
-
     let base = Path::new("tests/golden");
     let expected_pack = fs::read_to_string(base.join("pack.txt")).expect("golden pack");
     let expected_verify_ok =
@@ -299,7 +277,6 @@ fn section_layout_matches_goldens() {
     let expected_verify_failure =
         fs::read_to_string(base.join("verify_failure.txt")).expect("golden verify failure");
     let expected_info = fs::read_to_string(base.join("info_human.txt")).expect("golden info");
-    let expected_salvage = fs::read_to_string(base.join("salvage.txt")).expect("golden salvage");
 
     assert_eq!(normalize_paths(pack_out, tmp.path()), expected_pack);
     assert_eq!(
@@ -311,7 +288,6 @@ fn section_layout_matches_goldens() {
         expected_verify_failure
     );
     assert_eq!(normalize_info_output(info_out, tmp.path()), expected_info);
-    assert_eq!(normalize_paths(salvage_out, tmp.path()), expected_salvage);
 }
 
 #[test]
