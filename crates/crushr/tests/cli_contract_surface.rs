@@ -43,6 +43,7 @@ fn canonical_command_surface_is_locked() {
     assert!(!help.contains("salvage"));
 
     for legacy in [
+        "salvage",
         "append",
         "list",
         "cat",
@@ -102,6 +103,10 @@ fn completion_includes_info_and_primary_command_surface() {
             "bash completion missing primary command token: {token}"
         );
     }
+    assert!(
+        !bash.contains("salvage"),
+        "bash completion should not contain removed salvage command"
+    );
 }
 
 #[test]
@@ -138,6 +143,12 @@ fn man_command_exists_and_generates_expected_pages() {
         let bytes = std::fs::read(&path).expect("read page");
         assert!(!bytes.is_empty(), "generated man page is empty: {}", page);
     }
+
+    let root_page = std::fs::read_to_string(out_dir.join("crushr.1")).expect("read root page");
+    assert!(
+        !root_page.contains("salvage"),
+        "root man page should not contain removed salvage command"
+    );
 }
 
 #[test]
@@ -279,14 +290,6 @@ fn shared_flags_json_and_silent_are_consistent_when_combined() {
     assert!(verify_json_silent.trim_start().starts_with('{'));
     assert!(!verify_json_silent.contains("status=VERIFIED"));
 
-    let salvage_json_silent = run_ok(Command::new(Path::new(env!("CARGO_BIN_EXE_crushr"))).args([
-        "salvage",
-        archive.to_str().expect("utf8"),
-        "--json",
-        "--silent",
-    ]));
-    assert!(salvage_json_silent.trim_start().starts_with('{'));
-    assert!(!salvage_json_silent.contains("status=PARTIAL"));
 }
 
 #[test]

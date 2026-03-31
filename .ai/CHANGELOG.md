@@ -1257,3 +1257,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Hardened `crushr info --propagation` human output to map internal structure/reason identifiers to operator-facing language (archive footer / tail frame / index, requires index) while leaving JSON behavior unchanged.
 - Added/updated CLI tests and about golden expectations to enforce absence of forbidden terms/tokens and presence of operator-safe replacements.
 - Validation: `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-03-31 — P17S02f6
+- Removed `salvage` from root `crushr` command parse/dispatch and deleted legacy salvage runtime implementation modules under `crates/crushr/src/commands/`.
+- Removed salvage-root-specific test and golden artifacts; CLI contract/presentation tests now enforce rejection (`unknown command`) and absence in help/completion/man surfaces.
+- Updated technical reference surface from `docs/reference/salvage-model.md` to `docs/reference/recovery-model.md`.
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

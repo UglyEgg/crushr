@@ -23,7 +23,6 @@ enum AppCommand {
     About,
     Completion,
     Man,
-    Salvage,
     Lab,
 }
 
@@ -37,7 +36,6 @@ impl AppCommand {
             "about" => Some(Self::About),
             "completion" => Some(Self::Completion),
             "man" => Some(Self::Man),
-            "salvage" => Some(Self::Salvage),
             "lab" => Some(Self::Lab),
             _ => None,
         }
@@ -98,7 +96,6 @@ fn run(args: Vec<String>) -> Result<i32> {
         }
         AppCommand::Completion => run_completion(rest)?,
         AppCommand::Man => run_man(rest)?,
-        AppCommand::Salvage => crushr::commands::salvage::dispatch(rest),
         AppCommand::Lab => crushr::commands::lab::dispatch(rest)?,
     };
 

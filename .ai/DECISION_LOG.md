@@ -18,6 +18,27 @@
   - `docs/guide/info.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
 
+## 2026-03-31 — P17S02f6 hard removal of legacy salvage root runtime surface
+
+- Decision:
+  - Remove `salvage` from `crushr` root command parsing and dispatch.
+  - Delete the legacy `crates/crushr/src/commands/salvage.rs` implementation and its `salvage_core/*` support modules.
+  - Remove salvage-root-dependent tests/goldens and enforce rejection/absence checks through CLI contract tests (`unknown command`, help/completion/man absence).
+  - Keep `lab` as bounded non-primary root surface; no alias/hidden salvage path remains on `crushr`.
+- Alternatives considered:
+  1. Keep command hidden/deprecated while retaining runtime path.
+  2. Keep code paths but remove from help output only.
+- Rationale:
+  - Packet requires complete command-surface eradication to prevent product drift and reintroduction.
+  - Full runtime removal avoids future UI/help/completion/man re-leakage from residual dispatch code.
+- Blast radius:
+  - `crates/crushr/src/{cli_app.rs,commands/mod.rs}`
+  - Removed `crates/crushr/src/commands/{salvage.rs,salvage_core/*}`
+  - `crates/crushr/tests/{cli_contract_surface.rs,cli_presentation_contract.rs,golden/salvage.txt (removed)}`
+  - `crates/crushr-core/tests/salvage_plan_schema_v1.rs` (removed)
+  - `docs/reference/{index.md,recovery-model.md,salvage-model.md (removed)}`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
 ## 2026-03-30 — P17S03f1 propagation surface rename + human-default lock
 
 - Decision:

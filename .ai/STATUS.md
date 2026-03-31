@@ -214,3 +214,14 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - version baseline lock through existing `version_contract` run
 - Baseline version remains aligned to accepted project state: `0.4.20`.
 - Next: follow-on Phase 17 introspection packets outside this bounded step.
+
+## 2026-03-31 — Active Step Update (P17S02f6)
+
+- Completed: Phase 17 Step 02 fix 6 (`P17S02f6`).
+- Removed legacy runtime command surface `crushr salvage` from command parsing/dispatch and removed the in-tree salvage command implementation module.
+- Deleted salvage-specific test/golden coverage that depended on the removed runtime command and replaced coverage with explicit command-rejection + absence assertions for help/completion/man surfaces.
+- Updated active reference docs to remove the salvage-model page from the canonical reference index and replaced it with a recovery-model page aligned to `extract --recover`.
+- Validation:
+  - `cargo fmt --all`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Next: continue Phase 17 follow-on packets; preserve `lab` as the only bounded non-primary command in root help.

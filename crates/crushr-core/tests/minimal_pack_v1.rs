@@ -72,7 +72,6 @@ fn run_bin(bin: &str, args: &[&str]) -> std::process::Output {
         "crushr-pack" => "pack",
         "crushr-extract" => "extract",
         "crushr-info" => "info",
-        "crushr-salvage" => "salvage",
         _ => bin,
     };
     cmd.arg(sub).args(args).output().unwrap()

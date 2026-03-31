@@ -60,7 +60,7 @@ Non-goals:
 1. [Archive format boundary](./archive-format.md)
 2. [Extent identity](./extent-identity.md)
 3. [Dictionary system](./dictionary-system.md)
-4. [Recovery classification model](./salvage-model.md)
+4. [Recovery classification model](./recovery-model.md)
 5. [Benchmark contract](./benchmarking.md)
 6. [Benchmark baseline (v0.4.15)](./benchmark-baseline.md)
 
