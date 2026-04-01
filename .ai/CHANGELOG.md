@@ -1285,3 +1285,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added drag-and-drop `.crs` loading to `demos/wasm-readonly-demo` and wired it to the same `loadArchive(file)` flow used by the file picker.
 - Added a minimal drop-zone affordance (`drag-over` class) and explicit invalid-drop input handling while keeping prior UI state on load failure.
 - Validation: `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`.
+
+## 2026-04-01 — P18S03f0
+- Extended shared introspection `EntryReport` with deterministic `extent_segments` data for visualization (`extent_index`, `block_id`, `logical_start`, `logical_end`, `size_bytes`).
+- Added WASM demo extent visualization panel and deterministic selected-entry highlight behavior synchronized across search results, entry detail JSON, and extent rendering.
+- Added explicit visualization edge-state messaging for no selection and no segment data.
+- Updated WASM demo README checks for extent-panel behavior.
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`.

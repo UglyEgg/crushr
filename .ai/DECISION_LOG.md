@@ -1937,3 +1937,21 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `crates/crushr/src/commands/info.rs`
   - `crates/crushr/src/lib.rs`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-01 — P18S03f0 WASM entry extent visualization data + UI lock
+
+- Decision:
+  - Extend shared introspection `EntryReport` with deterministic `extent_segments` so browser rendering can stay grounded in Rust introspection truth instead of deriving archive semantics in JS.
+  - Keep segment shape minimal and stable (`extent_index`, `block_id`, `logical_start`, `logical_end`, `size_bytes`) for simple extent-strip rendering.
+  - Implement deterministic selected-result highlight sync in the WASM demo so list/detail/visualization move together with no stale state.
+- Alternatives considered:
+  1. Keep browser-only extent derivation from existing fields (`extent_count` + `logical_range`) without explicit segments.
+  2. Add richer archive-map graphing semantics in this packet.
+- Rationale:
+  - Packet scope requires visual explanation while preserving the rule that archive semantics come from shared Rust introspection.
+  - Minimal segment export enables clear deterministic rendering without overbuilding UI or adding new format semantics.
+- Blast radius:
+  - `crates/crushr/src/introspection.rs`
+  - `demos/wasm-readonly-demo/web/{index.html,main.js,styles.css}`
+  - `demos/wasm-readonly-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

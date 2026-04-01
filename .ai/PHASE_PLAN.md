@@ -331,3 +331,4 @@ Latest priority doctrine
 - [x] P18S01f0 — extract shared read-only introspection core module for `info` surfaces (`archive summary`, `--entry`, `--find`, `--propagation`) and refactor CLI to consume it without behavior/output drift.
 - [x] P18S02f0 — add first local browser/WASM read-only introspection demo (file load + archive summary + deterministic `find` + `entry`) reusing shared Rust introspection semantics.
 - [x] P18S02f1 — add drag-and-drop `.crs` load support in WASM demo with unified file-load path and minimal drop-target affordance.
+- [x] P18S03f0 — add deterministic entry extent/segment visualization in the WASM demo driven by shared Rust introspection data, including selected-result highlight sync and explicit empty/fallback states.
