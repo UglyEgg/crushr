@@ -120,3 +120,25 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - `demos/wasm-readonly-demo/web/main.js` now uses one shared `loadArchive(file)` function for both picker and drag/drop paths.
 - `demos/wasm-readonly-demo/web/index.html` now includes an explicit drop zone prompt.
 - `demos/wasm-readonly-demo/web/styles.css` adds a minimal drag-over highlight state (`.drop-zone.drag-over`).
+
+## 2026-04-01 — Handoff update (P18S03f0 complete)
+
+- Shared introspection entry reports now include `extent_segments` built from index extents:
+  - `extent_index`
+  - `block_id`
+  - `logical_start`
+  - `logical_end`
+  - `size_bytes`
+- WASM demo UI now includes an `Entry extents` panel that renders:
+  - explicit empty state when no entry is selected
+  - explicit fallback when extent segmentation is unavailable
+  - deterministic segment strip + per-extent metadata rows for selected entries
+- Search-result click behavior is now synchronized across panels:
+  - selected list item highlight
+  - entry detail JSON
+  - extent visualization
+- Last validated commands:
+  - `cargo fmt --all`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`

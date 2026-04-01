@@ -288,3 +288,19 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `rustup target add wasm32-unknown-unknown`
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
 - Next: optional browser-level automated UI checks for picker/drop parity.
+
+## 2026-04-01 — Active Step Update (P18S03f0)
+
+- Completed: Phase 18 Step 03 fix 0 (`P18S03f0`).
+- Extended shared introspection entry report data with deterministic extent segment records for visualization (`extent_index`, `block_id`, `logical_start`, `logical_end`, `size_bytes`).
+- Added WASM demo entry extent visualization panel and deterministic selected-result highlight behavior:
+  - selecting a search result updates entry detail + visualization together
+  - selecting another result cleanly replaces highlighted item and rendered segments
+  - explicit empty and fallback messages for no-selection/unavailable-segment states
+- Kept the demo read-only; no extraction/write/recovery actions were added.
+- Validation:
+  - `cargo fmt --all`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Next: optional bounded browser automation and visual polish follow-ups if requested.

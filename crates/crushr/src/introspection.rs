@@ -44,7 +44,7 @@ impl ReadAt for FileReader {
         #[cfg(unix)]
         {
             use std::os::unix::fs::FileExt;
-            return Ok(self.file.read_at(buf, offset)?);
+            Ok(self.file.read_at(buf, offset)?)
         }
         #[cfg(not(unix))]
         {
@@ -53,7 +53,7 @@ impl ReadAt for FileReader {
             cloned
                 .seek(SeekFrom::Start(offset))
                 .context("seek archive file handle")?;
-            return Ok(cloned.read(buf).context("read archive file handle")?);
+            Ok(cloned.read(buf).context("read archive file handle")?)
         }
     }
 }
@@ -162,6 +162,16 @@ pub struct EntryReport {
     pub identity_source: String,
     pub reason: Option<String>,
     pub strict_extraction_supported: bool,
+    pub extent_segments: Vec<EntryExtentSegment>,
+}
+
+#[derive(Clone, serde::Serialize)]
+pub struct EntryExtentSegment {
+    pub extent_index: u64,
+    pub block_id: u64,
+    pub logical_start: u64,
+    pub logical_end: u64,
+    pub size_bytes: u64,
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -530,10 +540,25 @@ fn entry_records_from_index_bytes<R: ReadAt + Len>(
             identity_source,
             reason: reason.clone(),
             strict_extraction_supported,
+            extent_segments: build_extent_segments(&entry.extents),
         });
     }
     records.sort_by(|a, b| a.path.cmp(&b.path));
     Ok(records)
+}
+
+fn build_extent_segments(extents: &[Extent]) -> Vec<EntryExtentSegment> {
+    extents
+        .iter()
+        .enumerate()
+        .map(|(idx, extent)| EntryExtentSegment {
+            extent_index: idx as u64,
+            block_id: u64::from(extent.block_id),
+            logical_start: extent.logical_offset,
+            logical_end: extent.logical_offset.saturating_add(extent.len),
+            size_bytes: extent.len,
+        })
+        .collect()
 }
 
 fn logical_range_from_extents(
