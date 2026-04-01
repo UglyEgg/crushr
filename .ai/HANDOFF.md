@@ -222,3 +222,17 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - exercised `archive_summary` / `find` / `entry` / `propagation` against a generated sample archive using `dist/pkg` JS/WASM exports (data paths backing summary/search/entry/extent/propagation).
 - Browser automation note:
   - attempted Playwright browser install, but download is blocked (HTTP 403 Domain forbidden), so full browser-click automation could not be executed in this environment.
+
+## 2026-04-01 — Handoff update (P18S05f2 complete)
+
+- Browser runtime regression hardening landed in `demos/wasm-readonly-demo/web/main.js`:
+  - WASM module now initializes through dynamic import fallback paths (`./pkg/...` then `../pkg/...`) instead of a single static import path.
+  - Init failures are now surfaced explicitly in the UI (`Failed to initialize wasm runtime...`) instead of failing silently.
+  - Archive load/search/propagation actions now require wasm-ready state, preventing no-op interactions when runtime init is broken.
+- Validation executed:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cd demos/wasm-readonly-demo && ./build-dist.sh`
+- Environment note:
+  - browser screenshot/automation tool is unavailable here; complete picker/drop click-through verification should be run manually in an external browser session.

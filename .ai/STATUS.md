@@ -393,3 +393,21 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cd demos/wasm-readonly-demo/dist && python3 -m http.server 8080` (+ HTTP 200 checks for `index.html`, `main.js`, and wasm asset)
   - Node ESM verification script against `dist/pkg` exports + `/tmp/crushr_demo_sample.crs`
 - Next: optional browser-automation smoke (out of scope here due blocked browser download in this environment).
+
+## 2026-04-01 — Active Step Update (P18S05f2)
+
+- Completed: Phase 18 Step 05 fix 2 (`P18S05f2`).
+- Fixed browser-runtime WASM initialization/load regression path in `demos/wasm-readonly-demo/web/main.js`:
+  - switched from static top-level wasm import to resilient runtime initialization with explicit fallback module paths (`./pkg/...` then `../pkg/...`)
+  - added explicit visible init-failure messaging (`Failed to initialize wasm runtime...`) to prevent silent no-op UI behavior
+  - guarded load/search/propagation flows behind wasm-ready checks so picker/drop/search cannot fail silently when runtime init fails
+- Preserved read-only semantics and shared Rust introspection usage (no JS archive parsing added).
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cargo install wasm-pack`
+  - `cd demos/wasm-readonly-demo && ./build-dist.sh`
+- Constraint: browser screenshot/automation tooling is not available in this environment; runtime click-through verification remains manual in an external browser.
+- Next: optional browser automation/screenshot packet once browser artifact tooling is available.

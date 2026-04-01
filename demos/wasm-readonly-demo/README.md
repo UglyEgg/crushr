@@ -66,7 +66,9 @@ Any static host works (nginx, GitHub Pages, Netlify, S3 static hosting, etc.) as
    - invalid archive load clears prior summary/results/entry/extent state and shows an explicit error
    - empty search results render an explicit no-match message
    - propagation detail remains explicit for disabled, no-selection, and no-impact states
-10. Visual checks:
+10. Runtime error check:
+   - if wasm runtime initialization fails, an explicit error appears (no silent no-op UI)
+11. Visual checks:
    - selected vs impacted vs normal result states are immediately distinguishable
    - extent legend and extent segment rows clearly map state to color
    - first-load/no-data views look intentional, not empty placeholders
