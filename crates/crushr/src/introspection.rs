@@ -44,7 +44,7 @@ impl ReadAt for FileReader {
         #[cfg(unix)]
         {
             use std::os::unix::fs::FileExt;
-            return Ok(self.file.read_at(buf, offset)?);
+            Ok(self.file.read_at(buf, offset)?)
         }
         #[cfg(not(unix))]
         {
@@ -53,7 +53,7 @@ impl ReadAt for FileReader {
             cloned
                 .seek(SeekFrom::Start(offset))
                 .context("seek archive file handle")?;
-            return Ok(cloned.read(buf).context("read archive file handle")?);
+            Ok(cloned.read(buf).context("read archive file handle")?)
         }
     }
 }
