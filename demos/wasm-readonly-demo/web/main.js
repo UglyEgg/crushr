@@ -1,4 +1,36 @@
-import init, { init as setup, archive_summary, find, entry, propagation } from "./pkg/crushr_wasm_readonly_demo.js";
+const WASM_MODULE_PATHS = ["./pkg/crushr_wasm_readonly_demo.js", "../pkg/crushr_wasm_readonly_demo.js"];
+
+let wasmFns = null;
+let wasmInitError = null;
+
+async function initializeWasmRuntime() {
+  for (const path of WASM_MODULE_PATHS) {
+    try {
+      const module = await import(path);
+      await module.default();
+      module.init();
+      wasmFns = {
+        archive_summary: module.archive_summary,
+        find: module.find,
+        entry: module.entry,
+        propagation: module.propagation,
+      };
+      return;
+    } catch (error) {
+      wasmInitError = error;
+    }
+  }
+  throw wasmInitError ?? new Error("Unknown WASM initialization failure.");
+}
+
+function requireWasmReady() {
+  if (wasmFns) {
+    return true;
+  }
+  const detail = wasmInitError ? ` ${String(wasmInitError)}` : "";
+  setError(`Failed to initialize wasm runtime.${detail}`);
+  return false;
+}
 
 const dropZoneEl = document.getElementById("drop-zone");
 const fileEl = document.getElementById("file");
@@ -72,7 +104,10 @@ async function loadArchive(file) {
   resetDemoState();
   try {
     const nextBytes = new Uint8Array(await file.arrayBuffer());
-    const summary = archive_summary(file.name, nextBytes);
+    if (!requireWasmReady()) {
+      return;
+    }
+    const summary = wasmFns.archive_summary(file.name, nextBytes);
     bytes = nextBytes;
     summaryEl.textContent = render(summary);
     renderResultsMessage("No search results yet. Enter a query and click Find.");
@@ -164,7 +199,7 @@ function renderSearchResults(matches) {
       button.classList.add("is-selected");
     }
     button.addEventListener("click", () => {
-      const detail = entry(bytes, match.path);
+      const detail = wasmFns.entry(bytes, match.path);
       selectedPath = match.path;
       entryEl.textContent = render(detail);
       renderExtentVisualization(detail);
@@ -228,8 +263,11 @@ function refreshPropagationState() {
     renderPropagationDetail(selectedPath);
     return;
   }
+  if (!requireWasmReady()) {
+    return;
+  }
   try {
-    const report = propagation(bytes);
+    const report = wasmFns.propagation(bytes);
     propagationState.noImpactMessage = report.no_impact_message;
     propagationState.impactedByPath = new Map(report.impacted_entries.map((item) => [item.path, item]));
     renderPropagationSummary();
@@ -239,9 +277,13 @@ function refreshPropagationState() {
   }
 }
 
-await init();
-setup();
 resetDemoState();
+
+try {
+  await initializeWasmRuntime();
+} catch (_error) {
+  requireWasmReady();
+}
 
 fileEl.addEventListener("change", async () => {
   const file = fileEl.files?.[0];
@@ -277,8 +319,11 @@ searchBtn.addEventListener("click", () => {
     setError("Load an archive before searching.");
     return;
   }
+  if (!requireWasmReady()) {
+    return;
+  }
   try {
-    const matches = find(bytes, queryEl.value);
+    const matches = wasmFns.find(bytes, queryEl.value);
     selectedPath = null;
     entryEl.textContent = "No entry selected.";
     renderEmptyExtentState(DEFAULT_EXTENT_MESSAGE);
@@ -292,12 +337,20 @@ searchBtn.addEventListener("click", () => {
 propagationToggleEl.addEventListener("change", () => {
   propagationState.enabled = propagationToggleEl.checked;
   refreshPropagationState();
-  if (bytes) {
-    const matches = find(bytes, queryEl.value);
+  if (!bytes) {
+    return;
+  }
+  if (!requireWasmReady()) {
+    return;
+  }
+  try {
+    const matches = wasmFns.find(bytes, queryEl.value);
     renderSearchResults(matches);
     if (selectedPath) {
-      const detail = entry(bytes, selectedPath);
+      const detail = wasmFns.entry(bytes, selectedPath);
       renderExtentVisualization(detail);
     }
+  } catch (error) {
+    setError(String(error));
   }
 });

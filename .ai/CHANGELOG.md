@@ -1336,3 +1336,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Installed `wasm-pack`, executed `./build-dist.sh` successfully, and verified `dist/` hostable structure (`index.html`, `main.js`, `styles.css`, `.nojekyll`, and `pkg/*`).
 - Served `dist/` locally and confirmed HTTP 200 for key assets (`index.html`, `main.js`, wasm binary).
 - Verified demo functional data paths using generated archive + built `dist/pkg` exports: archive load, summary, search, entry detail, extent-segment data path, and propagation data path.
+
+## 2026-04-01 — P18S05f2
+- Fixed WASM demo browser-runtime initialization flow in `demos/wasm-readonly-demo/web/main.js` by replacing single-path static import with resilient dynamic module-path fallback (`./pkg/...` then `../pkg/...`).
+- Added explicit UI-visible wasm init failure reporting and wasm-readiness guards for load/search/propagation actions so browser failures no longer present as silent no-op states.
+- Preserved read-only semantics and shared Rust introspection boundaries.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `cd demos/wasm-readonly-demo && ./build-dist.sh`.
