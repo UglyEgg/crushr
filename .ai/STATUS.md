@@ -447,3 +447,29 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - Constraint:
   - WASM timing baseline was captured via Node wasm-bindgen path; direct browser UI-blocking timings are still pending browser-session instrumentation.
 - Next: follow-up packet to add browser-side performance marks/long-task instrumentation and validate UI responsiveness on the same archive set.
+
+## 2026-04-01 — Active Step Update (P18S07f0)
+
+- Completed: Phase 18 Step 07 fix 0 (`P18S07f0`).
+- Added bounded hotspot characterization instrumentation for introspection `find`/`entry` in `crates/crushr/src/introspection.rs` with stage-level timing buckets:
+  - `archive_open_read`
+  - `index_decode_parse`
+  - `summary_index_prep`
+  - `traversal`
+  - `result_materialization`
+- Added reproducible hotspot harness/report flow:
+  - `crates/crushr/examples/introspection_hotspot.rs`
+  - `scripts/perf_introspection_hotspot.py`
+  - report: `docs/reference/introspection-hotspot-p18s07.md`
+  - artifacts: `.bench/introspection_hotspot/{archive_set_hotspot.json,cli_hotspot.json,wasm_hotspot.json}`
+- Findings (measured): `summary_index_prep` dominates large/very_large `find` and `entry` in CLI; repeated-call medians stay close to cold calls; traversal/materialization are minor contributors; WASM wall time is higher than CLI for same archives.
+- Validation:
+  - `cargo fmt --all`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo build --release -p crushr`
+  - `python3 scripts/perf_introspection_hotspot.py --runs 1`
+- Constraint:
+  - Direct browser render/main-thread breakdown is still not captured in this Node wasm-bindgen path.
+- Next:
+  - implement bounded decoded-index/entry-surface cache reuse packet for `find`/`entry` and re-run this harness for before/after evidence.
