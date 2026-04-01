@@ -1955,3 +1955,21 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `demos/wasm-readonly-demo/web/{index.html,main.js,styles.css}`
   - `demos/wasm-readonly-demo/README.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-01 — P18S08f0 bounded introspection-state reuse lock
+
+- Decision:
+  - Introduce reusable `ArchiveIntrospectionState` in shared introspection code as the canonical derived state for `find` / `entry`.
+  - Use bounded single-entry cache for path-based CLI introspection keyed by `(path, size, mtime)`; invalidate/replace on archive identity change.
+  - Keep WASM reuse Rust-owned by preparing/storing introspection state on archive load (`archive_summary`) and servicing `find`/`entry` from that loaded state.
+  - Keep cache bounded (no unbounded global map, no cross-archive accumulation).
+- Alternatives considered:
+  1. Recompute decoded index and entry surfaces on every call.
+  2. Add unbounded global multi-archive cache map.
+- Rationale:
+  - P18S07 hotspot results identified repeated summary/index prep as dominant repeated-call cost.
+  - Bounded single-entry reuse removes repeated rebuild work while preserving deterministic, read-only behavior and avoiding persistent global growth.
+- Blast radius:
+  - `crates/crushr/src/introspection.rs`
+  - `demos/wasm-readonly-demo/src/lib.rs`
+  - hotspot artifacts/docs under `.bench/introspection_hotspot/` and `docs/reference/`.
