@@ -427,3 +427,23 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Constraint: browser screenshot tooling remains unavailable in this environment.
 - Next: optional browser automation/screenshot packet once browser artifact tooling is available.
+
+## 2026-04-01 — Active Step Update (P18S06f0)
+
+- Completed: Phase 18 Step 06 fix 0 (`P18S06f0`).
+- Added repeatable introspection baseline harness for CLI + WASM demo:
+  - `scripts/perf_introspection_baseline.py`
+  - `scripts/perf_wasm_runner.mjs`
+- Defined explicit reusable archive set classes and emitted manifest/results under `.bench/introspection_baseline/`:
+  - `archive_set.json`
+  - `cli_baseline.json`
+  - `wasm_baseline.json`
+- Produced baseline report at `docs/reference/introspection-baseline-p18s06.md` with comparison findings and next-step recommendation.
+- Validation:
+  - `cargo build --release -p crushr`
+  - `cd demos/wasm-readonly-demo && ./build-dist.sh`
+  - `python3 scripts/perf_introspection_baseline.py --runs 1`
+  - `node scripts/perf_wasm_runner.mjs --specs .bench/introspection_baseline/archive_set.json --runs 1 --out .bench/introspection_baseline/wasm_baseline.json`
+- Constraint:
+  - WASM timing baseline was captured via Node wasm-bindgen path; direct browser UI-blocking timings are still pending browser-session instrumentation.
+- Next: follow-up packet to add browser-side performance marks/long-task instrumentation and validate UI responsiveness on the same archive set.

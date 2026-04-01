@@ -254,3 +254,17 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Screenshot note:
   - browser screenshot tooling remains unavailable in this environment.
+
+## 2026-04-01 — Handoff update (P18S06f0 complete)
+
+- Added repeatable baseline harness:
+  - `scripts/perf_introspection_baseline.py`
+  - `scripts/perf_wasm_runner.mjs`
+- Baseline artifacts now generated under `.bench/introspection_baseline/`:
+  - `archive_set.json`
+  - `cli_baseline.json`
+  - `wasm_baseline.json`
+- Comparison report written to:
+  - `docs/reference/introspection-baseline-p18s06.md`
+- Environment note:
+  - WASM baseline uses Node + wasm-bindgen execution path in this environment; direct browser responsiveness/UI-blocking measurements still require a browser session with explicit instrumentation.
