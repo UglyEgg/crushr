@@ -338,3 +338,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Environment note:
   - `playwright` is not installed here, so real-browser click-through verification must be run outside this environment.
+
+## 2026-04-01 — Handoff update (P18S08f3 complete)
+
+- Large-archive browser search stabilization landed:
+  - shared introspection now exposes bounded find metadata (`matches`, `total_matches`, `truncated`) in deterministic path order.
+  - WASM adapter caps find responses at `MAX_FIND_RESULTS = 500`.
+- UI now renders explicit truncation notice when bounded find limit is hit:
+  - `Showing first N of M matches. Refine your search to narrow results.`
+- De-eager load remains unchanged:
+  - no load-time empty-query pre-browse; summary-first usable screen is preserved.
+- Added regression test in shared introspection for bounded-find determinism/truncation accounting.
+- Last validated commands:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cargo test -p crushr introspection::tests::bounded_find_reports_total_and_truncation_deterministically`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Environment note:
+  - browser automation remains unavailable in this environment (`playwright` missing), so real-browser validation must be executed externally.

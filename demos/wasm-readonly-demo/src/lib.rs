@@ -14,8 +14,8 @@ mod extraction_payload_core;
 mod introspection;
 
 use introspection::{
-    ArchiveIntrospectionState, EntryMatch, EntryReport, analyze_propagation_bytes,
-    find_entries_with_state, inspect_archive_bytes, inspect_entry_with_state,
+    ArchiveIntrospectionState, BoundedFindResult, EntryReport, analyze_propagation_bytes,
+    find_entries_with_state_bounded, inspect_archive_bytes, inspect_entry_with_state,
     prepare_introspection_state_bytes,
 };
 use crushr_core::propagation::{EntryTrustClass, PropagationImpactReason};
@@ -28,6 +28,8 @@ thread_local! {
     static LOADED_STATE: RefCell<Option<ArchiveIntrospectionState>> = const { RefCell::new(None) };
     static LOADED_BYTES: RefCell<Option<Vec<u8>>> = const { RefCell::new(None) };
 }
+
+const MAX_FIND_RESULTS: usize = 500;
 
 #[derive(Serialize)]
 struct ArchiveLoadResponse {
@@ -68,11 +70,11 @@ pub fn reset_loaded_archive() {
 pub fn find(file_bytes: &[u8], query: String) -> Result<JsValue, JsValue> {
     let _ = file_bytes;
     ensure_loaded_state()?;
-    let matches: Vec<EntryMatch> = LOADED_STATE
+    let matches: BoundedFindResult = LOADED_STATE
         .with(|slot| {
             slot.borrow()
                 .as_ref()
-                .map(|state| find_entries_with_state(state, &query, None))
+                .map(|state| find_entries_with_state_bounded(state, &query, MAX_FIND_RESULTS))
         })
         .ok_or_else(|| JsValue::from_str("No archive loaded."))?;
     serde_wasm_bindgen::to_value(&matches).map_err(|e| JsValue::from_str(&e.to_string()))

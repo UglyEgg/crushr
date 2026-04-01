@@ -54,6 +54,7 @@ const NO_RESULTS_MESSAGE = "No matching entries found for the current query.";
 const DEFAULT_EXTENT_MESSAGE = "Select an entry from the results pane to view extent placement.";
 const SEARCH_PROMPT_MESSAGE = "Archive loaded. Enter a query and click Find to browse entries.";
 const EMPTY_ARCHIVE_ARG = new Uint8Array();
+const FIND_LIMIT_MESSAGE_PREFIX = "Showing first";
 
 let bytes = null;
 let selectedPath = null;
@@ -223,9 +224,20 @@ function renderExtentVisualization(detail) {
   extentEl.appendChild(meta);
 }
 
-function renderSearchResults(matches) {
+function renderSearchResults(resultPayload) {
+  const matches = resultPayload?.matches ?? [];
   latestMatches = matches;
   resultsEl.innerHTML = "";
+
+  if (resultPayload?.truncated) {
+    const notice = document.createElement("li");
+    notice.className = "empty-state";
+    const shownCount = matches.length;
+    const totalCount = resultPayload.total_matches ?? shownCount;
+    notice.textContent = `${FIND_LIMIT_MESSAGE_PREFIX} ${shownCount} of ${totalCount} matches. Refine your search to narrow results.`;
+    resultsEl.appendChild(notice);
+  }
+
   if (matches.length === 0) {
     renderResultsMessage(NO_RESULTS_MESSAGE);
     return;

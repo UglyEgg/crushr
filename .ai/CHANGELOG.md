@@ -1385,3 +1385,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added explicit operation-scoped browser error surfacing in `demos/wasm-readonly-demo/web/main.js`, including clearer messaging for internal WASM runtime traps (`RuntimeError: unreachable...`).
 - Kept de-eager load behavior unchanged (summary-first load, no empty-query pre-browse, explicit Find-triggered results).
 - Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-01 — P18S08f3
+- Added deterministic bounded find result model in shared introspection (`BoundedFindResult`) with explicit `total_matches` + `truncated` metadata.
+- Updated WASM adapter to enforce browser-safe find cap (`MAX_FIND_RESULTS = 500`) and emit bounded metadata with results.
+- Updated browser UI to render explicit truncation notice when limit is hit (`Showing first N of M matches...`), avoiding silent truncation.
+- Added shared introspection regression test locking bounded-find truncation accounting and deterministic first-N ordering.
+- Validation: `cargo fmt --all`; `node --check demos/wasm-readonly-demo/web/main.js`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `cargo test -p crushr introspection::tests::bounded_find_reports_total_and_truncation_deterministically`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`.

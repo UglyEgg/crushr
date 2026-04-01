@@ -541,3 +541,24 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Constraint:
   - browser tooling is not installed in this environment (`playwright` missing), so real-browser click-through verification remains required externally.
+
+## 2026-04-01 — Active Step Update (P18S08f3)
+
+- Completed: Phase 18 Step 08 fix 3 (`P18S08f3`).
+- Stabilized WASM large-archive search path:
+  - added bounded find result model in shared introspection (`BoundedFindResult`) with deterministic ordering, explicit `total_matches`, and `truncated` signal.
+  - demo WASM adapter now caps browser find responses to `MAX_FIND_RESULTS = 500` and returns bounded metadata.
+- Hardened browser UX for bounded behavior:
+  - result pane now shows explicit truncation messaging (`Showing first N of M matches...`) when limit is hit.
+  - search/detail/propagation continue to use Rust-owned loaded-session bytes with no eager pre-browse restore.
+- Regression guard added:
+  - unit test locks bounded-find determinism (`total_matches`, `truncated`, sorted first-N paths).
+- Validation:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cargo test -p crushr introspection::tests::bounded_find_reports_total_and_truncation_deterministically`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Constraint:
+  - this environment still lacks browser automation tooling (`playwright` missing), so real-browser verification must be executed externally.
