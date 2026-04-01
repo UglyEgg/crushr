@@ -342,3 +342,4 @@ Latest priority doctrine
 - [x] P18S06f0 — add repeatable CLI+WASM introspection baseline harness, explicit archive-set manifest, and evidence report for `info`/`find`/`entry`/`propagation` operations.
 - [x] P18S07f0 — characterize `find`/`entry` hotspot sources on large archives with stage-level timing decomposition, cold-vs-repeated call evidence, CLI-vs-WASM comparison, and a bounded optimization recommendation report.
 - [x] P18S08f0 — add bounded introspection state reuse/caching for decoded index + derived find/entry surfaces, integrate reuse in CLI and WASM session flow, and publish updated hotspot evidence showing repeated-call prep-cost collapse.
+- [x] P18S08f1 — de-eager WASM demo initial archive load by removing empty-query pre-browse work, deferring introspection-state construction until first search/detail request, and keeping deterministic explicit browse prompt messaging.

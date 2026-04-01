@@ -1366,3 +1366,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Updated WASM demo Rust adapter to keep loaded archive introspection state in Rust-side session storage and reuse it for `find`/`entry` calls.
 - Re-ran hotspot harness and added updated evidence summary at `docs/reference/introspection-hotspot-p18s08.md` (artifacts under `.bench/introspection_hotspot/`).
 - Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `cargo build --release -p crushr`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `python3 scripts/perf_introspection_hotspot.py --runs 1`.
+
+## 2026-04-01 — P18S08f1
+- De-eagered WASM demo initial archive load path to avoid large-archive startup stalls:
+  - removed load-time empty-query pre-browse from `demos/wasm-readonly-demo/web/main.js`
+  - changed `demos/wasm-readonly-demo/src/lib.rs` so `archive_summary` no longer builds introspection state eagerly
+- Added lazy introspection-state bootstrap for `find`/`entry` in the WASM adapter:
+  - archive bytes are retained on load
+  - first search/detail call prepares state
+  - repeated calls reuse prepared state deterministically
+- Updated `demos/wasm-readonly-demo/README.md` interaction model text to match non-prepopulated browse behavior.
+- Validation: `cargo fmt --all`; `node --check demos/wasm-readonly-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

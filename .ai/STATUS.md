@@ -496,3 +496,26 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - Existing hotspot script/report template still writes to `docs/reference/introspection-hotspot-p18s07.md`; step-specific interpretation is recorded in `...p18s08.md`.
 - Next:
   - optional harness refinement to isolate truly-cold `entry` before any warm-up call in the same process.
+
+## 2026-04-01 — Active Step Update (P18S08f1)
+
+- Completed: Phase 18 Step 08 fix 1 (`P18S08f1`).
+- Characterized initial-load hot path in the WASM demo and confirmed eager operations on load:
+  - eager introspection-state construction in `archive_summary` (full entry-record/path map build)
+  - eager empty-query `find` call from UI load flow
+  - eager results-pane DOM rendering of the full browse list
+- De-eagered initial archive load behavior:
+  - `archive_summary` now stores loaded bytes and clears cached state; introspection state is prepared lazily on first `find`/`entry` request.
+  - initial UI load no longer executes empty-query `find`; it renders an explicit “run Find to browse” prompt instead.
+- Preserved reuse where it pays:
+  - first search/detail call builds state once, then repeated `find`/`entry` reuse the same Rust-owned session state.
+- Validation:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - browser screenshot/automation tooling is unavailable in this environment, so browser verification remains manual outside this runtime.
+- Next:
+  - if large non-empty queries still render too many rows, add explicit deterministic result capping + visible truncation messaging in a follow-on packet.

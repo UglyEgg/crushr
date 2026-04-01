@@ -298,3 +298,21 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `rustup target add wasm32-unknown-unknown`
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
   - `python3 scripts/perf_introspection_hotspot.py --runs 1`
+
+## 2026-04-01 — Handoff update (P18S08f1 complete)
+
+- Initial WASM demo load was de-eagered to prevent large-archive UI hangs:
+  - removed load-time empty-query `find` from `web/main.js` (results pane now shows an explicit search prompt after summary load)
+  - moved WASM introspection-state construction out of `archive_summary`; state now builds lazily on first `find`/`entry` use in `src/lib.rs`
+- Reuse behavior is preserved:
+  - once first search/detail triggers state build, repeated `find`/`entry` calls reuse the same Rust session state.
+- Characterization confirmed previous eager load path included:
+  - state build at summary load
+  - empty-query browse load
+  - immediate full results DOM rendering
+- Last validated commands:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`

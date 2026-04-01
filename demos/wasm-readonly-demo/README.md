@@ -56,7 +56,7 @@ Any static host works (nginx, GitHub Pages, Netlify, S3 static hosting, etc.) as
 
 - The demo shows explicit state transitions in a status banner (`idle`, `working`, `success`, `error`) during archive load, search, entry detail fetch, and propagation analysis.
 - Use **Unload archive** to fully reset archive summary, search query/results, selected entry, extent view, propagation state, and status/error surfaces to the empty first-load state.
-- The entries/results pane is browseable and scrollable; on archive load it is pre-populated with browseable entries, and **Find** filters deterministically from that set.
+- The entries/results pane does not pre-populate on archive load; the demo stays responsive and prompts the user to run **Find** explicitly.
 
 ## Demo checks
 

@@ -51,6 +51,7 @@ const searchBtn = document.getElementById("search");
 const NO_FILE_MESSAGE = "No archive loaded. Choose or drop a .crs file to begin.";
 const NO_RESULTS_MESSAGE = "No matching entries found for the current query.";
 const DEFAULT_EXTENT_MESSAGE = "Select an entry from the results pane to view extent placement.";
+const SEARCH_PROMPT_MESSAGE = "Archive loaded. Enter a query and click Find to browse entries.";
 
 let bytes = null;
 let selectedPath = null;
@@ -336,13 +337,9 @@ async function loadArchive(file) {
       }
 
       const summary = wasmFns.archive_summary(file.name, nextBytes);
-      const initialMatches = wasmFns.find(nextBytes, "");
       bytes = nextBytes;
       summaryEl.textContent = render(summary);
-      renderSearchResults(initialMatches);
-      if (initialMatches.length === 0) {
-        renderResultsMessage("Archive contains no browseable entries.");
-      }
+      renderResultsMessage(SEARCH_PROMPT_MESSAGE);
       await refreshPropagationState();
     });
   } catch (_error) {
