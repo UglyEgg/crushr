@@ -28,5 +28,9 @@ Open `http://127.0.0.1:8080` in a browser.
 6. Confirm impacted entries are labeled in search results and propagation detail appears for impacted selections.
 7. Toggle **Show impact** off/on and confirm summary/detail/highlights update deterministically.
 8. Select different results repeatedly; detail + extent view should update deterministically with no stale highlight.
+9. Coherence checks:
+   - invalid archive load clears prior summary/results/entry/extent state and shows an explicit error
+   - empty search results render an explicit no-match message
+   - propagation detail remains explicit for disabled, no-selection, and no-impact states
 
 Behavior is read-only: no extraction, write, or mutation actions exist in this demo UI.

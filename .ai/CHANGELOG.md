@@ -1303,3 +1303,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Extended extent visualization styles in `demos/wasm-readonly-demo/web/styles.css` to distinguish selected/impacted/normal states under propagation mode with an explicit legend.
 - Updated `demos/wasm-readonly-demo/README.md` demo checks to include propagation toggle/impact verification steps.
 - Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`.
+
+
+## 2026-04-01 — P18S04f1
+- Reduced WASM demo build-noise by suppressing non-actionable dead-code warnings in source-included shared modules under `demos/wasm-readonly-demo/src/lib.rs`.
+- Hardened browser demo state coherence in `demos/wasm-readonly-demo/web/main.js` with explicit empty/error/no-impact messaging and deterministic state resets across load/search/propagation transitions.
+- Updated UI/readme polish for empty-result rendering and concise coherence verification notes (`web/styles.css`, `README.md`).
+- Validation: `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

@@ -13,6 +13,10 @@ const propagationDetailEl = document.getElementById("propagation-detail");
 const errorEl = document.getElementById("error");
 const searchBtn = document.getElementById("search");
 
+const NO_FILE_MESSAGE = "No archive loaded. Choose or drop a .crs file to begin.";
+const NO_RESULTS_MESSAGE = "No matching entries found for the current query.";
+const DEFAULT_EXTENT_MESSAGE = "Select a search result to view extent placement.";
+
 let bytes = null;
 let selectedPath = null;
 let propagationState = {
@@ -33,32 +37,48 @@ function render(obj) {
   return JSON.stringify(obj, null, 2);
 }
 
+function renderResultsMessage(message) {
+  resultsEl.innerHTML = "";
+  const item = document.createElement("li");
+  item.className = "muted";
+  item.textContent = message;
+  resultsEl.appendChild(item);
+}
+
+function resetDemoState() {
+  bytes = null;
+  selectedPath = null;
+  summaryEl.textContent = NO_FILE_MESSAGE;
+  renderResultsMessage(NO_FILE_MESSAGE);
+  entryEl.textContent = "No entry selected.";
+  renderEmptyExtentState(DEFAULT_EXTENT_MESSAGE);
+  propagationSummaryEl.textContent = "Propagation view is disabled.";
+  propagationDetailEl.textContent = "Enable propagation view to inspect impact details.";
+  propagationState = {
+    enabled: propagationToggleEl.checked,
+    impactedByPath: new Map(),
+    noImpactMessage: "No impacted entries detected from current corruption inputs.",
+  };
+}
+
 async function loadArchive(file) {
   clearError();
   if (!file) {
+    resetDemoState();
     setError("No file provided.");
     return;
   }
 
+  resetDemoState();
   try {
     const nextBytes = new Uint8Array(await file.arrayBuffer());
     const summary = archive_summary(file.name, nextBytes);
     bytes = nextBytes;
-    selectedPath = null;
     summaryEl.textContent = render(summary);
-    resultsEl.innerHTML = "";
-    entryEl.textContent = "";
-    propagationSummaryEl.innerHTML = "";
-    propagationDetailEl.innerHTML = "";
-    propagationState = {
-      enabled: propagationToggleEl.checked,
-      impactedByPath: new Map(),
-      noImpactMessage: "No impacted entries detected from current corruption inputs.",
-    };
-    renderEmptyExtentState("Select a search result to view extent placement.");
+    renderResultsMessage("No search results yet. Enter a query and click Find.");
     refreshPropagationState();
   } catch (error) {
-    setError(String(error));
+    setError(`Failed to load archive: ${String(error)}`);
   }
 }
 
@@ -126,6 +146,10 @@ function renderExtentVisualization(detail) {
 
 function renderSearchResults(matches) {
   resultsEl.innerHTML = "";
+  if (matches.length === 0) {
+    renderResultsMessage(NO_RESULTS_MESSAGE);
+    return;
+  }
   for (const match of matches) {
     const item = document.createElement("li");
     const button = document.createElement("button");
@@ -170,6 +194,10 @@ function renderPropagationDetail(path) {
     propagationDetailEl.textContent = "Enable propagation view to inspect impact details.";
     return;
   }
+  if (!bytes) {
+    propagationDetailEl.textContent = "Load an archive to inspect propagation details.";
+    return;
+  }
   if (!path) {
     propagationDetailEl.textContent = "Select a search result to view propagation details.";
     return;
@@ -211,6 +239,7 @@ function refreshPropagationState() {
 
 await init();
 setup();
+resetDemoState();
 
 fileEl.addEventListener("change", async () => {
   const file = fileEl.files?.[0];
@@ -242,12 +271,15 @@ dropZoneEl.addEventListener("drop", async (event) => {
 
 searchBtn.addEventListener("click", () => {
   clearError();
-  if (!bytes) return;
+  if (!bytes) {
+    setError("Load an archive before searching.");
+    return;
+  }
   try {
     const matches = find(bytes, queryEl.value);
     selectedPath = null;
-    entryEl.textContent = "";
-    renderEmptyExtentState("Select a search result to view extent placement.");
+    entryEl.textContent = "No entry selected.";
+    renderEmptyExtentState(DEFAULT_EXTENT_MESSAGE);
     renderPropagationDetail(selectedPath);
     renderSearchResults(matches);
   } catch (error) {

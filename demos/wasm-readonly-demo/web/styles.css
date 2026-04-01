@@ -22,6 +22,11 @@ button { cursor: pointer; }
   padding-left: 1rem;
 }
 
+#results li.muted {
+  list-style: none;
+  margin-left: -1rem;
+}
+
 #results button.is-selected {
   border: 1px solid #0b57d0;
   background: #e8f0fe;
