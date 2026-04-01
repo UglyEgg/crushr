@@ -1,4 +1,4 @@
-import init, { init as setup, archive_summary, find, entry } from "../pkg/crushr_wasm_readonly_demo.js";
+import init, { init as setup, archive_summary, find, entry, propagation } from "../pkg/crushr_wasm_readonly_demo.js";
 
 const dropZoneEl = document.getElementById("drop-zone");
 const fileEl = document.getElementById("file");
@@ -7,11 +7,19 @@ const queryEl = document.getElementById("query");
 const resultsEl = document.getElementById("results");
 const entryEl = document.getElementById("entry");
 const extentEl = document.getElementById("extent-visualization");
+const propagationToggleEl = document.getElementById("propagation-toggle");
+const propagationSummaryEl = document.getElementById("propagation-summary");
+const propagationDetailEl = document.getElementById("propagation-detail");
 const errorEl = document.getElementById("error");
 const searchBtn = document.getElementById("search");
 
 let bytes = null;
 let selectedPath = null;
+let propagationState = {
+  enabled: false,
+  impactedByPath: new Map(),
+  noImpactMessage: "Propagation view is disabled.",
+};
 
 function clearError() {
   errorEl.textContent = "";
@@ -40,7 +48,15 @@ async function loadArchive(file) {
     summaryEl.textContent = render(summary);
     resultsEl.innerHTML = "";
     entryEl.textContent = "";
+    propagationSummaryEl.innerHTML = "";
+    propagationDetailEl.innerHTML = "";
+    propagationState = {
+      enabled: propagationToggleEl.checked,
+      impactedByPath: new Map(),
+      noImpactMessage: "No impacted entries detected from current corruption inputs.",
+    };
     renderEmptyExtentState("Select a search result to view extent placement.");
+    refreshPropagationState();
   } catch (error) {
     setError(String(error));
   }
@@ -68,6 +84,8 @@ function renderExtentVisualization(detail) {
   const header = document.createElement("p");
   header.textContent = `${detail.path} • ${detail.extent_count} extent(s) • logical range ${detail.logical_range.start}-${detail.logical_range.end}`;
   extentEl.appendChild(header);
+  const impact = propagationState.impactedByPath.get(detail.path);
+  const isImpacted = propagationState.enabled && Boolean(impact);
 
   const strip = document.createElement("div");
   strip.className = "extent-strip";
@@ -75,12 +93,26 @@ function renderExtentVisualization(detail) {
   for (const segment of segments) {
     const block = document.createElement("div");
     block.className = "extent-block";
+    if (propagationState.enabled) {
+      block.classList.add(isImpacted ? "extent-block-impacted" : "extent-block-normal");
+      block.classList.add("extent-block-selected");
+    }
     const ratio = Number(segment.size_bytes || 1) / maxBytes;
     block.style.flexGrow = String(Math.max(1, Math.round(ratio * 8)));
     block.textContent = `E${segment.extent_index}`;
     strip.appendChild(block);
   }
   extentEl.appendChild(strip);
+  if (propagationState.enabled) {
+    const legend = document.createElement("ul");
+    legend.className = "extent-legend";
+    legend.innerHTML = `
+      <li><span class="legend-swatch legend-selected"></span>selected entry</li>
+      <li><span class="legend-swatch legend-impacted"></span>impacted entry</li>
+      <li><span class="legend-swatch legend-normal"></span>normal entry</li>
+    `;
+    extentEl.appendChild(legend);
+  }
 
   const meta = document.createElement("ul");
   meta.className = "extent-meta";
@@ -98,6 +130,10 @@ function renderSearchResults(matches) {
     const item = document.createElement("li");
     const button = document.createElement("button");
     button.textContent = `${match.path} (${match.trust_class})`;
+    if (propagationState.enabled && propagationState.impactedByPath.has(match.path)) {
+      button.classList.add("is-impacted");
+      button.textContent = `${match.path} (${match.trust_class}) • impacted`;
+    }
     if (selectedPath === match.path) {
       button.classList.add("is-selected");
     }
@@ -106,10 +142,70 @@ function renderSearchResults(matches) {
       selectedPath = match.path;
       entryEl.textContent = render(detail);
       renderExtentVisualization(detail);
+      renderPropagationDetail(selectedPath);
       renderSearchResults(matches);
     });
     item.appendChild(button);
     resultsEl.appendChild(item);
+  }
+}
+
+function renderPropagationSummary() {
+  propagationSummaryEl.innerHTML = "";
+  if (!propagationState.enabled) {
+    propagationSummaryEl.textContent = "Propagation view is disabled.";
+    return;
+  }
+  const impactedCount = propagationState.impactedByPath.size;
+  if (impactedCount === 0) {
+    propagationSummaryEl.textContent = propagationState.noImpactMessage;
+    return;
+  }
+  propagationSummaryEl.textContent = `${impactedCount} impacted entr${impactedCount === 1 ? "y" : "ies"} detected.`;
+}
+
+function renderPropagationDetail(path) {
+  propagationDetailEl.innerHTML = "";
+  if (!propagationState.enabled) {
+    propagationDetailEl.textContent = "Enable propagation view to inspect impact details.";
+    return;
+  }
+  if (!path) {
+    propagationDetailEl.textContent = "Select a search result to view propagation details.";
+    return;
+  }
+  const impact = propagationState.impactedByPath.get(path);
+  if (!impact) {
+    propagationDetailEl.textContent = "Selected entry has no active propagation impact.";
+    return;
+  }
+
+  const lines = [
+    `Impact status: ${impact.impact_status}`,
+    `Consequence: ${impact.consequence}`,
+    `Canonical blocked: ${impact.canonical_blocked ? "yes" : "no"}`,
+    `Trust-class support: ${impact.trust_class_support.join(", ")}`,
+    `Impact reasons: ${impact.impact_reasons.join(", ")}`,
+    `Relevant structures: ${impact.relevant_structures.join(", ")}`,
+  ];
+  propagationDetailEl.textContent = lines.join("\n");
+}
+
+function refreshPropagationState() {
+  if (!bytes || !propagationState.enabled) {
+    propagationState.impactedByPath = new Map();
+    renderPropagationSummary();
+    renderPropagationDetail(selectedPath);
+    return;
+  }
+  try {
+    const report = propagation(bytes);
+    propagationState.noImpactMessage = report.no_impact_message;
+    propagationState.impactedByPath = new Map(report.impacted_entries.map((item) => [item.path, item]));
+    renderPropagationSummary();
+    renderPropagationDetail(selectedPath);
+  } catch (error) {
+    setError(String(error));
   }
 }
 
@@ -152,8 +248,22 @@ searchBtn.addEventListener("click", () => {
     selectedPath = null;
     entryEl.textContent = "";
     renderEmptyExtentState("Select a search result to view extent placement.");
+    renderPropagationDetail(selectedPath);
     renderSearchResults(matches);
   } catch (error) {
     setError(String(error));
+  }
+});
+
+propagationToggleEl.addEventListener("change", () => {
+  propagationState.enabled = propagationToggleEl.checked;
+  refreshPropagationState();
+  if (bytes) {
+    const matches = find(bytes, queryEl.value);
+    renderSearchResults(matches);
+    if (selectedPath) {
+      const detail = entry(bytes, selectedPath);
+      renderExtentVisualization(detail);
+    }
   }
 });

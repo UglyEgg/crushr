@@ -304,3 +304,23 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `rustup target add wasm32-unknown-unknown`
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
 - Next: optional bounded browser automation and visual polish follow-ups if requested.
+
+## 2026-04-01 — Active Step Update (P18S04f0)
+
+- Completed: Phase 18 Step 04 fix 0 (`P18S04f0`).
+- Added WASM propagation visualization wiring via shared Rust introspection (`analyze_propagation_bytes`) with no JS reimplementation of propagation logic.
+- Added operator-facing propagation panel + toggle in the demo UI:
+  - deterministic impacted-entry summary
+  - selected-entry impact detail (reason, consequence, canonical blocked state, trust-class support, relevant structures)
+  - explicit no-impact messaging when no impacts are detected
+- Integrated propagation-aware highlighting into existing demo surfaces:
+  - impacted entries labeled in search results when propagation view is enabled
+  - extent blocks switch between normal and impacted visual state for selected entries under propagation mode
+  - added deterministic legend to distinguish selected / impacted / normal encoding
+- Kept demo read-only and bounded to visualization (no extraction/write/mutation/recovery actions added).
+- Validation:
+  - `cargo fmt --all`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Next: optional bounded browser-level screenshot/automation pass if a browser artifact pipeline is available.

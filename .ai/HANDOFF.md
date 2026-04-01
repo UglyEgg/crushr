@@ -142,3 +142,20 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
   - `rustup target add wasm32-unknown-unknown`
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+
+## 2026-04-01 — Handoff update (P18S04f0 complete)
+
+- WASM demo now exposes propagation impact data through shared Rust introspection (`analyze_propagation_bytes`) and renders operator-facing impact language in the browser.
+- UI additions in `demos/wasm-readonly-demo/web`:
+  - `Show impact` toggle
+  - propagation summary section with deterministic no-impact behavior
+  - selected-entry propagation detail block (status, consequence, canonical blocked, trust-class support, reasons, relevant structures)
+  - search-result impacted badges when propagation mode is enabled
+  - extent panel color-state overlay for impacted vs normal selected entry, plus explicit legend
+- WASM API additions in `demos/wasm-readonly-demo/src/lib.rs`:
+  - `propagation(file_bytes)` returning mapped operator-facing impacted-entry records (no internal `structure:*` token leakage)
+- Last validated commands:
+  - `cargo fmt --all`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`

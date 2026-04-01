@@ -1292,3 +1292,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added explicit visualization edge-state messaging for no selection and no segment data.
 - Updated WASM demo README checks for extent-panel behavior.
 - Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`.
+
+## 2026-04-01 — P18S04f0
+- Added WASM propagation data surface in `demos/wasm-readonly-demo/src/lib.rs` by consuming shared Rust introspection `analyze_propagation_bytes` and mapping propagation output to operator-facing impacted-entry records.
+- Added propagation-impact UI controls and rendering in `demos/wasm-readonly-demo/web/index.html` and `web/main.js`:
+  - toggleable `Show impact` mode
+  - deterministic impacted-entry summary + no-impact state
+  - selected-entry impact detail view with canonical blocked/trust-class/reason/consequence fields
+  - impacted-result labeling in search output
+- Extended extent visualization styles in `demos/wasm-readonly-demo/web/styles.css` to distinguish selected/impacted/normal states under propagation mode with an explicit legend.
+- Updated `demos/wasm-readonly-demo/README.md` demo checks to include propagation toggle/impact verification steps.
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`.
