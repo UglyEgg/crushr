@@ -1274,3 +1274,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added shared read-only introspection core module at `crates/crushr/src/introspection.rs`.
 - Refactored `crushr info` to consume shared introspection APIs for archive summary JSON, `--entry`, `--find`, and `--propagation`.
 - Preserved deterministic output behavior and validated CLI contract/presentation tests.
+
+## 2026-04-01 — P18S02f0
+- Added `demos/wasm-readonly-demo` browser/WASM read-only introspection demo with local archive file load, archive summary, deterministic substring find, and entry-detail inspection.
+- Added byte-slice introspection adapters in `crates/crushr/src/introspection.rs` to reuse the same Rust summary/find/entry semantics for browser-loaded archive bytes.
+- Added non-Unix fallback guard for sparse writing in `crates/crushr/src/extraction_payload_core.rs` to keep cross-target builds explicit and fail-closed.
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`.
+
+## 2026-04-01 — P18S02f1
+- Added drag-and-drop `.crs` loading to `demos/wasm-readonly-demo` and wired it to the same `loadArchive(file)` flow used by the file picker.
+- Added a minimal drop-zone affordance (`drag-over` class) and explicit invalid-drop input handling while keeping prior UI state on load failure.
+- Validation: `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`.

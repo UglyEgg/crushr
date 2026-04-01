@@ -41,14 +41,58 @@ impl FileReader {
 
 impl ReadAt for FileReader {
     fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize> {
-        use std::os::unix::fs::FileExt;
-        Ok(self.file.read_at(buf, offset)?)
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::FileExt;
+            return Ok(self.file.read_at(buf, offset)?);
+        }
+        #[cfg(not(unix))]
+        {
+            use std::io::{Read, Seek, SeekFrom};
+            let mut cloned = self.file.try_clone().context("clone archive file handle")?;
+            cloned
+                .seek(SeekFrom::Start(offset))
+                .context("seek archive file handle")?;
+            return Ok(cloned.read(buf).context("read archive file handle")?);
+        }
     }
 }
 
 impl Len for FileReader {
     fn len(&self) -> Result<u64> {
         Ok(self.file.metadata()?.len())
+    }
+}
+
+#[derive(Clone)]
+struct SliceReader<'a> {
+    bytes: &'a [u8],
+}
+
+impl<'a> SliceReader<'a> {
+    fn new(bytes: &'a [u8]) -> Self {
+        Self { bytes }
+    }
+}
+
+impl ReadAt for SliceReader<'_> {
+    fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize> {
+        let Ok(start) = usize::try_from(offset) else {
+            return Ok(0);
+        };
+        if start >= self.bytes.len() {
+            return Ok(0);
+        }
+        let available = self.bytes.len() - start;
+        let n = available.min(buf.len());
+        buf[..n].copy_from_slice(&self.bytes[start..start + n]);
+        Ok(n)
+    }
+}
+
+impl Len for SliceReader<'_> {
+    fn len(&self) -> Result<u64> {
+        Ok(self.bytes.len() as u64)
     }
 }
 
@@ -128,7 +172,19 @@ pub struct EntryMatch {
 
 pub fn inspect_archive(path: &str, product_version: &str) -> Result<ArchiveSummary> {
     let reader = FileReader::open(path)?;
-    let opened = open_archive_v1(&reader)?;
+    inspect_archive_reader(&reader, product_version)
+}
+
+pub fn inspect_archive_bytes(bytes: &[u8], product_version: &str) -> Result<ArchiveSummary> {
+    let reader = SliceReader::new(bytes);
+    inspect_archive_reader(&reader, product_version)
+}
+
+fn inspect_archive_reader<R: ReadAt + Len>(
+    reader: &R,
+    product_version: &str,
+) -> Result<ArchiveSummary> {
+    let opened = open_archive_v1(reader)?;
     let snapshot =
         info_envelope_from_open_archive(&opened, product_version, "1970-01-01T00:00:00Z");
     let index = decode_index(&opened.tail.idx3_bytes).ok();
@@ -146,7 +202,7 @@ pub fn inspect_archive(path: &str, product_version: &str) -> Result<ArchiveSumma
                 .sum::<u64>()
         })
         .unwrap_or(0);
-    let extents_valid = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)
+    let extents_valid = verify_block_payloads_v1(reader, opened.tail.footer.blocks_end_offset)
         .map(|bad| bad.is_empty())
         .unwrap_or(false);
     let dictionaries_valid = opened.tail.dct1.is_some() || !snapshot.payload.summary.has_dct1;
@@ -188,13 +244,42 @@ pub fn inspect_archive(path: &str, product_version: &str) -> Result<ArchiveSumma
 
 pub fn inspect_entry(path: &str, entry_path: &str) -> Result<Option<EntryReport>> {
     let reader = FileReader::open(path)?;
-    let records = load_entry_records(&reader)?;
+    inspect_entry_reader(&reader, entry_path)
+}
+
+pub fn inspect_entry_bytes(bytes: &[u8], entry_path: &str) -> Result<Option<EntryReport>> {
+    let reader = SliceReader::new(bytes);
+    inspect_entry_reader(&reader, entry_path)
+}
+
+fn inspect_entry_reader<R: ReadAt + Len>(
+    reader: &R,
+    entry_path: &str,
+) -> Result<Option<EntryReport>> {
+    let records = load_entry_records(reader)?;
     Ok(records.into_iter().find(|record| record.path == entry_path))
 }
 
 pub fn find_entries(path: &str, query: &str, limit: Option<usize>) -> Result<Vec<EntryMatch>> {
     let reader = FileReader::open(path)?;
-    let mut matches = load_entry_records(&reader)?
+    find_entries_reader(&reader, query, limit)
+}
+
+pub fn find_entries_bytes(
+    bytes: &[u8],
+    query: &str,
+    limit: Option<usize>,
+) -> Result<Vec<EntryMatch>> {
+    let reader = SliceReader::new(bytes);
+    find_entries_reader(&reader, query, limit)
+}
+
+fn find_entries_reader<R: ReadAt + Len>(
+    reader: &R,
+    query: &str,
+    limit: Option<usize>,
+) -> Result<Vec<EntryMatch>> {
+    let mut matches = load_entry_records(reader)?
         .into_iter()
         .filter(|record| record.path.contains(query))
         .map(|record| EntryMatch {
@@ -211,6 +296,11 @@ pub fn find_entries(path: &str, query: &str, limit: Option<usize>) -> Result<Vec
 
 pub fn analyze_propagation(path: &str) -> Result<PropagationReportV1> {
     let reader = FileReader::open(path)?;
+    propagation_report_with_structural_fallback(&reader)
+}
+
+pub fn analyze_propagation_bytes(bytes: &[u8]) -> Result<PropagationReportV1> {
+    let reader = SliceReader::new(bytes);
     propagation_report_with_structural_fallback(&reader)
 }
 

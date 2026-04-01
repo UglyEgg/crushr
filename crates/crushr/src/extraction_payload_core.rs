@@ -189,35 +189,45 @@ pub(crate) fn write_sparse_entry<R: ReadAt>(
     blocks: &[BlockSpanV1],
     overwrite: bool,
 ) -> Result<()> {
+    #[cfg(unix)]
     use std::os::unix::fs::FileExt;
 
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
-    }
-    if path.exists() && !overwrite {
-        bail!("destination exists (use --overwrite): {}", path.display());
+    #[cfg(not(unix))]
+    {
+        let _ = (reader, entry, path, blocks, overwrite);
+        bail!("sparse entry writing is unsupported on this platform");
     }
 
-    let out = fs::File::create(path).with_context(|| format!("create {}", path.display()))?;
-    out.set_len(entry.size)
-        .with_context(|| format!("set_len {}", path.display()))?;
-
-    for extent in &entry.extents {
-        let block = blocks
-            .get(extent.block_id as usize)
-            .with_context(|| format!("extent references missing block {}", extent.block_id))?;
-        let raw = block_raw_payload(reader, block)?;
-        let begin = extent.offset as usize;
-        let end = begin
-            .checked_add(extent.len as usize)
-            .context("extent length overflow")?;
-        if end > raw.len() {
-            bail!("extent out of range for sparse write {}", entry.path);
+    #[cfg(unix)]
+    {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
         }
-        out.write_at(&raw[begin..end], extent.logical_offset)
-            .with_context(|| format!("write sparse extent {}", path.display()))?;
+        if path.exists() && !overwrite {
+            bail!("destination exists (use --overwrite): {}", path.display());
+        }
+
+        let out = fs::File::create(path).with_context(|| format!("create {}", path.display()))?;
+        out.set_len(entry.size)
+            .with_context(|| format!("set_len {}", path.display()))?;
+
+        for extent in &entry.extents {
+            let block = blocks
+                .get(extent.block_id as usize)
+                .with_context(|| format!("extent references missing block {}", extent.block_id))?;
+            let raw = block_raw_payload(reader, block)?;
+            let begin = extent.offset as usize;
+            let end = begin
+                .checked_add(extent.len as usize)
+                .context("extent length overflow")?;
+            if end > raw.len() {
+                bail!("extent out of range for sparse write {}", entry.path);
+            }
+            out.write_at(&raw[begin..end], extent.logical_offset)
+                .with_context(|| format!("write sparse extent {}", path.display()))?;
+        }
+        Ok(())
     }
-    Ok(())
 }
 
 fn read_exact_at<R: ReadAt>(reader: &R, mut offset: u64, mut dst: &mut [u8]) -> Result<()> {

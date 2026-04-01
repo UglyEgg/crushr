@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>crushr WASM read-only demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main>
+      <h1>crushr WASM read-only demo</h1>
+      <div id="drop-zone" class="drop-zone" aria-label="Drop a .crs archive here">
+        <p>Drop a .crs archive here, or select one below.</p>
+        <input id="file" type="file" accept=".crs" />
+      </div>
+      <section>
+        <h2>Archive summary</h2>
+        <pre id="summary"></pre>
+      </section>
+      <section>
+        <h2>Search entries</h2>
+        <input id="query" type="text" placeholder="substring path query" />
+        <button id="search">Find</button>
+        <ul id="results"></ul>
+      </section>
+      <section>
+        <h2>Entry detail</h2>
+        <pre id="entry"></pre>
+      </section>
+      <pre id="error"></pre>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

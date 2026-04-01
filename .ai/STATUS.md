@@ -260,3 +260,31 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cargo fmt --all`
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Next: evaluate whether to promote the shared module into `crushr-core` in a follow-on packet once index-codec dependency boundaries are explicitly approved.
+
+## 2026-04-01 — Active Step Update (P18S02f0)
+
+- Completed: Phase 18 Step 02 fix 0 (`P18S02f0`).
+- Added first browser/WASM read-only introspection demo at `demos/wasm-readonly-demo` with:
+  - local `.crs` file load in browser
+  - archive summary rendering
+  - deterministic substring entry search
+  - selected entry detail rendering
+- Kept parser/introspection semantics in Rust by reusing shared introspection/core modules from `crates/crushr/src/*` in the WASM adapter crate (no JS archive parsing).
+- Added shared byte-slice introspection adapters in `crates/crushr/src/introspection.rs` so browser-loaded bytes can invoke the same introspection logic.
+- Validation:
+  - `cargo fmt --all`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Next: optional drag-drop UX and bounded browser-level integration tests for demo flow.
+
+## 2026-04-01 — Active Step Update (P18S02f1)
+
+- Completed: Phase 18 Step 02 fix 1 (`P18S02f1`).
+- Added drag-and-drop archive loading to `demos/wasm-readonly-demo/web` with a unified browser-side `loadArchive(file)` path used by both file picker and drop events.
+- Added lightweight drag-over visual affordance (`drop-zone` highlight) and explicit invalid-input handling (`No file provided.`) while preserving existing loaded state on load failures.
+- Kept read-only semantics unchanged (no extraction/write/mutation actions added).
+- Validation:
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Next: optional browser-level automated UI checks for picker/drop parity.
