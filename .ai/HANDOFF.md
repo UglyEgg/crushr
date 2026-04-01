@@ -92,3 +92,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - `P17S03f3` complete: rebuilt `info --entry` correctness to guarantee deterministic dual-order parsing, non-regular archive rejection without hangs (including FIFO), symlink-to-regular-file acceptance, and explicit malformed-usage errors.
 - `P17S02f6` complete: removed legacy `crushr salvage` runtime dispatch + implementation modules, deleted salvage-root tests/golden artifacts, and locked CLI/tests/docs so salvage is rejected and absent from help/completion/man surfaces.
 - `P17S02f7` complete: final Phase 17 alignment pass confirmed README command-surface accuracy and locked active versioning discipline language in control docs (`VERSION` canonical + runtime/Cargo sync, no ad hoc bumps).
+
+## 2026-04-01 — Handoff update (P18S01f0 complete)
+
+- Shared introspection logic for `info` surfaces is now centralized at `crates/crushr/src/introspection.rs`.
+- `crates/crushr/src/commands/info.rs` now acts as parser/presentation adapter for:
+  - archive summary JSON
+  - `--entry`
+  - `--find`
+  - `--propagation`
+- If next packet promotes this logic to `crushr-core`, resolve `decode_index` ownership first to avoid duplication or cross-crate leakage.
+- Last validated commands:
+  - `cargo fmt --all`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`

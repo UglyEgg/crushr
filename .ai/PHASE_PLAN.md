@@ -327,3 +327,5 @@ Latest priority doctrine
 - [x] P17S02f0 — Add `crushr info --entry` and `crushr info --find` deterministic introspection surfaces (human + JSON), with search-shape reservation via `--find-mode`/`--find-limit`.
 - [x] P17S02f5 — restore presentation contract for `about`/`help` and operator-safe `info --propagation` human output (no `salvage` in user-facing surfaces; JSON unchanged).
 - [x] P17S02f6 — remove legacy `crushr salvage` runtime command and delete active salvage command code/test/doc references from canonical `crushr` surfaces.
+
+- [x] P18S01f0 — extract shared read-only introspection core module for `info` surfaces (`archive summary`, `--entry`, `--find`, `--propagation`) and refactor CLI to consume it without behavior/output drift.

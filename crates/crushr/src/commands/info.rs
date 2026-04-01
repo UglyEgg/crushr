@@ -2,12 +2,14 @@
 // SPDX-FileCopyrightText: 2026 Richard Majewski
 
 use crate::cli_presentation::{BannerLevel, CliPresenter, StatusWord, group_u64};
-use crate::extraction_payload_core::read_entry_bytes;
 use crate::format::{
-    Entry, EntryKind, Extent, IDX_MAGIC_V3, IDX_MAGIC_V4, IDX_MAGIC_V5, IDX_MAGIC_V6, IDX_MAGIC_V7,
+    EntryKind, IDX_MAGIC_V3, IDX_MAGIC_V4, IDX_MAGIC_V5, IDX_MAGIC_V6, IDX_MAGIC_V7,
     PreservationProfile,
 };
 use crate::index_codec::decode_index;
+use crate::introspection::{
+    EntryMatch, FileReader, analyze_propagation, find_entries, inspect_archive, inspect_entry,
+};
 use anyhow::{Context, Result, bail};
 use crushr_core::verify::scan_blocks_v1;
 use crushr_core::{
@@ -15,36 +17,16 @@ use crushr_core::{
     open::open_archive_v1,
     propagation::{
         ActivatedImpactKind, EntryImpactV1, EntryTrustClass as PropagationEntryTrustClass,
-        FileDependencyV1, PropagationDependencyReason, PropagationImpactReason,
-        PropagationReportV1, STRUCTURE_FTR4, STRUCTURE_IDX3, STRUCTURE_TAIL_FRAME,
-        build_propagation_report_v1, build_structural_failure_report_v1,
+        PropagationDependencyReason, PropagationImpactReason, PropagationReportV1, STRUCTURE_FTR4,
+        STRUCTURE_IDX3, STRUCTURE_TAIL_FRAME,
     },
     snapshot::{info_envelope_from_open_archive, serialize_snapshot_json},
     verify::verify_block_payloads_v1,
 };
 use crushr_format::blk3::{BLK3_MAGIC, read_blk3_header};
 use crushr_format::ftr4::{FTR4_LEN, Ftr4};
-use crushr_format::tailframe::parse_tail_frame;
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs::{self, File};
 use std::io::Cursor;
-
-struct FileReader {
-    file: File,
-}
-
-impl ReadAt for FileReader {
-    fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize> {
-        use std::os::unix::fs::FileExt;
-        Ok(self.file.read_at(buf, offset)?)
-    }
-}
-
-impl Len for FileReader {
-    fn len(&self) -> Result<u64> {
-        Ok(self.file.metadata()?.len())
-    }
-}
 
 fn read_exact_at<R: ReadAt>(reader: &R, mut offset: u64, mut dst: &mut [u8]) -> Result<()> {
     while !dst.is_empty() {
@@ -57,21 +39,6 @@ fn read_exact_at<R: ReadAt>(reader: &R, mut offset: u64, mut dst: &mut [u8]) -> 
         offset = offset.checked_add(read as u64).context("offset overflow")?;
     }
     Ok(())
-}
-
-fn dependencies_from_index_bytes(idx3_bytes: &[u8]) -> Option<Vec<FileDependencyV1>> {
-    let index = decode_index(idx3_bytes).ok()?;
-    let mut deps = Vec::new();
-    for entry in index.entries {
-        if entry.kind != EntryKind::Regular {
-            continue;
-        }
-        deps.push(FileDependencyV1 {
-            file_path: entry.path,
-            required_blocks: entry.extents.into_iter().map(|e| e.block_id).collect(),
-        });
-    }
-    Some(deps)
 }
 
 struct IndexSummary {
@@ -189,31 +156,6 @@ fn summarize_index(idx3_bytes: &[u8]) -> Option<IndexSummary> {
 struct CompressionSummary {
     method: String,
     level: Option<String>,
-}
-
-#[derive(serde::Serialize)]
-struct InfoJsonStructureSummary {
-    extents: u64,
-    dictionaries: u64,
-    has_tail_frame: bool,
-}
-
-#[derive(serde::Serialize)]
-struct InfoJsonVerificationSummary {
-    extents_valid: bool,
-    dictionaries_valid: bool,
-    tail_frame_valid: bool,
-}
-
-#[derive(serde::Serialize)]
-struct InfoJsonTruthSurface {
-    format_version: String,
-    global_flags: String,
-    preservation_profile: String,
-    total_entries: u64,
-    structure: InfoJsonStructureSummary,
-    verification: InfoJsonVerificationSummary,
-    strict_extraction_supported: bool,
 }
 
 fn strict_extraction_supported(
@@ -474,95 +416,6 @@ fn build_info_truth_view(summary: Option<&IndexSummary>) -> InfoTruthView {
         metadata_rows,
         metadata_note: "omitted by profile is intentional archive scope; metadata_degraded is an extraction outcome",
     }
-}
-
-fn propagation_report_with_structural_fallback<R: ReadAt + Len>(
-    reader: &R,
-) -> Result<PropagationReportV1> {
-    let mut corrupted_structures = BTreeSet::new();
-    let mut corrupted_blocks = BTreeSet::new();
-    let mut file_dependencies = Vec::new();
-
-    let archive_len = reader.len().context("read archive length")?;
-    if archive_len < FTR4_LEN as u64 {
-        let report = build_structural_failure_report_v1(&[
-            STRUCTURE_FTR4,
-            STRUCTURE_TAIL_FRAME,
-            STRUCTURE_IDX3,
-        ]);
-        return Ok(report);
-    }
-
-    let footer_offset = archive_len - FTR4_LEN as u64;
-    let mut footer_bytes = vec![0u8; FTR4_LEN];
-    if read_exact_at(reader, footer_offset, &mut footer_bytes).is_err() {
-        let report = build_structural_failure_report_v1(&[
-            STRUCTURE_FTR4,
-            STRUCTURE_TAIL_FRAME,
-            STRUCTURE_IDX3,
-        ]);
-        return Ok(report);
-    }
-
-    let footer = match Ftr4::read_from(Cursor::new(&footer_bytes)) {
-        Ok(value) => value,
-        Err(_) => {
-            let report = build_structural_failure_report_v1(&[
-                STRUCTURE_FTR4,
-                STRUCTURE_TAIL_FRAME,
-                STRUCTURE_IDX3,
-            ]);
-            return Ok(report);
-        }
-    };
-
-    let tail_frame_len = archive_len
-        .checked_sub(footer.blocks_end_offset)
-        .context("tail frame length underflow")?;
-    let mut tail_frame_bytes = vec![0u8; tail_frame_len as usize];
-    let tail_ok = read_exact_at(reader, footer.blocks_end_offset, &mut tail_frame_bytes)
-        .ok()
-        .and_then(|_| parse_tail_frame(&tail_frame_bytes).ok())
-        .is_some();
-    if !tail_ok {
-        corrupted_structures.insert(STRUCTURE_TAIL_FRAME.to_string());
-    }
-
-    if footer.index_len == 0 || footer.index_offset.saturating_add(footer.index_len) > archive_len {
-        corrupted_structures.insert(STRUCTURE_IDX3.to_string());
-    } else {
-        let mut idx3_bytes = vec![0u8; footer.index_len as usize];
-        if read_exact_at(reader, footer.index_offset, &mut idx3_bytes).is_err() {
-            corrupted_structures.insert(STRUCTURE_IDX3.to_string());
-        } else {
-            let hash_ok = *blake3::hash(&idx3_bytes).as_bytes() == footer.index_hash;
-            let magic_ok = idx3_bytes.starts_with(IDX_MAGIC_V3)
-                || idx3_bytes.starts_with(IDX_MAGIC_V4)
-                || idx3_bytes.starts_with(IDX_MAGIC_V5)
-                || idx3_bytes.starts_with(IDX_MAGIC_V6)
-                || idx3_bytes.starts_with(IDX_MAGIC_V7);
-            if !hash_ok || !magic_ok {
-                corrupted_structures.insert(STRUCTURE_IDX3.to_string());
-            }
-            if let Some(deps) = dependencies_from_index_bytes(&idx3_bytes) {
-                file_dependencies = deps;
-            } else {
-                corrupted_structures.insert(STRUCTURE_IDX3.to_string());
-            }
-        }
-    }
-
-    if footer.blocks_end_offset <= archive_len
-        && let Ok(values) = verify_block_payloads_v1(reader, footer.blocks_end_offset)
-    {
-        corrupted_blocks = values;
-    }
-
-    Ok(build_propagation_report_v1(
-        &file_dependencies,
-        &corrupted_structures,
-        &corrupted_blocks,
-    ))
 }
 
 fn propagation_reason_str(reason: &PropagationDependencyReason) -> &'static str {
@@ -949,195 +802,10 @@ struct ListingTruthView {
     result_message: &'static str,
 }
 
-#[allow(dead_code)]
-#[derive(Clone, Copy, serde::Serialize)]
-#[serde(rename_all = "snake_case")]
-enum EntryTrustClass {
-    Canonical,
-    MetadataDegraded,
-    RecoveredNamed,
-    RecoveredAnonymous,
-    Unrecoverable,
-}
-
-impl EntryTrustClass {
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::Canonical => "canonical",
-            Self::MetadataDegraded => "metadata_degraded",
-            Self::RecoveredNamed => "recovered_named",
-            Self::RecoveredAnonymous => "recovered_anonymous",
-            Self::Unrecoverable => "unrecoverable",
-        }
-    }
-}
-
-#[derive(Clone)]
-struct EntryIntrospectionRecord {
-    path: String,
-    trust_class: EntryTrustClass,
-    payload_verified: bool,
-    metadata_complete: bool,
-    extent_count: u64,
-    size_bytes: u64,
-    payload_blake3: String,
-    logical_range: EntryLogicalRange,
-    identity_source: String,
-    reason: Option<String>,
-    strict_extraction_supported: bool,
-}
-
-#[derive(Clone, serde::Serialize)]
-struct EntryLogicalRange {
-    start: u64,
-    end: u64,
-}
-
-#[derive(serde::Serialize)]
-struct EntryIntrospectionJson {
-    path: String,
-    trust_class: EntryTrustClass,
-    payload_verified: bool,
-    metadata_complete: bool,
-    extent_count: u64,
-    size_bytes: u64,
-    payload_blake3: String,
-    logical_range: EntryLogicalRange,
-    identity_source: String,
-    reason: Option<String>,
-    strict_extraction_supported: bool,
-}
-
 #[derive(serde::Serialize)]
 struct EntryLookupNotFoundJson {
     found: bool,
     path: String,
-}
-
-#[derive(serde::Serialize)]
-struct EntryFindJsonRow {
-    path: String,
-    trust_class: EntryTrustClass,
-}
-
-fn entry_records_from_index_bytes<R: ReadAt + Len>(
-    reader: &R,
-    idx3_bytes: &[u8],
-    degraded: bool,
-) -> Result<Vec<EntryIntrospectionRecord>> {
-    let index = decode_index(idx3_bytes).context("decode IDX3 index")?;
-    let payload_validity = if degraded {
-        None
-    } else {
-        let opened = open_archive_v1(reader)?;
-        let invalid_blocks =
-            verify_block_payloads_v1(reader, opened.tail.footer.blocks_end_offset)?;
-        Some(invalid_blocks)
-    };
-    let trust_class = if degraded {
-        EntryTrustClass::MetadataDegraded
-    } else {
-        EntryTrustClass::Canonical
-    };
-    let reason = if degraded {
-        Some(
-            "archive has structural damage outside IDX3; entry evidence is index-proven only"
-                .to_string(),
-        )
-    } else {
-        None
-    };
-    let mut records = Vec::new();
-    for entry in index.entries {
-        let logical_range = logical_range_from_extents(entry.size, entry.sparse, &entry.extents);
-        let payload_verified = if entry.kind == EntryKind::Regular {
-            payload_validity.as_ref().is_some_and(|bad_blocks| {
-                entry
-                    .extents
-                    .iter()
-                    .all(|extent| !bad_blocks.contains(&extent.block_id))
-            })
-        } else {
-            true
-        };
-        let metadata_complete = !degraded;
-        let strict_extraction_supported = payload_verified && metadata_complete;
-        let identity_source = if degraded {
-            "idx3_fallback".to_string()
-        } else {
-            "canonical_index".to_string()
-        };
-        let payload_blake3 = entry_payload_blake3(reader, &entry, degraded)
-            .unwrap_or_else(|| "unavailable".to_string());
-        records.push(EntryIntrospectionRecord {
-            path: entry.path.clone(),
-            trust_class,
-            payload_verified,
-            metadata_complete,
-            extent_count: entry.extents.len() as u64,
-            size_bytes: entry.size,
-            payload_blake3,
-            logical_range,
-            identity_source,
-            reason: reason.clone(),
-            strict_extraction_supported,
-        });
-    }
-    records.sort_by(|a, b| a.path.cmp(&b.path));
-    Ok(records)
-}
-
-fn logical_range_from_extents(
-    size_bytes: u64,
-    sparse: bool,
-    extents: &[Extent],
-) -> EntryLogicalRange {
-    if extents.is_empty() {
-        return EntryLogicalRange { start: 0, end: 0 };
-    }
-    let start = if sparse {
-        extents
-            .iter()
-            .map(|extent| extent.logical_offset)
-            .min()
-            .unwrap_or(0)
-    } else {
-        0
-    };
-    let end = if sparse {
-        extents
-            .iter()
-            .filter_map(|extent| extent.logical_offset.checked_add(extent.len))
-            .max()
-            .unwrap_or(size_bytes)
-    } else {
-        size_bytes
-    };
-    EntryLogicalRange { start, end }
-}
-
-fn entry_payload_blake3<R: ReadAt + Len>(
-    reader: &R,
-    entry: &Entry,
-    degraded: bool,
-) -> Option<String> {
-    if degraded || entry.kind != EntryKind::Regular {
-        return None;
-    }
-    let opened = open_archive_v1(reader).ok()?;
-    let blocks = scan_blocks_v1(reader, opened.tail.footer.blocks_end_offset).ok()?;
-    let bytes = read_entry_bytes(reader, entry, &blocks).ok()?;
-    Some(blake3::hash(&bytes).to_hex().to_string())
-}
-
-fn load_entry_records<R: ReadAt + Len>(reader: &R) -> Result<Vec<EntryIntrospectionRecord>> {
-    match open_archive_v1(reader) {
-        Ok(opened) => entry_records_from_index_bytes(reader, &opened.tail.idx3_bytes, false),
-        Err(_) => {
-            let idx3_bytes = read_idx3_bytes_from_footer(reader)?;
-            entry_records_from_index_bytes(reader, &idx3_bytes, true)
-        }
-    }
 }
 
 fn build_listing_truth_view(listing: &ListingLoad) -> ListingTruthView {
@@ -1359,17 +1027,10 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     let archive = archive.context(
         "usage: crushr info <archive> [--json] [--list] [--flat] [--entry <path>] [--find <query>] [--find-mode substring] [--find-limit <n>] [--propagation]",
     )?;
-    let archive_metadata = fs::metadata(&archive).with_context(|| format!("open {archive}"))?;
-    if !archive_metadata.file_type().is_file() {
-        bail!("archive path is not a regular file");
-    }
-
-    let reader = FileReader {
-        file: File::open(&archive).with_context(|| format!("open {archive}"))?,
-    };
+    let reader = FileReader::open(&archive)?;
 
     if propagation {
-        let report = propagation_report_with_structural_fallback(&reader)?;
+        let report = analyze_propagation(&archive)?;
         if json {
             println!("{}", serialize_snapshot_json(&report)?);
         } else {
@@ -1437,26 +1098,9 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     }
 
     if let Some(entry_path) = entry {
-        let records = load_entry_records(&reader)?;
-        if let Some(record) = records
-            .iter()
-            .find(|candidate| candidate.path == entry_path)
-        {
+        if let Some(record) = inspect_entry(&archive, &entry_path)? {
             if json {
-                let row = EntryIntrospectionJson {
-                    path: record.path.clone(),
-                    trust_class: record.trust_class,
-                    payload_verified: record.payload_verified,
-                    metadata_complete: record.metadata_complete,
-                    extent_count: record.extent_count,
-                    size_bytes: record.size_bytes,
-                    payload_blake3: record.payload_blake3.clone(),
-                    logical_range: record.logical_range.clone(),
-                    identity_source: record.identity_source.clone(),
-                    reason: record.reason.clone(),
-                    strict_extraction_supported: record.strict_extraction_supported,
-                };
-                println!("{}", serialize_snapshot_json(&row)?);
+                println!("{}", serialize_snapshot_json(&record)?);
                 return Ok(());
             }
 
@@ -1532,25 +1176,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
     }
 
     if let Some(query) = find {
-        let mut matches: Vec<EntryFindJsonRow> = load_entry_records(&reader)?
-            .into_iter()
-            .filter(|record| {
-                matches!(
-                    record.trust_class,
-                    EntryTrustClass::Canonical
-                        | EntryTrustClass::MetadataDegraded
-                        | EntryTrustClass::RecoveredNamed
-                ) && record.path.contains(&query)
-            })
-            .map(|record| EntryFindJsonRow {
-                path: record.path,
-                trust_class: record.trust_class,
-            })
-            .collect();
-        matches.sort_by(|a, b| a.path.cmp(&b.path));
-        if let Some(limit) = find_limit {
-            matches.truncate(limit);
-        }
+        let matches: Vec<EntryMatch> = find_entries(&archive, &query, find_limit)?;
 
         if json {
             println!("{}", serialize_snapshot_json(&matches)?);
@@ -1581,18 +1207,6 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         info_envelope_from_open_archive(&opened, crate::product_version(), "1970-01-01T00:00:00Z");
 
     let index_summary = summarize_index(&opened.tail.idx3_bytes);
-    let extent_count = index_summary.as_ref().map(|s| s.extent_count).unwrap_or(0);
-    let total_entries = index_summary
-        .as_ref()
-        .map(|s| {
-            s.regular_file_count
-                .saturating_add(s.directory_count)
-                .saturating_add(s.symlink_count)
-                .saturating_add(s.fifo_count)
-                .saturating_add(s.char_device_count)
-                .saturating_add(s.block_device_count)
-        })
-        .unwrap_or(0);
     let extents_valid = verify_block_payloads_v1(&reader, opened.tail.footer.blocks_end_offset)
         .map(|bad| bad.is_empty())
         .unwrap_or(false);
@@ -1602,37 +1216,7 @@ fn run(raw_args: Vec<String>) -> Result<()> {
         strict_extraction_supported(extents_valid, dictionaries_valid, tail_frame_valid);
 
     if json {
-        let format_version = if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V7) {
-            "v7"
-        } else if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V6) {
-            "v6"
-        } else if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V5) {
-            "v5"
-        } else if opened.tail.idx3_bytes.starts_with(IDX_MAGIC_V4) {
-            "v4"
-        } else {
-            "v3"
-        };
-        let truth = InfoJsonTruthSurface {
-            format_version: format_version.to_string(),
-            global_flags: "none".to_string(),
-            preservation_profile: index_summary
-                .as_ref()
-                .map(|summary| summary.preservation_profile.as_str().to_string())
-                .unwrap_or_else(|| PreservationProfile::Full.as_str().to_string()),
-            total_entries,
-            structure: InfoJsonStructureSummary {
-                extents: extent_count,
-                dictionaries: snapshot.payload.dicts.count as u64,
-                has_tail_frame: !snapshot.payload.tail_frames.is_empty(),
-            },
-            verification: InfoJsonVerificationSummary {
-                extents_valid,
-                dictionaries_valid,
-                tail_frame_valid,
-            },
-            strict_extraction_supported: strict_supported,
-        };
+        let truth = inspect_archive(&archive, crate::product_version())?;
         println!("{}", serialize_snapshot_json(&truth)?);
         return Ok(());
     }

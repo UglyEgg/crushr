@@ -245,3 +245,18 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cargo test -p crushr --test version_contract`
   - `./scripts/check-version-sync.sh`
 - Next: final Phase 17 closure packet sequencing as directed by planner/user.
+
+## 2026-04-01 — Active Step Update (P18S01f0)
+
+- Completed: Phase 18 Step 01 fix 0 (`P18S01f0`).
+- Extracted read-only introspection logic into shared `crates/crushr/src/introspection.rs` module with deterministic structured APIs:
+  - `inspect_archive(path, product_version)`
+  - `inspect_entry(path, entry_path)`
+  - `find_entries(path, query, limit)`
+  - `analyze_propagation(path)`
+- Refactored `crushr info` command to consume the shared introspection module for archive summary JSON, entry lookup, find search, and propagation analysis while preserving existing CLI/human and JSON output behavior.
+- Kept ordering deterministic (entry/find sorting and propagation behavior unchanged).
+- Validation:
+  - `cargo fmt --all`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Next: evaluate whether to promote the shared module into `crushr-core` in a follow-on packet once index-codec dependency boundaries are explicitly approved.

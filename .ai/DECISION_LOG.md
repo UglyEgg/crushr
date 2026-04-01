@@ -1919,3 +1919,21 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `crates/crushr/src/{about.rs,cli_app.rs,commands/info.rs}`
   - `crates/crushr/tests/{cli_contract_surface.rs,cli_presentation_contract.rs,golden/about.txt}`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-01 — P18S01f0 shared introspection-core extraction lock
+
+- Decision:
+  - Extract `info` read-only introspection logic into one shared non-CLI module (`crates/crushr/src/introspection.rs`) and refactor CLI command handlers to consume that module instead of owning introspection logic directly.
+  - Keep command/JSON behavior unchanged; this packet is architectural extraction only.
+  - Preserve deterministic ordering and trust/propagation semantics.
+- Alternatives considered:
+  1. Move extraction directly into `crushr-core` in the same packet.
+  2. Keep introspection logic in CLI and duplicate for WASM later.
+- Rationale:
+  - Packet requires shared introspection without behavior drift and without speculative WASM binding work.
+  - Existing `decode_index` ownership in `crushr` makes in-crate shared-module extraction the smallest safe change.
+- Blast radius:
+  - `crates/crushr/src/introspection.rs` (new)
+  - `crates/crushr/src/commands/info.rs`
+  - `crates/crushr/src/lib.rs`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
