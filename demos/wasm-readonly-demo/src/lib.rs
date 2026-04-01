@@ -14,13 +14,19 @@ mod extraction_payload_core;
 mod introspection;
 
 use introspection::{
-    EntryMatch, EntryReport, analyze_propagation_bytes, find_entries_bytes, inspect_archive_bytes,
-    inspect_entry_bytes,
+    ArchiveIntrospectionState, EntryMatch, EntryReport, analyze_propagation_bytes,
+    find_entries_with_state, inspect_archive_bytes, inspect_entry_with_state,
+    prepare_introspection_state_bytes,
 };
 use crushr_core::propagation::{EntryTrustClass, PropagationImpactReason};
 use serde::Serialize;
 use std::collections::BTreeSet;
+use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
+
+thread_local! {
+    static LOADED_STATE: RefCell<Option<ArchiveIntrospectionState>> = const { RefCell::new(None) };
+}
 
 #[derive(Serialize)]
 struct ArchiveLoadResponse {
@@ -35,6 +41,11 @@ pub fn init() {
 
 #[wasm_bindgen]
 pub fn archive_summary(file_name: String, archive_bytes: &[u8]) -> Result<JsValue, JsValue> {
+    let state = prepare_introspection_state_bytes(archive_bytes)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    LOADED_STATE.with(|slot| {
+        *slot.borrow_mut() = Some(state);
+    });
     let summary = inspect_archive_bytes(archive_bytes, "wasm-demo")
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
     let payload = ArchiveLoadResponse { file_name, summary };
@@ -43,15 +54,30 @@ pub fn archive_summary(file_name: String, archive_bytes: &[u8]) -> Result<JsValu
 
 #[wasm_bindgen]
 pub fn find(file_bytes: &[u8], query: String) -> Result<JsValue, JsValue> {
-    let matches: Vec<EntryMatch> =
-        find_entries_bytes(file_bytes, &query, None).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let _ = file_bytes;
+    let matches: Vec<EntryMatch> = LOADED_STATE.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map(|state| find_entries_with_state(state, &query, None))
+    })
+    .ok_or_else(|| JsValue::from_str("No archive loaded."))?;
     serde_wasm_bindgen::to_value(&matches).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
 #[wasm_bindgen]
 pub fn entry(file_bytes: &[u8], path: String) -> Result<JsValue, JsValue> {
-    let detail: Option<EntryReport> =
-        inspect_entry_bytes(file_bytes, &path).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let _ = file_bytes;
+    let detail: Option<EntryReport> = LOADED_STATE.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .and_then(|state| inspect_entry_with_state(state, &path))
+    });
+    if detail.is_none() {
+        let loaded = LOADED_STATE.with(|slot| slot.borrow().is_some());
+        if !loaded {
+            return Err(JsValue::from_str("No archive loaded."));
+        }
+    }
     serde_wasm_bindgen::to_value(&detail).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 

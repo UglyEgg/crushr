@@ -473,3 +473,26 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - Direct browser render/main-thread breakdown is still not captured in this Node wasm-bindgen path.
 - Next:
   - implement bounded decoded-index/entry-surface cache reuse packet for `find`/`entry` and re-run this harness for before/after evidence.
+
+## 2026-04-01 — Active Step Update (P18S08f0)
+
+- Completed: Phase 18 Step 08 fix 0 (`P18S08f0`).
+- Added bounded reusable introspection state in `crates/crushr/src/introspection.rs`:
+  - `ArchiveIntrospectionState` now owns decoded/derived entry surfaces and path lookup map.
+  - path-based introspection uses a single-entry metadata-keyed cache (path + size + mtime seconds) to reuse state across repeated `find`/`entry` calls.
+  - byte-based introspection exposes state-preparation + state-query helpers for explicit reuse in WASM.
+- WASM demo Rust adapter now keeps loaded archive state in Rust-side session memory and reuses it for `find`/`entry` after `archive_summary`.
+- Generated updated hotspot evidence:
+  - `.bench/introspection_hotspot/{archive_set_hotspot.json,cli_hotspot.json,wasm_hotspot.json}`
+  - `docs/reference/introspection-hotspot-p18s08.md`
+- Validation:
+  - `cargo fmt --all`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cargo build --release -p crushr`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `python3 scripts/perf_introspection_hotspot.py --runs 1`
+- Constraint:
+  - Existing hotspot script/report template still writes to `docs/reference/introspection-hotspot-p18s07.md`; step-specific interpretation is recorded in `...p18s08.md`.
+- Next:
+  - optional harness refinement to isolate truly-cold `entry` before any warm-up call in the same process.

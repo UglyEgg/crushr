@@ -280,3 +280,21 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `docs/reference/introspection-hotspot-p18s07.md`
 - Key measured result: `summary_index_prep` dominates large/very_large `find` + `entry`; repeated calls still pay similar cost as cold calls; traversal/materialization are minor.
 - WASM note: this packet compares WASM wall times vs CLI decomposition; fine-grained browser render/main-thread marks remain a follow-up if browser instrumentation is requested.
+
+## 2026-04-01 — Handoff update (P18S08f0 complete)
+
+- Shared introspection now has bounded reusable state in `crates/crushr/src/introspection.rs`:
+  - `ArchiveIntrospectionState` (decoded/derived entry surfaces + path lookup map)
+  - CLI path-based single-entry cache keyed by path + file metadata (size/mtime)
+  - byte-side state-prep/query helpers for explicit reuse by WASM adapters
+- WASM demo adapter (`demos/wasm-readonly-demo/src/lib.rs`) now stores loaded introspection state in Rust-side session memory and serves `find` / `entry` from that state after `archive_summary`.
+- Updated hotspot outputs generated:
+  - `.bench/introspection_hotspot/{archive_set_hotspot.json,cli_hotspot.json,wasm_hotspot.json}`
+  - `docs/reference/introspection-hotspot-p18s08.md`
+- Last validated commands:
+  - `cargo fmt --all`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cargo build --release -p crushr`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `python3 scripts/perf_introspection_hotspot.py --runs 1`

@@ -16,13 +16,14 @@ use crushr_core::{
         STRUCTURE_TAIL_FRAME, build_propagation_report_v1, build_structural_failure_report_v1,
     },
     snapshot::info_envelope_from_open_archive,
-    verify::{scan_blocks_v1, verify_block_payloads_v1},
+    verify::{BlockSpanV1, scan_blocks_v1, verify_block_payloads_v1},
 };
 use crushr_format::ftr4::{FTR4_LEN, Ftr4};
 use crushr_format::tailframe::parse_tail_frame;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
 use std::io::Cursor;
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct FileReader {
@@ -212,6 +213,122 @@ pub struct EntryHotspotProfile {
     pub timings_ms: HotspotBreakdownMs,
 }
 
+#[derive(Clone)]
+pub struct ArchiveIntrospectionState {
+    records: Arc<Vec<EntryReport>>,
+    by_path: Arc<BTreeMap<String, usize>>,
+}
+
+impl ArchiveIntrospectionState {
+    fn from_records(records: Vec<EntryReport>) -> Self {
+        let mut by_path = BTreeMap::new();
+        for (idx, record) in records.iter().enumerate() {
+            by_path.insert(record.path.clone(), idx);
+        }
+        Self {
+            records: Arc::new(records),
+            by_path: Arc::new(by_path),
+        }
+    }
+
+    fn find(&self, query: &str, limit: Option<usize>) -> Vec<EntryMatch> {
+        let mut matches = self
+            .records
+            .iter()
+            .filter(|record| record.path.contains(query))
+            .map(|record| EntryMatch {
+                path: record.path.clone(),
+                trust_class: record.trust_class,
+            })
+            .collect::<Vec<_>>();
+        matches.sort_by(|a, b| a.path.cmp(&b.path));
+        if let Some(limit) = limit {
+            matches.truncate(limit);
+        }
+        matches
+    }
+
+    fn entry(&self, entry_path: &str) -> Option<EntryReport> {
+        let idx = self.by_path.get(entry_path)?;
+        self.records.get(*idx).cloned()
+    }
+}
+
+#[derive(Clone)]
+struct CachedPathState {
+    path: String,
+    len: u64,
+    modified_secs: u64,
+    state: ArchiveIntrospectionState,
+}
+
+static PATH_STATE_CACHE: OnceLock<Mutex<Option<CachedPathState>>> = OnceLock::new();
+
+fn path_cache() -> &'static Mutex<Option<CachedPathState>> {
+    PATH_STATE_CACHE.get_or_init(|| Mutex::new(None))
+}
+
+fn path_signature(path: &str) -> Result<(u64, u64)> {
+    let metadata = fs::metadata(path).with_context(|| format!("open {path}"))?;
+    if !metadata.file_type().is_file() {
+        bail!("archive path is not a regular file");
+    }
+    let len = metadata.len();
+    let modified_secs = metadata
+        .modified()
+        .ok()
+        .and_then(|m| m.duration_since(UNIX_EPOCH).ok())
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    Ok((len, modified_secs))
+}
+
+fn get_or_build_path_state(path: &str) -> Result<ArchiveIntrospectionState> {
+    let (state, _, _) = get_or_build_path_state_profile(path)?;
+    Ok(state)
+}
+
+fn get_or_build_path_state_profile(path: &str) -> Result<(ArchiveIntrospectionState, f64, f64)> {
+    let (len, modified_secs) = path_signature(path)?;
+    {
+        let cache = path_cache();
+        let guard = cache
+            .lock()
+            .map_err(|_| anyhow::anyhow!("path cache poisoned"))?;
+        if let Some(cached) = guard.as_ref()
+            && cached.path == path
+            && cached.len == len
+            && cached.modified_secs == modified_secs
+        {
+            return Ok((cached.state.clone(), 0.0, 0.0));
+        }
+    }
+
+    let reader = FileReader::open(path)?;
+
+    let decode_start = now_ms();
+    let idx3_bytes = read_idx3_bytes_from_footer(&reader)?;
+    let _decoded = decode_index(&idx3_bytes).context("decode IDX3 index")?;
+    let index_decode_parse_ms = now_ms() - decode_start;
+
+    let prep_start = now_ms();
+    let state = build_state(&reader)?;
+    let summary_index_prep_ms = now_ms() - prep_start;
+
+    let cache = path_cache();
+    let mut guard = cache
+        .lock()
+        .map_err(|_| anyhow::anyhow!("path cache poisoned"))?;
+    *guard = Some(CachedPathState {
+        path: path.to_string(),
+        len,
+        modified_secs,
+        state: state.clone(),
+    });
+
+    Ok((state, index_decode_parse_ms, summary_index_prep_ms))
+}
+
 pub fn inspect_archive(path: &str, product_version: &str) -> Result<ArchiveSummary> {
     let reader = FileReader::open(path)?;
     inspect_archive_reader(&reader, product_version)
@@ -285,32 +402,47 @@ fn inspect_archive_reader<R: ReadAt + Len>(
 }
 
 pub fn inspect_entry(path: &str, entry_path: &str) -> Result<Option<EntryReport>> {
-    let reader = FileReader::open(path)?;
-    inspect_entry_reader(&reader, entry_path)
+    let state = get_or_build_path_state(path)?;
+    Ok(state.entry(entry_path))
 }
 
 pub fn inspect_entry_bytes(bytes: &[u8], entry_path: &str) -> Result<Option<EntryReport>> {
-    let reader = SliceReader::new(bytes);
-    inspect_entry_reader(&reader, entry_path)
-}
-
-fn inspect_entry_reader<R: ReadAt + Len>(
-    reader: &R,
-    entry_path: &str,
-) -> Result<Option<EntryReport>> {
-    let records = load_entry_records(reader)?;
-    Ok(records.into_iter().find(|record| record.path == entry_path))
+    let state = prepare_introspection_state_bytes(bytes)?;
+    Ok(state.entry(entry_path))
 }
 
 pub fn find_entries(path: &str, query: &str, limit: Option<usize>) -> Result<Vec<EntryMatch>> {
-    let reader = FileReader::open(path)?;
-    find_entries_reader(&reader, query, limit)
+    let state = get_or_build_path_state(path)?;
+    Ok(state.find(query, limit))
 }
 
 pub fn profile_find(path: &str, query: &str, limit: Option<usize>) -> Result<FindHotspotProfile> {
     let open_start = now_ms();
-    let reader = FileReader::open(path)?;
-    profile_find_reader(&reader, query, limit, now_ms() - open_start)
+    let (state, index_decode_parse_ms, summary_index_prep_ms) =
+        get_or_build_path_state_profile(path)?;
+    let open_ms = now_ms() - open_start;
+    let total_start = now_ms();
+
+    let traversal_start = now_ms();
+    let matches = state.find(query, limit);
+    let traversal_ms = now_ms() - traversal_start;
+
+    let materialization_start = now_ms();
+    let _serialized = serde_json::to_vec(&matches).context("serialize find matches")?;
+    let result_materialization_ms = now_ms() - materialization_start;
+
+    Ok(FindHotspotProfile {
+        query: query.to_string(),
+        match_count: matches.len(),
+        timings_ms: HotspotBreakdownMs {
+            archive_open_read: open_ms,
+            index_decode_parse: index_decode_parse_ms,
+            summary_index_prep: summary_index_prep_ms,
+            traversal: traversal_ms,
+            result_materialization: result_materialization_ms,
+            total: (now_ms() - total_start) + open_ms,
+        },
+    })
 }
 
 pub fn find_entries_bytes(
@@ -318,8 +450,28 @@ pub fn find_entries_bytes(
     query: &str,
     limit: Option<usize>,
 ) -> Result<Vec<EntryMatch>> {
+    let state = prepare_introspection_state_bytes(bytes)?;
+    Ok(state.find(query, limit))
+}
+
+pub fn prepare_introspection_state_bytes(bytes: &[u8]) -> Result<ArchiveIntrospectionState> {
     let reader = SliceReader::new(bytes);
-    find_entries_reader(&reader, query, limit)
+    build_state(&reader)
+}
+
+pub fn find_entries_with_state(
+    state: &ArchiveIntrospectionState,
+    query: &str,
+    limit: Option<usize>,
+) -> Vec<EntryMatch> {
+    state.find(query, limit)
+}
+
+pub fn inspect_entry_with_state(
+    state: &ArchiveIntrospectionState,
+    entry_path: &str,
+) -> Option<EntryReport> {
+    state.entry(entry_path)
 }
 
 pub fn profile_find_bytes(
@@ -329,26 +481,6 @@ pub fn profile_find_bytes(
 ) -> Result<FindHotspotProfile> {
     let reader = SliceReader::new(bytes);
     profile_find_reader(&reader, query, limit, 0.0)
-}
-
-fn find_entries_reader<R: ReadAt + Len>(
-    reader: &R,
-    query: &str,
-    limit: Option<usize>,
-) -> Result<Vec<EntryMatch>> {
-    let mut matches = load_entry_records(reader)?
-        .into_iter()
-        .filter(|record| record.path.contains(query))
-        .map(|record| EntryMatch {
-            path: record.path,
-            trust_class: record.trust_class,
-        })
-        .collect::<Vec<_>>();
-    matches.sort_by(|a, b| a.path.cmp(&b.path));
-    if let Some(limit) = limit {
-        matches.truncate(limit);
-    }
-    Ok(matches)
 }
 
 fn profile_find_reader<R: ReadAt + Len>(
@@ -365,22 +497,11 @@ fn profile_find_reader<R: ReadAt + Len>(
     let index_decode_parse_ms = now_ms() - decode_start;
 
     let prep_start = now_ms();
-    let records = load_entry_records(reader)?;
+    let state = build_state(reader)?;
     let summary_index_prep_ms = now_ms() - prep_start;
 
     let traversal_start = now_ms();
-    let mut matches = records
-        .into_iter()
-        .filter(|record| record.path.contains(query))
-        .map(|record| EntryMatch {
-            path: record.path,
-            trust_class: record.trust_class,
-        })
-        .collect::<Vec<_>>();
-    matches.sort_by(|a, b| a.path.cmp(&b.path));
-    if let Some(limit) = limit {
-        matches.truncate(limit);
-    }
+    let matches = state.find(query, limit);
     let traversal_ms = now_ms() - traversal_start;
 
     let materialization_start = now_ms();
@@ -408,8 +529,31 @@ pub fn analyze_propagation(path: &str) -> Result<PropagationReportV1> {
 
 pub fn profile_entry(path: &str, entry_path: &str) -> Result<EntryHotspotProfile> {
     let open_start = now_ms();
-    let reader = FileReader::open(path)?;
-    profile_entry_reader(&reader, entry_path, now_ms() - open_start)
+    let (state, index_decode_parse_ms, summary_index_prep_ms) =
+        get_or_build_path_state_profile(path)?;
+    let open_ms = now_ms() - open_start;
+    let total_start = now_ms();
+
+    let traversal_start = now_ms();
+    let detail = state.entry(entry_path);
+    let traversal_ms = now_ms() - traversal_start;
+
+    let materialization_start = now_ms();
+    let _serialized = serde_json::to_vec(&detail).context("serialize entry detail")?;
+    let result_materialization_ms = now_ms() - materialization_start;
+
+    Ok(EntryHotspotProfile {
+        entry_path: entry_path.to_string(),
+        found: detail.is_some(),
+        timings_ms: HotspotBreakdownMs {
+            archive_open_read: open_ms,
+            index_decode_parse: index_decode_parse_ms,
+            summary_index_prep: summary_index_prep_ms,
+            traversal: traversal_ms,
+            result_materialization: result_materialization_ms,
+            total: (now_ms() - total_start) + open_ms,
+        },
+    })
 }
 
 pub fn analyze_propagation_bytes(bytes: &[u8]) -> Result<PropagationReportV1> {
@@ -435,11 +579,11 @@ fn profile_entry_reader<R: ReadAt + Len>(
     let index_decode_parse_ms = now_ms() - decode_start;
 
     let prep_start = now_ms();
-    let records = load_entry_records(reader)?;
+    let state = build_state(reader)?;
     let summary_index_prep_ms = now_ms() - prep_start;
 
     let traversal_start = now_ms();
-    let detail = records.into_iter().find(|record| record.path == entry_path);
+    let detail = state.entry(entry_path);
     let traversal_ms = now_ms() - traversal_start;
 
     let materialization_start = now_ms();
@@ -615,29 +759,44 @@ fn read_idx3_bytes_from_footer<R: ReadAt + Len>(reader: &R) -> Result<Vec<u8>> {
     Ok(idx3_bytes)
 }
 
-fn load_entry_records<R: ReadAt + Len>(reader: &R) -> Result<Vec<EntryReport>> {
+fn build_state<R: ReadAt + Len>(reader: &R) -> Result<ArchiveIntrospectionState> {
     match open_archive_v1(reader) {
-        Ok(opened) => entry_records_from_index_bytes(reader, &opened.tail.idx3_bytes, false),
+        Ok(opened) => state_from_index_bytes(
+            reader,
+            &opened.tail.idx3_bytes,
+            false,
+            Some(opened.tail.footer.blocks_end_offset),
+        ),
         Err(_) => {
             let idx3_bytes = read_idx3_bytes_from_footer(reader)?;
-            entry_records_from_index_bytes(reader, &idx3_bytes, true)
+            state_from_index_bytes(reader, &idx3_bytes, true, None)
         }
     }
 }
 
-fn entry_records_from_index_bytes<R: ReadAt + Len>(
+fn state_from_index_bytes<R: ReadAt + Len>(
     reader: &R,
     idx3_bytes: &[u8],
     degraded: bool,
-) -> Result<Vec<EntryReport>> {
+    blocks_end_offset: Option<u64>,
+) -> Result<ArchiveIntrospectionState> {
     let index = decode_index(idx3_bytes).context("decode IDX3 index")?;
     let payload_validity = if degraded {
         None
     } else {
-        let opened = open_archive_v1(reader)?;
-        let invalid_blocks =
-            verify_block_payloads_v1(reader, opened.tail.footer.blocks_end_offset)?;
+        let invalid_blocks = verify_block_payloads_v1(
+            reader,
+            blocks_end_offset.context("missing blocks end offset")?,
+        )?;
         Some(invalid_blocks)
+    };
+    let scanned_blocks = if degraded {
+        None
+    } else {
+        Some(scan_blocks_v1(
+            reader,
+            blocks_end_offset.context("missing blocks end offset")?,
+        )?)
     };
     let trust_class = if degraded {
         EntryTrustClass::MetadataDegraded
@@ -672,7 +831,9 @@ fn entry_records_from_index_bytes<R: ReadAt + Len>(
         } else {
             "canonical_index".to_string()
         };
-        let payload_blake3 = entry_payload_blake3(reader, &entry, degraded)
+        let payload_blake3 = scanned_blocks
+            .as_ref()
+            .and_then(|blocks| entry_payload_blake3_with_blocks(reader, &entry, blocks))
             .unwrap_or_else(|| "unavailable".to_string());
         records.push(EntryReport {
             path: entry.path.clone(),
@@ -690,7 +851,7 @@ fn entry_records_from_index_bytes<R: ReadAt + Len>(
         });
     }
     records.sort_by(|a, b| a.path.cmp(&b.path));
-    Ok(records)
+    Ok(ArchiveIntrospectionState::from_records(records))
 }
 
 fn build_extent_segments(extents: &[Extent]) -> Vec<EntryExtentSegment> {
@@ -736,16 +897,11 @@ fn logical_range_from_extents(
     EntryLogicalRange { start, end }
 }
 
-fn entry_payload_blake3<R: ReadAt + Len>(
+fn entry_payload_blake3_with_blocks<R: ReadAt>(
     reader: &R,
     entry: &Entry,
-    degraded: bool,
+    blocks: &[BlockSpanV1],
 ) -> Option<String> {
-    if degraded || entry.kind != EntryKind::Regular {
-        return None;
-    }
-    let opened = open_archive_v1(reader).ok()?;
-    let blocks = scan_blocks_v1(reader, opened.tail.footer.blocks_end_offset).ok()?;
-    let bytes = read_entry_bytes(reader, entry, &blocks).ok()?;
+    let bytes = read_entry_bytes(reader, entry, blocks).ok()?;
     Some(blake3::hash(&bytes).to_hex().to_string())
 }
