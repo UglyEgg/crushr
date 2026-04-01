@@ -1342,3 +1342,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added explicit UI-visible wasm init failure reporting and wasm-readiness guards for load/search/propagation actions so browser failures no longer present as silent no-op states.
 - Preserved read-only semantics and shared Rust introspection boundaries.
 - Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `cd demos/wasm-readonly-demo && ./build-dist.sh`.
+
+## 2026-04-01 — P18S05f3
+- Added explicit WASM demo state-status banner with deterministic transitions (`idle`, `working`, `success`, `error`) and non-silent long-action messaging across load/search/entry detail/propagation paths.
+- Added explicit **Unload archive** control and implemented deterministic full demo-state reset (summary/query/results/selection/extent/propagation/error/status).
+- Converted results list into a scrollable browse pane and pre-populated browseable entries on archive load using deterministic empty-query find.
+- Updated WASM demo README with concise interaction-model notes for loading state, unload/reset behavior, and browseable results pane.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

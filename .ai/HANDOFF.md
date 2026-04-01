@@ -236,3 +236,21 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cd demos/wasm-readonly-demo && ./build-dist.sh`
 - Environment note:
   - browser screenshot/automation tool is unavailable here; complete picker/drop click-through verification should be run manually in an external browser session.
+
+## 2026-04-01 — Handoff update (P18S05f3 complete)
+
+- WASM demo interaction-model usability pass completed in:
+  - `demos/wasm-readonly-demo/web/index.html`
+  - `demos/wasm-readonly-demo/web/main.js`
+  - `demos/wasm-readonly-demo/web/styles.css`
+  - `demos/wasm-readonly-demo/README.md`
+- Added deterministic UI state banner for working transitions (`idle`/`working`/`success`/`error`) and surfaced non-silent long operations (load/search/entry detail/propagation analysis).
+- Added explicit **Unload archive** control with full reset of archive summary, query/results, selection/detail, extent panel, propagation state, and status/error surfaces.
+- Results pane is now scrollable and browseable, and is pre-populated on successful archive load (deterministic empty-query listing).
+- Last validated commands:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Screenshot note:
+  - browser screenshot tooling remains unavailable in this environment.

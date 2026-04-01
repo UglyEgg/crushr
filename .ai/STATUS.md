@@ -411,3 +411,19 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cd demos/wasm-readonly-demo && ./build-dist.sh`
 - Constraint: browser screenshot/automation tooling is not available in this environment; runtime click-through verification remains manual in an external browser.
 - Next: optional browser automation/screenshot packet once browser artifact tooling is available.
+
+## 2026-04-01 — Active Step Update (P18S05f3)
+
+- Completed: Phase 18 Step 05 fix 3 (`P18S05f3`).
+- Implemented WASM demo UX/state-coherence updates for real-browser usability:
+  - added explicit UI working-state banner with deterministic transitions (`idle`, `working`, `success`, `error`) during archive load, search, entry detail fetch, and propagation analysis
+  - added explicit **Unload archive** control near file load and wired full deterministic reset of summary/search/results/selection/extent/propagation/error/status state
+  - made entries/results pane browseable + scrollable and pre-populated it on load via deterministic full-list query
+- Updated README with concise interaction-model notes for loading state, unload/reset behavior, and browseable results pane.
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint: browser screenshot tooling remains unavailable in this environment.
+- Next: optional browser automation/screenshot packet once browser artifact tooling is available.
