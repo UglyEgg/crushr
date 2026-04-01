@@ -52,6 +52,12 @@ Any static host works (nginx, GitHub Pages, Netlify, S3 static hosting, etc.) as
 
 `.nojekyll` is emitted for compatibility with Pages sites that do not use custom Jekyll config.
 
+## Interaction model (P18S05f1)
+
+- The demo shows explicit state transitions in a status banner (`idle`, `working`, `success`, `error`) during archive load, search, entry detail fetch, and propagation analysis.
+- Use **Unload archive** to fully reset archive summary, search query/results, selected entry, extent view, propagation state, and status/error surfaces to the empty first-load state.
+- The entries/results pane is browseable and scrollable; on archive load it is pre-populated with browseable entries, and **Find** filters deterministically from that set.
+
 ## Demo checks
 
 1. Choose a local `.crs` file from the file picker **or drag/drop it into the drop zone**.

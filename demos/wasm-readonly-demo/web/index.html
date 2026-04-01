@@ -15,16 +15,20 @@
         </p>
         <p class="hero-hint">Usage: drop a <code>.crs</code> archive or select a file, then use <strong>Find</strong>.</p>
       </header>
+      <div id="status" class="status-banner status-idle">Idle. Load an archive to start.</div>
       <div id="drop-zone" class="drop-zone" aria-label="Drop a .crs archive here">
         <p>Drop a .crs archive here, or select one below.</p>
-        <input id="file" type="file" accept=".crs" />
+        <div class="load-row">
+          <input id="file" type="file" accept=".crs" />
+          <button id="unload" type="button">Unload archive</button>
+        </div>
       </div>
       <section class="panel">
         <h2>Archive summary</h2>
         <pre id="summary"></pre>
       </section>
       <section class="panel">
-        <h2>Search entries</h2>
+        <h2>Search and browse entries</h2>
         <div class="search-row">
           <input id="query" type="text" placeholder="substring path query" />
           <button id="search">Find</button>

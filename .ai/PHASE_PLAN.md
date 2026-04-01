@@ -338,3 +338,4 @@ Latest priority doctrine
 - [x] P18S05f0 — add static-host deployable WASM demo bundle flow (`build-dist.sh` + `dist/` staging), tighten relative web asset paths for static hosting compatibility, and document build/run/deploy usage including GitHub Pages notes.
 - [x] P18S05f1 — execute static bundle flow in provisioned environment, add `--no-opt` build guard for reliable wasm-pack execution, and verify dist-hosted functional demo paths (summary/search/entry/extent/propagation).
 - [x] P18S05f2 — fix browser-runtime WASM init/load regression in the demo by hardening module init sequencing/path resolution and adding explicit UI-visible init/load/search error surfacing (no silent no-op states).
+- [x] P18S05f3 — add WASM demo working-state visibility, explicit unload/reset control, and a scrollable browseable results pane with deterministic state coherence across load/search/select/unload transitions.

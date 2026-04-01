@@ -16,14 +16,20 @@ pre {
   padding: 0.85rem;
   overflow: auto;
 }
-section { margin-top: 1rem; }
-button { cursor: pointer; }
+section {
+  margin-top: 1rem;
+}
+button {
+  cursor: pointer;
+}
 #error {
   color: #b00020;
   margin-top: 0.75rem;
   font-weight: 600;
 }
-.muted { color: #556174; }
+.muted {
+  color: #556174;
+}
 .hero {
   margin-bottom: 1rem;
 }
@@ -47,6 +53,35 @@ button { cursor: pointer; }
   border-radius: 4px;
   padding: 0.05rem 0.35rem;
 }
+
+.status-banner {
+  border-radius: 8px;
+  border: 1px solid #c7d7ee;
+  padding: 0.55rem 0.7rem;
+  margin-bottom: 0.8rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.status-idle {
+  color: #334155;
+  background: #eef3fb;
+}
+.status-working {
+  color: #0f3f8f;
+  background: #e8f1ff;
+  border-color: #94b5e9;
+}
+.status-success {
+  color: #0a5132;
+  background: #e9f8ef;
+  border-color: #95d5b1;
+}
+.status-error {
+  color: #842029;
+  background: #fdecef;
+  border-color: #f0b4bd;
+}
+
 .panel {
   background: rgba(255, 255, 255, 0.76);
   border: 1px solid #d8e2f0;
@@ -58,7 +93,11 @@ button { cursor: pointer; }
   margin: 0 0 0.7rem;
   font-size: 1.05rem;
 }
-.toggle-row { display: inline-flex; gap: 0.5rem; align-items: center; }
+.toggle-row {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+}
 .search-row {
   display: flex;
   gap: 0.5rem;
@@ -75,6 +114,13 @@ button { cursor: pointer; }
   background: rgba(255, 255, 255, 0.72);
 }
 
+.load-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .drop-zone.drag-over {
   border-color: #215fc9;
   background: #ebf2ff;
@@ -83,11 +129,20 @@ button { cursor: pointer; }
 #results {
   margin: 0.7rem 0 0;
   padding-left: 1rem;
+  max-height: 16rem;
+  overflow-y: auto;
+  border: 1px solid #dbe6f7;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+#results li {
+  margin: 0.35rem 0;
 }
 
 #results li.empty-state {
   list-style: none;
-  margin-left: -1rem;
+  margin: 0.45rem;
   color: #556174;
   background: #f4f7fc;
   border: 1px dashed #cad7ea;
@@ -96,7 +151,7 @@ button { cursor: pointer; }
 }
 
 .result-button {
-  width: 100%;
+  width: calc(100% - 0.5rem);
   text-align: left;
   border: 1px solid #cbd5e1;
   background: #fff;
@@ -187,6 +242,15 @@ button { cursor: pointer; }
   margin-right: 0.35rem;
   vertical-align: middle;
 }
-.legend-selected { outline: 2px solid #1f5fd6; background: #fff; }
-.legend-impacted { background: #ffd9c4; border-color: #a03d00; }
-.legend-normal { background: #cfe2ff; border-color: #5d89d8; }
+.legend-selected {
+  outline: 2px solid #1f5fd6;
+  background: #fff;
+}
+.legend-impacted {
+  background: #ffd9c4;
+  border-color: #a03d00;
+}
+.legend-normal {
+  background: #cfe2ff;
+  border-color: #5d89d8;
+}

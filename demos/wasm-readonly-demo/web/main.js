@@ -29,11 +29,13 @@ function requireWasmReady() {
   }
   const detail = wasmInitError ? ` ${String(wasmInitError)}` : "";
   setError(`Failed to initialize wasm runtime.${detail}`);
+  setUiState("error", "WASM runtime initialization failed.");
   return false;
 }
 
 const dropZoneEl = document.getElementById("drop-zone");
 const fileEl = document.getElementById("file");
+const unloadBtn = document.getElementById("unload");
 const summaryEl = document.getElementById("summary");
 const queryEl = document.getElementById("query");
 const resultsEl = document.getElementById("results");
@@ -42,15 +44,18 @@ const extentEl = document.getElementById("extent-visualization");
 const propagationToggleEl = document.getElementById("propagation-toggle");
 const propagationSummaryEl = document.getElementById("propagation-summary");
 const propagationDetailEl = document.getElementById("propagation-detail");
+const statusEl = document.getElementById("status");
 const errorEl = document.getElementById("error");
 const searchBtn = document.getElementById("search");
 
 const NO_FILE_MESSAGE = "No archive loaded. Choose or drop a .crs file to begin.";
 const NO_RESULTS_MESSAGE = "No matching entries found for the current query.";
-const DEFAULT_EXTENT_MESSAGE = "Select a search result to view extent placement.";
+const DEFAULT_EXTENT_MESSAGE = "Select an entry from the results pane to view extent placement.";
 
 let bytes = null;
 let selectedPath = null;
+let latestMatches = [];
+let uiState = "idle";
 let propagationState = {
   enabled: false,
   impactedByPath: new Map(),
@@ -63,6 +68,36 @@ function clearError() {
 
 function setError(message) {
   errorEl.textContent = message;
+  setUiState("error", message);
+}
+
+function setUiState(state, message) {
+  uiState = state;
+  statusEl.className = `status-banner status-${state}`;
+  statusEl.textContent = message;
+}
+
+function setControlsBusy(isBusy) {
+  fileEl.disabled = isBusy;
+  unloadBtn.disabled = isBusy || !bytes;
+  searchBtn.disabled = isBusy;
+  queryEl.disabled = isBusy || !bytes;
+  propagationToggleEl.disabled = isBusy || !bytes;
+}
+
+async function runWorking(actionLabel, work) {
+  setUiState("working", actionLabel);
+  setControlsBusy(true);
+  try {
+    const result = await work();
+    setUiState("success", `${actionLabel.replace(/\.\.\.$/, "")}: done.`);
+    return result;
+  } catch (error) {
+    setError(String(error));
+    throw error;
+  } finally {
+    setControlsBusy(false);
+  }
 }
 
 function render(obj) {
@@ -77,9 +112,15 @@ function renderResultsMessage(message) {
   resultsEl.appendChild(item);
 }
 
-function resetDemoState() {
+function resetDemoState(options = {}) {
+  const { clearFileInput = false, statusMessage = "Idle. Load an archive to start." } = options;
+
   bytes = null;
   selectedPath = null;
+  latestMatches = [];
+  queryEl.value = "";
+  propagationToggleEl.checked = false;
+
   summaryEl.textContent = NO_FILE_MESSAGE;
   renderResultsMessage(NO_FILE_MESSAGE);
   entryEl.textContent = "No entry selected.";
@@ -87,34 +128,18 @@ function resetDemoState() {
   propagationSummaryEl.textContent = "Propagation view is disabled.";
   propagationDetailEl.textContent = "Enable propagation view to inspect impact details.";
   propagationState = {
-    enabled: propagationToggleEl.checked,
+    enabled: false,
     impactedByPath: new Map(),
     noImpactMessage: "No impacted entries detected from current corruption inputs.",
   };
-}
 
-async function loadArchive(file) {
+  if (clearFileInput) {
+    fileEl.value = "";
+  }
+
   clearError();
-  if (!file) {
-    resetDemoState();
-    setError("No file provided.");
-    return;
-  }
-
-  resetDemoState();
-  try {
-    const nextBytes = new Uint8Array(await file.arrayBuffer());
-    if (!requireWasmReady()) {
-      return;
-    }
-    const summary = wasmFns.archive_summary(file.name, nextBytes);
-    bytes = nextBytes;
-    summaryEl.textContent = render(summary);
-    renderResultsMessage("No search results yet. Enter a query and click Find.");
-    refreshPropagationState();
-  } catch (error) {
-    setError(`Failed to load archive: ${String(error)}`);
-  }
+  setUiState("idle", statusMessage);
+  setControlsBusy(false);
 }
 
 function renderEmptyExtentState(message) {
@@ -136,10 +161,12 @@ function renderExtentVisualization(detail) {
     renderEmptyExtentState("Extent segmentation is unavailable for this entry.");
     return;
   }
+
   const header = document.createElement("p");
   header.className = "extent-header";
   header.textContent = `${detail.path} • ${detail.extent_count} extent(s) • logical range ${detail.logical_range.start}-${detail.logical_range.end}`;
   extentEl.appendChild(header);
+
   const impact = propagationState.impactedByPath.get(detail.path);
   const isImpacted = propagationState.enabled && Boolean(impact);
 
@@ -159,6 +186,7 @@ function renderExtentVisualization(detail) {
     strip.appendChild(block);
   }
   extentEl.appendChild(strip);
+
   if (propagationState.enabled) {
     const legend = document.createElement("ul");
     legend.className = "extent-legend";
@@ -181,11 +209,13 @@ function renderExtentVisualization(detail) {
 }
 
 function renderSearchResults(matches) {
+  latestMatches = matches;
   resultsEl.innerHTML = "";
   if (matches.length === 0) {
     renderResultsMessage(NO_RESULTS_MESSAGE);
     return;
   }
+
   for (const match of matches) {
     const item = document.createElement("li");
     const button = document.createElement("button");
@@ -198,14 +228,25 @@ function renderSearchResults(matches) {
     if (selectedPath === match.path) {
       button.classList.add("is-selected");
     }
-    button.addEventListener("click", () => {
-      const detail = wasmFns.entry(bytes, match.path);
-      selectedPath = match.path;
-      entryEl.textContent = render(detail);
-      renderExtentVisualization(detail);
-      renderPropagationDetail(selectedPath);
-      renderSearchResults(matches);
+
+    button.addEventListener("click", async () => {
+      if (!bytes || !requireWasmReady()) {
+        return;
+      }
+      try {
+        await runWorking("Loading entry detail...", async () => {
+          const detail = wasmFns.entry(bytes, match.path);
+          selectedPath = match.path;
+          entryEl.textContent = render(detail);
+          renderExtentVisualization(detail);
+          renderPropagationDetail(selectedPath);
+          renderSearchResults(latestMatches);
+        });
+      } catch (_error) {
+        // setError already handled in runWorking
+      }
     });
+
     item.appendChild(button);
     resultsEl.appendChild(item);
   }
@@ -236,9 +277,10 @@ function renderPropagationDetail(path) {
     return;
   }
   if (!path) {
-    propagationDetailEl.textContent = "Select a search result to view propagation details.";
+    propagationDetailEl.textContent = "Select an entry from the results pane to view propagation details.";
     return;
   }
+
   const impact = propagationState.impactedByPath.get(path);
   if (!impact) {
     propagationDetailEl.textContent = "Selected entry has no active propagation impact.";
@@ -256,7 +298,7 @@ function renderPropagationDetail(path) {
   propagationDetailEl.textContent = lines.join("\n");
 }
 
-function refreshPropagationState() {
+async function refreshPropagationState() {
   if (!bytes || !propagationState.enabled) {
     propagationState.impactedByPath = new Map();
     renderPropagationSummary();
@@ -266,14 +308,70 @@ function refreshPropagationState() {
   if (!requireWasmReady()) {
     return;
   }
-  try {
+
+  await runWorking("Analyzing propagation...", async () => {
     const report = wasmFns.propagation(bytes);
     propagationState.noImpactMessage = report.no_impact_message;
     propagationState.impactedByPath = new Map(report.impacted_entries.map((item) => [item.path, item]));
     renderPropagationSummary();
     renderPropagationDetail(selectedPath);
-  } catch (error) {
-    setError(String(error));
+  });
+}
+
+async function loadArchive(file) {
+  clearError();
+  if (!file) {
+    resetDemoState({ statusMessage: "No archive loaded." });
+    setError("No file provided.");
+    return;
+  }
+
+  resetDemoState({ statusMessage: "Preparing archive load..." });
+
+  try {
+    await runWorking("Loading archive...", async () => {
+      const nextBytes = new Uint8Array(await file.arrayBuffer());
+      if (!requireWasmReady()) {
+        return;
+      }
+
+      const summary = wasmFns.archive_summary(file.name, nextBytes);
+      const initialMatches = wasmFns.find(nextBytes, "");
+      bytes = nextBytes;
+      summaryEl.textContent = render(summary);
+      renderSearchResults(initialMatches);
+      if (initialMatches.length === 0) {
+        renderResultsMessage("Archive contains no browseable entries.");
+      }
+      await refreshPropagationState();
+    });
+  } catch (_error) {
+    resetDemoState({ statusMessage: "Load failed; archive state reset." });
+    setError("Failed to load archive.");
+  }
+}
+
+async function performSearch() {
+  clearError();
+  if (!bytes) {
+    setError("Load an archive before searching.");
+    return;
+  }
+  if (!requireWasmReady()) {
+    return;
+  }
+
+  try {
+    await runWorking("Searching entries...", async () => {
+      const matches = wasmFns.find(bytes, queryEl.value);
+      selectedPath = null;
+      entryEl.textContent = "No entry selected.";
+      renderEmptyExtentState(DEFAULT_EXTENT_MESSAGE);
+      renderPropagationDetail(selectedPath);
+      renderSearchResults(matches);
+    });
+  } catch (_error) {
+    // setError already handled in runWorking
   }
 }
 
@@ -288,6 +386,10 @@ try {
 fileEl.addEventListener("change", async () => {
   const file = fileEl.files?.[0];
   await loadArchive(file);
+});
+
+unloadBtn.addEventListener("click", () => {
+  resetDemoState({ clearFileInput: true, statusMessage: "Archive unloaded. Demo reset to empty state." });
 });
 
 dropZoneEl.addEventListener("dragenter", (event) => {
@@ -313,44 +415,24 @@ dropZoneEl.addEventListener("drop", async (event) => {
   await loadArchive(file);
 });
 
-searchBtn.addEventListener("click", () => {
-  clearError();
-  if (!bytes) {
-    setError("Load an archive before searching.");
-    return;
-  }
-  if (!requireWasmReady()) {
-    return;
-  }
-  try {
-    const matches = wasmFns.find(bytes, queryEl.value);
-    selectedPath = null;
-    entryEl.textContent = "No entry selected.";
-    renderEmptyExtentState(DEFAULT_EXTENT_MESSAGE);
-    renderPropagationDetail(selectedPath);
-    renderSearchResults(matches);
-  } catch (error) {
-    setError(String(error));
-  }
+searchBtn.addEventListener("click", async () => {
+  await performSearch();
 });
 
-propagationToggleEl.addEventListener("change", () => {
+propagationToggleEl.addEventListener("change", async () => {
   propagationState.enabled = propagationToggleEl.checked;
-  refreshPropagationState();
-  if (!bytes) {
-    return;
-  }
-  if (!requireWasmReady()) {
-    return;
-  }
   try {
+    await refreshPropagationState();
+    if (!bytes || !requireWasmReady()) {
+      return;
+    }
     const matches = wasmFns.find(bytes, queryEl.value);
     renderSearchResults(matches);
     if (selectedPath) {
       const detail = wasmFns.entry(bytes, selectedPath);
       renderExtentVisualization(detail);
     }
-  } catch (error) {
-    setError(String(error));
+  } catch (_error) {
+    // setError already handled
   }
 });
