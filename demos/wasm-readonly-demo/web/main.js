@@ -1,4 +1,4 @@
-import init, { init as setup, archive_summary, find, entry, propagation } from "../pkg/crushr_wasm_readonly_demo.js";
+import init, { init as setup, archive_summary, find, entry, propagation } from "./pkg/crushr_wasm_readonly_demo.js";
 
 const dropZoneEl = document.getElementById("drop-zone");
 const fileEl = document.getElementById("file");

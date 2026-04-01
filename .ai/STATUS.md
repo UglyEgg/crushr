@@ -355,3 +355,41 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Screenshot asset status: browser screenshot tooling is not available in this environment; capture was not performed in this packet.
 - Next: optional screenshot/asset capture packet when browser artifact tooling is available.
+
+## 2026-04-01 — Active Step Update (P18S05f0)
+
+- Completed: Phase 18 Step 05 fix 0 (`P18S05f0`).
+- Promoted `demos/wasm-readonly-demo` to a static-host-ready artifact flow:
+  - added deterministic `./build-dist.sh` staging command
+  - emits deployable `dist/` with `index.html`, `main.js`, `styles.css`, `pkg/`, and `.nojekyll`
+- Hardened static-host path compatibility by switching web module import to relative `./pkg/...` resolution (avoids parent-path breakage under subpath/static hosting).
+- Applied minimal public-entry polish in `web/index.html` (`crushr — archive introspection demo` title/header, concise usage hint).
+- Updated demo README with concise build/local-serve/deploy instructions including GitHub Pages-compatible publish notes.
+- Validation:
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cd demos/wasm-readonly-demo && ./build-dist.sh`
+  - `cd demos/wasm-readonly-demo/dist && python3 -m http.server 8080`
+- Next: optional CI automation for publishing `dist/` (out of scope for this packet).
+
+## 2026-04-01 — Active Step Update (P18S05f1)
+
+- Completed: Phase 18 Step 05 fix 1 (`P18S05f1`).
+- Hardened static build execution reliability by updating `demos/wasm-readonly-demo/build-dist.sh` to invoke:
+  - `wasm-pack build --target web --no-opt --out-dir dist/pkg`
+- Rationale: avoids environment-dependent Binaryen download failures while preserving deterministic static bundle output for this demo packet.
+- Executed `./build-dist.sh` successfully after installing `wasm-pack`.
+- Verified `dist/` static contents and local static serving from `dist/`.
+- Verified WASM demo functional paths against a generated sample archive via JS/WASM invocation from the built `dist/pkg` exports:
+  - archive load
+  - summary
+  - search
+  - entry detail
+  - extent visualization data path (`extent_segments`)
+  - propagation toggle data path (`propagation`)
+- Validation:
+  - `cargo install wasm-pack`
+  - `cd demos/wasm-readonly-demo && ./build-dist.sh`
+  - `cd demos/wasm-readonly-demo && find dist -mindepth 1 -maxdepth 2`
+  - `cd demos/wasm-readonly-demo/dist && python3 -m http.server 8080` (+ HTTP 200 checks for `index.html`, `main.js`, and wasm asset)
+  - Node ESM verification script against `dist/pkg` exports + `/tmp/crushr_demo_sample.crs`
+- Next: optional browser-automation smoke (out of scope here due blocked browser download in this environment).

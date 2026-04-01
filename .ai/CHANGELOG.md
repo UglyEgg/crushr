@@ -1323,3 +1323,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Hardened browser demo state coherence in `demos/wasm-readonly-demo/web/main.js` with explicit empty/error/no-impact messaging and deterministic state resets across load/search/propagation transitions.
 - Updated UI/readme polish for empty-result rendering and concise coherence verification notes (`web/styles.css`, `README.md`).
 - Validation: `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-01 — P18S05f0
+- Added `demos/wasm-readonly-demo/build-dist.sh` to produce a deterministic deployable static bundle under `demos/wasm-readonly-demo/dist`.
+- Hardened static-host path compatibility by switching the browser entry import in `web/main.js` to `./pkg/crushr_wasm_readonly_demo.js`.
+- Polished shareable entry presentation in `web/index.html` with concise title/subtitle/usage hint.
+- Expanded `demos/wasm-readonly-demo/README.md` with requirements, bundle build, local static run, and static-host deployment guidance (including GitHub Pages notes).
+- Validation: `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cd demos/wasm-readonly-demo && ./build-dist.sh`; `cd demos/wasm-readonly-demo/dist && python3 -m http.server 8080`.
+
+## 2026-04-01 — P18S05f1
+- Updated `demos/wasm-readonly-demo/build-dist.sh` to run `wasm-pack build --target web --no-opt --out-dir dist/pkg` so static bundle generation is reliable without Binaryen fetch.
+- Installed `wasm-pack`, executed `./build-dist.sh` successfully, and verified `dist/` hostable structure (`index.html`, `main.js`, `styles.css`, `.nojekyll`, and `pkg/*`).
+- Served `dist/` locally and confirmed HTTP 200 for key assets (`index.html`, `main.js`, wasm binary).
+- Verified demo functional data paths using generated archive + built `dist/pkg` exports: archive load, summary, search, entry detail, extent-segment data path, and propagation data path.

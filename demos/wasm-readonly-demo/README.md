@@ -1,22 +1,56 @@
-# crushr WASM read-only demo (P18S04f2)
+# crushr WASM read-only demo (P18S05)
 
-Local browser demo for archive introspection.
+Static, backend-free browser demo for archive introspection.
 
-## Build
+## Requirements
+
+- `wasm-pack` (https://rustwasm.github.io/wasm-pack/installer/)
+- Python 3 (for local static serving)
+
+## Build deployable static bundle
 
 ```bash
 cd demos/wasm-readonly-demo
-wasm-pack build --target web --out-dir web/pkg
+./build-dist.sh
 ```
 
-## Run
+Output directory:
+
+```text
+dist/
+  index.html
+  main.js
+  styles.css
+  .nojekyll
+  pkg/
+    *.wasm
+    *.js
+    *.d.ts
+    package.json
+```
+
+The `dist/` directory is static-host ready (no runtime build step, no backend).
+
+## Run locally from static output
 
 ```bash
-cd demos/wasm-readonly-demo/web
+cd demos/wasm-readonly-demo/dist
 python3 -m http.server 8080
 ```
 
 Open `http://127.0.0.1:8080` in a browser.
+
+## Deploy to static hosting
+
+Any static host works (nginx, GitHub Pages, Netlify, S3 static hosting, etc.) as long as the full `dist/` contents are served.
+
+### GitHub Pages (simple/manual path)
+
+1. Build: `./build-dist.sh`
+2. Publish `demos/wasm-readonly-demo/dist/` contents to your Pages source branch/folder.
+3. Keep files at the root of the published folder (so `index.html` and `pkg/` are siblings).
+
+`.nojekyll` is emitted for compatibility with Pages sites that do not use custom Jekyll config.
 
 ## Demo checks
 
