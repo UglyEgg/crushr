@@ -5,6 +5,7 @@ section { margin-top: 1rem; }
 button { cursor: pointer; }
 #error { color: #b00020; }
 .muted { color: #595959; }
+.toggle-row { display: inline-flex; gap: 0.5rem; align-items: center; }
 
 .drop-zone {
   border: 2px dashed #7d7d7d;
@@ -24,6 +25,10 @@ button { cursor: pointer; }
 #results button.is-selected {
   border: 1px solid #0b57d0;
   background: #e8f0fe;
+}
+#results button.is-impacted {
+  border-color: #a03d00;
+  background: #fff2e8;
 }
 
 .extent-panel {
@@ -50,9 +55,42 @@ button { cursor: pointer; }
   font-weight: 600;
   color: #0f3f8f;
 }
+.extent-block-selected {
+  outline: 2px solid #1f5fd6;
+}
+.extent-block-impacted {
+  border-color: #a03d00;
+  background: #ffd9c4;
+  color: #7a2600;
+}
+.extent-block-normal {
+  border-color: #5d89d8;
+  background: #cfe2ff;
+  color: #0f3f8f;
+}
 
 .extent-meta {
   margin: 0;
   padding-left: 1.25rem;
   font-size: 0.9rem;
 }
+
+.extent-legend {
+  display: flex;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+}
+.legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid #666;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+.legend-selected { outline: 2px solid #1f5fd6; background: #fff; }
+.legend-impacted { background: #ffd9c4; border-color: #a03d00; }
+.legend-normal { background: #cfe2ff; border-color: #5d89d8; }
