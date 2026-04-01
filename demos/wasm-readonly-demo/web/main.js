@@ -72,6 +72,15 @@ function setError(message) {
   setUiState("error", message);
 }
 
+function formatActionError(actionLabel, error) {
+  const detail = String(error);
+  const action = actionLabel.replace(/\.\.\.$/, "");
+  if (detail.includes("RuntimeError: unreachable")) {
+    return `${action} failed due to an internal WASM runtime error. Reload the archive and retry. Details: ${detail}`;
+  }
+  return `${action} failed: ${detail}`;
+}
+
 function setUiState(state, message) {
   uiState = state;
   statusEl.className = `status-banner status-${state}`;
@@ -94,7 +103,7 @@ async function runWorking(actionLabel, work) {
     setUiState("success", `${actionLabel.replace(/\.\.\.$/, "")}: done.`);
     return result;
   } catch (error) {
-    setError(String(error));
+    setError(formatActionError(actionLabel, error));
     throw error;
   } finally {
     setControlsBusy(false);
@@ -344,7 +353,6 @@ async function loadArchive(file) {
     });
   } catch (_error) {
     resetDemoState({ statusMessage: "Load failed; archive state reset." });
-    setError("Failed to load archive.");
   }
 }
 

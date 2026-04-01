@@ -519,3 +519,23 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - browser screenshot/automation tooling is unavailable in this environment, so browser verification remains manual outside this runtime.
 - Next:
   - if large non-empty queries still render too many rows, add explicit deterministic result capping + visible truncation messaging in a follow-on packet.
+
+## 2026-04-01 — Active Step Update (P18S08f2)
+
+- Completed: Phase 18 Step 08 fix 2 (`P18S08f2`).
+- Fixed lazy-state `find` crash root path in WASM adapter:
+  - removed full-archive byte cloning during lazy state build (`ensure_loaded_state`) and now borrows loaded bytes directly when preparing introspection state.
+  - this avoids a second full in-memory copy during first `find`/`entry`, which could trigger runtime failure on very large archives.
+- Added explicit browser-visible WASM error messaging:
+  - action-scoped UI errors now render as `"<action> failed: <detail>"`.
+  - raw `RuntimeError: unreachable executed` is surfaced with explicit operator guidance to reload/retry, instead of an uncontextualized exception.
+- Preserved P18S08f1 de-eager behavior:
+  - archive load still shows summary without eager browse prepopulation
+  - results still require explicit `Find`
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - browser tooling is not installed in this environment (`playwright` missing), so real-browser click-through verification remains required externally.

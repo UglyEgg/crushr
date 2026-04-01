@@ -1377,3 +1377,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - repeated calls reuse prepared state deterministically
 - Updated `demos/wasm-readonly-demo/README.md` interaction model text to match non-prepopulated browse behavior.
 - Validation: `cargo fmt --all`; `node --check demos/wasm-readonly-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-01 — P18S08f2
+- Fixed lazy-state first-find crash path in `demos/wasm-readonly-demo/src/lib.rs` by removing full archive-byte cloning during `ensure_loaded_state()` and preparing introspection state from borrowed loaded bytes.
+- Added explicit operation-scoped browser error surfacing in `demos/wasm-readonly-demo/web/main.js`, including clearer messaging for internal WASM runtime traps (`RuntimeError: unreachable...`).
+- Kept de-eager load behavior unchanged (summary-first load, no empty-query pre-browse, explicit Find-triggered results).
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

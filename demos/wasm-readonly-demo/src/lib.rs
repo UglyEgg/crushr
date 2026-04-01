@@ -90,11 +90,15 @@ fn ensure_loaded_state() -> Result<(), JsValue> {
     if LOADED_STATE.with(|slot| slot.borrow().is_some()) {
         return Ok(());
     }
-    let archive_bytes = LOADED_BYTES
-        .with(|slot| slot.borrow().clone())
-        .ok_or_else(|| JsValue::from_str("No archive loaded."))?;
-    let state = prepare_introspection_state_bytes(&archive_bytes)
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let state = LOADED_BYTES
+        .with(|slot| {
+            let borrowed = slot.borrow();
+            let archive_bytes = borrowed
+                .as_deref()
+                .ok_or_else(|| JsValue::from_str("No archive loaded."))?;
+            prepare_introspection_state_bytes(archive_bytes)
+                .map_err(|e| JsValue::from_str(&format!("Failed to build introspection state: {e}")))
+        })?;
     LOADED_STATE.with(|slot| {
         *slot.borrow_mut() = Some(state);
     });

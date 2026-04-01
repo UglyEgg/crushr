@@ -316,3 +316,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `rustup target add wasm32-unknown-unknown`
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+
+## 2026-04-01 — Handoff update (P18S08f2 complete)
+
+- Fixed WASM lazy-state crash path in `demos/wasm-readonly-demo/src/lib.rs`:
+  - `ensure_loaded_state()` no longer clones `LOADED_BYTES` (full archive copy) before building introspection state.
+  - state now builds directly from borrowed loaded bytes, then is cached in `LOADED_STATE`.
+- Improved explicit browser error surfacing in `demos/wasm-readonly-demo/web/main.js`:
+  - operation-scoped error formatting (`<action> failed: <detail>`)
+  - explicit internal WASM runtime guidance when browser reports `RuntimeError: unreachable ...`
+  - removed generic load-failure overwrite so detailed runWorking error remains visible.
+- De-eager behavior remains in place:
+  - no empty-query pre-browse on load
+  - explicit Find prompt after summary.
+- Last validated commands:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Environment note:
+  - `playwright` is not installed here, so real-browser click-through verification must be run outside this environment.
