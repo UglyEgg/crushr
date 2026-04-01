@@ -194,3 +194,31 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Last validated commands:
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+
+## 2026-04-01 — Handoff update (P18S05f0 complete)
+
+- WASM demo now has a deterministic static-bundle build entrypoint:
+  - `cd demos/wasm-readonly-demo && ./build-dist.sh`
+- Build output is host-ready in `demos/wasm-readonly-demo/dist/` with:
+  - `index.html`, `main.js`, `styles.css`, `pkg/`, `.nojekyll`
+- Static hosting compatibility hardening:
+  - `web/main.js` now imports `./pkg/crushr_wasm_readonly_demo.js` (subpath-safe on static hosts including GitHub Pages)
+- Public-entry polish + docs:
+  - `web/index.html` title/header/usage hint refined for shareable demo context
+  - README now documents requirements, build, local serve, and static-host deploy workflow
+- Last validated commands:
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cd demos/wasm-readonly-demo && ./build-dist.sh`
+  - `cd demos/wasm-readonly-demo/dist && python3 -m http.server 8080`
+
+## 2026-04-01 — Handoff update (P18S05f1 complete)
+
+- `demos/wasm-readonly-demo/build-dist.sh` now passes `--no-opt` to wasm-pack to avoid Binaryen download dependency during demo static bundle builds.
+- Verified in this environment:
+  - installed `wasm-pack`
+  - ran `./build-dist.sh` successfully
+  - confirmed `dist/` contains hostable static assets + wasm package outputs
+  - served `dist/` via `python3 -m http.server` and confirmed HTTP 200 for key assets
+  - exercised `archive_summary` / `find` / `entry` / `propagation` against a generated sample archive using `dist/pkg` JS/WASM exports (data paths backing summary/search/entry/extent/propagation).
+- Browser automation note:
+  - attempted Playwright browser install, but download is blocked (HTTP 403 Domain forbidden), so full browser-click automation could not be executed in this environment.

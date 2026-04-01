@@ -335,3 +335,5 @@ Latest priority doctrine
 - [x] P18S04f0 — add WASM propagation/impact visualization with deterministic impacted-entry highlighting, operator-facing reason/consequence detail, and a toggleable propagation view layered onto existing entry + extent panels.
 - [x] P18S04f1 — perform WASM demo hygiene pass for warning suppression, empty/error/no-impact messaging coherence, and deterministic state reset behavior across load/search/propagation transitions.
 - [x] P18S04f2 — polish WASM demo visual hierarchy/state clarity (selected vs impacted vs normal), extent/propagation panel cohesion, and intentional empty-state presentation for showcase readiness.
+- [x] P18S05f0 — add static-host deployable WASM demo bundle flow (`build-dist.sh` + `dist/` staging), tighten relative web asset paths for static hosting compatibility, and document build/run/deploy usage including GitHub Pages notes.
+- [x] P18S05f1 — execute static bundle flow in provisioned environment, add `--no-opt` build guard for reliable wasm-pack execution, and verify dist-hosted functional demo paths (summary/search/entry/extent/propagation).
