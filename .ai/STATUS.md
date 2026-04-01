@@ -526,6 +526,8 @@ Expand archive introspection so container truth, entry truth, and structural vis
 - Fixed lazy-state `find` crash root path in WASM adapter:
   - removed full-archive byte cloning during lazy state build (`ensure_loaded_state`) and now borrows loaded bytes directly when preparing introspection state.
   - this avoids a second full in-memory copy during first `find`/`entry`, which could trigger runtime failure on very large archives.
+  - UI now calls `find`/`entry`/`propagation` with an empty byte argument and relies on Rust-owned loaded-session bytes, avoiding repeated wasm-bindgen transfer/allocation of full archive bytes on each interaction.
+- Added explicit Rust-side session reset hook (`reset_loaded_archive`) and wired UI reset/unload through that hook to clear Rust loaded bytes/state deterministically.
 - Added explicit browser-visible WASM error messaging:
   - action-scoped UI errors now render as `"<action> failed: <detail>"`.
   - raw `RuntimeError: unreachable executed` is surfaced with explicit operator guidance to reload/retry, instead of an uncontextualized exception.

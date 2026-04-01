@@ -11,6 +11,7 @@ async function initializeWasmRuntime() {
       module.init();
       wasmFns = {
         archive_summary: module.archive_summary,
+        reset_loaded_archive: module.reset_loaded_archive,
         find: module.find,
         entry: module.entry,
         propagation: module.propagation,
@@ -52,6 +53,7 @@ const NO_FILE_MESSAGE = "No archive loaded. Choose or drop a .crs file to begin.
 const NO_RESULTS_MESSAGE = "No matching entries found for the current query.";
 const DEFAULT_EXTENT_MESSAGE = "Select an entry from the results pane to view extent placement.";
 const SEARCH_PROMPT_MESSAGE = "Archive loaded. Enter a query and click Find to browse entries.";
+const EMPTY_ARCHIVE_ARG = new Uint8Array();
 
 let bytes = null;
 let selectedPath = null;
@@ -126,6 +128,9 @@ function resetDemoState(options = {}) {
   const { clearFileInput = false, statusMessage = "Idle. Load an archive to start." } = options;
 
   bytes = null;
+  if (wasmFns?.reset_loaded_archive) {
+    wasmFns.reset_loaded_archive();
+  }
   selectedPath = null;
   latestMatches = [];
   queryEl.value = "";
@@ -245,7 +250,7 @@ function renderSearchResults(matches) {
       }
       try {
         await runWorking("Loading entry detail...", async () => {
-          const detail = wasmFns.entry(bytes, match.path);
+          const detail = wasmFns.entry(EMPTY_ARCHIVE_ARG, match.path);
           selectedPath = match.path;
           entryEl.textContent = render(detail);
           renderExtentVisualization(detail);
@@ -320,7 +325,7 @@ async function refreshPropagationState() {
   }
 
   await runWorking("Analyzing propagation...", async () => {
-    const report = wasmFns.propagation(bytes);
+    const report = wasmFns.propagation(EMPTY_ARCHIVE_ARG);
     propagationState.noImpactMessage = report.no_impact_message;
     propagationState.impactedByPath = new Map(report.impacted_entries.map((item) => [item.path, item]));
     renderPropagationSummary();
@@ -368,7 +373,7 @@ async function performSearch() {
 
   try {
     await runWorking("Searching entries...", async () => {
-      const matches = wasmFns.find(bytes, queryEl.value);
+      const matches = wasmFns.find(EMPTY_ARCHIVE_ARG, queryEl.value);
       selectedPath = null;
       entryEl.textContent = "No entry selected.";
       renderEmptyExtentState(DEFAULT_EXTENT_MESSAGE);
@@ -431,10 +436,10 @@ propagationToggleEl.addEventListener("change", async () => {
     if (!bytes || !requireWasmReady()) {
       return;
     }
-    const matches = wasmFns.find(bytes, queryEl.value);
+    const matches = wasmFns.find(EMPTY_ARCHIVE_ARG, queryEl.value);
     renderSearchResults(matches);
     if (selectedPath) {
-      const detail = wasmFns.entry(bytes, selectedPath);
+      const detail = wasmFns.entry(EMPTY_ARCHIVE_ARG, selectedPath);
       renderExtentVisualization(detail);
     }
   } catch (_error) {

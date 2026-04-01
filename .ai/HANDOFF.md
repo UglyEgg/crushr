@@ -322,10 +322,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Fixed WASM lazy-state crash path in `demos/wasm-readonly-demo/src/lib.rs`:
   - `ensure_loaded_state()` no longer clones `LOADED_BYTES` (full archive copy) before building introspection state.
   - state now builds directly from borrowed loaded bytes, then is cached in `LOADED_STATE`.
+  - added `reset_loaded_archive()` to clear Rust-side loaded bytes/state on UI reset/unload.
 - Improved explicit browser error surfacing in `demos/wasm-readonly-demo/web/main.js`:
   - operation-scoped error formatting (`<action> failed: <detail>`)
   - explicit internal WASM runtime guidance when browser reports `RuntimeError: unreachable ...`
   - removed generic load-failure overwrite so detailed runWorking error remains visible.
+  - switched UI interaction calls (`find`/`entry`/`propagation`) to use an empty byte argument and rely on Rust-owned loaded-session bytes to avoid repeated large wasm argument transfers.
 - De-eager behavior remains in place:
   - no empty-query pre-browse on load
   - explicit Find prompt after summary.

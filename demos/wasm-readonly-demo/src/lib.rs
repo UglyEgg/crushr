@@ -55,6 +55,16 @@ pub fn archive_summary(file_name: String, archive_bytes: &[u8]) -> Result<JsValu
 }
 
 #[wasm_bindgen]
+pub fn reset_loaded_archive() {
+    LOADED_STATE.with(|slot| {
+        *slot.borrow_mut() = None;
+    });
+    LOADED_BYTES.with(|slot| {
+        *slot.borrow_mut() = None;
+    });
+}
+
+#[wasm_bindgen]
 pub fn find(file_bytes: &[u8], query: String) -> Result<JsValue, JsValue> {
     let _ = file_bytes;
     ensure_loaded_state()?;
@@ -158,7 +168,15 @@ fn structure_label(node: &str) -> String {
 
 #[wasm_bindgen]
 pub fn propagation(file_bytes: &[u8]) -> Result<JsValue, JsValue> {
-    let report = analyze_propagation_bytes(file_bytes).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let _ = file_bytes;
+    let report = LOADED_BYTES
+        .with(|slot| {
+            let borrowed = slot.borrow();
+            let archive_bytes = borrowed
+                .as_deref()
+                .ok_or_else(|| JsValue::from_str("No archive loaded."))?;
+            analyze_propagation_bytes(archive_bytes).map_err(|e| JsValue::from_str(&e.to_string()))
+        })?;
     let mut impacted_entries = report
         .entry_impacts
         .into_iter()
