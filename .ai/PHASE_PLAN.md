@@ -339,3 +339,4 @@ Latest priority doctrine
 - [x] P18S05f1 — execute static bundle flow in provisioned environment, add `--no-opt` build guard for reliable wasm-pack execution, and verify dist-hosted functional demo paths (summary/search/entry/extent/propagation).
 - [x] P18S05f2 — fix browser-runtime WASM init/load regression in the demo by hardening module init sequencing/path resolution and adding explicit UI-visible init/load/search error surfacing (no silent no-op states).
 - [x] P18S05f3 — add WASM demo working-state visibility, explicit unload/reset control, and a scrollable browseable results pane with deterministic state coherence across load/search/select/unload transitions.
+- [x] P18S06f0 — add repeatable CLI+WASM introspection baseline harness, explicit archive-set manifest, and evidence report for `info`/`find`/`entry`/`propagation` operations.

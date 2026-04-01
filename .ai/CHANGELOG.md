@@ -1349,3 +1349,8 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Converted results list into a scrollable browse pane and pre-populated browseable entries on archive load using deterministic empty-query find.
 - Updated WASM demo README with concise interaction-model notes for loading state, unload/reset behavior, and browseable results pane.
 - Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-01 — P18S06f0
+- Added `scripts/perf_introspection_baseline.py` to generate a reusable archive set, run CLI introspection timings, trigger WASM bundle build, and produce baseline artifacts/report.
+- Added `scripts/perf_wasm_runner.mjs` to measure WASM introspection operation timings against the same archive set used by CLI baselines.
+- Added evidence report `docs/reference/introspection-baseline-p18s06.md` summarizing CLI vs WASM baseline results, hotspot observations, and immediate optimization recommendations.
