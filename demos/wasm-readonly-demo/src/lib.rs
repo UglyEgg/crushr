@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+#[allow(dead_code)]
 #[path = "../../../crates/crushr/src/format.rs"]
 mod format;
+#[allow(dead_code)]
 #[path = "../../../crates/crushr/src/index_codec.rs"]
 mod index_codec;
+#[allow(dead_code)]
 #[path = "../../../crates/crushr/src/extraction_payload_core.rs"]
 mod extraction_payload_core;
+#[allow(dead_code)]
 #[path = "../../../crates/crushr/src/introspection.rs"]
 mod introspection;
 

@@ -324,3 +324,18 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `rustup target add wasm32-unknown-unknown`
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
 - Next: optional bounded browser-level screenshot/automation pass if a browser artifact pipeline is available.
+
+
+## 2026-04-01 — Active Step Update (P18S04f1)
+
+- Completed: Phase 18 Step 04 fix 1 (`P18S04f1`).
+- Performed bounded WASM demo hygiene cleanup focused on warning reduction and deterministic UI state coherence:
+  - suppressed non-actionable dead-code warnings in the WASM adapter crate for imported shared modules (`format`, `index_codec`, `extraction_payload_core`, `introspection`) used as read-only source-inclusion dependencies
+  - added explicit empty/error/no-selection/no-results messaging so search, entry detail, extent, and propagation panes do not conflict in idle/error/no-impact states
+  - added deterministic reset behavior on new archive load and invalid archive attempts to prevent stale summary/result/entry/extent/impact state carry-over
+- Kept scope bounded to cleanup only (no new feature controls, no propagation semantics changes, no extraction/recovery behavior additions).
+- Validation:
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Remaining warnings in WASM demo path: none observed in current `cargo check` output for the demo target.
+- Next: optional bounded browser screenshot/automation pass when browser artifact tooling is available.

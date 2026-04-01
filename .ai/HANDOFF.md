@@ -159,3 +159,20 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
   - `rustup target add wasm32-unknown-unknown`
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+
+
+## 2026-04-01 — Handoff update (P18S04f1 complete)
+
+- WASM demo hygiene pass completed in `demos/wasm-readonly-demo` without expanding feature scope.
+- Warning cleanup:
+  - `demos/wasm-readonly-demo/src/lib.rs` now marks source-included shared modules with `#[allow(dead_code)]` to suppress non-actionable warnings from unused shared definitions in the demo adapter context.
+- UI/state coherence updates in `web/main.js`:
+  - explicit baseline messages for no-file, no-results, no-selection, propagation-disabled, and load-before-search paths
+  - deterministic reset on new load and invalid archive attempt to avoid stale summary/results/entry/extent/impact state
+  - deterministic no-match rendering for empty search results
+- Minor style/readme cleanup:
+  - `web/styles.css` adds muted results-row formatting
+  - `README.md` documents coherence checks for invalid-load, no-results, and propagation detail state behavior
+- Last validated commands:
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`

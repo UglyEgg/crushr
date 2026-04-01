@@ -333,3 +333,4 @@ Latest priority doctrine
 - [x] P18S02f1 — add drag-and-drop `.crs` load support in WASM demo with unified file-load path and minimal drop-target affordance.
 - [x] P18S03f0 — add deterministic entry extent/segment visualization in the WASM demo driven by shared Rust introspection data, including selected-result highlight sync and explicit empty/fallback states.
 - [x] P18S04f0 — add WASM propagation/impact visualization with deterministic impacted-entry highlighting, operator-facing reason/consequence detail, and a toggleable propagation view layered onto existing entry + extent panels.
+- [x] P18S04f1 — perform WASM demo hygiene pass for warning suppression, empty/error/no-impact messaging coherence, and deterministic state reset behavior across load/search/propagation transitions.
