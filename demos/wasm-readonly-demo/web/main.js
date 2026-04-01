@@ -40,7 +40,7 @@ function render(obj) {
 function renderResultsMessage(message) {
   resultsEl.innerHTML = "";
   const item = document.createElement("li");
-  item.className = "muted";
+  item.className = "empty-state";
   item.textContent = message;
   resultsEl.appendChild(item);
 }
@@ -102,6 +102,7 @@ function renderExtentVisualization(detail) {
     return;
   }
   const header = document.createElement("p");
+  header.className = "extent-header";
   header.textContent = `${detail.path} • ${detail.extent_count} extent(s) • logical range ${detail.logical_range.start}-${detail.logical_range.end}`;
   extentEl.appendChild(header);
   const impact = propagationState.impactedByPath.get(detail.path);
@@ -153,6 +154,7 @@ function renderSearchResults(matches) {
   for (const match of matches) {
     const item = document.createElement("li");
     const button = document.createElement("button");
+    button.classList.add("result-button");
     button.textContent = `${match.path} (${match.trust_class})`;
     if (propagationState.enabled && propagationState.impactedByPath.has(match.path)) {
       button.classList.add("is-impacted");

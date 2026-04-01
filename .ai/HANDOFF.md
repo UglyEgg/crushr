@@ -176,3 +176,21 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Last validated commands:
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+
+## 2026-04-01 — Handoff update (P18S04f2 complete)
+
+- WASM demo presentation polish completed for showcase readiness in:
+  - `demos/wasm-readonly-demo/web/index.html`
+  - `demos/wasm-readonly-demo/web/main.js`
+  - `demos/wasm-readonly-demo/web/styles.css`
+- UI polish highlights:
+  - stronger panel hierarchy and calmer visual grouping (hero/panel treatment, search row cohesion)
+  - clearer selected vs impacted vs normal result states without semantic/behavior changes
+  - improved intentional empty-state rendering for first-load/no-results/no-selection flows
+  - extent panel readability improvements (header/meta clarity + legend consistency)
+- README demo checks updated with explicit visual-coherence verification bullets.
+- Screenshot capture note:
+  - browser screenshot tooling is unavailable in this environment, so no new image assets were generated in this packet.
+- Last validated commands:
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
