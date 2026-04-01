@@ -23,6 +23,7 @@ mod extraction_path;
 mod extraction_payload_core;
 pub mod format;
 pub mod index_codec;
+pub mod introspection;
 mod recover_extract_impl;
 mod recovery_classification;
 mod restoration_core;

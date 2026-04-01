@@ -1268,3 +1268,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Audited README command surface against the current CLI and confirmed canonical user-facing commands remain `pack`, `extract`, `verify`, `info`, `about`, `completion`, and `man` (with `lab` bounded non-primary).
 - Added explicit active versioning-discipline language to `.ai/STATUS.md` and `.ai/PHASE_PLAN.md`: `VERSION` is canonical, runtime/Cargo versions must stay aligned, and builders do not perform ad hoc bumps.
 - Validation: `cargo test -p crushr --test version_contract`; `./scripts/check-version-sync.sh`.
+
+## 2026-04-01 — P18S01f0
+
+- Added shared read-only introspection core module at `crates/crushr/src/introspection.rs`.
+- Refactored `crushr info` to consume shared introspection APIs for archive summary JSON, `--entry`, `--find`, and `--propagation`.
+- Preserved deterministic output behavior and validated CLI contract/presentation tests.
