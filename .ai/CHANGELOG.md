@@ -1354,3 +1354,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added `scripts/perf_introspection_baseline.py` to generate a reusable archive set, run CLI introspection timings, trigger WASM bundle build, and produce baseline artifacts/report.
 - Added `scripts/perf_wasm_runner.mjs` to measure WASM introspection operation timings against the same archive set used by CLI baselines.
 - Added evidence report `docs/reference/introspection-baseline-p18s06.md` summarizing CLI vs WASM baseline results, hotspot observations, and immediate optimization recommendations.
+
+## 2026-04-01 — P18S07f0
+- Added stage-level hotspot profiling support for introspection `find`/`entry` in `crates/crushr/src/introspection.rs` with bounded timing categories (`archive_open_read`, `index_decode_parse`, `summary_index_prep`, `traversal`, `result_materialization`).
+- Added reproducible CLI hotspot runner example `crates/crushr/examples/introspection_hotspot.rs` and orchestration script `scripts/perf_introspection_hotspot.py`.
+- Generated measured hotspot artifacts under `.bench/introspection_hotspot/` and report `docs/reference/introspection-hotspot-p18s07.md` with next optimization recommendation.
+- Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo build --release -p crushr`; `python3 scripts/perf_introspection_hotspot.py --runs 1`.

@@ -268,3 +268,15 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `docs/reference/introspection-baseline-p18s06.md`
 - Environment note:
   - WASM baseline uses Node + wasm-bindgen execution path in this environment; direct browser responsiveness/UI-blocking measurements still require a browser session with explicit instrumentation.
+
+## 2026-04-01 — Handoff update (P18S07f0 complete)
+
+- Added stage-level hotspot instrumentation for introspection `find`/`entry` in `crates/crushr/src/introspection.rs` via profile surfaces used only by measurement harnesses.
+- Added reproducible hotspot measurement harness:
+  - `crates/crushr/examples/introspection_hotspot.rs`
+  - `scripts/perf_introspection_hotspot.py`
+- Generated hotspot artifacts + report:
+  - `.bench/introspection_hotspot/{archive_set_hotspot.json,cli_hotspot.json,wasm_hotspot.json}`
+  - `docs/reference/introspection-hotspot-p18s07.md`
+- Key measured result: `summary_index_prep` dominates large/very_large `find` + `entry`; repeated calls still pay similar cost as cold calls; traversal/materialization are minor.
+- WASM note: this packet compares WASM wall times vs CLI decomposition; fine-grained browser render/main-thread marks remain a follow-up if browser instrumentation is requested.

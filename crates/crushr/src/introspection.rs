@@ -23,6 +23,7 @@ use crushr_format::tailframe::parse_tail_frame;
 use std::collections::BTreeSet;
 use std::fs::{self, File};
 use std::io::Cursor;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct FileReader {
     file: File,
@@ -180,6 +181,37 @@ pub struct EntryMatch {
     pub trust_class: EntryTrustClass,
 }
 
+fn now_ms() -> f64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|value| value.as_secs_f64() * 1000.0)
+        .unwrap_or(0.0)
+}
+
+#[derive(Clone, Copy, serde::Serialize)]
+pub struct HotspotBreakdownMs {
+    pub archive_open_read: f64,
+    pub index_decode_parse: f64,
+    pub summary_index_prep: f64,
+    pub traversal: f64,
+    pub result_materialization: f64,
+    pub total: f64,
+}
+
+#[derive(Clone, serde::Serialize)]
+pub struct FindHotspotProfile {
+    pub query: String,
+    pub match_count: usize,
+    pub timings_ms: HotspotBreakdownMs,
+}
+
+#[derive(Clone, serde::Serialize)]
+pub struct EntryHotspotProfile {
+    pub entry_path: String,
+    pub found: bool,
+    pub timings_ms: HotspotBreakdownMs,
+}
+
 pub fn inspect_archive(path: &str, product_version: &str) -> Result<ArchiveSummary> {
     let reader = FileReader::open(path)?;
     inspect_archive_reader(&reader, product_version)
@@ -275,6 +307,12 @@ pub fn find_entries(path: &str, query: &str, limit: Option<usize>) -> Result<Vec
     find_entries_reader(&reader, query, limit)
 }
 
+pub fn profile_find(path: &str, query: &str, limit: Option<usize>) -> Result<FindHotspotProfile> {
+    let open_start = now_ms();
+    let reader = FileReader::open(path)?;
+    profile_find_reader(&reader, query, limit, now_ms() - open_start)
+}
+
 pub fn find_entries_bytes(
     bytes: &[u8],
     query: &str,
@@ -282,6 +320,15 @@ pub fn find_entries_bytes(
 ) -> Result<Vec<EntryMatch>> {
     let reader = SliceReader::new(bytes);
     find_entries_reader(&reader, query, limit)
+}
+
+pub fn profile_find_bytes(
+    bytes: &[u8],
+    query: &str,
+    limit: Option<usize>,
+) -> Result<FindHotspotProfile> {
+    let reader = SliceReader::new(bytes);
+    profile_find_reader(&reader, query, limit, 0.0)
 }
 
 fn find_entries_reader<R: ReadAt + Len>(
@@ -304,14 +351,113 @@ fn find_entries_reader<R: ReadAt + Len>(
     Ok(matches)
 }
 
+fn profile_find_reader<R: ReadAt + Len>(
+    reader: &R,
+    query: &str,
+    limit: Option<usize>,
+    open_ms: f64,
+) -> Result<FindHotspotProfile> {
+    let total_start = now_ms();
+
+    let decode_start = now_ms();
+    let idx3_bytes = read_idx3_bytes_from_footer(reader)?;
+    let _decoded = decode_index(&idx3_bytes).context("decode IDX3 index")?;
+    let index_decode_parse_ms = now_ms() - decode_start;
+
+    let prep_start = now_ms();
+    let records = load_entry_records(reader)?;
+    let summary_index_prep_ms = now_ms() - prep_start;
+
+    let traversal_start = now_ms();
+    let mut matches = records
+        .into_iter()
+        .filter(|record| record.path.contains(query))
+        .map(|record| EntryMatch {
+            path: record.path,
+            trust_class: record.trust_class,
+        })
+        .collect::<Vec<_>>();
+    matches.sort_by(|a, b| a.path.cmp(&b.path));
+    if let Some(limit) = limit {
+        matches.truncate(limit);
+    }
+    let traversal_ms = now_ms() - traversal_start;
+
+    let materialization_start = now_ms();
+    let _serialized = serde_json::to_vec(&matches).context("serialize find matches")?;
+    let result_materialization_ms = now_ms() - materialization_start;
+
+    Ok(FindHotspotProfile {
+        query: query.to_string(),
+        match_count: matches.len(),
+        timings_ms: HotspotBreakdownMs {
+            archive_open_read: open_ms,
+            index_decode_parse: index_decode_parse_ms,
+            summary_index_prep: summary_index_prep_ms,
+            traversal: traversal_ms,
+            result_materialization: result_materialization_ms,
+            total: (now_ms() - total_start) + open_ms,
+        },
+    })
+}
+
 pub fn analyze_propagation(path: &str) -> Result<PropagationReportV1> {
     let reader = FileReader::open(path)?;
     propagation_report_with_structural_fallback(&reader)
 }
 
+pub fn profile_entry(path: &str, entry_path: &str) -> Result<EntryHotspotProfile> {
+    let open_start = now_ms();
+    let reader = FileReader::open(path)?;
+    profile_entry_reader(&reader, entry_path, now_ms() - open_start)
+}
+
 pub fn analyze_propagation_bytes(bytes: &[u8]) -> Result<PropagationReportV1> {
     let reader = SliceReader::new(bytes);
     propagation_report_with_structural_fallback(&reader)
+}
+
+pub fn profile_entry_bytes(bytes: &[u8], entry_path: &str) -> Result<EntryHotspotProfile> {
+    let reader = SliceReader::new(bytes);
+    profile_entry_reader(&reader, entry_path, 0.0)
+}
+
+fn profile_entry_reader<R: ReadAt + Len>(
+    reader: &R,
+    entry_path: &str,
+    open_ms: f64,
+) -> Result<EntryHotspotProfile> {
+    let total_start = now_ms();
+
+    let decode_start = now_ms();
+    let idx3_bytes = read_idx3_bytes_from_footer(reader)?;
+    let _decoded = decode_index(&idx3_bytes).context("decode IDX3 index")?;
+    let index_decode_parse_ms = now_ms() - decode_start;
+
+    let prep_start = now_ms();
+    let records = load_entry_records(reader)?;
+    let summary_index_prep_ms = now_ms() - prep_start;
+
+    let traversal_start = now_ms();
+    let detail = records.into_iter().find(|record| record.path == entry_path);
+    let traversal_ms = now_ms() - traversal_start;
+
+    let materialization_start = now_ms();
+    let _serialized = serde_json::to_vec(&detail).context("serialize entry detail")?;
+    let result_materialization_ms = now_ms() - materialization_start;
+
+    Ok(EntryHotspotProfile {
+        entry_path: entry_path.to_string(),
+        found: detail.is_some(),
+        timings_ms: HotspotBreakdownMs {
+            archive_open_read: open_ms,
+            index_decode_parse: index_decode_parse_ms,
+            summary_index_prep: summary_index_prep_ms,
+            traversal: traversal_ms,
+            result_materialization: result_materialization_ms,
+            total: (now_ms() - total_start) + open_ms,
+        },
+    })
 }
 
 fn read_exact_at<R: ReadAt>(reader: &R, mut offset: u64, mut dst: &mut [u8]) -> Result<()> {
