@@ -105,3 +105,18 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Last validated commands:
   - `cargo fmt --all`
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+
+## 2026-04-01 — Handoff update (P18S02f0 complete)
+
+- New browser/WASM read-only demo is at `demos/wasm-readonly-demo`.
+- Build + run:
+  - `cd demos/wasm-readonly-demo && wasm-pack build --target web --out-dir web/pkg`
+  - `cd demos/wasm-readonly-demo/web && python3 -m http.server 8080`
+- Shared introspection now also supports byte-slice adapters (`inspect_archive_bytes`, `find_entries_bytes`, `inspect_entry_bytes`) so browser-loaded archive bytes use Rust truth semantics directly.
+- Sparse-write helper is now explicitly non-Unix guarded in `extraction_payload_core` for cross-target compilation safety.
+
+## 2026-04-01 — Handoff update (P18S02f1 complete)
+
+- `demos/wasm-readonly-demo/web/main.js` now uses one shared `loadArchive(file)` function for both picker and drag/drop paths.
+- `demos/wasm-readonly-demo/web/index.html` now includes an explicit drop zone prompt.
+- `demos/wasm-readonly-demo/web/styles.css` adds a minimal drag-over highlight state (`.drop-zone.drag-over`).
