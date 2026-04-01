@@ -334,3 +334,4 @@ Latest priority doctrine
 - [x] P18S03f0 — add deterministic entry extent/segment visualization in the WASM demo driven by shared Rust introspection data, including selected-result highlight sync and explicit empty/fallback states.
 - [x] P18S04f0 — add WASM propagation/impact visualization with deterministic impacted-entry highlighting, operator-facing reason/consequence detail, and a toggleable propagation view layered onto existing entry + extent panels.
 - [x] P18S04f1 — perform WASM demo hygiene pass for warning suppression, empty/error/no-impact messaging coherence, and deterministic state reset behavior across load/search/propagation transitions.
+- [x] P18S04f2 — polish WASM demo visual hierarchy/state clarity (selected vs impacted vs normal), extent/propagation panel cohesion, and intentional empty-state presentation for showcase readiness.

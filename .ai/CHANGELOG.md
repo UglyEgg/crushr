@@ -7,6 +7,19 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
+## 2026-04-01 — P18S04f2
+- Polished the WASM demo presentation layer for showcase-readiness without changing archive semantics or adding new controls/features.
+- Updated `web/index.html` with a bounded structure polish (hero subtitle, panelized section wrappers, and grouped search controls) to improve scanability and section cohesion.
+- Updated `web/main.js` UI rendering hooks to support stronger empty-state styling and clearer extent header/result button semantics while preserving deterministic behavior.
+- Refined `web/styles.css` hierarchy/state styling:
+  - stronger visual grouping for summary/search/detail/propagation/extent panels
+  - clearer selected vs impacted vs normal result emphasis
+  - calmer intentional first-load/no-result states
+  - improved extent header/meta/legend readability
+- Updated demo README verification checklist with explicit visual-coherence checks.
+- Validation: `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+- Screenshot asset capture was not performed because browser screenshot tooling is unavailable in this environment.
+
 ## 2026-03-31 — P17S03f3
 - Rebuilt `crushr info --entry` archive-input correctness by adding pre-open archive path validation that follows symlinks and rejects non-regular archive inputs deterministically with `archive path is not a regular file`.
 - Preserved supported deterministic argument forms with identical behavior:

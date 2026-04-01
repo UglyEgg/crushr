@@ -1,4 +1,4 @@
-# crushr WASM read-only demo (P18S02)
+# crushr WASM read-only demo (P18S04f2)
 
 Local browser demo for archive introspection.
 
@@ -32,5 +32,9 @@ Open `http://127.0.0.1:8080` in a browser.
    - invalid archive load clears prior summary/results/entry/extent state and shows an explicit error
    - empty search results render an explicit no-match message
    - propagation detail remains explicit for disabled, no-selection, and no-impact states
+10. Visual checks:
+   - selected vs impacted vs normal result states are immediately distinguishable
+   - extent legend and extent segment rows clearly map state to color
+   - first-load/no-data views look intentional, not empty placeholders
 
 Behavior is read-only: no extraction, write, or mutation actions exist in this demo UI.

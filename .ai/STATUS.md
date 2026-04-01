@@ -339,3 +339,19 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Remaining warnings in WASM demo path: none observed in current `cargo check` output for the demo target.
 - Next: optional bounded browser screenshot/automation pass when browser artifact tooling is available.
+
+## 2026-04-01 — Active Step Update (P18S04f2)
+
+- Completed: Phase 18 Step 04 fix 2 (`P18S04f2`).
+- Performed bounded presentation-polish pass for `demos/wasm-readonly-demo/web` without feature expansion:
+  - strengthened visual hierarchy using panelized section styling, stronger typographic grouping, and clearer search-row layout
+  - improved selected/impacted/normal state clarity for search result rows and retained deterministic propagation-driven highlighting
+  - refined extent presentation with clearer header/meta hierarchy and improved legend/readability treatment
+  - improved empty-state intentionality (`results` no-data/no-match blocks, coherent first-load messaging surfaces)
+- Updated demo README checks to include explicit visual-coherence verification points for showcase readiness.
+- Kept read-only behavior and semantics unchanged (no archive semantics, extraction/recovery behavior, or propagation-meaning changes).
+- Validation:
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Screenshot asset status: browser screenshot tooling is not available in this environment; capture was not performed in this packet.
+- Next: optional screenshot/asset capture packet when browser artifact tooling is available.
