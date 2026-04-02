@@ -7,66 +7,80 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main>
+    <main id="drop-zone" class="app-shell" aria-label="Drop a .crs archive here">
       <header class="hero">
-        <h1>crushr — archive introspection demo</h1>
-        <p class="hero-subtitle">
-          Read-only archive introspection with deterministic summary, search, entry detail, extent, and propagation views.
-        </p>
-        <p class="hero-hint">Usage: drop a <code>.crs</code> archive or select a file, then use <strong>Find</strong>.</p>
+        <div class="hero-main">
+          <h1>crushr — archive introspection demo</h1>
+          <p class="hero-subtitle">Inspect archive structure, entries, extents, and impact.</p>
+        </div>
+        <div class="hero-actions">
+          <input id="file" class="file-input" type="file" accept=".crs" />
+          <button id="browse" type="button">Browse archive</button>
+          <button id="unload" type="button">Unload</button>
+          <button id="theme-toggle" type="button" aria-pressed="false">Theme: Light</button>
+        </div>
+        <p id="header-status" class="hero-status" aria-live="polite"></p>
       </header>
-      <div id="drop-zone" class="drop-zone" aria-label="Drop a .crs archive here">
-        <p>Drop a .crs archive here, or select one below.</p>
-        <div class="load-row">
-          <input id="file" type="file" accept=".crs" />
-          <button id="unload" type="button">Unload archive</button>
-        </div>
+
+      <div class="dashboard-grid" aria-label="Introspection dashboard">
+        <aside class="left-column" aria-label="Navigation and selection">
+          <section class="panel panel-summary">
+            <h2>Archive summary</h2>
+            <pre id="summary"></pre>
+          </section>
+          <section class="panel panel-search">
+            <h2>Search</h2>
+            <p class="muted">Search archive paths. Results are bounded.</p>
+            <div class="search-row">
+              <input id="query" type="text" placeholder="substring path query" />
+              <button id="search">Find</button>
+              <span id="search-busy" class="search-busy" hidden aria-live="polite">Searching…</span>
+            </div>
+          </section>
+          <section class="panel panel-results">
+            <h2>Entries / results</h2>
+            <ul id="results"></ul>
+          </section>
+        </aside>
+
+        <section class="right-column" aria-label="Active workspace">
+          <section class="panel panel-entry panel-primary">
+            <h2>Entry details</h2>
+            <pre id="entry"></pre>
+          </section>
+          <section class="panel panel-extents panel-primary">
+            <h2>Extent visualization</h2>
+            <div id="extent-visualization" class="extent-panel">
+              <p class="muted">Select a search result to view extent placement.</p>
+            </div>
+          </section>
+          <section class="panel panel-preview">
+            <h2>Content preview</h2>
+            <div id="entry-preview" class="extent-panel">
+              <p class="muted">Select a search result to preview entry content.</p>
+            </div>
+          </section>
+          <section class="panel panel-propagation panel-secondary">
+            <h2>Propagation / impact</h2>
+            <label class="toggle-row">
+              <input id="propagation-toggle" type="checkbox" />
+              Show impact
+            </label>
+            <p id="propagation-summary" class="muted">Propagation view is disabled.</p>
+            <pre id="propagation-detail"></pre>
+          </section>
+        </section>
       </div>
-      <section class="panel">
-        <h2>Archive summary</h2>
-        <pre id="summary"></pre>
-      </section>
-      <section class="panel">
-        <h2>Search and browse entries</h2>
-        <p class="muted">Search shows at most 500 matches. Refine your query to access deeper results.</p>
-        <div class="search-row">
-          <input id="query" type="text" placeholder="substring path query" />
-          <button id="search">Find</button>
-          <span id="search-busy" class="search-busy" hidden aria-live="polite">Searching…</span>
-        </div>
-        <ul id="results"></ul>
-      </section>
-      <section class="panel">
-        <h2>Entry detail</h2>
-        <pre id="entry"></pre>
-      </section>
-      <section class="panel">
-        <h2>Entry content preview</h2>
-        <div id="entry-preview" class="extent-panel">
-          <p class="muted">Select a search result to preview entry content.</p>
-        </div>
-      </section>
-      <section class="panel">
-        <h2>Propagation impact</h2>
-        <label class="toggle-row">
-          <input id="propagation-toggle" type="checkbox" />
-          Show impact
-        </label>
-        <p id="propagation-summary" class="muted">Propagation view is disabled.</p>
-        <pre id="propagation-detail"></pre>
-      </section>
-      <section class="panel">
-        <h2>Entry extents</h2>
-        <div id="extent-visualization" class="extent-panel">
-          <p class="muted">Select a search result to view extent placement.</p>
-        </div>
-      </section>
+
       <pre id="error"></pre>
     </main>
     <div id="progress-overlay" class="progress-overlay" hidden aria-live="polite" aria-busy="true" aria-label="Operation in progress">
       <div class="progress-card">
         <div class="spinner" aria-hidden="true"></div>
-        <p id="progress-stage">Working...</p>
+        <div>
+          <p id="progress-stage">Working...</p>
+          <p class="progress-note">This may take a while for large archives.</p>
+        </div>
       </div>
     </div>
     <script type="module" src="./main.js"></script>

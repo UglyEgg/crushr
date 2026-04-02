@@ -1,6 +1,9 @@
 const dropZoneEl = document.getElementById("drop-zone");
 const fileEl = document.getElementById("file");
+const browseBtn = document.getElementById("browse");
 const unloadBtn = document.getElementById("unload");
+const themeToggleBtn = document.getElementById("theme-toggle");
+const headerStatusEl = document.getElementById("header-status");
 const summaryEl = document.getElementById("summary");
 const queryEl = document.getElementById("query");
 const resultsEl = document.getElementById("results");
@@ -15,6 +18,7 @@ const searchBtn = document.getElementById("search");
 const searchBusyEl = document.getElementById("search-busy");
 const progressOverlayEl = document.getElementById("progress-overlay");
 const progressStageEl = document.getElementById("progress-stage");
+const THEME_STORAGE_KEY = "crushr_demo_theme";
 
 const NO_FILE_MESSAGE = "No archive loaded. Choose or drop a .crs file to begin.";
 const NO_RESULTS_MESSAGE = "No matching entries found for the current query.";
@@ -32,6 +36,7 @@ let selectedPath = null;
 let latestMatches = [];
 let uiState = "idle";
 let activeWorkerStatusStage = null;
+let currentArchiveName = null;
 let propagationState = {
   enabled: false,
   impactedByPath: new Map(),
@@ -78,6 +83,10 @@ function clearError() {
   errorEl.textContent = "";
 }
 
+function setHeaderStatus(message = "") {
+  headerStatusEl.textContent = message;
+}
+
 function setError(message) {
   errorEl.textContent = message;
   setUiState("error", message);
@@ -95,6 +104,15 @@ function formatActionError(actionLabel, error) {
 function setUiState(state, message) {
   uiState = state;
   if (state === "working") {
+    setHeaderStatus("");
+  } else if (state === "error") {
+    setHeaderStatus(message || "Error");
+  } else if (bytes) {
+    setHeaderStatus(`Loaded: ${currentArchiveName || "archive"} • Ready`);
+  } else {
+    setHeaderStatus("Idle");
+  }
+  if (state === "working") {
     progressOverlayEl.hidden = false;
     progressOverlayEl.classList.add("is-active");
     progressStageEl.textContent = message;
@@ -107,6 +125,7 @@ function setUiState(state, message) {
 
 function setControlsBusy(isBusy) {
   fileEl.disabled = isBusy;
+  browseBtn.disabled = isBusy;
   unloadBtn.disabled = isBusy || !bytes;
   searchBtn.disabled = isBusy;
   queryEl.disabled = isBusy || !bytes;
@@ -151,6 +170,7 @@ async function resetDemoState(options = {}) {
   const { clearFileInput = false, resetWorker = true } = options;
 
   bytes = null;
+  currentArchiveName = null;
   if (resetWorker) {
     try {
       await requestWorker("reset");
@@ -469,6 +489,7 @@ async function loadArchive(file) {
       const nextBytes = new Uint8Array(await file.arrayBuffer());
       const { summary } = await requestWorker("loadArchive", { fileName: file.name, bytes: nextBytes });
       bytes = nextBytes;
+      currentArchiveName = file.name;
       summaryEl.textContent = render(summary);
       renderResultsMessage(SEARCH_PROMPT_MESSAGE);
       renderPropagationSummary();
@@ -506,13 +527,52 @@ async function performSearch() {
 
 await resetDemoState();
 
+function setTheme(theme) {
+  document.body.setAttribute("data-theme", theme);
+  themeToggleBtn.textContent = `Theme: ${theme === "dark" ? "Dark" : "Light"}`;
+  themeToggleBtn.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch (_error) {
+    // ignore storage write failures
+  }
+}
+
+function initTheme() {
+  let preferredTheme = "light";
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "light" || stored === "dark") {
+      preferredTheme = stored;
+    } else if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) {
+      preferredTheme = "dark";
+    }
+  } catch (_error) {
+    if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) {
+      preferredTheme = "dark";
+    }
+  }
+  setTheme(preferredTheme);
+}
+
+initTheme();
+
 fileEl.addEventListener("change", async () => {
   const file = fileEl.files?.[0];
   await loadArchive(file);
 });
 
+browseBtn.addEventListener("click", () => {
+  fileEl.click();
+});
+
 unloadBtn.addEventListener("click", async () => {
   await resetDemoState({ clearFileInput: true });
+});
+
+themeToggleBtn.addEventListener("click", () => {
+  const nextTheme = document.body.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  setTheme(nextTheme);
 });
 
 dropZoneEl.addEventListener("dragenter", (event) => {
