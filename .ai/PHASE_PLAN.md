@@ -347,3 +347,4 @@ Latest priority doctrine
 - [x] P18S08f3 — stabilize large-archive browser find with deterministic bounded result payloads (explicit truncation metadata/message), preventing unbounded wasm search materialization/OOM behavior.
 - [x] P18S08f4 — add always-visible search-panel note documenting 500-result cap and query-refinement requirement for deeper matches.
 - [x] P18S08f5 — move WASM demo heavy introspection work to a module Web Worker, add deterministic staged progress signaling, and enforce worker reset/state lifecycle boundaries while preserving bounded-find semantics.
+- [x] P18S08f6 — improve worker-backed WASM progress UX with deterministic staged archive-load state reporting and explicit search busy-state indication in search controls.

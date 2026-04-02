@@ -388,3 +388,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Environment note:
   - browser screenshot/automation tools are unavailable in this environment; real-browser packet verification must be executed externally.
+
+## 2026-04-02 — Handoff update (P18S08f6 complete)
+
+- Worker progress messaging is now more explicit for archive load in `demos/wasm-readonly-demo/web/wasm-worker.js`:
+  - `Reading archive...`
+  - `Inspecting archive summary...`
+  - `Preparing archive state...`
+  - `Ready`
+- Search now has control-local busy visibility in `demos/wasm-readonly-demo/web`:
+  - search button label switches to `Searching...`
+  - inline busy indicator (`Searching…`) appears beside search controls while find is active
+  - busy state clears on success/error/reset boundaries.
+- README interaction-model notes updated for the new staged load/busy-state behavior.
+- Last validated commands:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Environment note:
+  - browser automation/screenshot tooling is still unavailable in this environment; real-browser verification remains an external/manual requirement.

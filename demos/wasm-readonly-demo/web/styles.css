@@ -101,10 +101,20 @@ button {
 .search-row {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
 }
 #query {
   flex: 1;
   min-width: 260px;
+}
+.search-busy {
+  font-size: 0.88rem;
+  color: #0f3f8f;
+  background: #e8f1ff;
+  border: 1px solid #94b5e9;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-weight: 600;
 }
 
 .drop-zone {

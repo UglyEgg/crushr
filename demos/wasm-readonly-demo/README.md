@@ -55,7 +55,8 @@ Any static host works (nginx, GitHub Pages, Netlify, S3 static hosting, etc.) as
 ## Interaction model (P18S08f3)
 
 - Heavy archive introspection executes inside a dedicated Web Worker; the main UI thread only handles rendering and message passing.
-- The status banner now shows staged progress transitions for large archives: `Loading archive...` → `Preparing archive...` → `Ready`, and search path transitions `Searching...` → `Rendering results...` → `Ready`.
+- The status banner now shows staged archive-load transitions for large archives: `Reading archive...` → `Inspecting archive summary...` → `Preparing archive state...` → `Ready`.
+- Search now has explicit busy-state visibility near the search controls (`Searching…` indicator + disabled button state) and still transitions through `Searching...` → `Rendering results...` → `Ready`.
 - The demo shows explicit state transitions in a status banner (`idle`, `working`, `success`, `error`) during archive load, search, entry detail fetch, and propagation analysis.
 - Use **Unload archive** to fully reset archive summary, search query/results, selected entry, extent view, propagation state, and status/error surfaces to the empty first-load state.
 - The entries/results pane does not pre-populate on archive load; the demo stays responsive and prompts the user to run **Find** explicitly.

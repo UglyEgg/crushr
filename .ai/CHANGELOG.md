@@ -1407,3 +1407,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 ## 2026-04-02 — P18S08f4
 - Added always-visible search-panel note in `demos/wasm-readonly-demo/web/index.html` that explicitly documents the 500-result cap and query-refinement requirement for deeper matches.
 - Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-02 — P18S08f6
+- Expanded worker-backed archive-load progress reporting in the WASM demo to deterministic staged transitions: `Reading archive...` → `Inspecting archive summary...` → `Preparing archive state...` → `Ready`.
+- Added explicit search busy-state affordance near search controls (busy button label + inline busy chip) and wired deterministic busy reset on success/error/reset boundaries.
+- Updated WASM demo README interaction-model notes to document staged load progress and search busy indication behavior.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

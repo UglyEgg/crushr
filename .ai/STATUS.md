@@ -597,3 +597,30 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Constraint:
   - real-browser and screenshot tooling remains unavailable in this environment; packet-level interactive browser verification remains required externally.
+
+## 2026-04-02 — Active Step Update (P18S08f6)
+
+- Completed: Phase 18 Step 08 fix 6 (`P18S08f6`).
+- Improved worker-backed WASM demo operation-state clarity for long-running archive interactions:
+  - archive-load staged status now reports deterministic worker phases:
+    - `Reading archive...`
+    - `Inspecting archive summary...`
+    - `Preparing archive state...`
+    - `Ready`
+  - worker status stage identifiers were tightened to explicit operation-scoped values (`load_*`, `search_busy`) for deterministic UI interpretation.
+- Added explicit search busy indication in the UI search controls:
+  - search button now switches label to `Searching...` while find is active
+  - inline busy chip (`Searching…`) appears adjacent to search controls
+  - search busy state is cleared on success and on worker error/reset boundaries
+- Updated demo README interaction-model notes to reflect the new archive-load staging and search-control busy indication.
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraints/gotchas:
+  - `PROJECT_STATE.md` is referenced by bootstrap docs but is currently absent in this repository root.
+  - Browser automation/screenshot tooling remains unavailable in this environment, so packet-level real-browser verification must still be executed externally.
+- Next:
+  - run explicit real-browser verification checklist for staged load progress, search busy-state, reset coherence, and failure-state transitions in an external browser session.

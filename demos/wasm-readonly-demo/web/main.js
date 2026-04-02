@@ -12,6 +12,7 @@ const propagationDetailEl = document.getElementById("propagation-detail");
 const statusEl = document.getElementById("status");
 const errorEl = document.getElementById("error");
 const searchBtn = document.getElementById("search");
+const searchBusyEl = document.getElementById("search-busy");
 
 const NO_FILE_MESSAGE = "No archive loaded. Choose or drop a .crs file to begin.";
 const NO_RESULTS_MESSAGE = "No matching entries found for the current query.";
@@ -27,6 +28,7 @@ let bytes = null;
 let selectedPath = null;
 let latestMatches = [];
 let uiState = "idle";
+let activeWorkerStatusStage = null;
 let propagationState = {
   enabled: false,
   impactedByPath: new Map(),
@@ -36,6 +38,8 @@ let propagationState = {
 worker.onmessage = (event) => {
   const message = event.data ?? {};
   if (message.type === "status") {
+    activeWorkerStatusStage = message.stage ?? null;
+    updateSearchBusyState();
     if (message.message) {
       setUiState("working", message.message);
     }
@@ -49,6 +53,8 @@ worker.onmessage = (event) => {
     return;
   }
   pendingRequests.delete(message.id);
+  activeWorkerStatusStage = null;
+  updateSearchBusyState();
   if (message.ok) {
     request.resolve(message.result ?? {});
     return;
@@ -95,6 +101,15 @@ function setControlsBusy(isBusy) {
   searchBtn.disabled = isBusy;
   queryEl.disabled = isBusy || !bytes;
   propagationToggleEl.disabled = isBusy || !bytes;
+  updateSearchBusyState();
+}
+
+function updateSearchBusyState() {
+  const isSearchBusy = activeWorkerStatusStage === "search_busy";
+  searchBtn.textContent = isSearchBusy ? "Searching..." : "Find";
+  searchBtn.setAttribute("aria-busy", isSearchBusy ? "true" : "false");
+  searchBusyEl.textContent = isSearchBusy ? "Searching…" : "";
+  searchBusyEl.hidden = !isSearchBusy;
 }
 
 async function runWorking(actionLabel, work) {
@@ -155,6 +170,7 @@ async function resetDemoState(options = {}) {
   }
 
   clearError();
+  activeWorkerStatusStage = null;
   setUiState("idle", statusMessage);
   setControlsBusy(false);
 }

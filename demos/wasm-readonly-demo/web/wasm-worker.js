@@ -50,19 +50,23 @@ async function handleLoadArchive(id, data) {
   const runtime = await initializeWasmRuntime();
   runtime.reset_loaded_archive();
 
-  postStatus(id, "loading_archive", "Loading archive...");
+  postStatus(id, "load_reading_archive", "Reading archive...");
   const summary = runtime.archive_summary(data.fileName, data.bytes);
 
-  postStatus(id, "preparing_archive", "Preparing archive...");
+  postStatus(id, "load_inspecting_summary", "Inspecting archive summary...");
+  // Ensure summary materialization is completed before state preparation.
+  JSON.stringify(summary);
+
+  postStatus(id, "load_preparing_state", "Preparing archive state...");
   runtime.prepare_loaded_archive_state();
 
-  postStatus(id, "ready", "Ready");
+  postStatus(id, "load_ready", "Ready");
   postResponse(id, true, { result: { summary } });
 }
 
 async function handleSearch(id, data) {
   const runtime = await initializeWasmRuntime();
-  postStatus(id, "searching", "Searching...");
+  postStatus(id, "search_busy", "Searching...");
   const matches = runtime.find(EMPTY_ARCHIVE_ARG, data.query);
   postResponse(id, true, { result: { matches } });
 }
