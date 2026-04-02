@@ -2009,3 +2009,20 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `demos/wasm-readonly-demo/web/{wasm-worker.js,main.js,index.html,styles.css}`
   - `demos/wasm-readonly-demo/README.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-02 — P18S08f6 deferred-load + overlay progress lock (rework)
+
+- Decision:
+  - Restore deferred execution boundary so `loadArchive` performs summary-only work and does not prepare full introspection state eagerly.
+  - Prepare introspection state lazily on first `search`/`entry` request and keep preparation deterministic/idempotent through worker-owned state flagging.
+  - Replace top inline status strip with a centered overlay progress layer (spinner + stage text) for unmistakable long-operation feedback.
+- Alternatives considered:
+  1. Keep eager state prep at load and only restyle status text.
+  2. Keep inline status presentation and add more color/weight only.
+- Rationale:
+  - Packet requires true deferred sequencing and visible operation feedback that users cannot confuse with idle/hung UI.
+  - Worker-stage messaging already exists; overlay presentation improves trust without introducing fake numeric progress.
+- Blast radius:
+  - `demos/wasm-readonly-demo/web/{wasm-worker.js,main.js,index.html,styles.css}`
+  - `demos/wasm-readonly-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

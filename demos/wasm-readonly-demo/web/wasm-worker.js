@@ -3,6 +3,7 @@ const EMPTY_ARCHIVE_ARG = new Uint8Array();
 
 let wasmFns = null;
 let wasmInitError = null;
+let loadedStatePrepared = false;
 
 async function initializeWasmRuntime() {
   if (wasmFns) {
@@ -49,16 +50,14 @@ function postStatus(id, stage, message) {
 async function handleLoadArchive(id, data) {
   const runtime = await initializeWasmRuntime();
   runtime.reset_loaded_archive();
+  loadedStatePrepared = false;
 
   postStatus(id, "load_reading_archive", "Reading archive...");
   const summary = runtime.archive_summary(data.fileName, data.bytes);
 
   postStatus(id, "load_inspecting_summary", "Inspecting archive summary...");
-  // Ensure summary materialization is completed before state preparation.
+  // Ensure summary materialization is completed before returning load response.
   JSON.stringify(summary);
-
-  postStatus(id, "load_preparing_state", "Preparing archive state...");
-  runtime.prepare_loaded_archive_state();
 
   postStatus(id, "load_ready", "Ready");
   postResponse(id, true, { result: { summary } });
@@ -66,6 +65,11 @@ async function handleLoadArchive(id, data) {
 
 async function handleSearch(id, data) {
   const runtime = await initializeWasmRuntime();
+  if (!loadedStatePrepared) {
+    postStatus(id, "search_preparing_state", "Preparing search state...");
+    runtime.prepare_loaded_archive_state();
+    loadedStatePrepared = true;
+  }
   postStatus(id, "search_busy", "Searching...");
   const matches = runtime.find(EMPTY_ARCHIVE_ARG, data.query);
   postResponse(id, true, { result: { matches } });
@@ -73,6 +77,11 @@ async function handleSearch(id, data) {
 
 async function handleEntry(id, data) {
   const runtime = await initializeWasmRuntime();
+  if (!loadedStatePrepared) {
+    postStatus(id, "entry_preparing_state", "Preparing entry state...");
+    runtime.prepare_loaded_archive_state();
+    loadedStatePrepared = true;
+  }
   const detail = runtime.entry(EMPTY_ARCHIVE_ARG, data.path);
   postResponse(id, true, { result: { detail } });
 }
@@ -86,6 +95,7 @@ async function handlePropagation(id) {
 async function handleReset(id) {
   const runtime = await initializeWasmRuntime();
   runtime.reset_loaded_archive();
+  loadedStatePrepared = false;
   postResponse(id, true, { result: {} });
 }
 

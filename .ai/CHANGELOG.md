@@ -1413,3 +1413,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added explicit search busy-state affordance near search controls (busy button label + inline busy chip) and wired deterministic busy reset on success/error/reset boundaries.
 - Updated WASM demo README interaction-model notes to document staged load progress and search busy indication behavior.
 - Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-02 — P18S08f6 rework
+- Restored deferred execution boundaries in worker-backed WASM demo: load is summary-only, while first search/entry lazily triggers state-preparation stages.
+- Replaced top inline status strip with explicit centered progress overlay (spinner + worker stage text) for long-running operations.
+- Updated README interaction-model and coherence checks to match deferred-load + overlay behavior.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

@@ -408,3 +408,22 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Environment note:
   - browser automation/screenshot tooling is still unavailable in this environment; real-browser verification remains an external/manual requirement.
+
+## 2026-04-02 — Handoff update (P18S08f6 rework)
+
+- Worker sequencing correction in `web/wasm-worker.js`:
+  - load now stops at summary (no eager `prepare_loaded_archive_state()` during load)
+  - first `search` lazily runs `Preparing search state...` before searching
+  - first `entry` lazily runs `Preparing entry state...` before detail fetch
+- UI progress presentation correction in `web/index.html`, `web/main.js`, `web/styles.css`:
+  - removed thin inline status line
+  - added centered overlay progress layer with spinner + stage text
+  - overlay is shown for `working` and dismissed on success/error/reset
+- README interaction model updated to describe deferred-load behavior and overlay-stage UX.
+- Last validated commands:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Environment note:
+  - browser automation/screenshot tooling remains unavailable here; required real-browser verification must be run externally.
