@@ -10,6 +10,9 @@ mod index_codec;
 #[path = "../../../crates/crushr/src/extraction_payload_core.rs"]
 mod extraction_payload_core;
 #[allow(dead_code)]
+#[path = "../../../crates/crushr/src/recovery_classification.rs"]
+mod recovery_classification;
+#[allow(dead_code)]
 #[path = "../../../crates/crushr/src/introspection.rs"]
 mod introspection;
 
@@ -20,7 +23,9 @@ use introspection::{
 };
 use crushr_core::propagation::{EntryTrustClass, PropagationImpactReason};
 use crushr_core::{io::{Len, ReadAt}, open::open_archive_v1, verify::verify_block_payloads_clean_v1};
+use extraction_payload_core::block_raw_payload;
 use index_codec::decode_index;
+use recovery_classification::{RecoveryConfidence, classify_content};
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
@@ -37,6 +42,8 @@ thread_local! {
 }
 
 const MAX_FIND_RESULTS: usize = 500;
+const PREVIEW_MAX_BYTES: usize = 5 * 1024;
+const DERIVED_EXTENT_METADATA_BYTES: u64 = 28;
 
 #[derive(Serialize)]
 struct ArchiveLoadResponse {
@@ -171,6 +178,40 @@ pub fn entry(file_bytes: &[u8], path: String) -> Result<JsValue, JsValue> {
     serde_wasm_bindgen::to_value(&detail).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+enum PreviewKind {
+    Text,
+    Binary,
+    Unavailable,
+}
+
+#[derive(Serialize)]
+struct EntryPreviewResponse {
+    path: String,
+    preview_kind: PreviewKind,
+    bytes_read: usize,
+    cap_bytes: usize,
+    truncated: bool,
+    text_preview: Option<String>,
+    binary_message: Option<String>,
+    note: Option<String>,
+    extent_data_bytes: u64,
+    extent_metadata_bytes_derived: u64,
+}
+
+#[wasm_bindgen]
+pub fn entry_preview(path: String) -> Result<JsValue, JsValue> {
+    let response = LOADED_BYTES.with(|slot| {
+        let borrowed = slot.borrow();
+        let archive_bytes = borrowed
+            .as_deref()
+            .ok_or_else(|| JsValue::from_str("No archive loaded."))?;
+        build_entry_preview_response(archive_bytes, &path)
+    })?;
+    serde_wasm_bindgen::to_value(&response).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
 fn ensure_loaded_state() -> Result<(), JsValue> {
     if LOADED_STATE.with(|slot| slot.borrow().is_some()) {
         return Ok(());
@@ -188,6 +229,131 @@ fn ensure_loaded_state() -> Result<(), JsValue> {
         *slot.borrow_mut() = Some(state);
     });
     Ok(())
+}
+
+fn build_entry_preview_response(
+    archive_bytes: &[u8],
+    path: &str,
+) -> Result<EntryPreviewResponse, JsValue> {
+    let reader = SliceReader::new(archive_bytes);
+    let opened = open_archive_v1(&reader).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let index = decode_index(&opened.tail.idx3_bytes)
+        .map_err(|e| JsValue::from_str(&format!("decode IDX3 index: {e}")))?;
+    let entry = index
+        .entries
+        .iter()
+        .find(|entry| entry.path == path)
+        .ok_or_else(|| JsValue::from_str("Selected entry is no longer available."))?;
+
+    let extent_data_bytes = entry.extents.iter().map(|extent| extent.len).sum::<u64>();
+    let extent_metadata_bytes_derived = (entry.extents.len() as u64) * DERIVED_EXTENT_METADATA_BYTES;
+
+    if entry.extents.is_empty() || entry.size == 0 {
+        return Ok(EntryPreviewResponse {
+            path: path.to_string(),
+            preview_kind: PreviewKind::Unavailable,
+            bytes_read: 0,
+            cap_bytes: PREVIEW_MAX_BYTES,
+            truncated: false,
+            text_preview: None,
+            binary_message: None,
+            note: Some("No entry payload bytes available for preview.".to_string()),
+            extent_data_bytes,
+            extent_metadata_bytes_derived,
+        });
+    }
+
+    let blocks = crushr_core::verify::scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset)
+        .map_err(|e| JsValue::from_str(&format!("scan blocks: {e}")))?;
+    let (preview_bytes, truncated) = read_entry_preview_bytes(&reader, entry, &blocks, PREVIEW_MAX_BYTES)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    if preview_bytes.is_empty() {
+        return Ok(EntryPreviewResponse {
+            path: path.to_string(),
+            preview_kind: PreviewKind::Unavailable,
+            bytes_read: 0,
+            cap_bytes: PREVIEW_MAX_BYTES,
+            truncated,
+            text_preview: None,
+            binary_message: None,
+            note: Some("Entry payload preview is empty.".to_string()),
+            extent_data_bytes,
+            extent_metadata_bytes_derived,
+        });
+    }
+
+    if let Ok(text) = std::str::from_utf8(&preview_bytes) {
+        return Ok(EntryPreviewResponse {
+            path: path.to_string(),
+            preview_kind: PreviewKind::Text,
+            bytes_read: preview_bytes.len(),
+            cap_bytes: PREVIEW_MAX_BYTES,
+            truncated,
+            text_preview: Some(text.to_string()),
+            binary_message: None,
+            note: Some("Showing UTF-8 preview from the first 5 KiB of payload bytes.".to_string()),
+            extent_data_bytes,
+            extent_metadata_bytes_derived,
+        });
+    }
+
+    let classification = classify_content(&preview_bytes);
+    let binary_message = match classification.confidence {
+        RecoveryConfidence::High => format!("appears to be {}", classification.kind),
+        RecoveryConfidence::Medium => format!("possibly {} (unverified)", classification.kind),
+        RecoveryConfidence::Low => "unknown".to_string(),
+    };
+
+    Ok(EntryPreviewResponse {
+        path: path.to_string(),
+        preview_kind: PreviewKind::Binary,
+        bytes_read: preview_bytes.len(),
+        cap_bytes: PREVIEW_MAX_BYTES,
+        truncated,
+        text_preview: None,
+        binary_message: Some(binary_message),
+        note: Some(
+            "Binary classification reuses recover-mode content classification on preview bytes only."
+                .to_string(),
+        ),
+        extent_data_bytes,
+        extent_metadata_bytes_derived,
+    })
+}
+
+fn read_entry_preview_bytes<R: ReadAt>(
+    reader: &R,
+    entry: &format::Entry,
+    blocks: &[crushr_core::verify::BlockSpanV1],
+    cap_bytes: usize,
+) -> anyhow::Result<(Vec<u8>, bool)> {
+    let target_cap = cap_bytes.min(entry.size as usize);
+    let mut out = vec![0u8; target_cap];
+    let mut written = 0usize;
+
+    for extent in &entry.extents {
+        if written >= target_cap {
+            break;
+        }
+        let block = blocks
+            .get(extent.block_id as usize)
+            .ok_or_else(|| anyhow::anyhow!("extent references missing block {}", extent.block_id))?;
+        let raw = block_raw_payload(reader, block)?;
+        let begin = extent.offset as usize;
+        let end = begin.saturating_add(extent.len as usize).min(raw.len());
+        if begin >= end {
+            continue;
+        }
+        let available = end - begin;
+        let remaining = target_cap - written;
+        let take = available.min(remaining);
+        out[written..written + take].copy_from_slice(&raw[begin..begin + take]);
+        written += take;
+    }
+    out.truncate(written);
+    let truncated = entry.size as usize > written;
+    Ok((out, truncated))
 }
 
 #[derive(Serialize)]

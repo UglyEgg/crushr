@@ -217,16 +217,30 @@ button {
 }
 
 .extent-block {
+  position: relative;
   min-height: 28px;
   border-radius: 4px;
   border: 1px solid #5d89d8;
-  background: #cfe2ff;
+  background: #d7e6ff;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 600;
   color: #0f3f8f;
+}
+.extent-part {
+  height: 100%;
+}
+.extent-part-data {
+  background: #66a6ff;
+}
+.extent-part-meta {
+  background: #8a5cd6;
+}
+.extent-block-label {
+  position: absolute;
 }
 .extent-block-selected {
   outline: 2px solid #1f5fd6;
@@ -277,4 +291,26 @@ button {
 .legend-normal {
   background: #cfe2ff;
   border-color: #5d89d8;
+}
+.legend-data {
+  background: #66a6ff;
+  border-color: #4a86d8;
+}
+.legend-metadata {
+  background: #8a5cd6;
+  border-color: #6e41b7;
+}
+.extent-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+}
+.preview-text {
+  max-height: 18rem;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.preview-binary {
+  margin: 0.35rem 0;
+  color: #334155;
+  font-weight: 600;
 }

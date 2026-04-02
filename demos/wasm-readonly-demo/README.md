@@ -62,6 +62,12 @@ Any static host works (nginx, GitHub Pages, Netlify, S3 static hosting, etc.) as
 - Use **Unload archive** to fully reset archive summary, search query/results, selected entry, extent view, propagation state, and status/error surfaces to the empty first-load state.
 - The entries/results pane does not pre-populate on archive load; the demo stays responsive and prompts the user to run **Find** explicitly.
 - Find results are browser-bounded; when matches exceed the limit, the UI explicitly reports truncation (`Showing first N of M matches`) and asks the user to refine the query.
+- Entry extent visualization now shows a deterministic data-vs-metadata split:
+  - data segment = extent payload bytes
+  - metadata segment = **derived** IDX extent-record overhead (`28 bytes` per extent)
+- Entry content preview is bounded to first `5 KiB`:
+  - UTF-8 preview renders as scrollable monospace text
+  - non-UTF-8 payloads show deterministic binary classification (`appears to be`, `possibly ... (unverified)`, or `unknown`)
 
 ## Demo checks
 
@@ -82,7 +88,11 @@ Any static host works (nginx, GitHub Pages, Netlify, S3 static hosting, etc.) as
    - if wasm runtime initialization fails, an explicit error appears (no silent no-op UI)
 11. Visual checks:
    - selected vs impacted vs normal result states are immediately distinguishable
-   - extent legend and extent segment rows clearly map state to color
+   - extent legend and extent segment rows clearly map state to color (including data-vs-derived-metadata split)
    - first-load/no-data views look intentional, not empty placeholders
+12. Preview checks:
+   - select a text entry and confirm preview renders UTF-8 text in monospace with scroll
+   - select a binary entry and confirm classification message appears
+   - confirm preview never exceeds 5 KiB and clears on unload/reset
 
 Behavior is read-only: no extraction, write, or mutation actions exist in this demo UI.

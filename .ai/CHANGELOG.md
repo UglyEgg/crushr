@@ -1440,3 +1440,20 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added bounded summary verification optimization by switching summary-only validity check to a clean/boolean block verification path.
 - Added WASM benchmark-stage decomposition export and updated baseline runner output with explicit `index_decode_parse` and `block_verification_scan` metrics.
 - Published findings and before/after timing delta in `docs/reference/introspection-summary-load-p18s08f8.md`.
+
+## 2026-04-02 — P18S09f0
+- Added bounded selected-entry content preview flow in WASM demo:
+  - new wasm export `entry_preview(path)`
+  - new worker request `entryPreview`
+  - new UI panel rendering UTF-8 preview text (first 5 KiB, scrollable monospace) or binary classification message.
+- Reused existing Rust recovery-classification logic for binary preview messaging and mapped confidence to deterministic labels:
+  - `appears to be X`
+  - `possibly X (unverified)`
+  - `unknown`
+- Extended extent visualization with explicit payload-vs-derived-metadata segmentation and legend:
+  - payload bytes from extent `size_bytes`
+  - metadata bytes derived as `28 bytes` per extent (IDX extent record overhead)
+  - UI note explicitly marks metadata segment as derived.
+- Updated demo README interaction checks for preview behavior and segmentation clarity.
+- Validation: `cargo fmt --all`; `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+- Real-browser screenshot/automation remains external in this environment due unavailable browser tooling.

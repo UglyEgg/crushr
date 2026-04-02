@@ -6,6 +6,7 @@ const queryEl = document.getElementById("query");
 const resultsEl = document.getElementById("results");
 const entryEl = document.getElementById("entry");
 const extentEl = document.getElementById("extent-visualization");
+const previewEl = document.getElementById("entry-preview");
 const propagationToggleEl = document.getElementById("propagation-toggle");
 const propagationSummaryEl = document.getElementById("propagation-summary");
 const propagationDetailEl = document.getElementById("propagation-detail");
@@ -18,6 +19,7 @@ const progressStageEl = document.getElementById("progress-stage");
 const NO_FILE_MESSAGE = "No archive loaded. Choose or drop a .crs file to begin.";
 const NO_RESULTS_MESSAGE = "No matching entries found for the current query.";
 const DEFAULT_EXTENT_MESSAGE = "Select an entry from the results pane to view extent placement.";
+const DEFAULT_PREVIEW_MESSAGE = "Select an entry from the results pane to preview entry content.";
 const SEARCH_PROMPT_MESSAGE = "Archive loaded. Enter a query and click Find to browse entries.";
 const FIND_LIMIT_MESSAGE_PREFIX = "Showing first";
 
@@ -165,6 +167,7 @@ async function resetDemoState(options = {}) {
   renderResultsMessage(NO_FILE_MESSAGE);
   entryEl.textContent = "No entry selected.";
   renderEmptyExtentState(DEFAULT_EXTENT_MESSAGE);
+  renderEmptyPreviewState(DEFAULT_PREVIEW_MESSAGE);
   propagationSummaryEl.textContent = "Propagation view is disabled.";
   propagationDetailEl.textContent = "Enable propagation view to inspect impact details.";
   propagationState = {
@@ -191,7 +194,15 @@ function renderEmptyExtentState(message) {
   extentEl.appendChild(p);
 }
 
-function renderExtentVisualization(detail) {
+function renderEmptyPreviewState(message) {
+  previewEl.innerHTML = "";
+  const p = document.createElement("p");
+  p.className = "muted";
+  p.textContent = message;
+  previewEl.appendChild(p);
+}
+
+function renderExtentVisualization(detail, previewMeta = null) {
   extentEl.innerHTML = "";
   if (!detail) {
     renderEmptyExtentState("Selected entry details are unavailable.");
@@ -214,6 +225,12 @@ function renderExtentVisualization(detail) {
   const strip = document.createElement("div");
   strip.className = "extent-strip";
   const maxBytes = Math.max(...segments.map((segment) => Number(segment.size_bytes || 1)));
+  const extentMetaBytes = Number(previewMeta?.extent_metadata_bytes_derived ?? 0);
+  const extentDataBytes = Number(
+    previewMeta?.extent_data_bytes ??
+      segments.reduce((acc, segment) => acc + Number(segment.size_bytes || 0), 0),
+  );
+  const perExtentMetaBytes = segments.length > 0 ? extentMetaBytes / segments.length : 0;
   for (const segment of segments) {
     const block = document.createElement("div");
     block.className = "extent-block";
@@ -223,21 +240,51 @@ function renderExtentVisualization(detail) {
     }
     const ratio = Number(segment.size_bytes || 1) / maxBytes;
     block.style.flexGrow = String(Math.max(1, Math.round(ratio * 8)));
-    block.textContent = `E${segment.extent_index}`;
+
+    const dataBytes = Number(segment.size_bytes || 0);
+    const totalBytes = dataBytes + perExtentMetaBytes;
+    const dataPct = totalBytes > 0 ? (dataBytes / totalBytes) * 100 : 0;
+    const metaPct = totalBytes > 0 ? (perExtentMetaBytes / totalBytes) * 100 : 0;
+
+    const dataSegment = document.createElement("div");
+    dataSegment.className = "extent-part extent-part-data";
+    dataSegment.style.width = `${dataPct}%`;
+
+    const metadataSegment = document.createElement("div");
+    metadataSegment.className = "extent-part extent-part-meta";
+    metadataSegment.style.width = `${metaPct}%`;
+
+    const label = document.createElement("span");
+    label.className = "extent-block-label";
+    label.textContent = `E${segment.extent_index}`;
+
+    block.appendChild(dataSegment);
+    block.appendChild(metadataSegment);
+    block.appendChild(label);
     strip.appendChild(block);
   }
   extentEl.appendChild(strip);
 
-  if (propagationState.enabled) {
-    const legend = document.createElement("ul");
-    legend.className = "extent-legend";
-    legend.innerHTML = `
+  const legend = document.createElement("ul");
+  legend.className = "extent-legend";
+  const stateLegend = propagationState.enabled
+    ? `
       <li><span class="legend-swatch legend-selected"></span>selected entry</li>
       <li><span class="legend-swatch legend-impacted"></span>impacted entry</li>
       <li><span class="legend-swatch legend-normal"></span>normal entry</li>
-    `;
-    extentEl.appendChild(legend);
-  }
+    `
+    : "";
+  legend.innerHTML = `
+    ${stateLegend}
+    <li><span class="legend-swatch legend-data"></span>payload data bytes</li>
+    <li><span class="legend-swatch legend-metadata"></span>metadata bytes (derived from IDX extent records)</li>
+  `;
+  extentEl.appendChild(legend);
+
+  const segmentationNote = document.createElement("p");
+  segmentationNote.className = "muted extent-note";
+  segmentationNote.textContent = `Metadata segment is derived as ${extentMetaBytes} bytes total (28 bytes per extent from IDX record encoding), data segment is ${extentDataBytes} payload bytes.`;
+  extentEl.appendChild(segmentationNote);
 
   const meta = document.createElement("ul");
   meta.className = "extent-meta";
@@ -247,6 +294,42 @@ function renderExtentVisualization(detail) {
     meta.appendChild(row);
   }
   extentEl.appendChild(meta);
+}
+
+function renderPreview(preview) {
+  previewEl.innerHTML = "";
+  if (!preview) {
+    renderEmptyPreviewState("Selected entry preview is unavailable.");
+    return;
+  }
+
+  const header = document.createElement("p");
+  header.className = "extent-header";
+  const truncationLabel = preview.truncated ? " • preview truncated at 5 KiB" : "";
+  header.textContent = `${preview.path} • read ${preview.bytes_read}/${preview.cap_bytes} bytes${truncationLabel}`;
+  previewEl.appendChild(header);
+
+  if (preview.preview_kind === "text") {
+    const textPre = document.createElement("pre");
+    textPre.className = "preview-text";
+    textPre.textContent = preview.text_preview ?? "";
+    previewEl.appendChild(textPre);
+  } else if (preview.preview_kind === "binary") {
+    const message = document.createElement("p");
+    message.className = "preview-binary";
+    message.textContent = preview.binary_message ?? "unknown";
+    previewEl.appendChild(message);
+  } else {
+    renderEmptyPreviewState(preview.note ?? "No preview available.");
+    return;
+  }
+
+  if (preview.note) {
+    const note = document.createElement("p");
+    note.className = "muted extent-note";
+    note.textContent = preview.note;
+    previewEl.appendChild(note);
+  }
 }
 
 function renderSearchResults(resultPayload) {
@@ -288,9 +371,11 @@ function renderSearchResults(resultPayload) {
       try {
         await runWorking("Loading entry detail...", async () => {
           const { detail } = await requestWorker("entry", { path: match.path });
+          const { preview } = await requestWorker("entryPreview", { path: match.path });
           selectedPath = match.path;
           entryEl.textContent = render(detail);
-          renderExtentVisualization(detail);
+          renderExtentVisualization(detail, preview);
+          renderPreview(preview);
           renderPropagationDetail(selectedPath);
           renderSearchResults({ matches: latestMatches, truncated: resultPayload?.truncated, total_matches: resultPayload?.total_matches });
           setUiState("success", "Ready");
@@ -409,6 +494,7 @@ async function performSearch() {
       selectedPath = null;
       entryEl.textContent = "No entry selected.";
       renderEmptyExtentState(DEFAULT_EXTENT_MESSAGE);
+      renderEmptyPreviewState(DEFAULT_PREVIEW_MESSAGE);
       renderPropagationDetail(selectedPath);
       renderSearchResults(matches);
       setUiState("success", "Ready");
@@ -467,7 +553,9 @@ propagationToggleEl.addEventListener("change", async () => {
     renderSearchResults(matches);
     if (selectedPath) {
       const { detail } = await requestWorker("entry", { path: selectedPath });
-      renderExtentVisualization(detail);
+      const { preview } = await requestWorker("entryPreview", { path: selectedPath });
+      renderExtentVisualization(detail, preview);
+      renderPreview(preview);
     }
     setUiState("success", "Ready");
   } catch (_error) {
