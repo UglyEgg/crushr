@@ -22,45 +22,49 @@
           <button id="unload" type="button">Unload archive</button>
         </div>
       </div>
-      <section class="panel">
-        <h2>Archive summary</h2>
-        <pre id="summary"></pre>
-      </section>
-      <section class="panel">
-        <h2>Search and browse entries</h2>
-        <p class="muted">Search shows at most 500 matches. Refine your query to access deeper results.</p>
-        <div class="search-row">
-          <input id="query" type="text" placeholder="substring path query" />
-          <button id="search">Find</button>
-          <span id="search-busy" class="search-busy" hidden aria-live="polite">Searching…</span>
-        </div>
-        <ul id="results"></ul>
-      </section>
-      <section class="panel">
-        <h2>Entry detail</h2>
-        <pre id="entry"></pre>
-      </section>
-      <section class="panel">
-        <h2>Entry content preview</h2>
-        <div id="entry-preview" class="extent-panel">
-          <p class="muted">Select a search result to preview entry content.</p>
-        </div>
-      </section>
-      <section class="panel">
-        <h2>Propagation impact</h2>
-        <label class="toggle-row">
-          <input id="propagation-toggle" type="checkbox" />
-          Show impact
-        </label>
-        <p id="propagation-summary" class="muted">Propagation view is disabled.</p>
-        <pre id="propagation-detail"></pre>
-      </section>
-      <section class="panel">
-        <h2>Entry extents</h2>
-        <div id="extent-visualization" class="extent-panel">
-          <p class="muted">Select a search result to view extent placement.</p>
-        </div>
-      </section>
+
+      <div class="dashboard-grid" aria-label="Introspection dashboard">
+        <section class="panel panel-summary">
+          <h2>Archive summary</h2>
+          <pre id="summary"></pre>
+        </section>
+        <section class="panel panel-search">
+          <h2>Search and browse entries</h2>
+          <p class="muted">Search shows at most 500 matches. Refine your query to access deeper results.</p>
+          <div class="search-row">
+            <input id="query" type="text" placeholder="substring path query" />
+            <button id="search">Find</button>
+            <span id="search-busy" class="search-busy" hidden aria-live="polite">Searching…</span>
+          </div>
+          <ul id="results"></ul>
+        </section>
+        <section class="panel panel-entry">
+          <h2>Entry detail</h2>
+          <pre id="entry"></pre>
+        </section>
+        <section class="panel panel-extents">
+          <h2>Entry extents</h2>
+          <div id="extent-visualization" class="extent-panel">
+            <p class="muted">Select a search result to view extent placement.</p>
+          </div>
+        </section>
+        <section class="panel panel-preview">
+          <h2>Entry content preview</h2>
+          <div id="entry-preview" class="extent-panel">
+            <p class="muted">Select a search result to preview entry content.</p>
+          </div>
+        </section>
+        <section class="panel panel-propagation">
+          <h2>Propagation impact</h2>
+          <label class="toggle-row">
+            <input id="propagation-toggle" type="checkbox" />
+            Show impact
+          </label>
+          <p id="propagation-summary" class="muted">Propagation view is disabled.</p>
+          <pre id="propagation-detail"></pre>
+        </section>
+      </div>
+
       <pre id="error"></pre>
     </main>
     <div id="progress-overlay" class="progress-overlay" hidden aria-live="polite" aria-busy="true" aria-label="Operation in progress">

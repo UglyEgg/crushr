@@ -748,3 +748,26 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - Browser automation/screenshot tooling remains unavailable in this environment; packet-required real-browser visual verification remains external.
 - Next:
   - run explicit external browser checklist for text-preview rendering, binary classification messaging, and extent split legend clarity across impacted/non-impacted states.
+
+## 2026-04-02 — Active Step Update (P18S09f1)
+
+- Completed: Phase 18 Step 09 fix 1 (`P18S09f1`).
+- Applied bounded WASM demo enterprise-dashboard visual polish pass across existing layout/semantics only:
+  - refined top/header and drop-zone treatment for stronger first-screen hierarchy
+  - moved content panels into a stable dashboard grid with consistent card boundaries and spacing rhythm
+  - normalized panel/card language (background/border/shadow, heading rhythm, and section separation)
+  - improved typography balance for headings, metadata/detail blocks, result rows, and preview text readability.
+- Refined visual state encoding while preserving behavior:
+  - calmer selected/impacted/normal styling for result rows and extent blocks
+  - polished loading overlay card and error banner presentation
+  - more intentional empty-state container styling for no-file/no-results/no-selection scenarios.
+- No feature or semantic changes were introduced; JS behavior, worker protocol, and introspection outputs remain unchanged.
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Constraints/gotchas:
+  - `PROJECT_STATE.md` remains referenced by bootstrap docs but is absent at repository root.
+  - Browser automation/screenshot tooling remains unavailable in this environment; packet-required real-browser visual verification remains external.
+- Next:
+  - run explicit external browser verification checklist for responsive layout rhythm, panel hierarchy readability, and selected/impacted state clarity on real archive interactions.

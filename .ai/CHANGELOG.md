@@ -8,6 +8,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
 
+## 2026-04-02 — P18S09f1
+- Polished the WASM demo toward an enterprise-dashboard tone without changing behavior or semantics.
+- Updated `web/index.html` with bounded structural grouping (`dashboard-grid` + panel role classes) to improve panel hierarchy and scanning order.
+- Refined `web/styles.css` for coherent card language, spacing rhythm, calmer typography hierarchy, and clearer state visuals (selected/impacted/normal/loading/error).
+- Improved intentional empty-state, loading overlay, and error banner presentation so no-data/working/failure states appear product-grade rather than fallback-styled.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`.
+- Browser screenshot/automation tooling remains unavailable in this environment; real-browser visual verification is external.
+
 ## 2026-04-02 — P18S08f5
 - Moved WASM demo heavy introspection execution to a module Web Worker (`web/wasm-worker.js`), including archive load/state prep/search/entry/propagation paths.
 - Rewired `web/main.js` to a message-driven worker protocol so the main thread remains UI-only during heavy operations.

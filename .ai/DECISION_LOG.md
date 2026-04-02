@@ -1,3 +1,20 @@
+## 2026-04-02 — P18S09f1 WASM dashboard polish visual-language lock
+
+- Decision:
+  - Keep the existing WASM demo information architecture and behavior unchanged while upgrading only visual hierarchy/style treatment.
+  - Adopt a restrained enterprise-dashboard panel language: consistent card backgrounds/borders/shadows, tighter heading rhythm, and stable spacing grid.
+  - Keep state semantics unchanged while refining visual tone for `selected`, `impacted`, `normal`, `loading`, and `error` states to calmer, clearer cues.
+- Alternatives considered:
+  1. Keep stacked prototype layout and apply only minor color tweaks.
+  2. Introduce larger interaction redesign (tabs/collapse/new navigation).
+- Rationale:
+  - Packet scope is explicit UI polish without semantic or interaction redesign.
+  - A bounded CSS/markup refinement delivers stronger product-grade coherence while minimizing regression risk.
+- Blast radius:
+  - `demos/wasm-readonly-demo/web/index.html`
+  - `demos/wasm-readonly-demo/web/styles.css`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
 
 
 ## 2026-03-30 — P17S03f2 propagation human-output density cleanup lock

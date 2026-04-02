@@ -505,3 +505,19 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Constraint:
   - real browser automation/screenshot tooling remains unavailable in this environment; packet-level browser verification still needs external execution.
+
+## 2026-04-02 — Handoff update (P18S09f1 complete)
+
+- Performed a bounded enterprise-dashboard visual polish pass for the WASM demo in:
+  - `demos/wasm-readonly-demo/web/index.html`
+  - `demos/wasm-readonly-demo/web/styles.css`
+- Changes are presentation-only (no feature/semantic changes):
+  - dashboard grid hierarchy for summary/search/detail/extents/preview/propagation panels
+  - consistent card/panel language and improved spacing/typography rhythm
+  - calmer selected/impacted/normal/loading/error state treatment and cleaner empty-state presentation
+- Validation run:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Screenshot/real-browser note:
+  - browser automation tooling is unavailable in this environment, so required real-browser visual verification remains external.
