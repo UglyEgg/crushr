@@ -1427,3 +1427,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 ## 2026-04-02 — P18S08f6 propagation-overlay-clear fix
 - Fixed propagation-toggle no-impact path by explicitly settling UI state to `Ready` after refresh search/entry requests, preventing stuck progress overlay.
 - Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-02 — P18S08f7
+- Characterized the WASM demo summary-load path and confirmed it still performs full IDX3 decode and payload verification scan on load, while deferred search/entry state-prep work remains excluded from initial load.
+- Removed avoidable large-archive load overhead in `demos/wasm-readonly-demo/src/lib.rs` by eliminating duplicate full-byte cloning in `archive_summary` (owned bytes are now reused for summary + loaded-session state).
+- Added concise measurement report `docs/reference/introspection-summary-load-p18s08f7.md` and post-change artifact `.bench/introspection_baseline/wasm_baseline_p18s08f7.json` with before/after baseline-set timing comparison.
+- Validation: `cargo fmt --all`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `node --check demos/wasm-readonly-demo/web/main.js`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `cd demos/wasm-readonly-demo && ./build-dist.sh`; `node scripts/perf_wasm_runner.mjs --specs .bench/introspection_baseline/archive_set.json --runs 1 --out .bench/introspection_baseline/wasm_baseline_p18s08f7.json`.

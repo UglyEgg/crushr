@@ -56,8 +56,6 @@ async function handleLoadArchive(id, data) {
   const summary = runtime.archive_summary(data.fileName, data.bytes);
 
   postStatus(id, "load_inspecting_summary", "Inspecting archive summary...");
-  // Ensure summary materialization is completed before returning load response.
-  JSON.stringify(summary);
 
   postStatus(id, "load_ready", "Ready");
   postResponse(id, true, { result: { summary } });

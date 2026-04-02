@@ -2026,3 +2026,20 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `demos/wasm-readonly-demo/web/{wasm-worker.js,main.js,index.html,styles.css}`
   - `demos/wasm-readonly-demo/README.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-02 — P18S08f7 summary-load byte-duplication removal lock
+
+- Decision:
+  - Keep summary semantics and deferred execution boundaries unchanged.
+  - Remove redundant full archive-byte duplication during WASM `archive_summary` by accepting owned bytes and reusing the same allocation for summary inspection and loaded-session retention.
+- Alternatives considered:
+  1. Keep clone-based flow and optimize elsewhere first.
+  2. Change summary semantics (defer payload verification) to reduce load cost.
+- Rationale:
+  - Packet requires meaningful initial-load reduction without semantic drift.
+  - Eliminating duplicate in-memory copy is bounded, low-risk, and directly targets large-archive summary load overhead.
+- Blast radius:
+  - `demos/wasm-readonly-demo/src/lib.rs`
+  - `docs/reference/introspection-summary-load-p18s08f7.md`
+  - `.bench/introspection_baseline/wasm_baseline_p18s08f7.json`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,HANDOFF.md,CHANGELOG.md,DECISION_LOG.md}`

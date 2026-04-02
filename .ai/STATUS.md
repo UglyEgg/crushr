@@ -668,3 +668,30 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Constraint:
   - browser automation/screenshot tooling remains unavailable in this environment; real-browser verification remains external.
+
+## 2026-04-02 — Active Step Update (P18S08f7)
+
+- Completed: Phase 18 Step 08 fix 7 (`P18S08f7`).
+- Characterized initial WASM summary-load path and confirmed, with code evidence, that load summary currently performs:
+  - full IDX3 decode/parse
+  - block payload verification scan
+  - but **does not** perform deferred `find`/`entry` state prep/path index build/per-entry materialization.
+- Reduced initial summary-load overhead in WASM adapter by removing a second full archive-byte clone in `archive_summary`:
+  - changed wasm export to take owned `Vec<u8>` and reuse it for both summary computation and loaded-session storage.
+  - preserved deferred execution boundaries (`load => summary only`, lazy state prep on first `find`/`entry`).
+- Added concise measurement report and artifacts:
+  - `docs/reference/introspection-summary-load-p18s08f7.md`
+  - `.bench/introspection_baseline/wasm_baseline_p18s08f7.json`
+- Measured improvement on same baseline archive set (Node wasm-bindgen path, 1 run):
+  - `large`: `21.103 ms` -> `13.576 ms` (~35.7% faster)
+  - `very_large_stress`: `89.722 ms` -> `62.322 ms` (~30.5% faster)
+- Validation:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cd demos/wasm-readonly-demo && ./build-dist.sh`
+  - `node scripts/perf_wasm_runner.mjs --specs .bench/introspection_baseline/archive_set.json --runs 1 --out .bench/introspection_baseline/wasm_baseline_p18s08f7.json`
+- Constraint:
+  - Browser automation/screenshot tooling remains unavailable in this environment; required packet real-browser verification remains external.
