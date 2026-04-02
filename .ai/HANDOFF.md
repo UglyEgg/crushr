@@ -438,3 +438,13 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+
+## 2026-04-02 — Handoff update (P18S08f6 propagation-overlay-clear fix)
+
+- Fixed propagation-toggle refresh path in `web/main.js` where worker-driven `search`/`entry` refresh requests could leave overlay visible.
+- Added explicit `setUiState("success", "Ready")` after propagation-refresh re-render calls complete, ensuring overlay dismissal in no-impact and normal paths.
+- Last validated commands:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`

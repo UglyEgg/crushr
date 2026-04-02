@@ -1423,3 +1423,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 ## 2026-04-02 — P18S08f6 overlay-hidden fix
 - Fixed initial render overlay regression by adding `.progress-overlay[hidden] { display: none; }` so the loading layer is only visible during active work.
 - Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-02 — P18S08f6 propagation-overlay-clear fix
+- Fixed propagation-toggle no-impact path by explicitly settling UI state to `Ready` after refresh search/entry requests, preventing stuck progress overlay.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

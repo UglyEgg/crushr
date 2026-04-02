@@ -655,3 +655,16 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Constraint:
   - browser automation/screenshot tooling remains unavailable in this environment; real-browser visual verification remains external.
+
+## 2026-04-02 — Active Step Update (P18S08f6 propagation-overlay-clear fix)
+
+- Fixed propagation-toggle no-impact path leaving the progress overlay active after internal refresh search/entry worker calls.
+- Added explicit post-refresh settlement (`setUiState("success", "Ready")`) in the propagation-toggle handler so overlay state is cleared deterministically after refresh requests complete.
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - browser automation/screenshot tooling remains unavailable in this environment; real-browser verification remains external.

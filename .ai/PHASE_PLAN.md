@@ -350,3 +350,4 @@ Latest priority doctrine
 - [x] P18S08f6 — improve worker-backed WASM progress UX with deterministic staged archive-load state reporting and explicit search busy-state indication in search controls.
 - [x] P18S08f6 rework — restore summary-only deferred load sequencing in worker-backed WASM demo and replace inline status line with explicit progress overlay layer.
 - [x] P18S08f6 overlay-hidden fix — enforce hidden-state CSS for progress overlay so first render is non-blocking and overlay shows only during active work.
+- [x] P18S08f6 propagation-overlay-clear fix — clear overlay state after propagation-toggle refresh search/entry requests complete.

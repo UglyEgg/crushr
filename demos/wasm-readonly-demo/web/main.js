@@ -469,6 +469,7 @@ propagationToggleEl.addEventListener("change", async () => {
       const { detail } = await requestWorker("entry", { path: selectedPath });
       renderExtentVisualization(detail);
     }
+    setUiState("success", "Ready");
   } catch (_error) {
     // setError already handled
   }
