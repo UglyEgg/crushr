@@ -572,3 +572,28 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Constraint:
   - browser automation remains unavailable in this environment (`playwright` missing), so real-browser visual verification remains external.
+
+
+## 2026-04-02 — Active Step Update (P18S08f5)
+
+- Completed: Phase 18 Step 08 fix 5 (`P18S08f5`).
+- Implemented browser-safe worker offload for the WASM demo heavy-path operations:
+  - added module worker runtime (`web/wasm-worker.js`) that hosts wasm init and all heavy calls (`archive_summary`, state prep, `find`, `entry`, `propagation`).
+  - main thread now uses request/response message passing only; heavy introspection no longer executes on the UI thread.
+- Added deterministic staged progress signaling across worker boundaries:
+  - load path: `Loading archive...` → `Preparing archive...` → `Ready`
+  - search path: `Searching...` → `Rendering results...` → `Ready`
+- Hardened lifecycle/state boundaries:
+  - worker reset path is now explicit (`reset`) and used for unload/new-load to avoid cross-archive state contamination.
+  - added `prepare_loaded_archive_state()` wasm export so state-prep is explicit and worker-driven.
+- Preserved bounded behavior and semantics:
+  - existing bounded find contract (`max 500`, deterministic order, truncation metadata) remains unchanged under worker execution.
+  - worker error messages are surfaced to UI as explicit action errors instead of raw runtime panic leakage.
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - real-browser and screenshot tooling remains unavailable in this environment; packet-level interactive browser verification remains required externally.

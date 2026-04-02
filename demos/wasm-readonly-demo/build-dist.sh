@@ -10,6 +10,7 @@ mkdir -p "${DIST_DIR}"
 wasm-pack build --target web --no-opt --out-dir "${DIST_DIR}/pkg"
 cp "${ROOT_DIR}/web/index.html" "${DIST_DIR}/index.html"
 cp "${ROOT_DIR}/web/main.js" "${DIST_DIR}/main.js"
+cp "${ROOT_DIR}/web/wasm-worker.js" "${DIST_DIR}/wasm-worker.js"
 cp "${ROOT_DIR}/web/styles.css" "${DIST_DIR}/styles.css"
 
 # GitHub Pages compatibility for repos without custom Jekyll setup.

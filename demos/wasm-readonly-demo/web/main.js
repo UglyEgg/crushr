@@ -1,39 +1,3 @@
-const WASM_MODULE_PATHS = ["./pkg/crushr_wasm_readonly_demo.js", "../pkg/crushr_wasm_readonly_demo.js"];
-
-let wasmFns = null;
-let wasmInitError = null;
-
-async function initializeWasmRuntime() {
-  for (const path of WASM_MODULE_PATHS) {
-    try {
-      const module = await import(path);
-      await module.default();
-      module.init();
-      wasmFns = {
-        archive_summary: module.archive_summary,
-        reset_loaded_archive: module.reset_loaded_archive,
-        find: module.find,
-        entry: module.entry,
-        propagation: module.propagation,
-      };
-      return;
-    } catch (error) {
-      wasmInitError = error;
-    }
-  }
-  throw wasmInitError ?? new Error("Unknown WASM initialization failure.");
-}
-
-function requireWasmReady() {
-  if (wasmFns) {
-    return true;
-  }
-  const detail = wasmInitError ? ` ${String(wasmInitError)}` : "";
-  setError(`Failed to initialize wasm runtime.${detail}`);
-  setUiState("error", "WASM runtime initialization failed.");
-  return false;
-}
-
 const dropZoneEl = document.getElementById("drop-zone");
 const fileEl = document.getElementById("file");
 const unloadBtn = document.getElementById("unload");
@@ -53,8 +17,11 @@ const NO_FILE_MESSAGE = "No archive loaded. Choose or drop a .crs file to begin.
 const NO_RESULTS_MESSAGE = "No matching entries found for the current query.";
 const DEFAULT_EXTENT_MESSAGE = "Select an entry from the results pane to view extent placement.";
 const SEARCH_PROMPT_MESSAGE = "Archive loaded. Enter a query and click Find to browse entries.";
-const EMPTY_ARCHIVE_ARG = new Uint8Array();
 const FIND_LIMIT_MESSAGE_PREFIX = "Showing first";
+
+const worker = new Worker(new URL("./wasm-worker.js", import.meta.url), { type: "module" });
+let nextRequestId = 1;
+const pendingRequests = new Map();
 
 let bytes = null;
 let selectedPath = null;
@@ -65,6 +32,38 @@ let propagationState = {
   impactedByPath: new Map(),
   noImpactMessage: "Propagation view is disabled.",
 };
+
+worker.onmessage = (event) => {
+  const message = event.data ?? {};
+  if (message.type === "status") {
+    if (message.message) {
+      setUiState("working", message.message);
+    }
+    return;
+  }
+  if (message.type !== "response") {
+    return;
+  }
+  const request = pendingRequests.get(message.id);
+  if (!request) {
+    return;
+  }
+  pendingRequests.delete(message.id);
+  if (message.ok) {
+    request.resolve(message.result ?? {});
+    return;
+  }
+  request.reject(new Error(message.error || "Worker request failed."));
+};
+
+function requestWorker(type, data = {}) {
+  const id = nextRequestId++;
+  const result = new Promise((resolve, reject) => {
+    pendingRequests.set(id, { resolve, reject });
+  });
+  worker.postMessage({ id, type, data });
+  return result;
+}
 
 function clearError() {
   errorEl.textContent = "";
@@ -102,9 +101,7 @@ async function runWorking(actionLabel, work) {
   setUiState("working", actionLabel);
   setControlsBusy(true);
   try {
-    const result = await work();
-    setUiState("success", `${actionLabel.replace(/\.\.\.$/, "")}: done.`);
-    return result;
+    return await work();
   } catch (error) {
     setError(formatActionError(actionLabel, error));
     throw error;
@@ -125,12 +122,16 @@ function renderResultsMessage(message) {
   resultsEl.appendChild(item);
 }
 
-function resetDemoState(options = {}) {
-  const { clearFileInput = false, statusMessage = "Idle. Load an archive to start." } = options;
+async function resetDemoState(options = {}) {
+  const { clearFileInput = false, statusMessage = "Idle. Load an archive to start.", resetWorker = true } = options;
 
   bytes = null;
-  if (wasmFns?.reset_loaded_archive) {
-    wasmFns.reset_loaded_archive();
+  if (resetWorker) {
+    try {
+      await requestWorker("reset");
+    } catch (_error) {
+      // no-op: UI reset should still complete
+    }
   }
   selectedPath = null;
   latestMatches = [];
@@ -257,17 +258,18 @@ function renderSearchResults(resultPayload) {
     }
 
     button.addEventListener("click", async () => {
-      if (!bytes || !requireWasmReady()) {
+      if (!bytes) {
         return;
       }
       try {
         await runWorking("Loading entry detail...", async () => {
-          const detail = wasmFns.entry(EMPTY_ARCHIVE_ARG, match.path);
+          const { detail } = await requestWorker("entry", { path: match.path });
           selectedPath = match.path;
           entryEl.textContent = render(detail);
           renderExtentVisualization(detail);
           renderPropagationDetail(selectedPath);
-          renderSearchResults(latestMatches);
+          renderSearchResults({ matches: latestMatches, truncated: resultPayload?.truncated, total_matches: resultPayload?.total_matches });
+          setUiState("success", "Ready");
         });
       } catch (_error) {
         // setError already handled in runWorking
@@ -332,44 +334,40 @@ async function refreshPropagationState() {
     renderPropagationDetail(selectedPath);
     return;
   }
-  if (!requireWasmReady()) {
-    return;
-  }
 
   await runWorking("Analyzing propagation...", async () => {
-    const report = wasmFns.propagation(EMPTY_ARCHIVE_ARG);
+    const { report } = await requestWorker("propagation");
     propagationState.noImpactMessage = report.no_impact_message;
     propagationState.impactedByPath = new Map(report.impacted_entries.map((item) => [item.path, item]));
     renderPropagationSummary();
     renderPropagationDetail(selectedPath);
+    setUiState("success", "Ready");
   });
 }
 
 async function loadArchive(file) {
   clearError();
   if (!file) {
-    resetDemoState({ statusMessage: "No archive loaded." });
+    await resetDemoState({ statusMessage: "No archive loaded.", resetWorker: false });
     setError("No file provided.");
     return;
   }
 
-  resetDemoState({ statusMessage: "Preparing archive load..." });
+  await resetDemoState({ statusMessage: "Preparing archive load..." });
 
   try {
     await runWorking("Loading archive...", async () => {
       const nextBytes = new Uint8Array(await file.arrayBuffer());
-      if (!requireWasmReady()) {
-        return;
-      }
-
-      const summary = wasmFns.archive_summary(file.name, nextBytes);
+      const { summary } = await requestWorker("loadArchive", { fileName: file.name, bytes: nextBytes });
       bytes = nextBytes;
       summaryEl.textContent = render(summary);
       renderResultsMessage(SEARCH_PROMPT_MESSAGE);
-      await refreshPropagationState();
+      renderPropagationSummary();
+      renderPropagationDetail(selectedPath);
+      setUiState("success", "Ready");
     });
   } catch (_error) {
-    resetDemoState({ statusMessage: "Load failed; archive state reset." });
+    await resetDemoState({ statusMessage: "Load failed; archive state reset.", resetWorker: false });
   }
 }
 
@@ -379,39 +377,32 @@ async function performSearch() {
     setError("Load an archive before searching.");
     return;
   }
-  if (!requireWasmReady()) {
-    return;
-  }
 
   try {
-    await runWorking("Searching entries...", async () => {
-      const matches = wasmFns.find(EMPTY_ARCHIVE_ARG, queryEl.value);
+    await runWorking("Searching...", async () => {
+      const { matches } = await requestWorker("search", { query: queryEl.value });
+      setUiState("working", "Rendering results...");
       selectedPath = null;
       entryEl.textContent = "No entry selected.";
       renderEmptyExtentState(DEFAULT_EXTENT_MESSAGE);
       renderPropagationDetail(selectedPath);
       renderSearchResults(matches);
+      setUiState("success", "Ready");
     });
   } catch (_error) {
     // setError already handled in runWorking
   }
 }
 
-resetDemoState();
-
-try {
-  await initializeWasmRuntime();
-} catch (_error) {
-  requireWasmReady();
-}
+await resetDemoState();
 
 fileEl.addEventListener("change", async () => {
   const file = fileEl.files?.[0];
   await loadArchive(file);
 });
 
-unloadBtn.addEventListener("click", () => {
-  resetDemoState({ clearFileInput: true, statusMessage: "Archive unloaded. Demo reset to empty state." });
+unloadBtn.addEventListener("click", async () => {
+  await resetDemoState({ clearFileInput: true, statusMessage: "Archive unloaded. Demo reset to empty state." });
 });
 
 dropZoneEl.addEventListener("dragenter", (event) => {
@@ -445,13 +436,13 @@ propagationToggleEl.addEventListener("change", async () => {
   propagationState.enabled = propagationToggleEl.checked;
   try {
     await refreshPropagationState();
-    if (!bytes || !requireWasmReady()) {
+    if (!bytes) {
       return;
     }
-    const matches = wasmFns.find(EMPTY_ARCHIVE_ARG, queryEl.value);
+    const { matches } = await requestWorker("search", { query: queryEl.value });
     renderSearchResults(matches);
     if (selectedPath) {
-      const detail = wasmFns.entry(EMPTY_ARCHIVE_ARG, selectedPath);
+      const { detail } = await requestWorker("entry", { path: selectedPath });
       renderExtentVisualization(detail);
     }
   } catch (_error) {

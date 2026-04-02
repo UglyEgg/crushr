@@ -7,6 +7,17 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
+
+## 2026-04-02 — P18S08f5
+- Moved WASM demo heavy introspection execution to a module Web Worker (`web/wasm-worker.js`), including archive load/state prep/search/entry/propagation paths.
+- Rewired `web/main.js` to a message-driven worker protocol so the main thread remains UI-only during heavy operations.
+- Added staged operator-visible progress states for large-archive workflows: `Loading archive...`, `Preparing archive...`, `Ready`, `Searching...`, and `Rendering results...`.
+- Added explicit wasm export `prepare_loaded_archive_state()` so archive-state construction is triggered inside the worker after archive load.
+- Kept bounded-find semantics unchanged (500 max + truncation metadata/message) and preserved explicit cross-boundary error surfacing.
+- Updated static-bundle build script to copy worker asset into `dist/`.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+- Real-browser/screenshot verification remains external in this environment due unavailable browser automation tooling.
+
 ## 2026-04-01 — P18S04f2
 - Polished the WASM demo presentation layer for showcase-readiness without changing archive semantics or adding new controls/features.
 - Updated `web/index.html` with a bounded structure polish (hero subtitle, panelized section wrappers, and grouped search controls) to improve scanability and section cohesion.
