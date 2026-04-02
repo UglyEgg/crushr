@@ -15,7 +15,6 @@
         </p>
         <p class="hero-hint">Usage: drop a <code>.crs</code> archive or select a file, then use <strong>Find</strong>.</p>
       </header>
-      <div id="status" class="status-banner status-idle">Idle. Load an archive to start.</div>
       <div id="drop-zone" class="drop-zone" aria-label="Drop a .crs archive here">
         <p>Drop a .crs archive here, or select one below.</p>
         <div class="load-row">
@@ -33,6 +32,7 @@
         <div class="search-row">
           <input id="query" type="text" placeholder="substring path query" />
           <button id="search">Find</button>
+          <span id="search-busy" class="search-busy" hidden aria-live="polite">Searching…</span>
         </div>
         <ul id="results"></ul>
       </section>
@@ -57,6 +57,12 @@
       </section>
       <pre id="error"></pre>
     </main>
+    <div id="progress-overlay" class="progress-overlay" hidden aria-live="polite" aria-busy="true" aria-label="Operation in progress">
+      <div class="progress-card">
+        <div class="spinner" aria-hidden="true"></div>
+        <p id="progress-stage">Working...</p>
+      </div>
+    </div>
     <script type="module" src="./main.js"></script>
   </body>
 </html>

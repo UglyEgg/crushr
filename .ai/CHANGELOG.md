@@ -1407,3 +1407,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 ## 2026-04-02 — P18S08f4
 - Added always-visible search-panel note in `demos/wasm-readonly-demo/web/index.html` that explicitly documents the 500-result cap and query-refinement requirement for deeper matches.
 - Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-02 — P18S08f6
+- Expanded worker-backed archive-load progress reporting in the WASM demo to deterministic staged transitions: `Reading archive...` → `Inspecting archive summary...` → `Preparing archive state...` → `Ready`.
+- Added explicit search busy-state affordance near search controls (busy button label + inline busy chip) and wired deterministic busy reset on success/error/reset boundaries.
+- Updated WASM demo README interaction-model notes to document staged load progress and search busy indication behavior.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-02 — P18S08f6 rework
+- Restored deferred execution boundaries in worker-backed WASM demo: load is summary-only, while first search/entry lazily triggers state-preparation stages.
+- Replaced top inline status strip with explicit centered progress overlay (spinner + worker stage text) for long-running operations.
+- Updated README interaction-model and coherence checks to match deferred-load + overlay behavior.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-02 — P18S08f6 overlay-hidden fix
+- Fixed initial render overlay regression by adding `.progress-overlay[hidden] { display: none; }` so the loading layer is only visible during active work.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-02 — P18S08f6 propagation-overlay-clear fix
+- Fixed propagation-toggle no-impact path by explicitly settling UI state to `Ready` after refresh search/entry requests, preventing stuck progress overlay.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

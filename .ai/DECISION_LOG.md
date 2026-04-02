@@ -1992,3 +1992,37 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `crates/crushr/src/introspection.rs`
   - `demos/wasm-readonly-demo/src/lib.rs`
   - hotspot artifacts/docs under `.bench/introspection_hotspot/` and `docs/reference/`.
+
+## 2026-04-02 — P18S08f6 worker progress-stage and search busy-state lock
+
+- Decision:
+  - Keep worker message protocol bounded to deterministic stage/status events and typed request/response actions.
+  - Promote archive-load stage reporting from coarse load/prep labels to explicit staged boundaries visible in UI: `Reading archive...` → `Inspecting archive summary...` → `Preparing archive state...` → `Ready`.
+  - Add explicit search busy-state affordance near search controls (inline busy indicator + busy button label) while preserving existing status-banner transitions.
+- Alternatives considered:
+  1. Keep only global status-banner text updates with no search-control-local busy signal.
+  2. Add synthetic percentage reporting for load/search progress.
+- Rationale:
+  - Packet scope requires trustworthy operation-state transparency for long-running browser interactions without inventing fake precision.
+  - Deterministic stage labels plus local busy indication reduce idle-looking UI ambiguity and improve user trust boundaries.
+- Blast radius:
+  - `demos/wasm-readonly-demo/web/{wasm-worker.js,main.js,index.html,styles.css}`
+  - `demos/wasm-readonly-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-02 — P18S08f6 deferred-load + overlay progress lock (rework)
+
+- Decision:
+  - Restore deferred execution boundary so `loadArchive` performs summary-only work and does not prepare full introspection state eagerly.
+  - Prepare introspection state lazily on first `search`/`entry` request and keep preparation deterministic/idempotent through worker-owned state flagging.
+  - Replace top inline status strip with a centered overlay progress layer (spinner + stage text) for unmistakable long-operation feedback.
+- Alternatives considered:
+  1. Keep eager state prep at load and only restyle status text.
+  2. Keep inline status presentation and add more color/weight only.
+- Rationale:
+  - Packet requires true deferred sequencing and visible operation feedback that users cannot confuse with idle/hung UI.
+  - Worker-stage messaging already exists; overlay presentation improves trust without introducing fake numeric progress.
+- Blast radius:
+  - `demos/wasm-readonly-demo/web/{wasm-worker.js,main.js,index.html,styles.css}`
+  - `demos/wasm-readonly-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

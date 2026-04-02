@@ -388,3 +388,63 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Environment note:
   - browser screenshot/automation tools are unavailable in this environment; real-browser packet verification must be executed externally.
+
+## 2026-04-02 — Handoff update (P18S08f6 complete)
+
+- Worker progress messaging is now more explicit for archive load in `demos/wasm-readonly-demo/web/wasm-worker.js`:
+  - `Reading archive...`
+  - `Inspecting archive summary...`
+  - `Preparing archive state...`
+  - `Ready`
+- Search now has control-local busy visibility in `demos/wasm-readonly-demo/web`:
+  - search button label switches to `Searching...`
+  - inline busy indicator (`Searching…`) appears beside search controls while find is active
+  - busy state clears on success/error/reset boundaries.
+- README interaction-model notes updated for the new staged load/busy-state behavior.
+- Last validated commands:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Environment note:
+  - browser automation/screenshot tooling is still unavailable in this environment; real-browser verification remains an external/manual requirement.
+
+## 2026-04-02 — Handoff update (P18S08f6 rework)
+
+- Worker sequencing correction in `web/wasm-worker.js`:
+  - load now stops at summary (no eager `prepare_loaded_archive_state()` during load)
+  - first `search` lazily runs `Preparing search state...` before searching
+  - first `entry` lazily runs `Preparing entry state...` before detail fetch
+- UI progress presentation correction in `web/index.html`, `web/main.js`, `web/styles.css`:
+  - removed thin inline status line
+  - added centered overlay progress layer with spinner + stage text
+  - overlay is shown for `working` and dismissed on success/error/reset
+- README interaction model updated to describe deferred-load behavior and overlay-stage UX.
+- Last validated commands:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Environment note:
+  - browser automation/screenshot tooling remains unavailable here; required real-browser verification must be run externally.
+
+## 2026-04-02 — Handoff update (P18S08f6 overlay-hidden fix)
+
+- Resolved initial-page overlay visibility regression by adding an explicit hidden-state CSS guard in `web/styles.css`:
+  - `.progress-overlay[hidden] { display: none; }`
+- Outcome: overlay is now only shown during active working state and does not block first render interactions.
+- Last validated commands:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+
+## 2026-04-02 — Handoff update (P18S08f6 propagation-overlay-clear fix)
+
+- Fixed propagation-toggle refresh path in `web/main.js` where worker-driven `search`/`entry` refresh requests could leave overlay visible.
+- Added explicit `setUiState("success", "Ready")` after propagation-refresh re-render calls complete, ensuring overlay dismissal in no-impact and normal paths.
+- Last validated commands:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`

@@ -54,32 +54,46 @@ button {
   padding: 0.05rem 0.35rem;
 }
 
-.status-banner {
-  border-radius: 8px;
+.progress-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.44);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.progress-overlay[hidden] {
+  display: none;
+}
+.progress-card {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: #ffffff;
   border: 1px solid #c7d7ee;
-  padding: 0.55rem 0.7rem;
-  margin-bottom: 0.8rem;
-  font-size: 0.92rem;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  min-width: 280px;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.2);
+}
+.progress-card p {
+  margin: 0;
+  color: #0f3f8f;
   font-weight: 600;
 }
-.status-idle {
-  color: #334155;
-  background: #eef3fb;
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #bfd0ea;
+  border-top-color: #225dc0;
+  animation: spin 0.9s linear infinite;
 }
-.status-working {
-  color: #0f3f8f;
-  background: #e8f1ff;
-  border-color: #94b5e9;
-}
-.status-success {
-  color: #0a5132;
-  background: #e9f8ef;
-  border-color: #95d5b1;
-}
-.status-error {
-  color: #842029;
-  background: #fdecef;
-  border-color: #f0b4bd;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .panel {
@@ -101,10 +115,20 @@ button {
 .search-row {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
 }
 #query {
   flex: 1;
   min-width: 260px;
+}
+.search-busy {
+  font-size: 0.88rem;
+  color: #0f3f8f;
+  background: #e8f1ff;
+  border: 1px solid #94b5e9;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-weight: 600;
 }
 
 .drop-zone {

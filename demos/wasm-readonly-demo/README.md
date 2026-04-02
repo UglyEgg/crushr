@@ -55,8 +55,10 @@ Any static host works (nginx, GitHub Pages, Netlify, S3 static hosting, etc.) as
 ## Interaction model (P18S08f3)
 
 - Heavy archive introspection executes inside a dedicated Web Worker; the main UI thread only handles rendering and message passing.
-- The status banner now shows staged progress transitions for large archives: `Loading archive...` → `Preparing archive...` → `Ready`, and search path transitions `Searching...` → `Rendering results...` → `Ready`.
-- The demo shows explicit state transitions in a status banner (`idle`, `working`, `success`, `error`) during archive load, search, entry detail fetch, and propagation analysis.
+- Initial archive load is deferred to summary-only work with staged messages: `Reading archive...` → `Inspecting archive summary...` → `Ready` (no eager search-state prep on load).
+- Long-running work is presented with a centered progress overlay layer (spinner + stage text), and search also keeps explicit local busy-state visibility near controls (`Searching…` indicator + disabled button state).
+- Find now performs deferred stage prep when needed: `Preparing search state...` → `Searching...` → `Rendering results...` → `Ready`.
+- The demo tracks explicit operation states (`idle`, `working`, `success`, `error`) and surfaces active work through the progress overlay stage text.
 - Use **Unload archive** to fully reset archive summary, search query/results, selected entry, extent view, propagation state, and status/error surfaces to the empty first-load state.
 - The entries/results pane does not pre-populate on archive load; the demo stays responsive and prompts the user to run **Find** explicitly.
 - Find results are browser-bounded; when matches exceed the limit, the UI explicitly reports truncation (`Showing first N of M matches`) and asks the user to refine the query.
@@ -75,6 +77,7 @@ Any static host works (nginx, GitHub Pages, Netlify, S3 static hosting, etc.) as
    - invalid archive load clears prior summary/results/entry/extent state and shows an explicit error
    - empty search results render an explicit no-match message
    - propagation detail remains explicit for disabled, no-selection, and no-impact states
+   - progress overlay appears during long operations and clears on both success and error
 10. Runtime error check:
    - if wasm runtime initialization fails, an explicit error appears (no silent no-op UI)
 11. Visual checks:

@@ -597,3 +597,74 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Constraint:
   - real-browser and screenshot tooling remains unavailable in this environment; packet-level interactive browser verification remains required externally.
+
+## 2026-04-02 — Active Step Update (P18S08f6)
+
+- Completed: Phase 18 Step 08 fix 6 (`P18S08f6`).
+- Improved worker-backed WASM demo operation-state clarity for long-running archive interactions:
+  - archive-load staged status now reports deterministic worker phases:
+    - `Reading archive...`
+    - `Inspecting archive summary...`
+    - `Preparing archive state...`
+    - `Ready`
+  - worker status stage identifiers were tightened to explicit operation-scoped values (`load_*`, `search_busy`) for deterministic UI interpretation.
+- Added explicit search busy indication in the UI search controls:
+  - search button now switches label to `Searching...` while find is active
+  - inline busy chip (`Searching…`) appears adjacent to search controls
+  - search busy state is cleared on success and on worker error/reset boundaries
+- Updated demo README interaction-model notes to reflect the new archive-load staging and search-control busy indication.
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraints/gotchas:
+  - `PROJECT_STATE.md` is referenced by bootstrap docs but is currently absent in this repository root.
+  - Browser automation/screenshot tooling remains unavailable in this environment, so packet-level real-browser verification must still be executed externally.
+- Next:
+  - run explicit real-browser verification checklist for staged load progress, search busy-state, reset coherence, and failure-state transitions in an external browser session.
+
+## 2026-04-02 — Active Step Update (P18S08f6 rework)
+
+- Corrected P18S08f6 sequencing and UI presentation after review feedback.
+- Deferred execution restored in worker flow:
+  - archive load now stops after summary (`Reading archive...` → `Inspecting archive summary...` → `Ready`)
+  - search lazily prepares state only when needed (`Preparing search state...` before first search)
+  - entry detail lazily prepares state when needed (`Preparing entry state...` before first entry fetch)
+- Replaced thin inline status banner with an unmistakable progress overlay layer (centered spinner + stage text) that appears during working operations and clears on success/error/reset.
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - browser automation/screenshot tooling remains unavailable in this environment; required real-browser verification for this packet must be completed externally.
+- Next:
+  - run explicit real-browser validation for deferred-load behavior and overlay lifecycle across success/error/reset/switch-archive paths.
+
+## 2026-04-02 — Active Step Update (P18S08f6 overlay-hidden fix)
+
+- Fixed progress overlay visibility bug where CSS could override HTML `hidden` attribute on initial render.
+- Added explicit `.progress-overlay[hidden] { display: none; }` guard so overlay appears only during active worker operations.
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - browser automation/screenshot tooling remains unavailable in this environment; real-browser visual verification remains external.
+
+## 2026-04-02 — Active Step Update (P18S08f6 propagation-overlay-clear fix)
+
+- Fixed propagation-toggle no-impact path leaving the progress overlay active after internal refresh search/entry worker calls.
+- Added explicit post-refresh settlement (`setUiState("success", "Ready")`) in the propagation-toggle handler so overlay state is cleared deterministically after refresh requests complete.
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - browser automation/screenshot tooling remains unavailable in this environment; real-browser verification remains external.
