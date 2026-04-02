@@ -448,3 +448,28 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+
+## 2026-04-02 — Handoff update (P18S08f7)
+
+- Characterized summary-load path and confirmed current load summary behavior in shared introspection:
+  - includes full IDX3 decode + block payload verification scan
+  - excludes deferred `find`/`entry` state prep/path index/per-entry report materialization on load.
+- Optimized WASM adapter initial load in `demos/wasm-readonly-demo/src/lib.rs`:
+  - `archive_summary` now accepts owned `Vec<u8>` and reuses it for summary + loaded-session storage.
+  - removed full-byte duplicate clone during initial archive load (`to_vec()` removed).
+- Added concise packet report and measurement artifact:
+  - `docs/reference/introspection-summary-load-p18s08f7.md`
+  - `.bench/introspection_baseline/wasm_baseline_p18s08f7.json`
+- Measured baseline-set improvement (Node wasm-bindgen path, 1 run):
+  - `large`: 21.103ms -> 13.576ms
+  - `very_large_stress`: 89.722ms -> 62.322ms
+- Last validated commands:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cd demos/wasm-readonly-demo && ./build-dist.sh`
+  - `node scripts/perf_wasm_runner.mjs --specs .bench/introspection_baseline/archive_set.json --runs 1 --out .bench/introspection_baseline/wasm_baseline_p18s08f7.json`
+- Environment note:
+  - browser automation/screenshot tooling remains unavailable; real-browser verification remains an external/manual requirement.

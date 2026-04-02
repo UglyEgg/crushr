@@ -43,15 +43,15 @@ pub fn init() {
 }
 
 #[wasm_bindgen]
-pub fn archive_summary(file_name: String, archive_bytes: &[u8]) -> Result<JsValue, JsValue> {
-    LOADED_BYTES.with(|slot| {
-        *slot.borrow_mut() = Some(archive_bytes.to_vec());
-    });
+pub fn archive_summary(file_name: String, archive_bytes: Vec<u8>) -> Result<JsValue, JsValue> {
     LOADED_STATE.with(|slot| {
         *slot.borrow_mut() = None;
     });
-    let summary = inspect_archive_bytes(archive_bytes, "wasm-demo")
+    let summary = inspect_archive_bytes(&archive_bytes, "wasm-demo")
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    LOADED_BYTES.with(|slot| {
+        *slot.borrow_mut() = Some(archive_bytes);
+    });
     let payload = ArchiveLoadResponse { file_name, summary };
     serde_wasm_bindgen::to_value(&payload).map_err(|e| JsValue::from_str(&e.to_string()))
 }
