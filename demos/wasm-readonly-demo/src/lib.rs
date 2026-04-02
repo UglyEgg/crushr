@@ -19,10 +19,17 @@ use introspection::{
     prepare_introspection_state_bytes,
 };
 use crushr_core::propagation::{EntryTrustClass, PropagationImpactReason};
+use crushr_core::{io::{Len, ReadAt}, open::open_archive_v1, verify::verify_block_payloads_clean_v1};
+use index_codec::decode_index;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen(inline_js = "export function perf_now_ms() { return globalThis.performance ? globalThis.performance.now() : Date.now(); }")]
+extern "C" {
+    fn perf_now_ms() -> f64;
+}
 
 thread_local! {
     static LOADED_STATE: RefCell<Option<ArchiveIntrospectionState>> = const { RefCell::new(None) };
@@ -35,6 +42,44 @@ const MAX_FIND_RESULTS: usize = 500;
 struct ArchiveLoadResponse {
     file_name: String,
     summary: introspection::ArchiveSummary,
+}
+
+#[derive(Serialize)]
+struct ArchiveSummaryStageBreakdown {
+    index_decode_parse_ms: f64,
+    block_verification_scan_ms: f64,
+}
+
+#[derive(Clone)]
+struct SliceReader<'a> {
+    bytes: &'a [u8],
+}
+
+impl<'a> SliceReader<'a> {
+    fn new(bytes: &'a [u8]) -> Self {
+        Self { bytes }
+    }
+}
+
+impl ReadAt for SliceReader<'_> {
+    fn read_at(&self, offset: u64, buf: &mut [u8]) -> anyhow::Result<usize> {
+        let Ok(start) = usize::try_from(offset) else {
+            return Ok(0);
+        };
+        if start >= self.bytes.len() {
+            return Ok(0);
+        }
+        let available = self.bytes.len() - start;
+        let n = available.min(buf.len());
+        buf[..n].copy_from_slice(&self.bytes[start..start + n]);
+        Ok(n)
+    }
+}
+
+impl Len for SliceReader<'_> {
+    fn len(&self) -> anyhow::Result<u64> {
+        Ok(self.bytes.len() as u64)
+    }
 }
 
 #[wasm_bindgen]
@@ -53,6 +98,28 @@ pub fn archive_summary(file_name: String, archive_bytes: Vec<u8>) -> Result<JsVa
         *slot.borrow_mut() = Some(archive_bytes);
     });
     let payload = ArchiveLoadResponse { file_name, summary };
+    serde_wasm_bindgen::to_value(&payload).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[wasm_bindgen]
+pub fn archive_summary_stage_breakdown(file_bytes: &[u8]) -> Result<JsValue, JsValue> {
+    let reader = SliceReader::new(file_bytes);
+    let opened = open_archive_v1(&reader).map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    let decode_start = perf_now_ms();
+    let _decoded = decode_index(&opened.tail.idx3_bytes)
+        .map_err(|e| JsValue::from_str(&format!("decode IDX3 index: {e}")))?;
+    let index_decode_parse_ms = perf_now_ms() - decode_start;
+
+    let verify_start = perf_now_ms();
+    let _clean = verify_block_payloads_clean_v1(&reader, opened.tail.footer.blocks_end_offset)
+        .map_err(|e| JsValue::from_str(&format!("verify blocks: {e}")))?;
+    let block_verification_scan_ms = perf_now_ms() - verify_start;
+
+    let payload = ArchiveSummaryStageBreakdown {
+        index_decode_parse_ms,
+        block_verification_scan_ms,
+    };
     serde_wasm_bindgen::to_value(&payload).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 

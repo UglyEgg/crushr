@@ -114,6 +114,77 @@ pub fn verify_block_payloads_v1<R: ReadAt + Len>(
     Ok(corrupted)
 }
 
+pub fn verify_block_payloads_clean_v1<R: ReadAt + Len>(
+    reader: &R,
+    blocks_end_offset: u64,
+) -> Result<bool> {
+    let archive_len = reader.len().context("read archive length")?;
+    ensure!(
+        blocks_end_offset <= archive_len,
+        "blocks_end_offset beyond archive length"
+    );
+
+    let mut offset = 0u64;
+    let mut scratch = vec![0u8; 64 * 1024];
+
+    while offset < blocks_end_offset {
+        let remaining = blocks_end_offset - offset;
+        ensure!(remaining >= 4, "short block region: missing BLK3 magic");
+
+        let mut magic = [0u8; 4];
+        read_exact_at(reader, offset, &mut magic).context("read BLK3 magic")?;
+        ensure!(magic == BLK3_MAGIC, "invalid BLK3 magic at offset {offset}");
+
+        let mut header_prefix = [0u8; 6];
+        read_exact_at(reader, offset, &mut header_prefix).context("read BLK3 header prefix")?;
+        let header_len = u16::from_le_bytes([header_prefix[4], header_prefix[5]]) as u64;
+        ensure!(
+            header_len <= remaining,
+            "BLK3 header exceeds blocks region at offset {offset}"
+        );
+
+        let mut header_bytes = vec![0u8; header_len as usize];
+        read_exact_at(reader, offset, &mut header_bytes).context("read BLK3 header")?;
+        let header = read_blk3_header(Cursor::new(&header_bytes)).context("parse BLK3 header")?;
+
+        let payload_offset = offset
+            .checked_add(header.header_len as u64)
+            .context("payload offset overflow")?;
+        let block_end = payload_offset
+            .checked_add(header.comp_len)
+            .context("block end overflow")?;
+        ensure!(
+            block_end <= blocks_end_offset,
+            "BLK3 payload exceeds blocks region at offset {offset}"
+        );
+
+        if let Some(expected_hash) = header.payload_hash {
+            let mut hasher = blake3::Hasher::new();
+            let mut read_offset = payload_offset;
+            let mut remaining_payload = header.comp_len;
+
+            while remaining_payload > 0 {
+                let chunk = (remaining_payload as usize).min(scratch.len());
+                let n = read_exact_at(reader, read_offset, &mut scratch[..chunk])
+                    .context("read block payload")?;
+                hasher.update(&scratch[..n]);
+                read_offset = read_offset
+                    .checked_add(n as u64)
+                    .context("payload read offset overflow")?;
+                remaining_payload -= n as u64;
+            }
+
+            if *hasher.finalize().as_bytes() != expected_hash {
+                return Ok(false);
+            }
+        }
+
+        offset = block_end;
+    }
+
+    Ok(true)
+}
+
 fn read_exact_at<R: ReadAt>(reader: &R, offset: u64, dst: &mut [u8]) -> Result<usize> {
     let mut remaining = dst;
     let mut off = offset;

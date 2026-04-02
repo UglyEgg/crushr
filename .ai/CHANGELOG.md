@@ -1433,3 +1433,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Removed avoidable large-archive load overhead in `demos/wasm-readonly-demo/src/lib.rs` by eliminating duplicate full-byte cloning in `archive_summary` (owned bytes are now reused for summary + loaded-session state).
 - Added concise measurement report `docs/reference/introspection-summary-load-p18s08f7.md` and post-change artifact `.bench/introspection_baseline/wasm_baseline_p18s08f7.json` with before/after baseline-set timing comparison.
 - Validation: `cargo fmt --all`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `node --check demos/wasm-readonly-demo/web/main.js`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `cd demos/wasm-readonly-demo && ./build-dist.sh`; `node scripts/perf_wasm_runner.mjs --specs .bench/introspection_baseline/archive_set.json --runs 1 --out .bench/introspection_baseline/wasm_baseline_p18s08f7.json`.
+
+
+## 2026-04-02 — P18S08f8
+
+- Added bounded summary verification optimization by switching summary-only validity check to a clean/boolean block verification path.
+- Added WASM benchmark-stage decomposition export and updated baseline runner output with explicit `index_decode_parse` and `block_verification_scan` metrics.
+- Published findings and before/after timing delta in `docs/reference/introspection-summary-load-p18s08f8.md`.

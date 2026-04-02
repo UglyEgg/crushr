@@ -2043,3 +2043,24 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `docs/reference/introspection-summary-load-p18s08f7.md`
   - `.bench/introspection_baseline/wasm_baseline_p18s08f7.json`
   - `.ai/{STATUS.md,PHASE_PLAN.md,HANDOFF.md,CHANGELOG.md,DECISION_LOG.md}`
+
+
+## 2026-04-02 — P18S08f8 summary verification-path simplification + measured decomposition lock
+
+- Decision:
+  - Keep summary semantics and deferred execution unchanged while reducing summary-load overhead in the WASM demo path.
+  - Use a dedicated clean/boolean block-verification scan (`verify_block_payloads_clean_v1`) for summary `extents_valid` instead of collecting full corrupted-block sets when only clean/not-clean is needed.
+  - Add a WASM benchmark-only stage breakdown export to measure `index_decode_parse` and `block_verification_scan` separately without changing UI semantics.
+- Alternatives considered:
+  1. Keep richer corrupted-block collection path for summary verification despite extra allocation/work.
+  2. Weaken summary verification scope to skip payload-hash checks on load.
+- Rationale:
+  - Packet requires measurable summary-load reduction with no semantic weakening.
+  - Summary only needs boolean verification status; collecting detailed corrupted block IDs in this path is avoidable work.
+- Blast radius:
+  - `crates/crushr-core/src/verify.rs`
+  - `crates/crushr/src/introspection.rs`
+  - `demos/wasm-readonly-demo/src/lib.rs`
+  - `scripts/perf_wasm_runner.mjs`
+  - `docs/reference/introspection-summary-load-p18s08f8.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

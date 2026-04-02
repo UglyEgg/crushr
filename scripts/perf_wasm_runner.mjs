@@ -53,8 +53,27 @@ async function main() {
       return stats(samples);
     };
 
+    const summaryStageSamples = {
+      index_decode_parse: [],
+      block_verification_scan: [],
+      total: [],
+    };
+
+    const archiveSummary = await op(() => wasm.archive_summary(path.basename(spec.archive_path), fileBytes));
+    for (let i = 0; i < runs; i += 1) {
+      const result = await wasm.archive_summary_stage_breakdown(fileBytes);
+      summaryStageSamples.index_decode_parse.push(result.index_decode_parse_ms);
+      summaryStageSamples.block_verification_scan.push(result.block_verification_scan_ms);
+      summaryStageSamples.total.push(result.index_decode_parse_ms + result.block_verification_scan_ms);
+    }
+
     const operations = {
-      archive_summary: await op(() => wasm.archive_summary(path.basename(spec.archive_path), fileBytes)),
+      archive_summary: archiveSummary,
+      archive_summary_stage_breakdown: {
+        index_decode_parse: stats(summaryStageSamples.index_decode_parse),
+        block_verification_scan: stats(summaryStageSamples.block_verification_scan),
+        total: stats(summaryStageSamples.total),
+      },
       find: await op(() => wasm.find(fileBytes, spec.query)),
       entry: await op(() => wasm.entry(fileBytes, spec.entry_path)),
       propagation: await op(() => wasm.propagation(fileBytes)),

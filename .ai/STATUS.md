@@ -695,3 +695,31 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `node scripts/perf_wasm_runner.mjs --specs .bench/introspection_baseline/archive_set.json --runs 1 --out .bench/introspection_baseline/wasm_baseline_p18s08f7.json`
 - Constraint:
   - Browser automation/screenshot tooling remains unavailable in this environment; required packet real-browser verification remains external.
+
+
+## 2026-04-02 — Active Step Update (P18S08f8)
+
+- Completed: Phase 18 Step 08 fix 8 (`P18S08f8`).
+- Further characterized WASM `archive_summary` cost with explicit stage decomposition capture in the existing baseline harness flow:
+  - `index_decode_parse`
+  - `block_verification_scan`
+- Applied bounded summary-path optimization without semantic/deferred-flow changes:
+  - summary verification now uses `verify_block_payloads_clean_v1` (boolean clean-check path) in shared introspection summary logic.
+  - preserves summary truth surface (`extents_valid`, `strict_extraction_supported`) and deterministic behavior.
+- Added WASM benchmark decomposition export for harness-only evidence collection:
+  - `archive_summary_stage_breakdown(file_bytes)` in demo WASM adapter.
+- Added concise findings report:
+  - `docs/reference/introspection-summary-load-p18s08f8.md`
+- Measured `archive_summary` improvements vs P18S08f7 baseline report:
+  - `large`: `13.576 ms` -> `11.702 ms` (~13.8% faster)
+  - `very_large_stress`: `62.322 ms` -> `54.034 ms` (~13.3% faster)
+- Decomposition finding (same run): block verification scan dominates index decode/parse on large and very large archive classes.
+- Validation:
+  - `cargo fmt --all`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cargo build --release -p crushr`
+  - `cd demos/wasm-readonly-demo && ./build-dist.sh`
+  - `node scripts/perf_wasm_runner.mjs --specs .bench/introspection_baseline/archive_set.json --runs 1 --out .bench/introspection_baseline/wasm_baseline_p18s08f8.json`
+- Constraint:
+  - Browser automation/screenshot tooling remains unavailable in this environment; required real-browser verification remains external.
