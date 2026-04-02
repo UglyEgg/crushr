@@ -1,3 +1,19 @@
+## 2026-04-02 — P18S09f2 WASM dashboard hierarchy + dark-mode control lock
+
+- Decision:
+  - Keep existing introspection behavior/worker semantics unchanged and shift layout into explicit left-navigation vs right-workspace hierarchy.
+  - Place archive load/unload/theme controls in a compact header command bar and keep long-running status in centered modal overlay only.
+  - Add manual theme toggle (`Light`/`Dark`) with persisted preference and system-preference fallback when no explicit user preference exists.
+- Alternatives considered:
+  1. Keep stack-first card layout with only style tweaks.
+  2. Add dark-mode only without command-bar restructuring.
+- Rationale:
+  - Packet comments require stronger enterprise dashboard hierarchy and first-class dark mode without semantic/interaction redesign.
+  - Bounded HTML/CSS/JS presentation updates satisfy hierarchy and theme requirements with low behavior regression risk.
+- Blast radius:
+  - `demos/wasm-readonly-demo/web/{index.html,styles.css,main.js}`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
 ## 2026-04-02 — P18S09f1 WASM dashboard polish visual-language lock
 
 - Decision:

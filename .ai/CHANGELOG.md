@@ -8,6 +8,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
 
+## 2026-04-02 — P18S09f2
+- Rebalanced WASM demo into a clearer enterprise dashboard hierarchy: compact command/header bar, explicit left navigation/selection stack, and right active-workspace stack.
+- Added header controls for archive browse/unload and first-class theme toggle (`Light`/`Dark`) with persisted preference and system-preference fallback.
+- Added compact inline header status messaging for idle/ready/error while keeping long-running work in centered modal progress overlay.
+- Preserved existing WASM worker protocol and introspection behavior (search, entry detail, extents, preview, propagation semantics unchanged).
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`.
+- Browser screenshot/automation tooling remains unavailable in this environment; real-browser visual verification is external.
+
 ## 2026-04-02 — P18S09f1
 - Polished the WASM demo toward an enterprise-dashboard tone without changing behavior or semantics.
 - Updated `web/index.html` with bounded structural grouping (`dashboard-grid` + panel role classes) to improve panel hierarchy and scanning order.

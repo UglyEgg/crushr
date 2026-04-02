@@ -521,3 +521,21 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
 - Screenshot/real-browser note:
   - browser automation tooling is unavailable in this environment, so required real-browser visual verification remains external.
+
+## 2026-04-02 — Handoff update (P18S09f2 complete)
+
+- Updated WASM demo presentation to explicit dashboard hierarchy with minimal semantic risk:
+  - compact header command bar (`Browse archive`, `Unload`, `Theme`) + inline idle/ready/error status row
+  - left column: summary/search/results
+  - right column: entry/extents/preview/propagation active workspace
+- Added first-class dark mode toggle in `web/main.js` + `web/styles.css`:
+  - persisted via localStorage
+  - fallback to system dark preference when no stored choice exists
+- Preserved existing worker/wasm behavior and all current IDs used by introspection flow.
+- Validation run:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Screenshot/real-browser note:
+  - browser automation tooling remains unavailable in this environment; required real-browser visual verification remains external.

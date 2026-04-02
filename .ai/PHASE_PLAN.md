@@ -355,3 +355,4 @@ Latest priority doctrine
 - [x] P18S08f8 — decompose remaining WASM summary-load cost (`index_decode_parse` vs `block_verification_scan`), optimize summary verification scan path with preserved semantics/deferred flow, and publish updated large-archive before/after evidence.
 - [x] P18S09f0 — add WASM demo UI polish for extent payload-vs-derived-metadata segmentation and bounded selected-entry content preview (UTF-8 text preview + deterministic binary classification messaging) with worker/reset integration.
 - [x] P18S09f1 — perform enterprise-dashboard WASM UI polish pass (layout hierarchy, panel/card styling, typography rhythm, calmer state colors, and polished empty/loading/error presentation) without feature/semantic changes.
+- [x] P18S09f2 — implement explicit header command bar + left-nav/right-workspace dashboard hierarchy and first-class persisted dark mode toggle while preserving existing WASM demo semantics.
