@@ -1419,3 +1419,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Replaced top inline status strip with explicit centered progress overlay (spinner + worker stage text) for long-running operations.
 - Updated README interaction-model and coherence checks to match deferred-load + overlay behavior.
 - Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-02 — P18S08f6 overlay-hidden fix
+- Fixed initial render overlay regression by adding `.progress-overlay[hidden] { display: none; }` so the loading layer is only visible during active work.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

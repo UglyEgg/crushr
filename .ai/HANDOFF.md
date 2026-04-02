@@ -427,3 +427,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Environment note:
   - browser automation/screenshot tooling remains unavailable here; required real-browser verification must be run externally.
+
+## 2026-04-02 — Handoff update (P18S08f6 overlay-hidden fix)
+
+- Resolved initial-page overlay visibility regression by adding an explicit hidden-state CSS guard in `web/styles.css`:
+  - `.progress-overlay[hidden] { display: none; }`
+- Outcome: overlay is now only shown during active working state and does not block first render interactions.
+- Last validated commands:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`

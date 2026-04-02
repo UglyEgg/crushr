@@ -643,3 +643,15 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - browser automation/screenshot tooling remains unavailable in this environment; required real-browser verification for this packet must be completed externally.
 - Next:
   - run explicit real-browser validation for deferred-load behavior and overlay lifecycle across success/error/reset/switch-archive paths.
+
+## 2026-04-02 — Active Step Update (P18S08f6 overlay-hidden fix)
+
+- Fixed progress overlay visibility bug where CSS could override HTML `hidden` attribute on initial render.
+- Added explicit `.progress-overlay[hidden] { display: none; }` guard so overlay appears only during active worker operations.
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - browser automation/screenshot tooling remains unavailable in this environment; real-browser visual verification remains external.

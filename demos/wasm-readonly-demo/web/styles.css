@@ -63,6 +63,9 @@ button {
   justify-content: center;
   z-index: 1000;
 }
+.progress-overlay[hidden] {
+  display: none;
+}
 .progress-card {
   display: flex;
   align-items: center;
