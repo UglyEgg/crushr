@@ -367,3 +367,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Validation executed:
   - `node --check demos/wasm-readonly-demo/web/main.js`
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+
+
+## 2026-04-02 — Handoff update (P18S08f5 complete)
+
+- WASM demo heavy-path execution is now worker-hosted:
+  - added `web/wasm-worker.js` module worker that owns wasm init + calls for load/state-prep/find/entry/propagation.
+  - `web/main.js` now uses request/response message passing and UI-only rendering logic.
+- Added staged progress transitions visible in UI:
+  - load: `Loading archive...` → `Preparing archive...` → `Ready`
+  - search: `Searching...` → `Rendering results...` → `Ready`
+- Worker lifecycle/state guardrails:
+  - explicit worker `reset` used for unload/new-load
+  - added wasm export `prepare_loaded_archive_state()` for explicit archive state prep inside worker
+- Static bundle script now copies worker asset into `dist/` (`build-dist.sh` copies `wasm-worker.js`).
+- Last validated commands:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Environment note:
+  - browser screenshot/automation tools are unavailable in this environment; real-browser packet verification must be executed externally.

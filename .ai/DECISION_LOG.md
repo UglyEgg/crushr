@@ -127,6 +127,25 @@
   - `crates/crushr/Cargo.toml`, `crates/crushr/src/lib.rs`, removed wrapper sources
   - `schemas/crushr-info.v1.schema.json`, CLI/presentation tests, and core tests invoking legacy binary names.
 
+
+## 2026-04-02 — P18S08f5 worker-hosted WASM execution lock
+
+- Decision:
+  - Move heavy browser introspection execution for the WASM demo into a dedicated module Web Worker.
+  - Keep Rust/WASM as the single execution authority; no JS-side reimplementation of introspection/search/entry/propagation logic.
+  - Add coarse deterministic staged-progress messages over the worker boundary instead of fine-grained percentage simulation.
+- Alternatives considered:
+  1. Keep execution on the main thread and only add UI status text.
+  2. Add partial JS pre-indexing/filtering to reduce wasm calls on the main thread.
+- Rationale:
+  - Packet requires responsiveness/stability for large archives without semantic drift.
+  - Worker offload isolates CPU-heavy wasm execution from UI rendering and input processing while preserving deterministic Rust behavior.
+- Blast radius:
+  - `demos/wasm-readonly-demo/web/{main.js,wasm-worker.js}`
+  - `demos/wasm-readonly-demo/src/lib.rs`
+  - `demos/wasm-readonly-demo/{README.md,build-dist.sh}`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
 <!--
 SPDX-License-Identifier: CC-BY-4.0
 SPDX-FileCopyrightText: 2026 Richard Majewski

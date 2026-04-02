@@ -66,6 +66,12 @@ pub fn reset_loaded_archive() {
     });
 }
 
+
+#[wasm_bindgen]
+pub fn prepare_loaded_archive_state() -> Result<(), JsValue> {
+    ensure_loaded_state()
+}
+
 #[wasm_bindgen]
 pub fn find(file_bytes: &[u8], query: String) -> Result<JsValue, JsValue> {
     let _ = file_bytes;
