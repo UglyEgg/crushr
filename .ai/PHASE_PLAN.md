@@ -345,3 +345,4 @@ Latest priority doctrine
 - [x] P18S08f1 — de-eager WASM demo initial archive load by removing empty-query pre-browse work, deferring introspection-state construction until first search/detail request, and keeping deterministic explicit browse prompt messaging.
 - [x] P18S08f2 — fix lazy-state first-find crash by removing full-byte clone from lazy state prep and improve browser-visible WASM failure messaging while preserving de-eager load behavior.
 - [x] P18S08f3 — stabilize large-archive browser find with deterministic bounded result payloads (explicit truncation metadata/message), preventing unbounded wasm search materialization/OOM behavior.
+- [x] P18S08f4 — add always-visible search-panel note documenting 500-result cap and query-refinement requirement for deeper matches.

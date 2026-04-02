@@ -358,3 +358,12 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
 - Environment note:
   - browser automation remains unavailable in this environment (`playwright` missing), so real-browser validation must be executed externally.
+
+## 2026-04-02 — Handoff update (P18S08f4 complete)
+
+- Added a persistent, always-visible note in the Search and browse panel (`web/index.html`) that states:
+  - find is capped at 500 results
+  - users must refine queries to access deeper matches
+- Validation executed:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`

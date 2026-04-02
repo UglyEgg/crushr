@@ -1392,3 +1392,7 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Updated browser UI to render explicit truncation notice when limit is hit (`Showing first N of M matches...`), avoiding silent truncation.
 - Added shared introspection regression test locking bounded-find truncation accounting and deterministic first-N ordering.
 - Validation: `cargo fmt --all`; `node --check demos/wasm-readonly-demo/web/main.js`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `cargo test -p crushr introspection::tests::bounded_find_reports_total_and_truncation_deterministically`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`.
+
+## 2026-04-02 — P18S08f4
+- Added always-visible search-panel note in `demos/wasm-readonly-demo/web/index.html` that explicitly documents the 500-result cap and query-refinement requirement for deeper matches.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

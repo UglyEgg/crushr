@@ -562,3 +562,13 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
 - Constraint:
   - this environment still lacks browser automation tooling (`playwright` missing), so real-browser verification must be executed externally.
+
+## 2026-04-02 — Active Step Update (P18S08f4)
+
+- Completed: Phase 18 Step 08 fix 4 (`P18S08f4`).
+- Added persistent visible UI note in the search panel stating the 500 result cap and explicit query-refinement requirement to access deeper matches.
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - browser automation remains unavailable in this environment (`playwright` missing), so real-browser visual verification remains external.
