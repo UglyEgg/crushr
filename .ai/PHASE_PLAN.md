@@ -352,3 +352,4 @@ Latest priority doctrine
 - [x] P18S08f6 overlay-hidden fix — enforce hidden-state CSS for progress overlay so first render is non-blocking and overlay shows only during active work.
 - [x] P18S08f6 propagation-overlay-clear fix — clear overlay state after propagation-toggle refresh search/entry requests complete.
 - [x] P18S08f7 — characterize initial WASM summary-load work and remove avoidable load-time byte duplication in `archive_summary`, with before/after baseline evidence for large archives.
+- [x] P18S08f8 — decompose remaining WASM summary-load cost (`index_decode_parse` vs `block_verification_scan`), optimize summary verification scan path with preserved semantics/deferred flow, and publish updated large-archive before/after evidence.

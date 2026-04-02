@@ -16,7 +16,9 @@ use crushr_core::{
         STRUCTURE_TAIL_FRAME, build_propagation_report_v1, build_structural_failure_report_v1,
     },
     snapshot::info_envelope_from_open_archive,
-    verify::{BlockSpanV1, scan_blocks_v1, verify_block_payloads_v1},
+    verify::{
+        BlockSpanV1, scan_blocks_v1, verify_block_payloads_clean_v1, verify_block_payloads_v1,
+    },
 };
 use crushr_format::ftr4::{FTR4_LEN, Ftr4};
 use crushr_format::tailframe::parse_tail_frame;
@@ -365,23 +367,26 @@ fn inspect_archive_reader<R: ReadAt + Len>(
     let snapshot =
         info_envelope_from_open_archive(&opened, product_version, "1970-01-01T00:00:00Z");
     let index = decode_index(&opened.tail.idx3_bytes).ok();
-    let total_entries = index
-        .as_ref()
-        .map(|idx| idx.entries.len() as u64)
-        .unwrap_or(0);
-    let extents = index
-        .as_ref()
-        .map(|idx| {
-            idx.entries
-                .iter()
-                .filter(|entry| entry.kind == EntryKind::Regular)
-                .map(|entry| entry.extents.len() as u64)
-                .sum::<u64>()
-        })
-        .unwrap_or(0);
-    let extents_valid = verify_block_payloads_v1(reader, opened.tail.footer.blocks_end_offset)
-        .map(|bad| bad.is_empty())
-        .unwrap_or(false);
+
+    let (total_entries, extents, preservation_profile) = if let Some(index) = index.as_ref() {
+        let mut extents = 0u64;
+        for entry in &index.entries {
+            if entry.kind == EntryKind::Regular {
+                extents += entry.extents.len() as u64;
+            }
+        }
+        (
+            index.entries.len() as u64,
+            extents,
+            index.preservation_profile.as_str().to_string(),
+        )
+    } else {
+        (0, 0, PreservationProfile::Full.as_str().to_string())
+    };
+
+    let extents_valid =
+        verify_block_payloads_clean_v1(reader, opened.tail.footer.blocks_end_offset)
+            .unwrap_or(false);
     let dictionaries_valid = opened.tail.dct1.is_some() || !snapshot.payload.summary.has_dct1;
     let tail_frame_valid = !snapshot.payload.tail_frames.is_empty();
 
@@ -400,10 +405,7 @@ fn inspect_archive_reader<R: ReadAt + Len>(
     Ok(ArchiveSummary {
         format_version: format_version.to_string(),
         global_flags: "none".to_string(),
-        preservation_profile: index
-            .as_ref()
-            .map(|idx| idx.preservation_profile.as_str().to_string())
-            .unwrap_or_else(|| PreservationProfile::Full.as_str().to_string()),
+        preservation_profile,
         total_entries,
         structure: ArchiveStructureSummary {
             extents,

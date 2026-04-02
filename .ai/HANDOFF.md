@@ -473,3 +473,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `node scripts/perf_wasm_runner.mjs --specs .bench/introspection_baseline/archive_set.json --runs 1 --out .bench/introspection_baseline/wasm_baseline_p18s08f7.json`
 - Environment note:
   - browser automation/screenshot tooling remains unavailable; real-browser verification remains an external/manual requirement.
+
+
+## 2026-04-02 — Handoff update (P18S08f8 complete)
+
+- Completed `P18S08f8`.
+- Summary-load decomposition is now explicitly captured in WASM baseline artifacts via `archive_summary_stage_breakdown` and recorded in `docs/reference/introspection-summary-load-p18s08f8.md`.
+- Summary path optimization landed: shared introspection summary now uses boolean clean block verification path (`verify_block_payloads_clean_v1`) with unchanged summary semantics and deferred execution boundaries.
+- Next suggested follow-on (only if requested): external real-browser validation pass with screenshots and interaction checklist evidence for this step.
