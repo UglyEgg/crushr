@@ -353,3 +353,4 @@ Latest priority doctrine
 - [x] P18S08f6 propagation-overlay-clear fix — clear overlay state after propagation-toggle refresh search/entry requests complete.
 - [x] P18S08f7 — characterize initial WASM summary-load work and remove avoidable load-time byte duplication in `archive_summary`, with before/after baseline evidence for large archives.
 - [x] P18S08f8 — decompose remaining WASM summary-load cost (`index_decode_parse` vs `block_verification_scan`), optimize summary verification scan path with preserved semantics/deferred flow, and publish updated large-archive before/after evidence.
+- [x] P18S09f0 — add WASM demo UI polish for extent payload-vs-derived-metadata segmentation and bounded selected-entry content preview (UTF-8 text preview + deterministic binary classification messaging) with worker/reset integration.

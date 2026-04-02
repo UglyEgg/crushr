@@ -723,3 +723,28 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - `node scripts/perf_wasm_runner.mjs --specs .bench/introspection_baseline/archive_set.json --runs 1 --out .bench/introspection_baseline/wasm_baseline_p18s08f8.json`
 - Constraint:
   - Browser automation/screenshot tooling remains unavailable in this environment; required real-browser verification remains external.
+
+## 2026-04-02 — Active Step Update (P18S09f0)
+
+- Completed: Phase 18 Step 09 fix 0 (`P18S09f0`).
+- Implemented WASM demo extent-segmentation polish with explicit payload-vs-metadata split in the extent bars:
+  - payload segment is real extent payload bytes
+  - metadata segment is explicitly **derived** from IDX extent-record overhead (`28 bytes` per extent)
+  - legend and note now explain the derived model to avoid semantic misrepresentation.
+- Added bounded entry content preview panel for selected entries:
+  - text preview: first `5 KiB` UTF-8 rendered in scrollable monospace block
+  - binary preview: deterministic classification message from existing recovery classification logic (`appears to be`, `possibly ... (unverified)`, `unknown`)
+  - preview panel is selection-driven, updates on selection changes, and is cleared on unload/reset/search-selection reset.
+- Added WASM worker + adapter wiring for preview fetch (`entryPreview`) and kept preview reads bounded to first `5 KiB` without full-entry materialization.
+- Validation:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraints/gotchas:
+  - `PROJECT_STATE.md` is still referenced by bootstrap docs but absent at repository root.
+  - Browser automation/screenshot tooling remains unavailable in this environment; packet-required real-browser visual verification remains external.
+- Next:
+  - run explicit external browser checklist for text-preview rendering, binary classification messaging, and extent split legend clarity across impacted/non-impacted states.

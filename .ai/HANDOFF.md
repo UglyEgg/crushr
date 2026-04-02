@@ -481,3 +481,27 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Summary-load decomposition is now explicitly captured in WASM baseline artifacts via `archive_summary_stage_breakdown` and recorded in `docs/reference/introspection-summary-load-p18s08f8.md`.
 - Summary path optimization landed: shared introspection summary now uses boolean clean block verification path (`verify_block_payloads_clean_v1`) with unchanged summary semantics and deferred execution boundaries.
 - Next suggested follow-on (only if requested): external real-browser validation pass with screenshots and interaction checklist evidence for this step.
+
+## 2026-04-02 — Handoff update (P18S09f0 complete)
+
+- WASM demo now includes `Entry content preview` panel in `demos/wasm-readonly-demo/web/index.html`.
+- Preview behavior:
+  - capped to first `5 KiB`
+  - UTF-8 payload previews render as scrollable monospace text
+  - non-UTF-8 payloads render deterministic binary classification messages from existing Rust recovery classification logic.
+- Worker/runtime wiring:
+  - new worker request path `entryPreview`
+  - new wasm export `entry_preview(path)`
+- Extent visualization now has payload-vs-metadata segmentation:
+  - payload segment uses real extent payload bytes
+  - metadata segment is explicitly **derived** (`28 bytes` per extent IDX record overhead)
+  - legend + inline note call out the derived nature.
+- Last validated commands:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - real browser automation/screenshot tooling remains unavailable in this environment; packet-level browser verification still needs external execution.

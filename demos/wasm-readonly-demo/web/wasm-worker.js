@@ -20,6 +20,7 @@ async function initializeWasmRuntime() {
         reset_loaded_archive: module.reset_loaded_archive,
         find: module.find,
         entry: module.entry,
+        entry_preview: module.entry_preview,
         propagation: module.propagation,
       };
       return wasmFns;
@@ -84,6 +85,17 @@ async function handleEntry(id, data) {
   postResponse(id, true, { result: { detail } });
 }
 
+async function handleEntryPreview(id, data) {
+  const runtime = await initializeWasmRuntime();
+  if (!loadedStatePrepared) {
+    postStatus(id, "entry_preparing_state", "Preparing entry state...");
+    runtime.prepare_loaded_archive_state();
+    loadedStatePrepared = true;
+  }
+  const preview = runtime.entry_preview(data.path);
+  postResponse(id, true, { result: { preview } });
+}
+
 async function handlePropagation(id) {
   const runtime = await initializeWasmRuntime();
   const report = runtime.propagation(EMPTY_ARCHIVE_ARG);
@@ -118,6 +130,10 @@ self.onmessage = async (event) => {
     }
     if (type === "propagation") {
       await handlePropagation(id);
+      return;
+    }
+    if (type === "entryPreview") {
+      await handleEntryPreview(id, data ?? {});
       return;
     }
     if (type === "reset") {

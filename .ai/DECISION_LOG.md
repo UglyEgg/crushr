@@ -2064,3 +2064,23 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `scripts/perf_wasm_runner.mjs`
   - `docs/reference/introspection-summary-load-p18s08f8.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-02 — P18S09f0 extent segmentation + preview behavior lock
+
+- Decision:
+  - Add WASM extent visualization split between payload bytes and metadata bytes, with metadata explicitly labeled as **derived** (`28 bytes` per extent from IDX extent records).
+  - Add selected-entry content preview capped at `5 KiB` with deterministic mode behavior:
+    - UTF-8 preview renders text
+    - non-UTF-8 preview renders binary classification message using existing recover-mode content classification logic.
+  - Keep preview read bounded to cap bytes and avoid full-entry preview materialization in the UI path.
+- Alternatives considered:
+  1. Keep extents as single-color payload-only bars and omit metadata visualization.
+  2. Add ad hoc JS-only binary classification heuristics independent of existing Rust logic.
+- Rationale:
+  - Packet requires stronger interpretability while preserving semantic honesty and deterministic behavior.
+  - Reusing existing classification logic avoids divergent duplicate classifier behavior in browser code.
+- Blast radius:
+  - `demos/wasm-readonly-demo/src/lib.rs`
+  - `demos/wasm-readonly-demo/web/{main.js,wasm-worker.js,index.html,styles.css}`
+  - `demos/wasm-readonly-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
