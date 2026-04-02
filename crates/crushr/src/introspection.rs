@@ -182,6 +182,13 @@ pub struct EntryMatch {
     pub trust_class: EntryTrustClass,
 }
 
+#[derive(Clone, serde::Serialize)]
+pub struct BoundedFindResult {
+    pub matches: Vec<EntryMatch>,
+    pub total_matches: usize,
+    pub truncated: bool,
+}
+
 fn now_ms() -> f64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -232,20 +239,31 @@ impl ArchiveIntrospectionState {
     }
 
     fn find(&self, query: &str, limit: Option<usize>) -> Vec<EntryMatch> {
-        let mut matches = self
-            .records
-            .iter()
-            .filter(|record| record.path.contains(query))
-            .map(|record| EntryMatch {
-                path: record.path.clone(),
-                trust_class: record.trust_class,
-            })
-            .collect::<Vec<_>>();
-        matches.sort_by(|a, b| a.path.cmp(&b.path));
-        if let Some(limit) = limit {
-            matches.truncate(limit);
+        self.find_bounded(query, limit).matches
+    }
+
+    fn find_bounded(&self, query: &str, limit: Option<usize>) -> BoundedFindResult {
+        let mut matches = Vec::new();
+        let mut total_matches = 0usize;
+        for (path, idx) in self.by_path.iter() {
+            if !path.contains(query) {
+                continue;
+            }
+            total_matches += 1;
+            if limit.is_none_or(|max| matches.len() < max)
+                && let Some(record) = self.records.get(*idx)
+            {
+                matches.push(EntryMatch {
+                    path: record.path.clone(),
+                    trust_class: record.trust_class,
+                });
+            }
         }
-        matches
+        BoundedFindResult {
+            truncated: limit.is_some_and(|max| total_matches > max),
+            total_matches,
+            matches,
+        }
     }
 
     fn entry(&self, entry_path: &str) -> Option<EntryReport> {
@@ -465,6 +483,14 @@ pub fn find_entries_with_state(
     limit: Option<usize>,
 ) -> Vec<EntryMatch> {
     state.find(query, limit)
+}
+
+pub fn find_entries_with_state_bounded(
+    state: &ArchiveIntrospectionState,
+    query: &str,
+    limit: usize,
+) -> BoundedFindResult {
+    state.find_bounded(query, Some(limit))
 }
 
 pub fn inspect_entry_with_state(
@@ -904,4 +930,42 @@ fn entry_payload_blake3_with_blocks<R: ReadAt>(
 ) -> Option<String> {
     let bytes = read_entry_bytes(reader, entry, blocks).ok()?;
     Some(blake3::hash(&bytes).to_hex().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_report(path: &str, trust_class: EntryTrustClass) -> EntryReport {
+        EntryReport {
+            path: path.to_string(),
+            trust_class,
+            payload_verified: true,
+            metadata_complete: true,
+            extent_count: 1,
+            size_bytes: 1,
+            payload_blake3: "00".to_string(),
+            logical_range: EntryLogicalRange { start: 0, end: 0 },
+            identity_source: "full_metadata".to_string(),
+            reason: None,
+            strict_extraction_supported: true,
+            extent_segments: vec![],
+        }
+    }
+
+    #[test]
+    fn bounded_find_reports_total_and_truncation_deterministically() {
+        let state = ArchiveIntrospectionState::from_records(vec![
+            sample_report("z/path", EntryTrustClass::Canonical),
+            sample_report("a/path", EntryTrustClass::Canonical),
+            sample_report("m/path", EntryTrustClass::Canonical),
+        ]);
+
+        let result = state.find_bounded("/path", Some(2));
+        assert!(result.truncated);
+        assert_eq!(result.total_matches, 3);
+        assert_eq!(result.matches.len(), 2);
+        assert_eq!(result.matches[0].path, "a/path");
+        assert_eq!(result.matches[1].path, "m/path");
+    }
 }

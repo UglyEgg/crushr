@@ -496,3 +496,79 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - Existing hotspot script/report template still writes to `docs/reference/introspection-hotspot-p18s07.md`; step-specific interpretation is recorded in `...p18s08.md`.
 - Next:
   - optional harness refinement to isolate truly-cold `entry` before any warm-up call in the same process.
+
+## 2026-04-01 — Active Step Update (P18S08f1)
+
+- Completed: Phase 18 Step 08 fix 1 (`P18S08f1`).
+- Characterized initial-load hot path in the WASM demo and confirmed eager operations on load:
+  - eager introspection-state construction in `archive_summary` (full entry-record/path map build)
+  - eager empty-query `find` call from UI load flow
+  - eager results-pane DOM rendering of the full browse list
+- De-eagered initial archive load behavior:
+  - `archive_summary` now stores loaded bytes and clears cached state; introspection state is prepared lazily on first `find`/`entry` request.
+  - initial UI load no longer executes empty-query `find`; it renders an explicit “run Find to browse” prompt instead.
+- Preserved reuse where it pays:
+  - first search/detail call builds state once, then repeated `find`/`entry` reuse the same Rust-owned session state.
+- Validation:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - browser screenshot/automation tooling is unavailable in this environment, so browser verification remains manual outside this runtime.
+- Next:
+  - if large non-empty queries still render too many rows, add explicit deterministic result capping + visible truncation messaging in a follow-on packet.
+
+## 2026-04-01 — Active Step Update (P18S08f2)
+
+- Completed: Phase 18 Step 08 fix 2 (`P18S08f2`).
+- Fixed lazy-state `find` crash root path in WASM adapter:
+  - removed full-archive byte cloning during lazy state build (`ensure_loaded_state`) and now borrows loaded bytes directly when preparing introspection state.
+  - this avoids a second full in-memory copy during first `find`/`entry`, which could trigger runtime failure on very large archives.
+  - UI now calls `find`/`entry`/`propagation` with an empty byte argument and relies on Rust-owned loaded-session bytes, avoiding repeated wasm-bindgen transfer/allocation of full archive bytes on each interaction.
+- Added explicit Rust-side session reset hook (`reset_loaded_archive`) and wired UI reset/unload through that hook to clear Rust loaded bytes/state deterministically.
+- Added explicit browser-visible WASM error messaging:
+  - action-scoped UI errors now render as `"<action> failed: <detail>"`.
+  - raw `RuntimeError: unreachable executed` is surfaced with explicit operator guidance to reload/retry, instead of an uncontextualized exception.
+- Preserved P18S08f1 de-eager behavior:
+  - archive load still shows summary without eager browse prepopulation
+  - results still require explicit `Find`
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - browser tooling is not installed in this environment (`playwright` missing), so real-browser click-through verification remains required externally.
+
+## 2026-04-01 — Active Step Update (P18S08f3)
+
+- Completed: Phase 18 Step 08 fix 3 (`P18S08f3`).
+- Stabilized WASM large-archive search path:
+  - added bounded find result model in shared introspection (`BoundedFindResult`) with deterministic ordering, explicit `total_matches`, and `truncated` signal.
+  - demo WASM adapter now caps browser find responses to `MAX_FIND_RESULTS = 500` and returns bounded metadata.
+- Hardened browser UX for bounded behavior:
+  - result pane now shows explicit truncation messaging (`Showing first N of M matches...`) when limit is hit.
+  - search/detail/propagation continue to use Rust-owned loaded-session bytes with no eager pre-browse restore.
+- Regression guard added:
+  - unit test locks bounded-find determinism (`total_matches`, `truncated`, sorted first-N paths).
+- Validation:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cargo test -p crushr introspection::tests::bounded_find_reports_total_and_truncation_deterministically`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Constraint:
+  - this environment still lacks browser automation tooling (`playwright` missing), so real-browser verification must be executed externally.
+
+## 2026-04-02 — Active Step Update (P18S08f4)
+
+- Completed: Phase 18 Step 08 fix 4 (`P18S08f4`).
+- Added persistent visible UI note in the search panel stating the 500 result cap and explicit query-refinement requirement to access deeper matches.
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - browser automation remains unavailable in this environment (`playwright` missing), so real-browser visual verification remains external.

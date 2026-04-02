@@ -11,6 +11,7 @@ async function initializeWasmRuntime() {
       module.init();
       wasmFns = {
         archive_summary: module.archive_summary,
+        reset_loaded_archive: module.reset_loaded_archive,
         find: module.find,
         entry: module.entry,
         propagation: module.propagation,
@@ -51,6 +52,9 @@ const searchBtn = document.getElementById("search");
 const NO_FILE_MESSAGE = "No archive loaded. Choose or drop a .crs file to begin.";
 const NO_RESULTS_MESSAGE = "No matching entries found for the current query.";
 const DEFAULT_EXTENT_MESSAGE = "Select an entry from the results pane to view extent placement.";
+const SEARCH_PROMPT_MESSAGE = "Archive loaded. Enter a query and click Find to browse entries.";
+const EMPTY_ARCHIVE_ARG = new Uint8Array();
+const FIND_LIMIT_MESSAGE_PREFIX = "Showing first";
 
 let bytes = null;
 let selectedPath = null;
@@ -69,6 +73,15 @@ function clearError() {
 function setError(message) {
   errorEl.textContent = message;
   setUiState("error", message);
+}
+
+function formatActionError(actionLabel, error) {
+  const detail = String(error);
+  const action = actionLabel.replace(/\.\.\.$/, "");
+  if (detail.includes("RuntimeError: unreachable")) {
+    return `${action} failed due to an internal WASM runtime error. Reload the archive and retry. Details: ${detail}`;
+  }
+  return `${action} failed: ${detail}`;
 }
 
 function setUiState(state, message) {
@@ -93,7 +106,7 @@ async function runWorking(actionLabel, work) {
     setUiState("success", `${actionLabel.replace(/\.\.\.$/, "")}: done.`);
     return result;
   } catch (error) {
-    setError(String(error));
+    setError(formatActionError(actionLabel, error));
     throw error;
   } finally {
     setControlsBusy(false);
@@ -116,6 +129,9 @@ function resetDemoState(options = {}) {
   const { clearFileInput = false, statusMessage = "Idle. Load an archive to start." } = options;
 
   bytes = null;
+  if (wasmFns?.reset_loaded_archive) {
+    wasmFns.reset_loaded_archive();
+  }
   selectedPath = null;
   latestMatches = [];
   queryEl.value = "";
@@ -208,9 +224,20 @@ function renderExtentVisualization(detail) {
   extentEl.appendChild(meta);
 }
 
-function renderSearchResults(matches) {
+function renderSearchResults(resultPayload) {
+  const matches = resultPayload?.matches ?? [];
   latestMatches = matches;
   resultsEl.innerHTML = "";
+
+  if (resultPayload?.truncated) {
+    const notice = document.createElement("li");
+    notice.className = "empty-state";
+    const shownCount = matches.length;
+    const totalCount = resultPayload.total_matches ?? shownCount;
+    notice.textContent = `${FIND_LIMIT_MESSAGE_PREFIX} ${shownCount} of ${totalCount} matches. Refine your search to narrow results.`;
+    resultsEl.appendChild(notice);
+  }
+
   if (matches.length === 0) {
     renderResultsMessage(NO_RESULTS_MESSAGE);
     return;
@@ -235,7 +262,7 @@ function renderSearchResults(matches) {
       }
       try {
         await runWorking("Loading entry detail...", async () => {
-          const detail = wasmFns.entry(bytes, match.path);
+          const detail = wasmFns.entry(EMPTY_ARCHIVE_ARG, match.path);
           selectedPath = match.path;
           entryEl.textContent = render(detail);
           renderExtentVisualization(detail);
@@ -310,7 +337,7 @@ async function refreshPropagationState() {
   }
 
   await runWorking("Analyzing propagation...", async () => {
-    const report = wasmFns.propagation(bytes);
+    const report = wasmFns.propagation(EMPTY_ARCHIVE_ARG);
     propagationState.noImpactMessage = report.no_impact_message;
     propagationState.impactedByPath = new Map(report.impacted_entries.map((item) => [item.path, item]));
     renderPropagationSummary();
@@ -336,18 +363,13 @@ async function loadArchive(file) {
       }
 
       const summary = wasmFns.archive_summary(file.name, nextBytes);
-      const initialMatches = wasmFns.find(nextBytes, "");
       bytes = nextBytes;
       summaryEl.textContent = render(summary);
-      renderSearchResults(initialMatches);
-      if (initialMatches.length === 0) {
-        renderResultsMessage("Archive contains no browseable entries.");
-      }
+      renderResultsMessage(SEARCH_PROMPT_MESSAGE);
       await refreshPropagationState();
     });
   } catch (_error) {
     resetDemoState({ statusMessage: "Load failed; archive state reset." });
-    setError("Failed to load archive.");
   }
 }
 
@@ -363,7 +385,7 @@ async function performSearch() {
 
   try {
     await runWorking("Searching entries...", async () => {
-      const matches = wasmFns.find(bytes, queryEl.value);
+      const matches = wasmFns.find(EMPTY_ARCHIVE_ARG, queryEl.value);
       selectedPath = null;
       entryEl.textContent = "No entry selected.";
       renderEmptyExtentState(DEFAULT_EXTENT_MESSAGE);
@@ -426,10 +448,10 @@ propagationToggleEl.addEventListener("change", async () => {
     if (!bytes || !requireWasmReady()) {
       return;
     }
-    const matches = wasmFns.find(bytes, queryEl.value);
+    const matches = wasmFns.find(EMPTY_ARCHIVE_ARG, queryEl.value);
     renderSearchResults(matches);
     if (selectedPath) {
-      const detail = wasmFns.entry(bytes, selectedPath);
+      const detail = wasmFns.entry(EMPTY_ARCHIVE_ARG, selectedPath);
       renderExtentVisualization(detail);
     }
   } catch (_error) {

@@ -14,19 +14,22 @@ mod extraction_payload_core;
 mod introspection;
 
 use introspection::{
-    ArchiveIntrospectionState, EntryMatch, EntryReport, analyze_propagation_bytes,
-    find_entries_with_state, inspect_archive_bytes, inspect_entry_with_state,
+    ArchiveIntrospectionState, BoundedFindResult, EntryReport, analyze_propagation_bytes,
+    find_entries_with_state_bounded, inspect_archive_bytes, inspect_entry_with_state,
     prepare_introspection_state_bytes,
 };
 use crushr_core::propagation::{EntryTrustClass, PropagationImpactReason};
 use serde::Serialize;
-use std::collections::BTreeSet;
 use std::cell::RefCell;
+use std::collections::BTreeSet;
 use wasm_bindgen::prelude::*;
 
 thread_local! {
     static LOADED_STATE: RefCell<Option<ArchiveIntrospectionState>> = const { RefCell::new(None) };
+    static LOADED_BYTES: RefCell<Option<Vec<u8>>> = const { RefCell::new(None) };
 }
+
+const MAX_FIND_RESULTS: usize = 500;
 
 #[derive(Serialize)]
 struct ArchiveLoadResponse {
@@ -41,10 +44,11 @@ pub fn init() {
 
 #[wasm_bindgen]
 pub fn archive_summary(file_name: String, archive_bytes: &[u8]) -> Result<JsValue, JsValue> {
-    let state = prepare_introspection_state_bytes(archive_bytes)
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    LOADED_BYTES.with(|slot| {
+        *slot.borrow_mut() = Some(archive_bytes.to_vec());
+    });
     LOADED_STATE.with(|slot| {
-        *slot.borrow_mut() = Some(state);
+        *slot.borrow_mut() = None;
     });
     let summary = inspect_archive_bytes(archive_bytes, "wasm-demo")
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
@@ -53,20 +57,33 @@ pub fn archive_summary(file_name: String, archive_bytes: &[u8]) -> Result<JsValu
 }
 
 #[wasm_bindgen]
+pub fn reset_loaded_archive() {
+    LOADED_STATE.with(|slot| {
+        *slot.borrow_mut() = None;
+    });
+    LOADED_BYTES.with(|slot| {
+        *slot.borrow_mut() = None;
+    });
+}
+
+#[wasm_bindgen]
 pub fn find(file_bytes: &[u8], query: String) -> Result<JsValue, JsValue> {
     let _ = file_bytes;
-    let matches: Vec<EntryMatch> = LOADED_STATE.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map(|state| find_entries_with_state(state, &query, None))
-    })
-    .ok_or_else(|| JsValue::from_str("No archive loaded."))?;
+    ensure_loaded_state()?;
+    let matches: BoundedFindResult = LOADED_STATE
+        .with(|slot| {
+            slot.borrow()
+                .as_ref()
+                .map(|state| find_entries_with_state_bounded(state, &query, MAX_FIND_RESULTS))
+        })
+        .ok_or_else(|| JsValue::from_str("No archive loaded."))?;
     serde_wasm_bindgen::to_value(&matches).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
 #[wasm_bindgen]
 pub fn entry(file_bytes: &[u8], path: String) -> Result<JsValue, JsValue> {
     let _ = file_bytes;
+    ensure_loaded_state()?;
     let detail: Option<EntryReport> = LOADED_STATE.with(|slot| {
         slot.borrow()
             .as_ref()
@@ -79,6 +96,25 @@ pub fn entry(file_bytes: &[u8], path: String) -> Result<JsValue, JsValue> {
         }
     }
     serde_wasm_bindgen::to_value(&detail).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+fn ensure_loaded_state() -> Result<(), JsValue> {
+    if LOADED_STATE.with(|slot| slot.borrow().is_some()) {
+        return Ok(());
+    }
+    let state = LOADED_BYTES
+        .with(|slot| {
+            let borrowed = slot.borrow();
+            let archive_bytes = borrowed
+                .as_deref()
+                .ok_or_else(|| JsValue::from_str("No archive loaded."))?;
+            prepare_introspection_state_bytes(archive_bytes)
+                .map_err(|e| JsValue::from_str(&format!("Failed to build introspection state: {e}")))
+        })?;
+    LOADED_STATE.with(|slot| {
+        *slot.borrow_mut() = Some(state);
+    });
+    Ok(())
 }
 
 #[derive(Serialize)]
@@ -134,7 +170,15 @@ fn structure_label(node: &str) -> String {
 
 #[wasm_bindgen]
 pub fn propagation(file_bytes: &[u8]) -> Result<JsValue, JsValue> {
-    let report = analyze_propagation_bytes(file_bytes).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let _ = file_bytes;
+    let report = LOADED_BYTES
+        .with(|slot| {
+            let borrowed = slot.borrow();
+            let archive_bytes = borrowed
+                .as_deref()
+                .ok_or_else(|| JsValue::from_str("No archive loaded."))?;
+            analyze_propagation_bytes(archive_bytes).map_err(|e| JsValue::from_str(&e.to_string()))
+        })?;
     let mut impacted_entries = report
         .entry_impacts
         .into_iter()

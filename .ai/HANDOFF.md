@@ -298,3 +298,72 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `rustup target add wasm32-unknown-unknown`
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
   - `python3 scripts/perf_introspection_hotspot.py --runs 1`
+
+## 2026-04-01 — Handoff update (P18S08f1 complete)
+
+- Initial WASM demo load was de-eagered to prevent large-archive UI hangs:
+  - removed load-time empty-query `find` from `web/main.js` (results pane now shows an explicit search prompt after summary load)
+  - moved WASM introspection-state construction out of `archive_summary`; state now builds lazily on first `find`/`entry` use in `src/lib.rs`
+- Reuse behavior is preserved:
+  - once first search/detail triggers state build, repeated `find`/`entry` calls reuse the same Rust session state.
+- Characterization confirmed previous eager load path included:
+  - state build at summary load
+  - empty-query browse load
+  - immediate full results DOM rendering
+- Last validated commands:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+
+## 2026-04-01 — Handoff update (P18S08f2 complete)
+
+- Fixed WASM lazy-state crash path in `demos/wasm-readonly-demo/src/lib.rs`:
+  - `ensure_loaded_state()` no longer clones `LOADED_BYTES` (full archive copy) before building introspection state.
+  - state now builds directly from borrowed loaded bytes, then is cached in `LOADED_STATE`.
+  - added `reset_loaded_archive()` to clear Rust-side loaded bytes/state on UI reset/unload.
+- Improved explicit browser error surfacing in `demos/wasm-readonly-demo/web/main.js`:
+  - operation-scoped error formatting (`<action> failed: <detail>`)
+  - explicit internal WASM runtime guidance when browser reports `RuntimeError: unreachable ...`
+  - removed generic load-failure overwrite so detailed runWorking error remains visible.
+  - switched UI interaction calls (`find`/`entry`/`propagation`) to use an empty byte argument and rely on Rust-owned loaded-session bytes to avoid repeated large wasm argument transfers.
+- De-eager behavior remains in place:
+  - no empty-query pre-browse on load
+  - explicit Find prompt after summary.
+- Last validated commands:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Environment note:
+  - `playwright` is not installed here, so real-browser click-through verification must be run outside this environment.
+
+## 2026-04-01 — Handoff update (P18S08f3 complete)
+
+- Large-archive browser search stabilization landed:
+  - shared introspection now exposes bounded find metadata (`matches`, `total_matches`, `truncated`) in deterministic path order.
+  - WASM adapter caps find responses at `MAX_FIND_RESULTS = 500`.
+- UI now renders explicit truncation notice when bounded find limit is hit:
+  - `Showing first N of M matches. Refine your search to narrow results.`
+- De-eager load remains unchanged:
+  - no load-time empty-query pre-browse; summary-first usable screen is preserved.
+- Added regression test in shared introspection for bounded-find determinism/truncation accounting.
+- Last validated commands:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cargo test -p crushr introspection::tests::bounded_find_reports_total_and_truncation_deterministically`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Environment note:
+  - browser automation remains unavailable in this environment (`playwright` missing), so real-browser validation must be executed externally.
+
+## 2026-04-02 — Handoff update (P18S08f4 complete)
+
+- Added a persistent, always-visible note in the Search and browse panel (`web/index.html`) that states:
+  - find is capped at 500 results
+  - users must refine queries to access deeper matches
+- Validation executed:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`

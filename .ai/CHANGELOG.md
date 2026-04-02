@@ -1366,3 +1366,33 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Updated WASM demo Rust adapter to keep loaded archive introspection state in Rust-side session storage and reuse it for `find`/`entry` calls.
 - Re-ran hotspot harness and added updated evidence summary at `docs/reference/introspection-hotspot-p18s08.md` (artifacts under `.bench/introspection_hotspot/`).
 - Validation: `cargo fmt --all`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `cargo build --release -p crushr`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `python3 scripts/perf_introspection_hotspot.py --runs 1`.
+
+## 2026-04-01 — P18S08f1
+- De-eagered WASM demo initial archive load path to avoid large-archive startup stalls:
+  - removed load-time empty-query pre-browse from `demos/wasm-readonly-demo/web/main.js`
+  - changed `demos/wasm-readonly-demo/src/lib.rs` so `archive_summary` no longer builds introspection state eagerly
+- Added lazy introspection-state bootstrap for `find`/`entry` in the WASM adapter:
+  - archive bytes are retained on load
+  - first search/detail call prepares state
+  - repeated calls reuse prepared state deterministically
+- Updated `demos/wasm-readonly-demo/README.md` interaction model text to match non-prepopulated browse behavior.
+- Validation: `cargo fmt --all`; `node --check demos/wasm-readonly-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-01 — P18S08f2
+- Fixed lazy-state first-find crash path in `demos/wasm-readonly-demo/src/lib.rs` by removing full archive-byte cloning during `ensure_loaded_state()` and preparing introspection state from borrowed loaded bytes.
+- Added Rust-side `reset_loaded_archive()` session-reset hook and wired UI reset/unload to clear loaded bytes/state deterministically.
+- Switched demo UI interaction calls to pass an empty archive byte argument for `find`/`entry`/`propagation`, relying on Rust-owned loaded-session bytes to avoid repeated large wasm-bindgen argument transfers.
+- Added explicit operation-scoped browser error surfacing in `demos/wasm-readonly-demo/web/main.js`, including clearer messaging for internal WASM runtime traps (`RuntimeError: unreachable...`).
+- Kept de-eager load behavior unchanged (summary-first load, no empty-query pre-browse, explicit Find-triggered results).
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+
+## 2026-04-01 — P18S08f3
+- Added deterministic bounded find result model in shared introspection (`BoundedFindResult`) with explicit `total_matches` + `truncated` metadata.
+- Updated WASM adapter to enforce browser-safe find cap (`MAX_FIND_RESULTS = 500`) and emit bounded metadata with results.
+- Updated browser UI to render explicit truncation notice when limit is hit (`Showing first N of M matches...`), avoiding silent truncation.
+- Added shared introspection regression test locking bounded-find truncation accounting and deterministic first-N ordering.
+- Validation: `cargo fmt --all`; `node --check demos/wasm-readonly-demo/web/main.js`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`; `cargo test -p crushr introspection::tests::bounded_find_reports_total_and_truncation_deterministically`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`.
+
+## 2026-04-02 — P18S08f4
+- Added always-visible search-panel note in `demos/wasm-readonly-demo/web/index.html` that explicitly documents the 500-result cap and query-refinement requirement for deeper matches.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
