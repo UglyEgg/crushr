@@ -596,3 +596,22 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Constraint:
   - browser automation/screenshot tooling unavailable in this environment; packet-required real-browser verification remains external.
+
+## 2026-04-03 — Handoff update (P19S01f2 complete)
+
+- Fixed blocking invalid-download issue in `demos/wasm-pack-demo`.
+- Root cause was at JS adapter boundary for wasm output bytes; download blob creation now uses explicit byte normalization (`toArchiveBytes`).
+- Supported conversion inputs for download bytes:
+  - `Uint8Array`
+  - typed-array views
+  - `ArrayBuffer`
+  - numeric JS arrays
+- Added Rust regression test in `demos/wasm-pack-demo/src/lib.rs` that builds a demo archive and verifies canonical CLI consumption:
+  - `cargo run -p crushr --bin crushr -- info <archive>`
+  - `cargo run -p crushr --bin crushr -- info --list <archive>`
+- Validation run:
+  - `node --check demos/wasm-pack-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-pack-demo/Cargo.toml`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - real-browser automation/screenshot tooling unavailable in this environment; packet-required browser verification remains external.

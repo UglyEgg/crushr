@@ -16,6 +16,22 @@ const downloadLink = document.getElementById("downloadLink");
 let selectedFiles = [];
 let downloadUrl = null;
 
+function toArchiveBytes(value) {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  }
+  if (value instanceof ArrayBuffer) {
+    return new Uint8Array(value);
+  }
+  if (Array.isArray(value)) {
+    return Uint8Array.from(value);
+  }
+  throw new Error("WASM pack output is not a byte array.");
+}
+
 function setStatus(stage) {
   statusEl.textContent = `Status: ${stage}`;
 }
@@ -137,7 +153,7 @@ async function onPack() {
     setStatus("packing archive...");
     const packed = pack_files(payload);
 
-    const archiveBytes = packed.archive_bytes;
+    const archiveBytes = toArchiveBytes(packed.archive_bytes);
     const blob = new Blob([archiveBytes], { type: "application/octet-stream" });
     downloadUrl = URL.createObjectURL(blob);
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");

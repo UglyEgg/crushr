@@ -1498,3 +1498,9 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Increased primary action prominence for `Create .crs archive` with improved placement relative to summary/download state.
 - Validation: `node --check demos/wasm-pack-demo/web/main.js`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
 - Real-browser verification and screenshots remain external due unavailable browser tooling in this environment.
+
+## 2026-04-03 — P19S01f2
+- Fixed WASM pack demo invalid `.crs` download issue by normalizing wasm-returned `archive_bytes` to a true byte view before blob creation.
+- Added Rust regression test that generates a demo archive and validates canonical CLI consumption (`crushr info` and `crushr info --list`).
+- Validation: `node --check demos/wasm-pack-demo/web/main.js`; `cargo test --manifest-path demos/wasm-pack-demo/Cargo.toml`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+- Real-browser verification remains external due unavailable browser tooling in this environment.

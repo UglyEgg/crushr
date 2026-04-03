@@ -155,3 +155,68 @@ fn build_archive(files: Vec<BrowserPackInput>) -> Result<BrowserPackOutput> {
         total_input_bytes,
     })
 }
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::process::Command;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn archive_is_valid_for_canonical_cli_info_paths() {
+        let payload = build_archive(vec![
+            BrowserPackInput {
+                path: "alpha.txt".to_string(),
+                mtime_unix_seconds: 1_700_000_000,
+                bytes: b"alpha".to_vec(),
+            },
+            BrowserPackInput {
+                path: "nested/beta.txt".to_string(),
+                mtime_unix_seconds: 1_700_000_001,
+                bytes: b"beta".to_vec(),
+            },
+        ])
+        .expect("build archive");
+
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time")
+            .as_nanos();
+        let archive_path = std::env::temp_dir().join(format!("crushr_wasm_pack_demo_{stamp}.crs"));
+        fs::write(&archive_path, &payload.archive_bytes).expect("write archive");
+
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(|p| p.parent())
+            .expect("repo root")
+            .to_path_buf();
+
+        let info = Command::new("cargo")
+            .args(["run", "-p", "crushr", "--bin", "crushr", "--", "info"])
+            .arg(&archive_path)
+            .current_dir(&repo_root)
+            .output()
+            .expect("run crushr info");
+        assert!(
+            info.status.success(),
+            "crushr info failed: {}",
+            String::from_utf8_lossy(&info.stderr)
+        );
+
+        let list = Command::new("cargo")
+            .args(["run", "-p", "crushr", "--bin", "crushr", "--", "info", "--list"])
+            .arg(&archive_path)
+            .current_dir(&repo_root)
+            .output()
+            .expect("run crushr info --list");
+        assert!(
+            list.status.success(),
+            "crushr info --list failed: {}",
+            String::from_utf8_lossy(&list.stderr)
+        );
+
+        let _ = fs::remove_file(archive_path);
+    }
+}
