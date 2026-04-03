@@ -792,3 +792,22 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - Browser automation/screenshot tooling remains unavailable in this environment; required real-browser visual verification remains external.
 - Next:
   - external browser verification pass for desktop two-column hierarchy, dark-mode persistence/reload behavior, and selected/impacted visual priority checks.
+
+## 2026-04-03 — Active Step Update (P18S09f2 containment fix)
+
+- Completed: Phase 18 Step 09 fix 2 containment follow-up (`P18S09f2`).
+- Fixed WASM dashboard width containment and overflow ownership regressions in `web/styles.css`:
+  - added `min-width: 0` guards on grid/flex containers and cards so left/right columns can shrink without overlap.
+  - bounded card/content width and moved overflow ownership into panels (`overflow: hidden` on cards, internal `overflow: auto` where needed).
+  - removed input/result empty-state intrinsic-width pressure that could force page-level horizontal overflow.
+  - enabled internal horizontal scrolling for oversize extent strips inside their panel instead of expanding the page width.
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Constraints/gotchas:
+  - `PROJECT_STATE.md` remains referenced by bootstrap docs but is absent at repository root.
+  - Browser automation/screenshot tooling remains unavailable in this environment; required packet real-browser verification remains external.
+- Next:
+  - execute the packet’s explicit external real-browser containment checklist (empty state, populated state, no page horizontal scroll, internal panel scrolling).
