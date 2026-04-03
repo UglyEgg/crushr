@@ -556,3 +556,29 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
 - Screenshot/real-browser note:
   - browser automation tooling remains unavailable in this environment; packet-required real-browser verification remains external.
+
+## 2026-04-03 — Handoff update (P19S01f0 complete)
+
+- Added new separate WASM archive-creation demo surface at `demos/wasm-pack-demo`.
+- Core user flow:
+  - select files (`multiple`) or folder (`webkitdirectory`) or drag/drop
+  - validate explicit demo limits (256 MiB total, 1,000 files, 128 MiB/file)
+  - create `.crs` locally in Rust/WASM
+  - download generated archive from browser
+- Demo-note/disclaimer is top-of-page and explicitly states:
+  - browser demo scope
+  - local processing/no upload
+  - transient behavior
+  - CLI boundary for full production workflows
+- Rust/WASM pack implementation:
+  - `pack_files` in `demos/wasm-pack-demo/src/lib.rs`
+  - uses `write_blk3_header`, `encode_index` (IDX7), and `assemble_tail_frame`
+  - no JS reimplementation of archive bytes/format
+- Validation run:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-pack-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-pack-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Constraints:
+  - `wasm-pack` missing in this environment (`./build-dist.sh` not executed)
+  - browser automation/screenshot tooling unavailable; packet-required real-browser verification still external

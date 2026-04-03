@@ -1483,3 +1483,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Updated demo README interaction checks for preview behavior and segmentation clarity.
 - Validation: `cargo fmt --all`; `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
 - Real-browser screenshot/automation remains external in this environment due unavailable browser tooling.
+
+## 2026-04-03 — P19S01f0
+- Added new separate bounded browser/WASM pack demo at `demos/wasm-pack-demo`.
+- Implemented local file/folder input (picker + drag/drop) with explicit enforced demo limits (256 MiB total / 1,000 files / 128 MiB per file) and refusal messaging.
+- Implemented Rust/WASM `.crs` generation + browser download flow with staged working-state text (`reading input`, `preparing archive`, `packing archive`, `ready for download`).
+- Added concise demo README and static-bundle build script.
+- Validation: `cargo fmt --all`; `node --check demos/wasm-pack-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-pack-demo/Cargo.toml --target wasm32-unknown-unknown`.
+- Environment limitation: `wasm-pack` unavailable in this container, so `demos/wasm-pack-demo/build-dist.sh` was not executed; real-browser packet verification remains external.

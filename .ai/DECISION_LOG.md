@@ -2117,3 +2117,23 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `demos/wasm-readonly-demo/web/{main.js,wasm-worker.js,index.html,styles.css}`
   - `demos/wasm-readonly-demo/README.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-03 — P19S01f0 bounded separate WASM pack-demo surface lock
+
+- Decision:
+  - Implement archive-creation demo as a separate app surface (`demos/wasm-pack-demo`) instead of extending the existing read-only introspection demo.
+  - Enforce hard browser-demo limits in UI with explicit refusal messaging:
+    - total input <= `256 MiB`
+    - file count <= `1,000`
+    - per-file <= `128 MiB`
+  - Keep archive creation semantics in Rust/WASM only (`pack_files`) using existing Rust format primitives (`BLK3`/`IDX7`/tail frame); no JS-side archive-format implementation.
+  - Use truthful staged progress states (no fake percentages) and explicit download action for generated `.crs` output.
+- Alternatives considered:
+  1. Add pack flow as a new tab/panel inside `demos/wasm-readonly-demo`.
+  2. Implement packing logic in JS and only use Rust for validation.
+- Rationale:
+  - Packet requires a separate bounded demo surface and Rust source of truth for packing behavior.
+  - Explicit limits + refusal semantics prevent silent truncation/scope drift and keep demo claims honest.
+- Blast radius:
+  - `demos/wasm-pack-demo/{Cargo.toml,README.md,build-dist.sh,src/lib.rs,web/index.html,web/main.js,web/styles.css}`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

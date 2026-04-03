@@ -811,3 +811,31 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - Browser automation/screenshot tooling remains unavailable in this environment; required packet real-browser verification remains external.
 - Next:
   - execute the packet’s explicit external real-browser containment checklist (empty state, populated state, no page horizontal scroll, internal panel scrolling).
+
+## 2026-04-03 — Active Step Update (P19S01f0)
+
+- Completed: Phase 19 Step 01 fix 0 (`P19S01f0`).
+- Added a **separate** local browser/WASM archive-creation demo surface at `demos/wasm-pack-demo` (not merged into introspection demo).
+- Implemented bounded local input flow with picker + drag/drop + folder picker support and explicit refusal on exact demo limits:
+  - max total input size `256 MiB`
+  - max file count `1,000`
+  - max per-file size `128 MiB`
+- Added top-of-page bounded-demo note/disclaimer covering local processing, transient behavior, demo scope, and CLI boundary.
+- Implemented Rust/WASM local pack flow (`pack_files`) that emits `.crs` bytes using Rust format components (`BLK3` headers + `IDX7` encoding + tail frame assembly); no JS archive-format implementation.
+- Added staged working-state/status messaging in UI:
+  - `reading input...`
+  - `preparing archive...`
+  - `packing archive...`
+  - `ready for download`
+- Added download flow with deterministic demo filename and explicit success state.
+- Added concise demo README + static bundle build script (`build-dist.sh`).
+- Validation:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-pack-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-pack-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Constraints/gotchas:
+  - `wasm-pack` is not installed in this environment, so `./build-dist.sh` could not be executed here.
+  - browser automation/screenshot tooling remains unavailable in this environment; packet-required real-browser verification remains external.
+- Next:
+  - run packet-required external real-browser checklist for valid input, limit violations, staged working state, archive download, and local-only/no-backend verification.

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>crushr WASM pack demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>crushr WASM archive creation demo</h1>
+      <p class="note">
+        Demo note: this browser app is for evaluation only. Processing happens locally in your browser (no upload), selected files are transient and not retained by this demo after use, and the CLI remains the full path for production preservation workflows.
+      </p>
+
+      <section class="card">
+        <h2>Demo limits</h2>
+        <ul>
+          <li>Max total input size: <strong>256 MiB</strong></li>
+          <li>Max file count: <strong>1,000</strong></li>
+          <li>Max single file size: <strong>128 MiB</strong></li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>Input</h2>
+        <div id="dropZone" class="drop-zone">Drag and drop files/folders here</div>
+        <div class="picker-row">
+          <label class="btn">Select files<input id="fileInput" type="file" multiple /></label>
+          <label class="btn">Select folder<input id="folderInput" type="file" webkitdirectory directory multiple /></label>
+        </div>
+        <p id="selectionSummary">No files selected.</p>
+      </section>
+
+      <section class="card">
+        <h2>Create archive</h2>
+        <button id="packBtn" disabled>Create .crs archive</button>
+        <p id="status">Status: idle</p>
+        <p id="error" class="error" hidden></p>
+        <a id="downloadLink" class="btn" hidden>Download .crs</a>
+      </section>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

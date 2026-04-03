@@ -1,0 +1,49 @@
+body {
+  margin: 0;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+}
+.card {
+  background: #111827;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 16px;
+}
+.note {
+  background: #1e293b;
+  border-left: 4px solid #38bdf8;
+  padding: 12px;
+  border-radius: 6px;
+}
+.drop-zone {
+  border: 2px dashed #64748b;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+.drop-zone.dragging {
+  border-color: #38bdf8;
+  background: #0b2538;
+}
+.picker-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn, button {
+  display: inline-block;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  text-decoration: none;
+}
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+input[type="file"] { display: none; }
+.error { color: #fca5a5; }
