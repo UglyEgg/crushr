@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>crushr WASM pack demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="page-header">
+        <div>
+          <h1>crushr WASM archive creation demo</h1>
+          <p class="subtitle">Local browser evaluation flow for creating a bounded `.crs` archive.</p>
+        </div>
+        <button id="themeToggleBtn" class="btn btn-secondary header-theme-btn" type="button">
+          Theme: Dark
+        </button>
+      </header>
+
+      <section class="meta-strip">
+        <p class="note">
+          Browser demo only — processing stays local (no upload), files are transient in this demo, and the CLI is the full production preservation path.
+        </p>
+        <ul class="limits-inline">
+          <li><span>total</span><strong>256 MiB max</strong></li>
+          <li><span>files</span><strong>1,000 max</strong></li>
+          <li><span>per file</span><strong>128 MiB max</strong></li>
+        </ul>
+      </section>
+
+      <section class="card workflow-card">
+        <div class="workflow-head">
+          <h2>Create archive workflow</h2>
+          <p>1) choose input → 2) review summary → 3) create `.crs` → 4) download</p>
+        </div>
+
+        <div id="dropZone" class="drop-zone">Drag and drop files/folders here</div>
+
+        <div class="picker-row">
+          <label class="btn btn-secondary">Select files<input id="fileInput" type="file" multiple /></label>
+          <label class="btn btn-secondary">Select folder<input id="folderInput" type="file" webkitdirectory directory multiple /></label>
+          <button id="resetBtn" class="btn btn-secondary" type="button">Reset</button>
+        </div>
+
+        <div class="flow-row">
+          <p id="selectionSummary" class="selection-summary">No files selected.</p>
+          <button id="packBtn" class="btn btn-primary" disabled>Create .crs archive</button>
+        </div>
+
+        <div class="status-row">
+          <p id="status">Status: idle</p>
+          <a id="downloadLink" class="btn btn-secondary" hidden>Download .crs</a>
+        </div>
+
+        <p id="error" class="error" hidden></p>
+
+        <section class="log-panel" aria-live="polite">
+          <h3>Pack output</h3>
+          <ol id="packLog" class="pack-log"></ol>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
