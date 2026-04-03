@@ -582,3 +582,17 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Constraints:
   - `wasm-pack` missing in this environment (`./build-dist.sh` not executed)
   - browser automation/screenshot tooling unavailable; packet-required real-browser verification still external
+
+## 2026-04-03 — Handoff update (P19S01f1 complete)
+
+- Applied bounded layout/workflow density polish for `demos/wasm-pack-demo/web`:
+  - consolidated flow into one workflow card
+  - tightened spacing/padding rhythm
+  - reduced visual dominance of top note/limits strip
+  - emphasized primary create action relative to summary/download state
+- No runtime behavior changes (limit enforcement, status messaging, local pack/download flow unchanged).
+- Validation run:
+  - `node --check demos/wasm-pack-demo/web/main.js`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - browser automation/screenshot tooling unavailable in this environment; packet-required real-browser verification remains external.

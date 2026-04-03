@@ -1491,3 +1491,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added concise demo README and static-bundle build script.
 - Validation: `cargo fmt --all`; `node --check demos/wasm-pack-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-pack-demo/Cargo.toml --target wasm32-unknown-unknown`.
 - Environment limitation: `wasm-pack` unavailable in this container, so `demos/wasm-pack-demo/build-dist.sh` was not executed; real-browser packet verification remains external.
+
+## 2026-04-03 — P19S01f1
+- Polished `demos/wasm-pack-demo` page density/workflow hierarchy by regrouping input→summary→create→status→download into a single coherent workflow card.
+- Tightened spacing/padding and reduced visual dominance of note/limits while preserving explicit messaging.
+- Increased primary action prominence for `Create .crs archive` with improved placement relative to summary/download state.
+- Validation: `node --check demos/wasm-pack-demo/web/main.js`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+- Real-browser verification and screenshots remain external due unavailable browser tooling in this environment.

@@ -2137,3 +2137,19 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
 - Blast radius:
   - `demos/wasm-pack-demo/{Cargo.toml,README.md,build-dist.sh,src/lib.rs,web/index.html,web/main.js,web/styles.css}`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-03 — P19S01f1 WASM pack-demo density/workflow polish lock
+
+- Decision:
+  - Keep demo semantics/behavior unchanged and focus only on workflow-layout density polish.
+  - Group input/select/review/create/status/download into one coherent primary workflow card.
+  - Keep top note + limits explicit but visually lighter than primary action area.
+  - Increase primary action prominence while preserving existing IDs and JS wiring.
+- Alternatives considered:
+  1. Preserve three-card stacked layout and only reduce spacing tokens.
+  2. Introduce a broader dashboard redesign with additional navigation/sections.
+- Rationale:
+  - Packet scope requires denser, more intentional product feel with no new features or semantic drift.
+- Blast radius:
+  - `demos/wasm-pack-demo/web/{index.html,styles.css}`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

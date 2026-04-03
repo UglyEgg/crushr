@@ -839,3 +839,21 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - browser automation/screenshot tooling remains unavailable in this environment; packet-required real-browser verification remains external.
 - Next:
   - run packet-required external real-browser checklist for valid input, limit violations, staged working state, archive download, and local-only/no-backend verification.
+
+## 2026-04-03 — Active Step Update (P19S01f1)
+
+- Completed: Phase 19 Step 01 fix 1 (`P19S01f1`).
+- Applied bounded UI-density/workflow polish pass for `demos/wasm-pack-demo` while preserving pack semantics and behaviors.
+- Layout refinements:
+  - consolidated input/selection/create/status/download into a single workflow card
+  - reduced vertical spacing/padding and card gaps for denser dashboard feel
+  - kept demo note + explicit limits visible but visually de-emphasized relative to primary workflow
+  - emphasized primary action button (`Create .crs archive`) near selection summary and download state.
+- No JS logic or Rust/WASM pack behavior changes were introduced in this step.
+- Validation:
+  - `node --check demos/wasm-pack-demo/web/main.js`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraints/gotchas:
+  - browser automation/screenshot tooling remains unavailable in this environment; packet-required real-browser verification remains external.
+- Next:
+  - execute packet P19S01f1 external browser checklist for density/workflow/readability and no-regression interaction validation.

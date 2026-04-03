@@ -8,36 +8,48 @@
   </head>
   <body>
     <main class="container">
-      <h1>crushr WASM archive creation demo</h1>
-      <p class="note">
-        Demo note: this browser app is for evaluation only. Processing happens locally in your browser (no upload), selected files are transient and not retained by this demo after use, and the CLI remains the full path for production preservation workflows.
-      </p>
+      <header class="page-header">
+        <div>
+          <h1>crushr WASM archive creation demo</h1>
+          <p class="subtitle">Local browser evaluation flow for creating a bounded `.crs` archive.</p>
+        </div>
+      </header>
 
-      <section class="card">
-        <h2>Demo limits</h2>
-        <ul>
-          <li>Max total input size: <strong>256 MiB</strong></li>
-          <li>Max file count: <strong>1,000</strong></li>
-          <li>Max single file size: <strong>128 MiB</strong></li>
+      <section class="meta-strip">
+        <p class="note">
+          Browser demo only — processing stays local (no upload), files are transient in this demo, and the CLI is the full production preservation path.
+        </p>
+        <ul class="limits-inline">
+          <li><span>total</span><strong>256 MiB max</strong></li>
+          <li><span>files</span><strong>1,000 max</strong></li>
+          <li><span>per file</span><strong>128 MiB max</strong></li>
         </ul>
       </section>
 
-      <section class="card">
-        <h2>Input</h2>
-        <div id="dropZone" class="drop-zone">Drag and drop files/folders here</div>
-        <div class="picker-row">
-          <label class="btn">Select files<input id="fileInput" type="file" multiple /></label>
-          <label class="btn">Select folder<input id="folderInput" type="file" webkitdirectory directory multiple /></label>
+      <section class="card workflow-card">
+        <div class="workflow-head">
+          <h2>Create archive workflow</h2>
+          <p>1) choose input → 2) review summary → 3) create `.crs` → 4) download</p>
         </div>
-        <p id="selectionSummary">No files selected.</p>
-      </section>
 
-      <section class="card">
-        <h2>Create archive</h2>
-        <button id="packBtn" disabled>Create .crs archive</button>
-        <p id="status">Status: idle</p>
+        <div id="dropZone" class="drop-zone">Drag and drop files/folders here</div>
+
+        <div class="picker-row">
+          <label class="btn btn-secondary">Select files<input id="fileInput" type="file" multiple /></label>
+          <label class="btn btn-secondary">Select folder<input id="folderInput" type="file" webkitdirectory directory multiple /></label>
+        </div>
+
+        <div class="flow-row">
+          <p id="selectionSummary" class="selection-summary">No files selected.</p>
+          <button id="packBtn" class="btn btn-primary" disabled>Create .crs archive</button>
+        </div>
+
+        <div class="status-row">
+          <p id="status">Status: idle</p>
+          <a id="downloadLink" class="btn btn-secondary" hidden>Download .crs</a>
+        </div>
+
         <p id="error" class="error" hidden></p>
-        <a id="downloadLink" class="btn" hidden>Download .crs</a>
       </section>
     </main>
     <script type="module" src="./main.js"></script>

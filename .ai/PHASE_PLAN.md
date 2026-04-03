@@ -358,3 +358,4 @@ Latest priority doctrine
 - [x] P18S09f2 — implement explicit header command bar + left-nav/right-workspace dashboard hierarchy and first-class persisted dark mode toggle while preserving existing WASM demo semantics.
 - [x] P18S09f2 containment fix — enforce two-column width containment (`min-width: 0` + bounded panel overflow) and internal panel scrolling so empty and populated dashboard states do not introduce page-level horizontal scrolling.
 - [x] P19S01f0 — add separate bounded WASM pack demo surface (`demos/wasm-pack-demo`) with local file/folder input, explicit demo-limit enforcement, Rust/WASM local `.crs` generation, staged working-state messaging, and download flow.
+- [x] P19S01f1 — polish WASM pack demo workflow-density layout (grouped flow card, tightened spacing, de-emphasized note/limits hierarchy, stronger primary action prominence) without behavior/semantic changes.
