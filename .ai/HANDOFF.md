@@ -636,3 +636,33 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Constraint:
   - browser automation/screenshot tooling unavailable here; packet-required real-browser verification remains external.
+
+## 2026-04-03 — Handoff update (P19S02f0 complete)
+
+- Added separate WASM corruption demo surface at `demos/wasm-corrupt-demo`.
+- Core user flow:
+  - load `.crs` via picker or drag/drop
+  - choose one bounded corruption mode
+  - apply corruption locally in browser/WASM
+  - inspect pre/post impact summary
+  - download deterministic corrupted `.crs` filename
+  - optionally open introspection demo for follow-on inspection
+- Implemented corruption modes:
+  - seeded deterministic random byte flip
+  - overwrite byte range
+  - truncate at offset
+  - remove byte range (block-removal simulation)
+- Download naming includes required markers:
+  - `corrupted`
+  - mode slug
+  - seed marker (`seed<value>` for seeded mode, `seedna` for non-seeded)
+  - `.crs` extension preserved.
+- Validation run:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraints:
+  - browser automation/screenshot tooling unavailable in this environment; packet-required real-browser verification remains external.

@@ -361,3 +361,4 @@ Latest priority doctrine
 - [x] P19S01f1 — polish WASM pack demo workflow-density layout (grouped flow card, tightened spacing, de-emphasized note/limits hierarchy, stronger primary action prominence) without behavior/semantic changes.
 - [x] P19S01f2 — fix WASM pack demo invalid download bytes by normalizing wasm archive-byte output before blob creation and add CLI-consumption regression test for generated archives.
 - [x] P19S01f3 — add WASM pack demo UX parity controls (persisted light/dark theme toggle + bounded pack-output log panel + explicit reset coherence) without pack semantic changes.
+- [x] P19S02f0 — add separate bounded WASM corruption demo surface (`demos/wasm-corrupt-demo`) with `.crs` load, deterministic local corruption modes, pre/post impact inspection summary, deterministic corrupted download naming, and introspection-demo handoff path.

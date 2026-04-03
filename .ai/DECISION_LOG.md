@@ -2186,3 +2186,24 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
 - Blast radius:
   - `demos/wasm-pack-demo/web/{index.html,styles.css,main.js}`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-03 — P19S02f0 WASM corruption-demo bounded local-simulation lock
+
+- Decision:
+  - Implement corruption demonstration as a **separate** WASM app surface at `demos/wasm-corrupt-demo` rather than extending existing demo pages.
+  - Keep corruption execution and archive impact inspection in Rust/WASM (`corrupt_archive`, `inspect_archive`) with no JS-side archive-logic reimplementation.
+  - Lock corruption modes to a small deterministic/bounded set for this packet:
+    - seeded random byte flip
+    - range overwrite
+    - truncate at offset
+    - byte-range removal simulation (block-removal analogue)
+  - Require deterministic corrupted download naming to include corrupted marker + mode + seed marker (explicit `seedna` placeholder for non-seeded modes) while preserving `.crs` extension.
+- Alternatives considered:
+  1. Add corruption controls into existing WASM introspection demo page.
+  2. Implement corruption mutation logic directly in JS and use Rust/WASM only for display.
+- Rationale:
+  - Packet scope requires a third dedicated demo pillar (`create` / `inspect` / `break`) with clear bounded behavior and local-only processing truth.
+  - Rust/WASM mutation+inspection keeps deterministic behavior aligned with project semantics and avoids parser/logic drift in JS.
+- Blast radius:
+  - `demos/wasm-corrupt-demo/{Cargo.toml,Cargo.lock,README.md,build-dist.sh,src/lib.rs,web/index.html,web/main.js,web/styles.css}`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

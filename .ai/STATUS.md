@@ -900,3 +900,36 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - browser automation/screenshot tooling remains unavailable in this environment; packet-required real-browser verification remains external.
 - Next:
   - execute external real-browser verification for theme persistence, pack-log progression, reset-state coherence, and no-regression flow checks.
+
+## 2026-04-03 — Active Step Update (P19S02f0)
+
+- Completed: Phase 19 Step 02 fix 0 (`P19S02f0`).
+- Added a new separate bounded browser/WASM corruption demo surface at `demos/wasm-corrupt-demo`.
+- Implemented `.crs` archive input flow with picker + drag/drop and explicit local demo bound (`256 MiB` max archive size).
+- Added deterministic, bounded corruption controls:
+  - `random_flip` (seed + flip count; deterministic xorshift sequence)
+  - `overwrite` (offset + length + byte value)
+  - `truncate` (cut-at offset)
+  - `remove` (byte-range removal as block-removal simulation)
+- Added local Rust/WASM corruption + local Rust/WASM pre/post inspection summary flow:
+  - compares bytes/hash/entry count/block count/extents-valid/strict-supported before vs after corruption
+  - preserves local-only/no-backend behavior.
+- Added deterministic corrupted download filename flow with required markers:
+  - includes `corrupted`
+  - includes mode slug
+  - includes seed marker (`seed<value>` or deterministic `seedna` placeholder)
+  - preserves `.crs` extension.
+- Added integration path to introspection demo via explicit `Open introspection demo` action and guidance text.
+- Added explicit simulation messaging and operator feedback surfaces (working state, errors, success-ready-for-download status).
+- Validation:
+  - `cargo fmt --all`
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraints/gotchas:
+  - `PROJECT_STATE.md` remains referenced by bootstrap docs but is absent at repository root.
+  - browser automation/screenshot tooling remains unavailable in this environment; packet-required real-browser verification remains external.
+- Next:
+  - execute packet-required external real-browser checklist for all corruption modes, download naming, and introspection-demo follow-through verification.

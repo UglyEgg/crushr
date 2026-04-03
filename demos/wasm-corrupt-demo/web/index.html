@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>crushr WASM corruption demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>crushr WASM corruption demo</h1>
+      <p class="note">
+        Corruption simulation only: deterministic + bounded mutations, local browser processing only, and no file uploads or retention.
+      </p>
+
+      <section id="dropZone" class="card drop-zone">
+        <p>Drop a <code>.crs</code> file here or choose one below.</p>
+        <label class="btn">Choose .crs<input id="fileInput" type="file" accept=".crs" /></label>
+        <p id="fileSummary" class="muted">No archive loaded.</p>
+      </section>
+
+      <section class="card">
+        <h2>Corruption controls</h2>
+        <label>Mode
+          <select id="modeSelect">
+            <option value="random_flip">Random byte flip (seeded)</option>
+            <option value="overwrite">Range overwrite</option>
+            <option value="truncate">Truncate archive</option>
+            <option value="remove">Block removal simulation (byte range remove)</option>
+          </select>
+        </label>
+
+        <div id="randomControls" class="mode-controls">
+          <label>Seed <input id="seedInput" type="number" min="0" step="1" value="12345" /></label>
+          <label>Flip count <input id="flipCountInput" type="number" min="1" max="250000" value="64" /></label>
+        </div>
+
+        <div id="overwriteControls" class="mode-controls" hidden>
+          <label>Offset <input id="overwriteOffsetInput" type="number" min="0" step="1" value="0" /></label>
+          <label>Length <input id="overwriteLenInput" type="number" min="1" step="1" value="128" /></label>
+          <label>Byte value
+            <input id="overwriteValueInput" type="number" min="0" max="255" step="1" value="0" />
+          </label>
+        </div>
+
+        <div id="truncateControls" class="mode-controls" hidden>
+          <label>Cut at offset <input id="truncateOffsetInput" type="number" min="0" step="1" value="0" /></label>
+        </div>
+
+        <div id="removeControls" class="mode-controls" hidden>
+          <label>Offset <input id="removeOffsetInput" type="number" min="0" step="1" value="0" /></label>
+          <label>Length <input id="removeLenInput" type="number" min="1" step="1" value="64" /></label>
+        </div>
+
+        <button id="applyBtn" class="btn" disabled>Apply corruption</button>
+        <p id="status" class="muted">Status: idle</p>
+        <p id="error" class="error" hidden></p>
+      </section>
+
+      <section class="card">
+        <h2>Impact summary</h2>
+        <p class="muted">Uses local Rust/WASM archive inspection to compare before vs after corruption.</p>
+        <pre id="impactSummary">Load an archive to view impact summary.</pre>
+      </section>
+
+      <section class="card">
+        <h2>Download and inspect</h2>
+        <a id="downloadLink" class="btn" hidden>Download corrupted archive</a>
+        <p class="muted">
+          Next step: load the downloaded file in the WASM introspection demo to inspect corruption propagation.
+        </p>
+        <a class="btn secondary" href="../wasm-readonly-demo/dist/index.html" target="_blank" rel="noopener">Open introspection demo</a>
+      </section>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
