@@ -539,3 +539,20 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
 - Screenshot/real-browser note:
   - browser automation tooling remains unavailable in this environment; required real-browser visual verification remains external.
+
+## 2026-04-03 — Handoff update (P18S09f2 containment fix)
+
+- Applied a bounded layout containment follow-up in `demos/wasm-readonly-demo/web/styles.css` to prevent dashboard overlap and page-level horizontal scrolling:
+  - added `min-width: 0` on dashboard grid children/cards and search row.
+  - constrained card/content intrinsic width growth (`max-width: 100%`, empty-state wrapping).
+  - shifted overflow ownership into panels (`panel` clipping + `extent-panel` internal scrolling, extent strip `min-width: max-content`).
+- Expected operator outcome:
+  - left/right columns remain contained on initial load and after results/details populate.
+  - oversize panel content scrolls inside the owning panel instead of widening the page.
+- Validation run:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `node --check demos/wasm-readonly-demo/web/wasm-worker.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Screenshot/real-browser note:
+  - browser automation tooling remains unavailable in this environment; packet-required real-browser verification remains external.

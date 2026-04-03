@@ -356,3 +356,4 @@ Latest priority doctrine
 - [x] P18S09f0 — add WASM demo UI polish for extent payload-vs-derived-metadata segmentation and bounded selected-entry content preview (UTF-8 text preview + deterministic binary classification messaging) with worker/reset integration.
 - [x] P18S09f1 — perform enterprise-dashboard WASM UI polish pass (layout hierarchy, panel/card styling, typography rhythm, calmer state colors, and polished empty/loading/error presentation) without feature/semantic changes.
 - [x] P18S09f2 — implement explicit header command bar + left-nav/right-workspace dashboard hierarchy and first-class persisted dark mode toggle while preserving existing WASM demo semantics.
+- [x] P18S09f2 containment fix — enforce two-column width containment (`min-width: 0` + bounded panel overflow) and internal panel scrolling so empty and populated dashboard states do not introduce page-level horizontal scrolling.

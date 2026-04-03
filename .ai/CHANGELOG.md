@@ -7,6 +7,16 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 
 > **Historical-note:** This file is chronological history. It may contain superseded terminology from earlier phases of the project. Historical wording does not redefine the current canonical product vocabulary or command surface.
 
+## 2026-04-03 — P18S09f2 containment fix
+- Fixed WASM dashboard layout containment regressions by adding `min-width: 0` guards across the two-column grid, column stacks, cards, and search-row flex context.
+- Prevented page-level horizontal overflow by bounding panel/content width (`max-width: 100%`), wrapping empty-state text, and reducing intrinsic-width pressure from search input constraints.
+- Reassigned oversize content overflow to panel ownership:
+  - cards clip overflow
+  - preformatted/detail surfaces remain internally scrollable
+  - extent visualization panel now handles horizontal overflow internally for wide extent strips.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `node --check demos/wasm-readonly-demo/web/wasm-worker.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`.
+- Browser screenshot/automation tooling remains unavailable in this environment; real-browser visual verification is external.
+
 
 ## 2026-04-02 — P18S09f2
 - Rebalanced WASM demo into a clearer enterprise dashboard hierarchy: compact command/header bar, explicit left navigation/selection stack, and right active-workspace stack.

@@ -117,6 +117,7 @@ body {
   display: grid;
   grid-template-columns: minmax(280px, 34%) minmax(0, 66%);
   gap: 0.9rem;
+  min-width: 0;
 }
 
 .left-column,
@@ -124,6 +125,7 @@ body {
   display: grid;
   gap: 0.75rem;
   min-height: 0;
+  min-width: 0;
 }
 
 .left-column {
@@ -137,6 +139,8 @@ body {
   padding: 0.72rem 0.78rem;
   box-shadow: var(--shadow-sm);
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .panel-primary {
@@ -168,6 +172,7 @@ pre {
   border-radius: 8px;
   padding: 0.72rem;
   overflow: auto;
+  max-width: 100%;
   font-size: 0.81rem;
 }
 
@@ -189,11 +194,12 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  min-width: 0;
 }
 
 #query {
   flex: 1;
-  min-width: 170px;
+  min-width: 0;
   border: 1px solid var(--border-strong);
   border-radius: 7px;
   background: var(--bg-subtle);
@@ -235,6 +241,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   padding: 0.62rem;
   color: var(--text-muted);
   text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .result-button {
@@ -265,10 +272,12 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   border: 1px solid var(--border-panel);
   border-radius: 8px;
   padding: 0.66rem;
+  min-width: 0;
+  overflow: auto;
 }
 
 .extent-header { margin: 0 0 0.42rem; color: var(--text-muted); font-size: 0.84rem; }
-.extent-strip { display: flex; gap: 4px; margin: 0.45rem 0 0.65rem; }
+.extent-strip { display: flex; gap: 4px; margin: 0.45rem 0 0.65rem; min-width: max-content; }
 
 .extent-block {
   position: relative;
