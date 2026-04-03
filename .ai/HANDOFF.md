@@ -615,3 +615,24 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Constraint:
   - real-browser automation/screenshot tooling unavailable in this environment; packet-required browser verification remains external.
+
+## 2026-04-03 — Handoff update (P19S01f3 complete)
+
+- Added theme-toggle parity for `demos/wasm-pack-demo`:
+  - new header button `Theme: Light/Dark`
+  - persisted preference in `localStorage` (`crushr_wasm_pack_demo_theme`)
+  - initial fallback to system theme preference when no saved value exists.
+- Added bounded pack-output log panel with stage-accurate messages:
+  - validates limits
+  - reads input
+  - prepares archive
+  - packs archive
+  - finalizes archive
+  - ready/error outcomes.
+- Added explicit `Reset` button and coherent reset handling for selection/download/status/error/log.
+- Validation run:
+  - `node --check demos/wasm-pack-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-pack-demo/Cargo.toml`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraint:
+  - browser automation/screenshot tooling unavailable here; packet-required real-browser verification remains external.

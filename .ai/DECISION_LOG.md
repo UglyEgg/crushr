@@ -2170,3 +2170,19 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `demos/wasm-pack-demo/web/main.js`
   - `demos/wasm-pack-demo/src/lib.rs`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-03 — P19S01f3 pack-demo theme/log UX parity lock
+
+- Decision:
+  - Add a persisted light/dark theme toggle in the pack demo header to match introspection-demo parity expectations.
+  - Add a bounded operator-facing pack-output log panel that reports real stage transitions and error/success states.
+  - Add explicit reset control so workflow state (selection/status/download/error/log) can be coherently cleared.
+- Alternatives considered:
+  1. Keep fixed dark theme and rely only on status line.
+  2. Add a verbose terminal-emulator style log output.
+- Rationale:
+  - Packet requires UX parity and improved activity visibility without altering archive-generation semantics.
+  - Bounded stage logs preserve trust and readability while avoiding fake/noisy telemetry.
+- Blast radius:
+  - `demos/wasm-pack-demo/web/{index.html,styles.css,main.js}`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

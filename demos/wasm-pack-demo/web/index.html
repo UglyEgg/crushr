@@ -13,6 +13,9 @@
           <h1>crushr WASM archive creation demo</h1>
           <p class="subtitle">Local browser evaluation flow for creating a bounded `.crs` archive.</p>
         </div>
+        <button id="themeToggleBtn" class="btn btn-secondary header-theme-btn" type="button">
+          Theme: Dark
+        </button>
       </header>
 
       <section class="meta-strip">
@@ -37,6 +40,7 @@
         <div class="picker-row">
           <label class="btn btn-secondary">Select files<input id="fileInput" type="file" multiple /></label>
           <label class="btn btn-secondary">Select folder<input id="folderInput" type="file" webkitdirectory directory multiple /></label>
+          <button id="resetBtn" class="btn btn-secondary" type="button">Reset</button>
         </div>
 
         <div class="flow-row">
@@ -50,6 +54,11 @@
         </div>
 
         <p id="error" class="error" hidden></p>
+
+        <section class="log-panel" aria-live="polite">
+          <h3>Pack output</h3>
+          <ol id="packLog" class="pack-log"></ol>
+        </section>
       </section>
     </main>
     <script type="module" src="./main.js"></script>

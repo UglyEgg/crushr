@@ -878,3 +878,25 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - browser automation/screenshot tooling remains unavailable in this environment; packet-required real-browser verification remains external.
 - Next:
   - execute external real-browser checklist for file/drop flow, download artifact, and practical introspection-demo load check.
+
+## 2026-04-03 — Active Step Update (P19S01f3)
+
+- Completed: Phase 19 Step 01 fix 3 (`P19S01f3`).
+- Added theme-toggle parity in WASM pack demo with persisted user preference:
+  - visible header toggle (`Theme: Light/Dark`)
+  - applies via document theme dataset
+  - persists selection in localStorage with initial fallback to system preference.
+- Added bounded pack-output/progress log panel in workflow card:
+  - stage-aligned messages for validation/read/prep/pack/finalize/ready/error
+  - bounded log history (`MAX_LOG_LINES`) and auto-scroll
+  - explicit reset behavior for new input selection, reset action, and each new pack run.
+- Added explicit `Reset` control for coherent state clearing of selection, status, download link, errors, and log panel.
+- No archive-generation semantics were changed.
+- Validation:
+  - `node --check demos/wasm-pack-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-pack-demo/Cargo.toml`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraints/gotchas:
+  - browser automation/screenshot tooling remains unavailable in this environment; packet-required real-browser verification remains external.
+- Next:
+  - execute external real-browser verification for theme persistence, pack-log progression, reset-state coherence, and no-regression flow checks.

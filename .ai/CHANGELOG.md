@@ -1504,3 +1504,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added Rust regression test that generates a demo archive and validates canonical CLI consumption (`crushr info` and `crushr info --list`).
 - Validation: `node --check demos/wasm-pack-demo/web/main.js`; `cargo test --manifest-path demos/wasm-pack-demo/Cargo.toml`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
 - Real-browser verification remains external due unavailable browser tooling in this environment.
+
+## 2026-04-03 — P19S01f3
+- Added persisted light/dark theme toggle in WASM pack demo header for UX parity with introspection demo behavior.
+- Added bounded pack-output/progress log panel with stage-aligned status messages and error/success reporting.
+- Added explicit reset control and coherent state reset handling for selection/status/download/error/log.
+- Validation: `node --check demos/wasm-pack-demo/web/main.js`; `cargo test --manifest-path demos/wasm-pack-demo/Cargo.toml`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+- External real-browser verification remains required due unavailable browser tooling in this environment.

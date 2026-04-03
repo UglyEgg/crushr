@@ -12,6 +12,12 @@ const packBtn = document.getElementById("packBtn");
 const statusEl = document.getElementById("status");
 const errorEl = document.getElementById("error");
 const downloadLink = document.getElementById("downloadLink");
+const resetBtn = document.getElementById("resetBtn");
+const packLog = document.getElementById("packLog");
+const themeToggleBtn = document.getElementById("themeToggleBtn");
+
+const THEME_STORAGE_KEY = "crushr_wasm_pack_demo_theme";
+const MAX_LOG_LINES = 40;
 
 let selectedFiles = [];
 let downloadUrl = null;
@@ -36,6 +42,21 @@ function setStatus(stage) {
   statusEl.textContent = `Status: ${stage}`;
 }
 
+function appendLog(message) {
+  const item = document.createElement("li");
+  item.textContent = `${new Date().toLocaleTimeString()} — ${message}`;
+  packLog.appendChild(item);
+  while (packLog.children.length > MAX_LOG_LINES) {
+    packLog.removeChild(packLog.firstChild);
+  }
+  packLog.scrollTop = packLog.scrollHeight;
+}
+
+function resetLog(seedMessage = "Log reset.") {
+  packLog.textContent = "";
+  appendLog(seedMessage);
+}
+
 function clearError() {
   errorEl.hidden = true;
   errorEl.textContent = "";
@@ -54,6 +75,21 @@ function clearDownload() {
   downloadLink.hidden = true;
   downloadLink.removeAttribute("href");
   downloadLink.removeAttribute("download");
+}
+
+function setTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  themeToggleBtn.textContent = theme === "light" ? "Theme: Light" : "Theme: Dark";
+}
+
+function initTheme() {
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  if (stored === "light" || stored === "dark") {
+    setTheme(stored);
+    return;
+  }
+  const prefersDark = globalThis.matchMedia?.("(prefers-color-scheme: dark)")?.matches ?? true;
+  setTheme(prefersDark ? "dark" : "light");
 }
 
 function normalizePath(file) {
@@ -83,6 +119,7 @@ function validate(files) {
 }
 
 function setSelection(files) {
+  resetLog(files.length === 0 ? "Selection cleared." : "Input selection updated.");
   clearError();
   clearDownload();
   selectedFiles = files;
@@ -99,11 +136,15 @@ function setSelection(files) {
 
   const violation = validate(files);
   if (violation) {
+    appendLog("Validating limits...");
+    appendLog(violation);
     showError(violation);
     packBtn.disabled = true;
     setStatus("blocked by demo limits");
     return;
   }
+  appendLog("Validating limits...");
+  appendLog("Input accepted within demo limits.");
 
   packBtn.disabled = false;
   setStatus("ready to pack");
@@ -121,23 +162,29 @@ async function listDroppedFiles(dataTransferItems) {
 }
 
 async function onPack() {
+  resetLog("Starting pack run.");
   clearError();
   clearDownload();
 
   if (selectedFiles.length === 0) {
+    appendLog("No files selected.");
     showError("Select or drop files before packing.");
     return;
   }
 
+  appendLog("Validating limits...");
   const violation = validate(selectedFiles);
   if (violation) {
+    appendLog(violation);
     showError(violation);
     return;
   }
+  appendLog("Limits validated.");
 
   try {
     packBtn.disabled = true;
     setStatus("reading input...");
+    appendLog("Reading input...");
     const payload = [];
     for (const file of selectedFiles) {
       const bytes = new Uint8Array(await file.arrayBuffer());
@@ -149,9 +196,12 @@ async function onPack() {
     }
 
     setStatus("preparing archive...");
+    appendLog("Preparing archive...");
     await Promise.resolve();
     setStatus("packing archive...");
+    appendLog("Packing archive...");
     const packed = pack_files(payload);
+    appendLog("Finalizing archive...");
 
     const archiveBytes = toArchiveBytes(packed.archive_bytes);
     const blob = new Blob([archiveBytes], { type: "application/octet-stream" });
@@ -162,17 +212,37 @@ async function onPack() {
     downloadLink.hidden = false;
 
     setStatus("ready for download");
+    appendLog("Ready for download.");
   } catch (error) {
     showError(error instanceof Error ? error.message : String(error));
     setStatus("error");
+    appendLog(`Error: ${error instanceof Error ? error.message : String(error)}`);
   } finally {
     packBtn.disabled = selectedFiles.length === 0 || Boolean(validate(selectedFiles));
   }
 }
 
+function resetDemoState() {
+  fileInput.value = "";
+  folderInput.value = "";
+  selectedFiles = [];
+  clearError();
+  clearDownload();
+  selectionSummary.textContent = "No files selected.";
+  packBtn.disabled = true;
+  setStatus("idle");
+  resetLog("Demo state reset.");
+}
+
 fileInput.addEventListener("change", () => setSelection(Array.from(fileInput.files || [])));
 folderInput.addEventListener("change", () => setSelection(Array.from(folderInput.files || [])));
 packBtn.addEventListener("click", onPack);
+resetBtn.addEventListener("click", resetDemoState);
+themeToggleBtn.addEventListener("click", () => {
+  const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  setTheme(nextTheme);
+  localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+});
 
 ["dragenter", "dragover"].forEach((eventName) => {
   dropZone.addEventListener(eventName, (event) => {
@@ -194,4 +264,6 @@ dropZone.addEventListener("drop", async (event) => {
 
 await initWasm();
 init();
+initTheme();
 setStatus("idle");
+resetLog("Ready.");
