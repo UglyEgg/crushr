@@ -1511,3 +1511,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added explicit reset control and coherent state reset handling for selection/status/download/error/log.
 - Validation: `node --check demos/wasm-pack-demo/web/main.js`; `cargo test --manifest-path demos/wasm-pack-demo/Cargo.toml`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
 - External real-browser verification remains required due unavailable browser tooling in this environment.
+
+## 2026-04-03 — P19S02f0
+- Added new separate WASM corruption demo app at `demos/wasm-corrupt-demo` with local `.crs` picker/drag-drop input and explicit corruption-simulation messaging.
+- Implemented bounded deterministic corruption modes (seeded random flip, overwrite, truncate, remove-range simulation) in Rust/WASM and surfaced pre/post local impact inspection summary.
+- Added deterministic corrupted download naming with `corrupted` + mode + seed marker and linked handoff path to introspection demo.
+- Validation: `cargo fmt --all`; `node --check demos/wasm-corrupt-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
+- Real-browser verification remains external in this environment due unavailable browser tooling.
