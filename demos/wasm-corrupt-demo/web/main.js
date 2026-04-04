@@ -6,16 +6,14 @@ const dropZone = document.getElementById("dropZone");
 const fileInput = document.getElementById("fileInput");
 const fileSummary = document.getElementById("fileSummary");
 const modeSelect = document.getElementById("modeSelect");
+const modeDescription = document.getElementById("modeDescription");
 const applyBtn = document.getElementById("applyBtn");
 const statusEl = document.getElementById("status");
 const errorEl = document.getElementById("error");
 const impactSummaryEl = document.getElementById("impactSummary");
 const downloadLink = document.getElementById("downloadLink");
 
-const randomControls = document.getElementById("randomControls");
-const overwriteControls = document.getElementById("overwriteControls");
-const truncateControls = document.getElementById("truncateControls");
-const removeControls = document.getElementById("removeControls");
+const presetDetails = document.getElementById("presetDetails");
 
 let sourceName = "";
 let sourceBytes = null;
@@ -46,38 +44,100 @@ function clearDownload() {
   downloadLink.removeAttribute("download");
 }
 
-function parseIntSafe(value, fallback = 0) {
-  const parsed = Number.parseInt(String(value), 10);
-  return Number.isFinite(parsed) ? parsed : fallback;
+const PRESETS = {
+  scattered_random_damage: {
+    label: "Scattered random damage",
+    category: "demo",
+    description: "Scattered random byte flips across the archive.",
+    configFor(bytes) {
+      const count = Math.min(96, Math.max(24, Math.floor(bytes.length / 4096)));
+      return { mode: "random_flip", seed: 12345, flip_count: count };
+    },
+    fileTag: "demo-scattered-random",
+  },
+  bounded_middle_overwrite: {
+    label: "Bounded middle overwrite",
+    category: "demo",
+    description: "Overwrite a bounded middle region without targeting offset 0.",
+    configFor(bytes) {
+      const len = Math.min(192, Math.max(48, Math.floor(bytes.length / 2048)));
+      const maxOffset = Math.max(0, bytes.length - len);
+      const offset = Math.min(maxOffset, Math.floor(bytes.length * 0.45));
+      return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0x00 };
+    },
+    fileTag: "demo-middle-overwrite",
+  },
+  bounded_tail_overwrite: {
+    label: "Bounded tail damage",
+    category: "demo",
+    description: "Damage a bounded tail region where footer/index structures may be affected.",
+    configFor(bytes) {
+      const len = Math.min(160, Math.max(48, Math.floor(bytes.length / 3072)));
+      const offset = Math.max(0, bytes.length - len - 64);
+      return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0xff };
+    },
+    fileTag: "demo-tail-overwrite",
+  },
+  bounded_header_overwrite: {
+    label: "Bounded header damage",
+    category: "demo",
+    description: "Damage an early header-adjacent range while avoiding offset 0 defaults.",
+    configFor(bytes) {
+      const len = Math.min(96, Math.max(32, Math.floor(bytes.length / 4096)));
+      const maxOffset = Math.max(0, bytes.length - len);
+      const offset = Math.min(maxOffset, 32);
+      return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0x00 };
+    },
+    fileTag: "demo-header-damage",
+  },
+  middle_remove_window: {
+    label: "Bounded middle remove window",
+    category: "demo",
+    description: "Remove a bounded mid-archive byte window to show structural shifts.",
+    configFor(bytes) {
+      const len = Math.min(64, Math.max(24, Math.floor(bytes.length / 6144)));
+      const maxOffset = Math.max(0, bytes.length - len);
+      const offset = Math.min(maxOffset, Math.floor(bytes.length * 0.4));
+      return { mode: "remove", remove_offset: offset, remove_len: len };
+    },
+    fileTag: "demo-middle-remove",
+  },
+  killshot_truncate_start: {
+    label: "Kill-shot: truncate at offset 0",
+    category: "kill",
+    description: "Truncate to 0 bytes (structural destruction; likely invalid container).",
+    configFor() {
+      return { mode: "truncate", truncate_offset: 0 };
+    },
+    fileTag: "killshot-truncate-off0",
+  },
+  killshot_remove_start: {
+    label: "Kill-shot: remove from offset 0",
+    category: "kill",
+    description: "Remove bytes from the archive start (structural destruction likely).",
+    configFor(bytes) {
+      const len = Math.min(128, Math.max(32, Math.floor(bytes.length / 3072)));
+      return { mode: "remove", remove_offset: 0, remove_len: len };
+    },
+    fileTag: "killshot-remove-off0",
+  },
+};
+
+function getSelectedPreset() {
+  return PRESETS[modeSelect.value] ?? PRESETS.scattered_random_damage;
 }
 
 function updateModeControls() {
-  const mode = modeSelect.value;
-  randomControls.hidden = mode !== "random_flip";
-  overwriteControls.hidden = mode !== "overwrite";
-  truncateControls.hidden = mode !== "truncate";
-  removeControls.hidden = mode !== "remove";
+  const preset = getSelectedPreset();
+  modeDescription.textContent = preset.description;
+  presetDetails.textContent = `Preset category: ${
+    preset.category === "kill" ? "Structural destruction / kill-shot" : "Demo corruption preset"
+  }`;
 }
 
-function buildConfig() {
-  const mode = modeSelect.value;
-  const config = { mode };
-
-  if (mode === "random_flip") {
-    config.seed = parseIntSafe(document.getElementById("seedInput").value, 12345);
-    config.flip_count = parseIntSafe(document.getElementById("flipCountInput").value, 64);
-  } else if (mode === "overwrite") {
-    config.overwrite_offset = parseIntSafe(document.getElementById("overwriteOffsetInput").value, 0);
-    config.overwrite_len = parseIntSafe(document.getElementById("overwriteLenInput").value, 1);
-    config.overwrite_value = parseIntSafe(document.getElementById("overwriteValueInput").value, 0);
-  } else if (mode === "truncate") {
-    config.truncate_offset = parseIntSafe(document.getElementById("truncateOffsetInput").value, 0);
-  } else if (mode === "remove") {
-    config.remove_offset = parseIntSafe(document.getElementById("removeOffsetInput").value, 0);
-    config.remove_len = parseIntSafe(document.getElementById("removeLenInput").value, 1);
-  }
-
-  return config;
+function buildConfig(sourceBytesValue) {
+  const preset = getSelectedPreset();
+  return preset.configFor(sourceBytesValue);
 }
 
 function modeLabel(mode) {
@@ -98,11 +158,12 @@ function toDisplay(summary) {
   ].join("\n");
 }
 
-function buildDownloadName(originalName, mode, config, seedApplied) {
+function buildDownloadName(originalName, mode, config, seedApplied, presetKey) {
   const base = originalName.toLowerCase().endsWith(".crs")
     ? originalName.slice(0, -4)
     : originalName;
   const modePart = modeLabel(mode);
+  const presetPart = PRESETS[presetKey]?.fileTag ?? presetKey;
   const seedPart = seedApplied == null ? "seedna" : `seed${seedApplied}`;
 
   const details = [];
@@ -111,7 +172,7 @@ function buildDownloadName(originalName, mode, config, seedApplied) {
   if (mode === "truncate") details.push(`off${config.truncate_offset}`);
   if (mode === "remove") details.push(`off${config.remove_offset}`, `len${config.remove_len}`);
 
-  return `${base}.corrupted-${modePart}-${seedPart}-${details.join("-")}.crs`;
+  return `${base}.corrupted-${presetPart}-${modePart}-${seedPart}-${details.join("-")}.crs`;
 }
 
 function toByteArray(value) {
@@ -179,7 +240,8 @@ async function applyCorruption() {
   applyBtn.disabled = true;
   setStatus("applying corruption...");
 
-  const config = buildConfig();
+  const presetKey = modeSelect.value;
+  const config = buildConfig(sourceBytes);
   try {
     const result = corrupt_archive(sourceBytes, config);
     const corruptedBytes = toByteArray(result.archive_bytes);
@@ -216,7 +278,7 @@ async function applyCorruption() {
     const blob = new Blob([corruptedBytes], { type: "application/octet-stream" });
     downloadUrl = URL.createObjectURL(blob);
     downloadLink.href = downloadUrl;
-    downloadLink.download = buildDownloadName(sourceName, config.mode, config, result.seed_applied);
+    downloadLink.download = buildDownloadName(sourceName, config.mode, config, result.seed_applied, presetKey);
     downloadLink.hidden = false;
 
     setStatus("ready for download");

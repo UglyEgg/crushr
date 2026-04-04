@@ -933,3 +933,29 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - browser automation/screenshot tooling remains unavailable in this environment; packet-required real-browser verification remains external.
 - Next:
   - execute packet-required external real-browser checklist for all corruption modes, download naming, and introspection-demo follow-through verification.
+
+## 2026-04-04 — Active Step Update (P19S02f2)
+
+- Completed: Phase 19 Step 02 fix 2 (`P19S02f2`).
+- Audited corruption-demo semantics and confirmed prior default controls were off0-biased for overwrite/remove and truncate-at-0 kill-shot behavior.
+- Replaced raw off0-focused default control path with bounded deterministic preset categories:
+  - demo presets: scattered random damage, bounded middle overwrite, bounded tail damage, bounded header damage, bounded middle remove window
+  - explicitly separated structural destruction presets: truncate-at-0 and remove-from-start kill-shots
+- Updated user-facing mode description text so each preset states intended damage shape and kill-shot likelihood honestly.
+- Updated deterministic download naming to include preset identity slug in addition to mode/seed markers.
+- Added README semantics-audit notes documenting representative vs destructive mode intent and explicit grouping.
+- Validation:
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cd demos/wasm-corrupt-demo && ./build-dist.sh`
+  - `cargo run -p crushr --bin crushr -- pack /tmp/crushr-demo-input-big -o /tmp/sample-big.crs`
+  - `node --input-type=module` (WASM preset-generation script using demo pkg output bytes)
+  - `target/debug/crushr info /tmp/corrupt-outs-big/*.crs`
+  - `target/debug/crushr info --propagation /tmp/corrupt-outs-big/*.crs`
+- Constraints/gotchas:
+  - Browser automation/screenshot tooling is still unavailable in this environment, so packet-requested real interactive browser pass remains external.
+  - CLI follow-up evidence confirms a useful spread (inspectable + degraded + structural destruction), but this run used wasm-generated outputs via Node/WASM adapter execution rather than manual browser clicks.
+- Next:
+  - execute final external manual browser checklist for preset-selection UX and downloaded filename examples captured from real click flows.

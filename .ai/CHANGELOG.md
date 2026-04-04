@@ -1518,3 +1518,14 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added deterministic corrupted download naming with `corrupted` + mode + seed marker and linked handoff path to introspection demo.
 - Validation: `cargo fmt --all`; `node --check demos/wasm-corrupt-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
 - Real-browser verification remains external in this environment due unavailable browser tooling.
+
+## 2026-04-04 — P19S02f2
+- Corrected corruption-demo default semantics so off0-heavy destructive paths are no longer the default demonstration flow.
+- Added bounded deterministic preset grouping in UI:
+  - demo corruption presets (scattered random, bounded middle/tail/header overwrite, bounded middle remove)
+  - structural destruction / kill-shot presets (truncate-at-0, remove-from-start)
+- Added honest per-preset user descriptions and explicit category marker text in the controls panel.
+- Updated corrupted download filename to include preset identity slug in addition to mode + seed markers.
+- Added README semantics audit section documenting representative vs destructive behavior and explicit kill-shot classification.
+- Validation: `node --check demos/wasm-corrupt-demo/web/main.js`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`; `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`; `cd demos/wasm-corrupt-demo && ./build-dist.sh`; `cargo run -p crushr --bin crushr -- pack /tmp/crushr-demo-input-big -o /tmp/sample-big.crs`; Node/WASM preset-generation script; `target/debug/crushr info` + `target/debug/crushr info --propagation` across generated preset outputs.
+- Real interactive browser verification remains external due unavailable browser automation/screenshot tooling in this environment.

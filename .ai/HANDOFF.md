@@ -666,3 +666,33 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Constraints:
   - browser automation/screenshot tooling unavailable in this environment; packet-required real-browser verification remains external.
+
+## 2026-04-04 — Handoff update (P19S02f2 complete)
+
+- Corruption demo semantics were corrected to avoid off0 kill-shot defaults in the normal demo flow.
+- UI now presents two explicit preset groups:
+  - **Demo corruption presets** (bounded deterministic patterns)
+  - **Structural destruction / kill-shot modes** (explicitly labeled destructive actions)
+- Demo presets currently wired:
+  - scattered random damage
+  - bounded middle overwrite
+  - bounded tail damage
+  - bounded header damage
+  - bounded middle remove window
+- Kill-shot presets currently wired:
+  - truncate at offset 0
+  - remove from offset 0
+- Per-preset description text is now explicit/honest about expected damage shape and destructive likelihood.
+- Download naming now includes preset slug + mode + seed marker (`seed<value>` or `seedna`) for clearer artifact identity.
+- Validation run:
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+  - `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cd demos/wasm-corrupt-demo && ./build-dist.sh`
+  - `cargo run -p crushr --bin crushr -- pack /tmp/crushr-demo-input-big -o /tmp/sample-big.crs`
+  - Node/WASM generation of each preset output, then `target/debug/crushr info` + `target/debug/crushr info --propagation` on outputs.
+- Verification outcome snapshot:
+  - demo presets now include inspectable/degraded outcomes (for example bounded header/middle overwrite on a multi-file archive remained structurally inspectable with propagation impacts)
+  - kill-shot presets remain clearly destructive (`archive too short to contain FTR4`, parse failures)
+- Constraint:
+  - browser automation/screenshot tooling remains unavailable in this environment; external manual browser click-through verification is still required for final UI-interaction evidence.

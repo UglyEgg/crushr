@@ -23,34 +23,21 @@
         <h2>Corruption controls</h2>
         <label>Mode
           <select id="modeSelect">
-            <option value="random_flip">Random byte flip (seeded)</option>
-            <option value="overwrite">Range overwrite</option>
-            <option value="truncate">Truncate archive</option>
-            <option value="remove">Block removal simulation (byte range remove)</option>
+            <optgroup label="Demo corruption presets">
+              <option value="scattered_random_damage">Scattered random damage</option>
+              <option value="bounded_middle_overwrite">Bounded middle overwrite</option>
+              <option value="bounded_tail_overwrite">Bounded tail damage</option>
+              <option value="bounded_header_overwrite">Bounded header damage</option>
+              <option value="middle_remove_window">Bounded middle remove window</option>
+            </optgroup>
+            <optgroup label="Structural destruction / kill-shot modes">
+              <option value="killshot_truncate_start">Kill-shot: truncate at offset 0</option>
+              <option value="killshot_remove_start">Kill-shot: remove from offset 0</option>
+            </optgroup>
           </select>
         </label>
-
-        <div id="randomControls" class="mode-controls">
-          <label>Seed <input id="seedInput" type="number" min="0" step="1" value="12345" /></label>
-          <label>Flip count <input id="flipCountInput" type="number" min="1" max="250000" value="64" /></label>
-        </div>
-
-        <div id="overwriteControls" class="mode-controls" hidden>
-          <label>Offset <input id="overwriteOffsetInput" type="number" min="0" step="1" value="0" /></label>
-          <label>Length <input id="overwriteLenInput" type="number" min="1" step="1" value="128" /></label>
-          <label>Byte value
-            <input id="overwriteValueInput" type="number" min="0" max="255" step="1" value="0" />
-          </label>
-        </div>
-
-        <div id="truncateControls" class="mode-controls" hidden>
-          <label>Cut at offset <input id="truncateOffsetInput" type="number" min="0" step="1" value="0" /></label>
-        </div>
-
-        <div id="removeControls" class="mode-controls" hidden>
-          <label>Offset <input id="removeOffsetInput" type="number" min="0" step="1" value="0" /></label>
-          <label>Length <input id="removeLenInput" type="number" min="1" step="1" value="64" /></label>
-        </div>
+        <p id="modeDescription" class="muted"></p>
+        <p id="presetDetails" class="muted"></p>
 
         <button id="applyBtn" class="btn" disabled>Apply corruption</button>
         <p id="status" class="muted">Status: idle</p>

@@ -2207,3 +2207,20 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
 - Blast radius:
   - `demos/wasm-corrupt-demo/{Cargo.toml,Cargo.lock,README.md,build-dist.sh,src/lib.rs,web/index.html,web/main.js,web/styles.css}`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-04 — P19S02f2 corruption preset semantics correction lock
+
+- Decision:
+  - Replace off0-biased corruption defaults in the WASM corruption demo with bounded deterministic presets intended for resilience demonstration.
+  - Separate high-destruction actions into an explicitly labeled **Structural destruction / kill-shot** preset group that is not the default demonstration path.
+  - Keep deterministic output naming, but include preset identity slug so downloaded artifacts reflect intent-level preset choice.
+- Alternatives considered:
+  1. Keep existing raw mode controls and only change default input values.
+  2. Remove destructive modes entirely.
+- Rationale:
+  - Packet scope requires honest demo semantics: meaningful degradations and propagation outcomes should be easy to demonstrate without defaulting to immediate container invalidation.
+  - Explicit kill-shot grouping preserves educational value while preventing misleading “normal mode” behavior.
+- Blast radius:
+  - `demos/wasm-corrupt-demo/web/{index.html,main.js}`
+  - `demos/wasm-corrupt-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
