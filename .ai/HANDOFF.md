@@ -716,3 +716,26 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - attempted real browser automation with Playwright after building `dist/`
   - Chromium launch failed in container due missing system library: `libatk-1.0.so.0`
   - manual external browser verification is still required in a runtime with browser deps installed.
+
+## 2026-04-05 — Handoff update (P19S02f4 complete)
+
+- Completed Phase-2-semantic preset rework for `demos/wasm-corrupt-demo`.
+- Presets now map directly to harness dimensions:
+  - `type`: bit_flip / byte_overwrite / zero_fill / truncation / tail_damage
+  - `target`: header / index / payload / tail
+  - `magnitude`: 1B / 256B / 4KB
+- UI grouping now has 3 tiers:
+  - representative corruption presets (default)
+  - structural stress presets
+  - catastrophic / kill-shot modes
+- Added dynamic **What this emulates** panel:
+  - summary + bullet list updates with selected preset
+  - language is severity-aware and explicit for catastrophic modes.
+- Browser-generated verification was executed in this environment:
+  - installed missing Chromium runtime libraries
+  - served `demos/wasm-corrupt-demo/dist`
+  - automated browser flow selected each preset and downloaded archives from actual UI download link
+  - validated downloads with canonical `crushr info` and `crushr info --propagation`
+- Key outcome:
+  - representative presets are structurally inspectable with `strict_extraction_supported false`
+  - stress/catastrophic presets show expected structural diagnostics/failures.

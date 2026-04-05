@@ -27,30 +27,41 @@ Open `http://127.0.0.1:8080`.
 
 Prior defaults were skewed toward structural kill-shots (`off0` overwrite/remove and truncate-at-0), which made the default demo path look like immediate container assassination.
 
-- **Representative/acceptable:** seeded scattered flips and bounded non-zero offset damage.
+- **Representative/acceptable:** small payload-focused corruption (`1B`/`256B`) that remains structurally inspectable.
 - **Overly destructive by default:** overwrite/remove presets anchored at offset 0.
 - **Misleading for resilience demo defaults:** truncation defaulting to offset 0.
 - **Structural kill-shots:** truncate-at-0 and remove-from-start actions.
 
 ## Corruption preset groups
 
-### Demo corruption presets (default group)
+Preset naming/grouping now maps directly to the Phase 2 harness dimensions:
 
-- bounded middle overwrite
-- bounded payload overwrite
-- bounded header damage (non-zero offset)
+- **type:** `bit_flip`, `byte_overwrite`, `zero_fill`, `truncation`, `tail_damage`
+- **target:** `header`, `index`, `payload`, `tail`
+- **magnitude:** `1B`, `256B`, `4KB`
 
-### Structural destruction / kill-shot modes
+### Representative corruption presets (default group)
 
-- scattered random damage (seeded deterministic flips; can still invalidate structure)
-- kill-shot: tail structure damage
-- kill-shot: truncate at offset 0
-- kill-shot: remove from offset 0
-- kill-shot: remove middle window
+- payload bit flip (1B)
+- payload byte overwrite (1B)
+- payload zero-fill (256B)
+
+### Structural stress presets
+
+- index byte overwrite (1B)
+- tail bit flip (1B)
+- index zero-fill (256B)
+
+### Catastrophic / kill-shot modes
+
+- truncation at tail boundary (4KB)
+- tail damage wipe (4KB)
+- header destruction zero-fill (4KB)
 
 ## Notes
 
 - Processing is local-only in browser/WASM (no upload).
 - Corruption is deterministic for the same selected mode + parameters.
 - Download names include preset identity + mode marker + seed marker (`seed<value>` or `seedna`).
+- The **What this emulates** panel updates per preset with plain-language explanation of real-world intent and severity.
 - Use the introspection demo to inspect the corrupted archive behavior.

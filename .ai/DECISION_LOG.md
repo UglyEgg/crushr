@@ -2242,3 +2242,24 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `demos/wasm-corrupt-demo/web/{index.html,main.js}`
   - `demos/wasm-corrupt-demo/README.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-05 — P19S02f4 Phase-2 harness mapping + explanation-panel lock
+
+- Decision:
+  - Define browser corruption presets as direct Phase-2-semantic mappings (`type`, `target`, `magnitude`) instead of ad-hoc labels.
+  - Present presets in three explicit tiers:
+    1. representative corruption presets (default)
+    2. structural stress presets
+    3. catastrophic / kill-shot modes
+  - Add a dynamic explanatory panel that updates per selected preset with concise real-world emulation intent and honest severity framing.
+- Alternatives considered:
+  1. Keep existing preset names and add only a doc mapping table.
+  2. Keep two-tier grouping and treat stress + catastrophic as one bucket.
+- Rationale:
+  - Packet requires default path semantics to be representative and traceable to locked Phase 2 corruption taxonomy.
+  - Explicit stress/catastrophic separation prevents structural-kill outcomes from masquerading as normal representative demos.
+  - Live explanation text reduces user ambiguity about “real-world emulation” vs deliberate structural destruction tests.
+- Blast radius:
+  - `demos/wasm-corrupt-demo/web/{index.html,main.js}`
+  - `demos/wasm-corrupt-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

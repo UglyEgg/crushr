@@ -14,6 +14,8 @@ const impactSummaryEl = document.getElementById("impactSummary");
 const downloadLink = document.getElementById("downloadLink");
 
 const presetDetails = document.getElementById("presetDetails");
+const explanationSummary = document.getElementById("explanationSummary");
+const explanationList = document.getElementById("explanationList");
 
 let sourceName = "";
 let sourceBytes = null;
@@ -44,117 +46,228 @@ function clearDownload() {
   downloadLink.removeAttribute("download");
 }
 
+function buildRanges(bytesLength) {
+  const headerEnd = Math.min(bytesLength, 512);
+  const tailStart = Math.max(0, bytesLength - 1024);
+  const indexStart = Math.max(headerEnd, bytesLength - 768);
+  const indexEnd = Math.max(indexStart + 1, bytesLength - 192);
+  const payloadStart = Math.min(bytesLength - 1, Math.max(headerEnd, 512));
+  const payloadEnd = Math.max(payloadStart + 1, tailStart);
+  return {
+    header: { start: 0, end: Math.max(1, headerEnd) },
+    index: { start: indexStart, end: Math.max(indexStart + 1, indexEnd) },
+    payload: { start: payloadStart, end: Math.max(payloadStart + 1, payloadEnd) },
+    tail: { start: Math.max(0, tailStart), end: Math.max(tailStart + 1, bytesLength) },
+  };
+}
+
+function boundedOffset(range, len) {
+  const maxOffset = Math.max(range.start, range.end - len);
+  return Math.min(maxOffset, range.start + Math.floor((range.end - range.start - len) / 2));
+}
+
+function magnitudeBytes(bytesLength, magnitude) {
+  if (magnitude === "1B") return 1;
+  if (magnitude === "256B") return Math.min(256, Math.max(16, Math.floor(bytesLength / 64)));
+  return Math.min(4096, Math.max(512, Math.floor(bytesLength / 3)));
+}
+
 const PRESETS = {
-  scattered_random_damage: {
-    label: "Scattered random damage",
-    category: "kill",
-    description: "Scattered deterministic bit flips (can still invalidate index/footer structures).",
+  "p2-rep-payload-bitflip-1b": {
+    tier: "representative",
+    harnessType: "bit_flip",
+    harnessTarget: "payload",
+    harnessMagnitude: "1B",
+    description: "Phase 2 mapping: payload bit flip at 1B magnitude.",
+    explanation: [
+      "Emulates a small number of random bit errors in stored or transferred data.",
+      "Usually keeps container structure readable while making some payload verification fail.",
+    ],
     configFor(bytes) {
-      const windowStart = Math.min(Math.max(96, Math.floor(bytes.length * 0.12)), Math.max(0, bytes.length - 2));
-      const tailGuard = 768;
-      const maxWindowSpan = Math.max(1, bytes.length - windowStart - tailGuard);
-      const windowSpan = Math.min(maxWindowSpan, Math.max(256, Math.floor(bytes.length * 0.45)));
-      const count = Math.min(12, Math.max(3, Math.floor(bytes.length / 131072)));
+      const windowStart = Math.min(bytes.length - 1, Math.max(128, Math.floor(bytes.length * 0.25)));
+      const windowSpan = Math.max(64, Math.floor(bytes.length * 0.15));
       return {
         mode: "random_flip",
-        seed: 42,
-        flip_count: count,
+        seed: 1337,
+        flip_count: 1,
         random_flip_offset: windowStart,
-        random_flip_span: windowSpan,
+        random_flip_span: Math.min(windowSpan, Math.max(1, bytes.length - windowStart - 2048)),
       };
     },
-    fileTag: "killshot-scattered-random",
+    fileTag: "p2-bit_flip-payload-1b-representative",
   },
-  bounded_middle_overwrite: {
-    label: "Bounded middle overwrite",
-    category: "demo",
-    description: "Overwrite a small bounded payload region in the middle of the archive.",
+  "p2-rep-payload-overwrite-1b": {
+    tier: "representative",
+    harnessType: "byte_overwrite",
+    harnessTarget: "payload",
+    harnessMagnitude: "1B",
+    description: "Phase 2 mapping: payload byte overwrite at 1B magnitude.",
+    explanation: [
+      "Emulates a tiny wrong-byte write inside payload data.",
+      "Often keeps index/footer intact but can invalidate one entry's integrity.",
+    ],
     configFor(bytes) {
-      const len = Math.min(64, Math.max(24, Math.floor(bytes.length / 12288)));
-      const maxOffset = Math.max(0, bytes.length - len);
-      const offset = Math.min(maxOffset, Math.max(64, Math.floor(bytes.length * 0.32)));
-      return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0xa5 };
+      const range = buildRanges(bytes.length).payload;
+      return {
+        mode: "overwrite",
+        overwrite_offset: boundedOffset(range, 1),
+        overwrite_len: 1,
+        overwrite_value: 0xa5,
+      };
     },
-    fileTag: "demo-middle-overwrite",
+    fileTag: "p2-byte_overwrite-payload-1b-representative",
   },
-  bounded_payload_overwrite: {
-    label: "Bounded payload overwrite",
-    category: "demo",
-    description: "Overwrite a bounded payload window away from header and tail structures.",
+  "p2-rep-payload-zerofill-256b": {
+    tier: "representative",
+    harnessType: "zero_fill",
+    harnessTarget: "payload",
+    harnessMagnitude: "256B",
+    description: "Phase 2 mapping: payload zero-fill at 256B magnitude.",
+    explanation: [
+      "Emulates a bounded damaged payload span (for example sector-level data loss).",
+      "Intended to show degraded payload truth while preserving archive inspectability.",
+    ],
     configFor(bytes) {
-      const len = Math.min(64, Math.max(20, Math.floor(bytes.length / 12288)));
-      const maxOffset = Math.max(0, bytes.length - len - 512);
-      const offset = Math.min(maxOffset, Math.max(96, Math.floor(bytes.length * 0.25)));
-      return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0x5a };
+      const range = buildRanges(bytes.length).payload;
+      const len = Math.min(magnitudeBytes(bytes.length, "256B"), Math.max(1, range.end - range.start));
+      return {
+        mode: "overwrite",
+        overwrite_offset: boundedOffset(range, len),
+        overwrite_len: len,
+        overwrite_value: 0x00,
+      };
     },
-    fileTag: "demo-payload-overwrite",
+    fileTag: "p2-zero_fill-payload-256b-representative",
   },
-  bounded_header_overwrite: {
-    label: "Bounded header damage",
-    category: "demo",
-    description: "Damage an early header-adjacent range while avoiding offset 0.",
+  "p2-stress-index-overwrite-1b": {
+    tier: "stress",
+    harnessType: "byte_overwrite",
+    harnessTarget: "index",
+    harnessMagnitude: "1B",
+    description: "Phase 2 mapping: index byte overwrite at 1B magnitude (structural stress).",
+    explanation: [
+      "Emulates a small metadata/index corruption event.",
+      "Can still be informative, but structure-level failures become more likely than payload-only cases.",
+    ],
     configFor(bytes) {
-      const len = Math.min(40, Math.max(12, Math.floor(bytes.length / 24576)));
-      const maxOffset = Math.max(0, bytes.length - len);
-      const offset = Math.min(maxOffset, 32);
-      return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0x00 };
+      const range = buildRanges(bytes.length).index;
+      return { mode: "overwrite", overwrite_offset: range.start, overwrite_len: 1, overwrite_value: 0x5a };
     },
-    fileTag: "demo-header-damage",
+    fileTag: "p2-byte_overwrite-index-1b-stress",
   },
-  killshot_tail_overwrite: {
-    label: "Kill-shot: tail structure damage",
-    category: "kill",
-    description: "Overwrite near archive tail (likely footer/index invalidation).",
+  "p2-stress-tail-bitflip-1b": {
+    tier: "stress",
+    harnessType: "bit_flip",
+    harnessTarget: "tail",
+    harnessMagnitude: "1B",
+    description: "Phase 2 mapping: tail bit flip at 1B magnitude (structural stress).",
+    explanation: [
+      "Emulates subtle tail-region corruption where footer/index references live.",
+      "Can produce either partial inspectability or immediate structure diagnostics depending on hit location.",
+    ],
     configFor(bytes) {
-      const len = Math.min(160, Math.max(48, Math.floor(bytes.length / 3072)));
-      const offset = Math.max(0, bytes.length - len - 64);
+      const range = buildRanges(bytes.length).tail;
+      return {
+        mode: "random_flip",
+        seed: 2600,
+        flip_count: 1,
+        random_flip_offset: range.start,
+        random_flip_span: Math.max(1, range.end - range.start),
+      };
+    },
+    fileTag: "p2-bit_flip-tail-1b-stress",
+  },
+  "p2-stress-index-zerofill-256b": {
+    tier: "stress",
+    harnessType: "zero_fill",
+    harnessTarget: "index",
+    harnessMagnitude: "256B",
+    description: "Phase 2 mapping: index zero-fill at 256B magnitude (structural stress).",
+    explanation: [
+      "Emulates heavier index metadata damage than single-byte stress.",
+      "Often shifts from degraded behavior into hard structure invalidation.",
+    ],
+    configFor(bytes) {
+      const range = buildRanges(bytes.length).index;
+      const len = Math.min(magnitudeBytes(bytes.length, "256B"), Math.max(1, range.end - range.start));
+      return { mode: "overwrite", overwrite_offset: range.start, overwrite_len: len, overwrite_value: 0x00 };
+    },
+    fileTag: "p2-zero_fill-index-256b-stress",
+  },
+  "p2-cat-truncation-tail-4kb": {
+    tier: "catastrophic",
+    harnessType: "truncation",
+    harnessTarget: "tail",
+    harnessMagnitude: "4KB",
+    description: "Phase 2 mapping: truncation at 4KB magnitude (catastrophic).",
+    explanation: [
+      "Emulates severe trailing data loss (cut archive / incomplete write).",
+      "This is expected to invalidate container structure in many cases.",
+    ],
+    configFor(bytes) {
+      const cut = Math.max(0, bytes.length - magnitudeBytes(bytes.length, "4KB"));
+      return { mode: "truncate", truncate_offset: cut };
+    },
+    fileTag: "p2-truncation-tail-4kb-catastrophic",
+  },
+  "p2-cat-tail-damage-4kb": {
+    tier: "catastrophic",
+    harnessType: "tail_damage",
+    harnessTarget: "tail",
+    harnessMagnitude: "4KB",
+    description: "Phase 2 mapping: tail damage at 4KB magnitude (catastrophic).",
+    explanation: [
+      "Emulates aggressive damage to tail structures (footer/index/tail frame zone).",
+      "Primarily a container-failure boundary demonstration, not a representative corruption case.",
+    ],
+    configFor(bytes) {
+      const range = buildRanges(bytes.length).tail;
+      const len = Math.min(magnitudeBytes(bytes.length, "4KB"), Math.max(1, range.end - range.start));
+      const offset = Math.max(range.start, range.end - len);
       return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0xff };
     },
-    fileTag: "killshot-tail-overwrite",
+    fileTag: "p2-tail_damage-tail-4kb-catastrophic",
   },
-  killshot_truncate_start: {
-    label: "Kill-shot: truncate at offset 0",
-    category: "kill",
-    description: "Truncate to 0 bytes (structural destruction; likely invalid container).",
-    configFor() {
-      return { mode: "truncate", truncate_offset: 0 };
-    },
-    fileTag: "killshot-truncate-off0",
-  },
-  killshot_remove_start: {
-    label: "Kill-shot: remove from offset 0",
-    category: "kill",
-    description: "Remove bytes from the archive start (structural destruction likely).",
+  "p2-cat-header-zerofill-4kb": {
+    tier: "catastrophic",
+    harnessType: "zero_fill",
+    harnessTarget: "header",
+    harnessMagnitude: "4KB",
+    description: "Phase 2 mapping: header zero-fill at 4KB magnitude (catastrophic).",
+    explanation: [
+      "Emulates major corruption at archive start / header region.",
+      "Likely to destroy structural openability and should be treated as a kill-shot case.",
+    ],
     configFor(bytes) {
-      const len = Math.min(128, Math.max(32, Math.floor(bytes.length / 3072)));
-      return { mode: "remove", remove_offset: 0, remove_len: len };
+      const len = Math.min(4096, bytes.length);
+      return { mode: "overwrite", overwrite_offset: 0, overwrite_len: len, overwrite_value: 0x00 };
     },
-    fileTag: "killshot-remove-off0",
-  },
-  killshot_middle_remove_window: {
-    label: "Kill-shot: remove middle window",
-    category: "kill",
-    description: "Remove a middle byte window (often breaks index/tail offsets).",
-    configFor(bytes) {
-      const len = Math.min(64, Math.max(24, Math.floor(bytes.length / 6144)));
-      const maxOffset = Math.max(0, bytes.length - len);
-      const offset = Math.min(maxOffset, Math.floor(bytes.length * 0.4));
-      return { mode: "remove", remove_offset: offset, remove_len: len };
-    },
-    fileTag: "killshot-middle-remove",
+    fileTag: "p2-zero_fill-header-4kb-catastrophic",
   },
 };
 
 function getSelectedPreset() {
-  return PRESETS[modeSelect.value] ?? PRESETS.scattered_random_damage;
+  return PRESETS[modeSelect.value] ?? PRESETS["p2-rep-payload-bitflip-1b"];
 }
 
 function updateModeControls() {
   const preset = getSelectedPreset();
   modeDescription.textContent = preset.description;
-  presetDetails.textContent = `Preset category: ${
-    preset.category === "kill" ? "Structural destruction / kill-shot" : "Demo corruption preset"
-  }`;
+  const tierLabel =
+    preset.tier === "representative"
+      ? "Representative corruption preset"
+      : preset.tier === "stress"
+        ? "Structural stress preset"
+        : "Catastrophic / kill-shot preset";
+  presetDetails.textContent =
+    `Tier: ${tierLabel} • Phase 2 mapping: type=${preset.harnessType}, target=${preset.harnessTarget}, magnitude=${preset.harnessMagnitude}`;
+  explanationSummary.textContent = `${tierLabel}. This preset emulates ${preset.harnessType} on ${preset.harnessTarget} at ${preset.harnessMagnitude}.`;
+  explanationList.innerHTML = "";
+  for (const line of preset.explanation) {
+    const li = document.createElement("li");
+    li.textContent = line;
+    explanationList.appendChild(li);
+  }
 }
 
 function buildConfig(sourceBytesValue) {

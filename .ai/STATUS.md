@@ -983,3 +983,42 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - browser-click-generated artifact verification remains external until browser runtime deps are available.
 - Next:
   - run packet-required real interactive browser verification on an environment with Chromium runtime libraries installed and capture final preset outcome evidence from direct UI downloads.
+
+## 2026-04-05 — Active Step Update (P19S02f4)
+
+- Completed: Phase 19 Step 02 fix 4 (`P19S02f4`).
+- Reworked corruption presets to align directly with Phase 2 harness semantics:
+  - dimensions now surfaced in preset metadata and UI detail text: `type`, `target`, `magnitude`
+  - types: `bit_flip`, `byte_overwrite`, `zero_fill`, `truncation`, `tail_damage`
+  - targets: `header`, `index`, `payload`, `tail`
+  - magnitudes: `1B`, `256B`, `4KB`
+- Replaced two-tier corruption grouping with three explicit tiers:
+  - representative corruption presets (default path)
+  - structural stress presets
+  - catastrophic / kill-shot modes
+- Added dynamic real-world explanation panel that updates per selected preset:
+  - short plain-language summary
+  - concise bullet explanations
+  - severity/tier-aware language (no false realism for catastrophic modes)
+- Tuned representative presets to avoid default-path structural assassination:
+  - representative presets are now payload-focused (bit flip 1B, byte overwrite 1B, zero-fill 256B)
+  - browser-generated representative outputs validated as structurally inspectable under `crushr info`
+- Validation:
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+  - `cd demos/wasm-corrupt-demo && ./build-dist.sh`
+  - browser-generated archive verification:
+    - hosted `dist/` locally
+    - Playwright-driven browser interaction selected each preset and downloaded outputs from UI
+    - `target/debug/crushr info /tmp/browser-corrupt-rework-outs/*.crs`
+    - `target/debug/crushr info --propagation /tmp/browser-corrupt-rework-outs/*.crs`
+- Outcome snapshot:
+  - representative outputs: `crushr info` succeeds, container remains inspectable, and `strict_extraction_supported false` demonstrates meaningful degradation.
+  - structural stress/catastrophic presets: include expected structure-level failures (`ledger payload hash mismatch`, `bad footer magic`, `IDX bad magic`).
+- Constraints/gotchas:
+  - browser automation required installing additional system browser runtime libraries in this environment (`libatk`, X/GBM/NSS stack).
+- Next:
+  - optional follow-on to add compact per-preset examples in README showing typical expected CLI outcome classes.

@@ -1537,3 +1537,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Reclassified/remodeled kill-shot group to include random-scatter, tail-structure overwrite, truncate-at-0, remove-from-start, and remove-middle-window.
 - Validation: `node --check demos/wasm-corrupt-demo/web/main.js`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`; `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`; WASM-generated preset outputs validated with `target/debug/crushr info` and `target/debug/crushr info --propagation`.
 - Browser automation attempt was made via Playwright but failed in this container due missing runtime shared library `libatk-1.0.so.0`.
+
+## 2026-04-05 — P19S02f4
+- Reworked corruption demo preset taxonomy to direct Phase 2 harness semantics (type + target + magnitude) and replaced ad-hoc preset naming with traceable mapped presets.
+- Added three explicit preset tiers in UI: representative defaults, structural stress, and catastrophic/kill-shot.
+- Added dynamic **What this emulates** panel that updates per selected preset with concise real-world intent and severity-aware language.
+- Tuned representative presets to payload-focused bounded corruption so default path stays inspectable while still showing degradation (`strict_extraction_supported false`).
+- Verified browser-generated outputs from actual UI flow (served demo + browser automation selecting presets and downloading outputs), then validated with canonical `crushr info` / `crushr info --propagation`.
