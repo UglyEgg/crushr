@@ -696,3 +696,23 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - kill-shot presets remain clearly destructive (`archive too short to contain FTR4`, parse failures)
 - Constraint:
   - browser automation/screenshot tooling remains unavailable in this environment; external manual browser click-through verification is still required for final UI-interaction evidence.
+
+## 2026-04-05 — Handoff update (P19S02f3 complete)
+
+- Follow-up preset tuning completed for P19S02:
+  - demo defaults now focus on bounded overwrite presets that remain inspectable in validation runs
+  - high-failure presets moved into structural-destruction group
+- Added random-flip windowing support in WASM config:
+  - `random_flip_offset`
+  - `random_flip_span`
+  - random mode now flips inside a deterministic bounded window instead of always full-archive range.
+- UI preset grouping now:
+  - **Demo corruption presets:** bounded middle overwrite, bounded payload overwrite, bounded header damage
+  - **Structural destruction / kill-shot modes:** scattered random damage, tail structure damage, truncate-at-0, remove-from-start, remove-middle-window
+- Canonical CLI follow-up summary from generated outputs:
+  - all demo presets: `crushr info` succeeded and `info --propagation` showed `corrupted structures none` with impacted-entry activation
+  - structural-destruction presets: expected parse/short-archive failures (`footer_hash mismatch`, `IDX bad magic`, `archive too short`)
+- Browser verification note:
+  - attempted real browser automation with Playwright after building `dist/`
+  - Chromium launch failed in container due missing system library: `libatk-1.0.so.0`
+  - manual external browser verification is still required in a runtime with browser deps installed.

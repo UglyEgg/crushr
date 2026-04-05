@@ -959,3 +959,27 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - CLI follow-up evidence confirms a useful spread (inspectable + degraded + structural destruction), but this run used wasm-generated outputs via Node/WASM adapter execution rather than manual browser clicks.
 - Next:
   - execute final external manual browser checklist for preset-selection UX and downloaded filename examples captured from real click flows.
+
+## 2026-04-05 — Active Step Update (P19S02f3)
+
+- Completed: Phase 19 Step 02 fix 3 (`P19S02f3`).
+- Tuned corruption demo presets to improve default outcome spread:
+  - demo preset path now prioritizes bounded overwrites that remain structurally inspectable and show propagation impacts
+  - moved presets with frequent parse/structure failures into explicit structural-destruction bucket
+- Added bounded-window controls for random-flip mode in WASM (`random_flip_offset`, `random_flip_span`) and wired deterministic UI config so random-flip behavior can be constrained intentionally.
+- Reclassified `scattered random damage` as structural-destruction due observed frequent structure invalidation even under bounded windowing for compressed archives.
+- Current preset grouping:
+  - demo: bounded middle overwrite, bounded payload overwrite, bounded header damage
+  - structural destruction: scattered random damage, tail structure damage, truncate-at-0, remove-from-start, remove-middle-window
+- Validation:
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+  - `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - generated preset-corrupted outputs with demo WASM package and verified via:
+    - `target/debug/crushr info /tmp/corrupt-outs-big3/*.crs`
+    - `target/debug/crushr info --propagation /tmp/corrupt-outs-big3/bounded_*.crs`
+- Constraints/gotchas:
+  - attempted real-browser automation with Playwright, but runtime failed due missing system shared library (`libatk-1.0.so.0`) in this environment.
+  - browser-click-generated artifact verification remains external until browser runtime deps are available.
+- Next:
+  - run packet-required real interactive browser verification on an environment with Chromium runtime libraries installed and capture final preset outcome evidence from direct UI downloads.

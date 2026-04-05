@@ -2224,3 +2224,21 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `demos/wasm-corrupt-demo/web/{index.html,main.js}`
   - `demos/wasm-corrupt-demo/README.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-05 — P19S02f3 preset spread tuning + random-window control lock
+
+- Decision:
+  - Keep normal demo path biased toward inspectable degraded outcomes by constraining demo defaults to bounded overwrite presets.
+  - Move `scattered random damage` into structural-destruction bucket after repeated structure-invalidation outcomes in validation runs.
+  - Add bounded random-flip window controls in WASM corruption config (`random_flip_offset`, `random_flip_span`) so random mode can be explicitly scoped instead of full-archive by default.
+- Alternatives considered:
+  1. Keep random-scatter in demo defaults with reduced flip count only.
+  2. Remove random mode entirely.
+- Rationale:
+  - Packet acceptance requires normal demo flow to avoid frequent immediate container invalidation.
+  - Retaining random mode remains useful, but it should be explicitly classified as higher-risk/structural-destruction in operator-facing preset flow.
+- Blast radius:
+  - `demos/wasm-corrupt-demo/src/lib.rs`
+  - `demos/wasm-corrupt-demo/web/{index.html,main.js}`
+  - `demos/wasm-corrupt-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

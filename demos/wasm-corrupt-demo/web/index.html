@@ -24,15 +24,16 @@
         <label>Mode
           <select id="modeSelect">
             <optgroup label="Demo corruption presets">
-              <option value="scattered_random_damage">Scattered random damage</option>
               <option value="bounded_middle_overwrite">Bounded middle overwrite</option>
-              <option value="bounded_tail_overwrite">Bounded tail damage</option>
+              <option value="bounded_payload_overwrite">Bounded payload overwrite</option>
               <option value="bounded_header_overwrite">Bounded header damage</option>
-              <option value="middle_remove_window">Bounded middle remove window</option>
             </optgroup>
             <optgroup label="Structural destruction / kill-shot modes">
+              <option value="scattered_random_damage">Scattered random damage</option>
+              <option value="killshot_tail_overwrite">Kill-shot: tail structure damage</option>
               <option value="killshot_truncate_start">Kill-shot: truncate at offset 0</option>
               <option value="killshot_remove_start">Kill-shot: remove from offset 0</option>
+              <option value="killshot_middle_remove_window">Kill-shot: remove middle window</option>
             </optgroup>
           </select>
         </label>

@@ -47,60 +47,70 @@ function clearDownload() {
 const PRESETS = {
   scattered_random_damage: {
     label: "Scattered random damage",
-    category: "demo",
-    description: "Scattered random byte flips across the archive.",
+    category: "kill",
+    description: "Scattered deterministic bit flips (can still invalidate index/footer structures).",
     configFor(bytes) {
-      const count = Math.min(96, Math.max(24, Math.floor(bytes.length / 4096)));
-      return { mode: "random_flip", seed: 12345, flip_count: count };
+      const windowStart = Math.min(Math.max(96, Math.floor(bytes.length * 0.12)), Math.max(0, bytes.length - 2));
+      const tailGuard = 768;
+      const maxWindowSpan = Math.max(1, bytes.length - windowStart - tailGuard);
+      const windowSpan = Math.min(maxWindowSpan, Math.max(256, Math.floor(bytes.length * 0.45)));
+      const count = Math.min(12, Math.max(3, Math.floor(bytes.length / 131072)));
+      return {
+        mode: "random_flip",
+        seed: 42,
+        flip_count: count,
+        random_flip_offset: windowStart,
+        random_flip_span: windowSpan,
+      };
     },
-    fileTag: "demo-scattered-random",
+    fileTag: "killshot-scattered-random",
   },
   bounded_middle_overwrite: {
     label: "Bounded middle overwrite",
     category: "demo",
-    description: "Overwrite a bounded middle region without targeting offset 0.",
+    description: "Overwrite a small bounded payload region in the middle of the archive.",
     configFor(bytes) {
-      const len = Math.min(192, Math.max(48, Math.floor(bytes.length / 2048)));
+      const len = Math.min(64, Math.max(24, Math.floor(bytes.length / 12288)));
       const maxOffset = Math.max(0, bytes.length - len);
-      const offset = Math.min(maxOffset, Math.floor(bytes.length * 0.45));
-      return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0x00 };
+      const offset = Math.min(maxOffset, Math.max(64, Math.floor(bytes.length * 0.32)));
+      return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0xa5 };
     },
     fileTag: "demo-middle-overwrite",
   },
-  bounded_tail_overwrite: {
-    label: "Bounded tail damage",
+  bounded_payload_overwrite: {
+    label: "Bounded payload overwrite",
     category: "demo",
-    description: "Damage a bounded tail region where footer/index structures may be affected.",
+    description: "Overwrite a bounded payload window away from header and tail structures.",
     configFor(bytes) {
-      const len = Math.min(160, Math.max(48, Math.floor(bytes.length / 3072)));
-      const offset = Math.max(0, bytes.length - len - 64);
-      return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0xff };
+      const len = Math.min(64, Math.max(20, Math.floor(bytes.length / 12288)));
+      const maxOffset = Math.max(0, bytes.length - len - 512);
+      const offset = Math.min(maxOffset, Math.max(96, Math.floor(bytes.length * 0.25)));
+      return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0x5a };
     },
-    fileTag: "demo-tail-overwrite",
+    fileTag: "demo-payload-overwrite",
   },
   bounded_header_overwrite: {
     label: "Bounded header damage",
     category: "demo",
-    description: "Damage an early header-adjacent range while avoiding offset 0 defaults.",
+    description: "Damage an early header-adjacent range while avoiding offset 0.",
     configFor(bytes) {
-      const len = Math.min(96, Math.max(32, Math.floor(bytes.length / 4096)));
+      const len = Math.min(40, Math.max(12, Math.floor(bytes.length / 24576)));
       const maxOffset = Math.max(0, bytes.length - len);
       const offset = Math.min(maxOffset, 32);
       return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0x00 };
     },
     fileTag: "demo-header-damage",
   },
-  middle_remove_window: {
-    label: "Bounded middle remove window",
-    category: "demo",
-    description: "Remove a bounded mid-archive byte window to show structural shifts.",
+  killshot_tail_overwrite: {
+    label: "Kill-shot: tail structure damage",
+    category: "kill",
+    description: "Overwrite near archive tail (likely footer/index invalidation).",
     configFor(bytes) {
-      const len = Math.min(64, Math.max(24, Math.floor(bytes.length / 6144)));
-      const maxOffset = Math.max(0, bytes.length - len);
-      const offset = Math.min(maxOffset, Math.floor(bytes.length * 0.4));
-      return { mode: "remove", remove_offset: offset, remove_len: len };
+      const len = Math.min(160, Math.max(48, Math.floor(bytes.length / 3072)));
+      const offset = Math.max(0, bytes.length - len - 64);
+      return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0xff };
     },
-    fileTag: "demo-middle-remove",
+    fileTag: "killshot-tail-overwrite",
   },
   killshot_truncate_start: {
     label: "Kill-shot: truncate at offset 0",
@@ -120,6 +130,18 @@ const PRESETS = {
       return { mode: "remove", remove_offset: 0, remove_len: len };
     },
     fileTag: "killshot-remove-off0",
+  },
+  killshot_middle_remove_window: {
+    label: "Kill-shot: remove middle window",
+    category: "kill",
+    description: "Remove a middle byte window (often breaks index/tail offsets).",
+    configFor(bytes) {
+      const len = Math.min(64, Math.max(24, Math.floor(bytes.length / 6144)));
+      const maxOffset = Math.max(0, bytes.length - len);
+      const offset = Math.min(maxOffset, Math.floor(bytes.length * 0.4));
+      return { mode: "remove", remove_offset: offset, remove_len: len };
+    },
+    fileTag: "killshot-middle-remove",
   },
 };
 
@@ -167,7 +189,11 @@ function buildDownloadName(originalName, mode, config, seedApplied, presetKey) {
   const seedPart = seedApplied == null ? "seedna" : `seed${seedApplied}`;
 
   const details = [];
-  if (mode === "random_flip") details.push(`count${config.flip_count}`);
+  if (mode === "random_flip") {
+    details.push(`count${config.flip_count}`);
+    if (config.random_flip_offset != null) details.push(`off${config.random_flip_offset}`);
+    if (config.random_flip_span != null) details.push(`span${config.random_flip_span}`);
+  }
   if (mode === "overwrite") details.push(`off${config.overwrite_offset}`, `len${config.overwrite_len}`);
   if (mode === "truncate") details.push(`off${config.truncate_offset}`);
   if (mode === "remove") details.push(`off${config.remove_offset}`, `len${config.remove_len}`);

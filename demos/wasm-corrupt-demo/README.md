@@ -36,16 +36,17 @@ Prior defaults were skewed toward structural kill-shots (`off0` overwrite/remove
 
 ### Demo corruption presets (default group)
 
-- scattered random damage (seeded deterministic flips)
 - bounded middle overwrite
-- bounded tail damage
+- bounded payload overwrite
 - bounded header damage (non-zero offset)
-- bounded middle remove window
 
 ### Structural destruction / kill-shot modes
 
+- scattered random damage (seeded deterministic flips; can still invalidate structure)
+- kill-shot: tail structure damage
 - kill-shot: truncate at offset 0
 - kill-shot: remove from offset 0
+- kill-shot: remove middle window
 
 ## Notes
 

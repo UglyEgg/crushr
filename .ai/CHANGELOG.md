@@ -1529,3 +1529,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added README semantics audit section documenting representative vs destructive behavior and explicit kill-shot classification.
 - Validation: `node --check demos/wasm-corrupt-demo/web/main.js`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`; `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`; `cd demos/wasm-corrupt-demo && ./build-dist.sh`; `cargo run -p crushr --bin crushr -- pack /tmp/crushr-demo-input-big -o /tmp/sample-big.crs`; Node/WASM preset-generation script; `target/debug/crushr info` + `target/debug/crushr info --propagation` across generated preset outputs.
 - Real interactive browser verification remains external due unavailable browser automation/screenshot tooling in this environment.
+
+## 2026-04-05 — P19S02f3
+- Tuned preset parameters and grouping so default demo path now favors inspectable degraded outcomes with propagation visibility.
+- Added random-flip window bounds in WASM corruption config (`random_flip_offset`, `random_flip_span`) and included window metadata in deterministic filename details for random-flip output.
+- Moved `scattered random damage` out of the default demo group into structural-destruction because it frequently produced index/footer invalidation on compressed archives.
+- Reclassified/remodeled kill-shot group to include random-scatter, tail-structure overwrite, truncate-at-0, remove-from-start, and remove-middle-window.
+- Validation: `node --check demos/wasm-corrupt-demo/web/main.js`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`; `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`; WASM-generated preset outputs validated with `target/debug/crushr info` and `target/debug/crushr info --propagation`.
+- Browser automation attempt was made via Playwright but failed in this container due missing runtime shared library `libatk-1.0.so.0`.

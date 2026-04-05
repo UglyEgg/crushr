@@ -33,6 +33,8 @@ struct CorruptionConfig {
     mode: CorruptionMode,
     seed: Option<u64>,
     flip_count: Option<usize>,
+    random_flip_offset: Option<usize>,
+    random_flip_span: Option<usize>,
     overwrite_offset: Option<usize>,
     overwrite_len: Option<usize>,
     overwrite_value: Option<u8>,
@@ -156,10 +158,18 @@ fn corrupt_archive_impl(mut archive_bytes: Vec<u8>, config: CorruptionConfig) ->
         CorruptionMode::RandomFlip => {
             let seed = config.seed.context("seed is required for random flip")?;
             let flip_count = config.flip_count.unwrap_or(1).clamp(1, MAX_FLIP_COUNT);
+            let random_start = config.random_flip_offset.unwrap_or(0).min(archive_bytes.len().saturating_sub(1));
+            let span_default = archive_bytes.len().saturating_sub(random_start);
+            let random_span = config.random_flip_span.unwrap_or(span_default).max(1);
+            let random_end = random_start.saturating_add(random_span).min(archive_bytes.len());
+
+            if random_start >= random_end {
+                bail!("random flip window is outside archive bounds")
+            }
             let mut rng = DeterministicRng::new(seed);
 
             for _ in 0..flip_count {
-                let index = (rng.next_u64() as usize) % archive_bytes.len();
+                let index = random_start + ((rng.next_u64() as usize) % (random_end - random_start));
                 let bit = (rng.next_u64() % 8) as u8;
                 archive_bytes[index] ^= 1u8 << bit;
             }
@@ -168,7 +178,10 @@ fn corrupt_archive_impl(mut archive_bytes: Vec<u8>, config: CorruptionConfig) ->
                 archive_bytes,
                 mode_slug: "randflip",
                 seed_applied: Some(seed),
-                operation_summary: format!("flipped {flip_count} bytes deterministically"),
+                operation_summary: format!(
+                    "flipped {flip_count} bytes deterministically in window {random_start}..{}",
+                    random_end
+                ),
             })
         }
         CorruptionMode::Overwrite => {
@@ -242,6 +255,8 @@ mod tests {
             seed: Some(42),
             flip_count: Some(8),
             overwrite_offset: None,
+            random_flip_offset: None,
+            random_flip_span: None,
             overwrite_len: None,
             overwrite_value: None,
             truncate_offset: None,
@@ -256,6 +271,8 @@ mod tests {
             seed: Some(42),
             flip_count: Some(8),
             overwrite_offset: None,
+            random_flip_offset: None,
+            random_flip_span: None,
             overwrite_len: None,
             overwrite_value: None,
             truncate_offset: None,
@@ -274,6 +291,8 @@ mod tests {
             seed: None,
             flip_count: None,
             overwrite_offset: None,
+            random_flip_offset: None,
+            random_flip_span: None,
             overwrite_len: None,
             overwrite_value: None,
             truncate_offset: None,
