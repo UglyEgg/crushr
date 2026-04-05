@@ -739,3 +739,18 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Key outcome:
   - representative presets are structurally inspectable with `strict_extraction_supported false`
   - stress/catastrophic presets show expected structural diagnostics/failures.
+
+## 2026-04-05 — Handoff update (P19S02f5 complete)
+
+- Performed classification truth-alignment pass (no new corruption mode logic):
+  - representative group kept as default path
+  - structural stress labels updated to explicitly state frequent parse-breaking tendency
+  - catastrophic labels made more explicit in selector text (`Catastrophic: ...`)
+- Browser-generated evidence used for this pass:
+  - source archive: `/tmp/p19-medium.crs`
+  - generated outputs: `/tmp/browser-p19-medium/*.crs`
+  - canonical checks: `target/debug/crushr info` + `target/debug/crushr info --propagation`
+- Observed grouping fit:
+  - representative presets: inspectable + degraded (`corrupted structures none`, strict unsupported)
+  - stress presets: frequent tail-frame parse failure diagnostics
+  - catastrophic presets: hard structural invalidation outcomes

@@ -144,10 +144,10 @@ const PRESETS = {
     harnessType: "byte_overwrite",
     harnessTarget: "index",
     harnessMagnitude: "1B",
-    description: "Phase 2 mapping: index byte overwrite at 1B magnitude (structural stress).",
+    description: "Phase 2 mapping: index byte overwrite at 1B magnitude (structural stress; often parse-breaking).",
     explanation: [
       "Emulates a small metadata/index corruption event.",
-      "Can still be informative, but structure-level failures become more likely than payload-only cases.",
+      "This frequently triggers tail/index parse failures and should not be treated as representative damage.",
     ],
     configFor(bytes) {
       const range = buildRanges(bytes.length).index;
@@ -160,10 +160,10 @@ const PRESETS = {
     harnessType: "bit_flip",
     harnessTarget: "tail",
     harnessMagnitude: "1B",
-    description: "Phase 2 mapping: tail bit flip at 1B magnitude (structural stress).",
+    description: "Phase 2 mapping: tail bit flip at 1B magnitude (structural stress; often parse-breaking).",
     explanation: [
       "Emulates subtle tail-region corruption where footer/index references live.",
-      "Can produce either partial inspectability or immediate structure diagnostics depending on hit location.",
+      "Often produces immediate structure diagnostics or parse failures depending on the exact tail byte hit.",
     ],
     configFor(bytes) {
       const range = buildRanges(bytes.length).tail;
@@ -182,10 +182,10 @@ const PRESETS = {
     harnessType: "zero_fill",
     harnessTarget: "index",
     harnessMagnitude: "256B",
-    description: "Phase 2 mapping: index zero-fill at 256B magnitude (structural stress).",
+    description: "Phase 2 mapping: index zero-fill at 256B magnitude (high structural stress).",
     explanation: [
       "Emulates heavier index metadata damage than single-byte stress.",
-      "Often shifts from degraded behavior into hard structure invalidation.",
+      "In observed runs this frequently invalidates structural interpretation (parse-breaking behavior is common).",
     ],
     configFor(bytes) {
       const range = buildRanges(bytes.length).index;

@@ -52,6 +52,8 @@ Preset naming/grouping now maps directly to the Phase 2 harness dimensions:
 - tail bit flip (1B)
 - index zero-fill (256B)
 
+Observed tendency in browser-generated checks: these stress presets frequently trigger index/tail parse diagnostics and are not part of the representative resilience path.
+
 ### Catastrophic / kill-shot modes
 
 - truncation at tail boundary (4KB)

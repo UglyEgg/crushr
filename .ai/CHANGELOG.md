@@ -1544,3 +1544,10 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added dynamic **What this emulates** panel that updates per selected preset with concise real-world intent and severity-aware language.
 - Tuned representative presets to payload-focused bounded corruption so default path stays inspectable while still showing degradation (`strict_extraction_supported false`).
 - Verified browser-generated outputs from actual UI flow (served demo + browser automation selecting presets and downloading outputs), then validated with canonical `crushr info` / `crushr info --propagation`.
+
+## 2026-04-05 — P19S02f5
+- Performed observed-outcome classification audit for current presets using browser-generated artifacts and canonical CLI introspection.
+- Updated stress/catastrophic naming/copy to better match observed severity:
+  - stress presets now explicitly described as frequently parse-breaking
+  - catastrophic selector labels now explicitly prefixed (`Catastrophic: ...`)
+- Kept representative presets as default flow after observed inspectable/degraded behavior confirmation.

@@ -2263,3 +2263,20 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `demos/wasm-corrupt-demo/web/{index.html,main.js}`
   - `demos/wasm-corrupt-demo/README.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-05 — P19S02f5 observed-outcome classification wording lock
+
+- Decision:
+  - Keep current Phase-2 preset implementation and adjust **classification wording** where observed behavior shows stronger failure tendency than previous copy implied.
+  - Preserve representative default presets (inspectable/degraded in observed run) and explicitly label structural-stress presets as frequently parse-breaking.
+  - Strengthen catastrophic option labels with explicit `Catastrophic:` prefix in UI list text.
+- Alternatives considered:
+  1. Move all stress presets to catastrophic.
+  2. Add new corruption implementation variants to create softer stress outcomes.
+- Rationale:
+  - Packet scope is truth-in-labeling, not new corruption implementation.
+  - Observed behavior showed representative presets behaving as intended and stress presets frequently triggering structural parse diagnostics; copy needed to reflect that plainly.
+- Blast radius:
+  - `demos/wasm-corrupt-demo/web/{index.html,main.js}`
+  - `demos/wasm-corrupt-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

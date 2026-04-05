@@ -1022,3 +1022,30 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - browser automation required installing additional system browser runtime libraries in this environment (`libatk`, X/GBM/NSS stack).
 - Next:
   - optional follow-on to add compact per-preset examples in README showing typical expected CLI outcome classes.
+
+## 2026-04-05 — Active Step Update (P19S02f5)
+
+- Completed: Phase 19 Step 02 fix 5 (`P19S02f5`).
+- Audited current Phase-2-mapped preset outcomes against browser-generated artifacts (`/tmp/browser-p19-medium/*.crs`) and canonical CLI introspection.
+- Classification alignment adjustments (no new corruption implementation):
+  - kept representative presets in default flow (all representative presets were inspectable and degraded in this run)
+  - retained structural stress tier but updated names/copy to explicitly state frequent parse-breaking behavior
+  - retained catastrophic tier labels and strengthened explicit catastrophic naming in UI option labels
+- Updated explanatory copy to avoid soft wording for stress presets that often fail parsing (index/tail structural stress now explicitly flagged as frequently parse-breaking).
+- Validation:
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+  - `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - browser-generated artifacts:
+    - served `demos/wasm-corrupt-demo/dist`
+    - browser automation selected presets and downloaded outputs for `/tmp/p19-medium.crs`
+    - `target/debug/crushr info /tmp/browser-p19-medium/*.crs`
+    - `target/debug/crushr info --propagation /tmp/browser-p19-medium/*.crs`
+- Outcome snapshot:
+  - representative presets: inspectable + degraded (`strict_extraction_supported false`, `corrupted structures none`)
+  - structural stress presets: frequently parse-breaking (`ledger payload hash mismatch` / tail-frame parse failures)
+  - catastrophic presets: expected hard structural failures (`bad footer magic`, `IDX bad magic`)
+- Constraints/gotchas:
+  - this environment required re-installing browser/runtime dependencies to run browser verification (`wasm-pack`, Chromium runtime libs, Playwright).
+- Next:
+  - optional follow-up to add automated multi-corpus browser outcome matrix so tier classification can be reported with stability percentages.
