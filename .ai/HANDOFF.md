@@ -771,3 +771,25 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
 - Constraint:
   - browser screenshot tooling is unavailable in this environment; screenshot capture remains external.
+
+## 2026-04-06 — Handoff update (P19S02f7 complete)
+
+- Added archive-layout + corruption-overlay visualization to corruption demo right column.
+- Rust/WASM output additions:
+  - `inspect_archive` now includes `layout_segments` with deterministic `kind/start/end` records.
+  - `corrupt_archive` now includes `corruption_ranges` for applied mutation spans (random-flip outputs merged into deterministic contiguous ranges).
+- Layout semantics:
+  - payload = merged index extent ranges (offset/len)
+  - metadata = DCT/IDX/LDG spans from footer offsets
+  - tail = footer (`FTR4`) span
+- UI behavior:
+  - normalized horizontal layout bar (not per-byte rendering)
+  - corruption overlay rendered on the same coordinate system
+  - legend for payload / metadata-index / tail-footer / corruption.
+- Validation run:
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Constraints:
+  - `wasm-pack` missing in this environment, so `build-dist.sh` and real-browser packet verification were not executable here.

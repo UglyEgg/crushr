@@ -2296,3 +2296,25 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
 - Blast radius:
   - `demos/wasm-corrupt-demo/web/{index.html,styles.css}`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-06 — P19S02f7 archive-layout + corruption-overlay visualization lock
+
+- Decision:
+  - Add a lightweight right-column layout bar visualization in `demos/wasm-corrupt-demo` that uses actual archive-introspection offsets and actual mutation ranges.
+  - Source layout segments from Rust/WASM inspection output, with deterministic segment kinds:
+    - `payload` from merged IDX extent offsets
+    - `metadata` from DCT/IDX/LDG footer-referenced component spans
+    - `tail` from FTR4 footer span.
+  - Source corruption overlays from Rust/WASM corruption-result ranges (`corruption_ranges`) and render overlays in the same normalized coordinate system as the layout bar.
+  - Keep rendering minimal-DOM (absolute-positioned segments/overlays), no per-byte visualization, no heavy animation.
+- Alternatives considered:
+  1. Approximate layout from heuristic byte percentages in JS.
+  2. Render per-byte/pixel visualization for higher visual detail.
+- Rationale:
+  - Packet requires truthful, introspection-derived mapping and explicit corruption alignment without introducing heavyweight rendering.
+  - Deterministic merged ranges preserve clarity for scattered corruption while keeping DOM/render cost bounded.
+- Blast radius:
+  - `demos/wasm-corrupt-demo/src/lib.rs`
+  - `demos/wasm-corrupt-demo/web/{index.html,main.js,styles.css}`
+  - `demos/wasm-corrupt-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

@@ -16,6 +16,7 @@ const downloadLink = document.getElementById("downloadLink");
 const presetDetails = document.getElementById("presetDetails");
 const explanationSummary = document.getElementById("explanationSummary");
 const explanationList = document.getElementById("explanationList");
+const layoutBar = document.getElementById("layoutBar");
 
 let sourceName = "";
 let sourceBytes = null;
@@ -293,6 +294,92 @@ function toDisplay(summary) {
   ].join("\n");
 }
 
+function normalizeRanges(ranges, totalBytes) {
+  if (!Array.isArray(ranges) || totalBytes <= 0) return [];
+  const normalized = [];
+  for (const range of ranges) {
+    const start = Number(range?.start ?? 0);
+    const end = Number(range?.end ?? 0);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+    const safeStart = Math.max(0, Math.min(totalBytes, Math.floor(start)));
+    const safeEnd = Math.max(0, Math.min(totalBytes, Math.ceil(end)));
+    if (safeEnd > safeStart) {
+      normalized.push({ start: safeStart, end: safeEnd });
+    }
+  }
+  normalized.sort((a, b) => a.start - b.start || a.end - b.end);
+  return normalized;
+}
+
+function normalizeLayoutSegments(segments, totalBytes) {
+  if (!Array.isArray(segments) || totalBytes <= 0) return [];
+  const normalized = [];
+  for (const segment of segments) {
+    const kind = typeof segment?.kind === "string" ? segment.kind : "metadata";
+    const start = Number(segment?.start ?? 0);
+    const end = Number(segment?.end ?? 0);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+    const safeStart = Math.max(0, Math.min(totalBytes, Math.floor(start)));
+    const safeEnd = Math.max(0, Math.min(totalBytes, Math.ceil(end)));
+    if (safeEnd > safeStart) {
+      normalized.push({ kind, start: safeStart, end: safeEnd });
+    }
+  }
+  normalized.sort((a, b) => a.start - b.start || a.end - b.end);
+  return normalized;
+}
+
+function mergeRanges(ranges) {
+  if (ranges.length === 0) return [];
+  const merged = [ranges[0]];
+  for (let i = 1; i < ranges.length; i += 1) {
+    const current = ranges[i];
+    const last = merged[merged.length - 1];
+    if (current.start <= last.end) {
+      last.end = Math.max(last.end, current.end);
+    } else {
+      merged.push({ ...current });
+    }
+  }
+  return merged;
+}
+
+function rangeToStyle(start, end, totalBytes) {
+  const left = (start / totalBytes) * 100;
+  const width = Math.max(((end - start) / totalBytes) * 100, 0.2);
+  return { left: `${left}%`, width: `${width}%` };
+}
+
+function renderLayout(inspection, overlayRanges) {
+  layoutBar.innerHTML = "";
+  if (!inspection || !inspection.total_bytes || !Array.isArray(inspection.layout_segments)) {
+    return;
+  }
+
+  const totalBytes = inspection.total_bytes;
+  const layoutRanges = normalizeLayoutSegments(inspection.layout_segments, totalBytes);
+  for (const segment of layoutRanges) {
+    const div = document.createElement("div");
+    div.className = `layout-segment ${segment.kind}`;
+    const style = rangeToStyle(segment.start, segment.end, totalBytes);
+    div.style.left = style.left;
+    div.style.width = style.width;
+    div.title = `${segment.kind}: ${segment.start}..${segment.end}`;
+    layoutBar.appendChild(div);
+  }
+
+  const overlays = mergeRanges(normalizeRanges(overlayRanges, totalBytes));
+  for (const range of overlays) {
+    const div = document.createElement("div");
+    div.className = "layout-overlay";
+    const style = rangeToStyle(range.start, range.end, totalBytes);
+    div.style.left = style.left;
+    div.style.width = style.width;
+    div.title = `corruption: ${range.start}..${range.end}`;
+    layoutBar.appendChild(div);
+  }
+}
+
 function buildDownloadName(originalName, mode, config, seedApplied, presetKey) {
   const base = originalName.toLowerCase().endsWith(".crs")
     ? originalName.slice(0, -4)
@@ -330,6 +417,7 @@ async function loadArchive(file) {
   clearDownload();
   applyBtn.disabled = true;
   setStatus("loading archive...");
+  renderLayout(null, []);
 
   if (!file.name.toLowerCase().endsWith(".crs")) {
     showError("Only .crs files are supported in this corruption demo.");
@@ -359,6 +447,7 @@ async function loadArchive(file) {
       "----------------",
       "Not generated yet.",
     ].join("\n");
+    renderLayout(summary, []);
 
     applyBtn.disabled = false;
     setStatus("ready");
@@ -413,6 +502,7 @@ async function applyCorruption() {
       "----------------",
       toDisplay(afterSummary),
     ].join("\n");
+    renderLayout(sourceInspection, result.corruption_ranges);
 
     const blob = new Blob([corruptedBytes], { type: "application/octet-stream" });
     downloadUrl = URL.createObjectURL(blob);

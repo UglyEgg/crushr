@@ -66,4 +66,5 @@ Observed tendency in browser-generated checks: these stress presets frequently t
 - Corruption is deterministic for the same selected mode + parameters.
 - Download names include preset identity + mode marker + seed marker (`seed<value>` or `seedna`).
 - The **What this emulates** panel updates per preset with plain-language explanation of real-world intent and severity.
+- The right-column visualization bar uses introspection-derived archive offsets (payload extents, metadata/index regions, tail/footer) and overlays actual applied corruption ranges.
 - Use the introspection demo to inspect the corrupted archive behavior.

@@ -367,3 +367,4 @@ Latest priority doctrine
 - [x] P19S02f4 — rework corruption presets to Phase-2 harness mapping with explicit representative/stress/catastrophic tiers, add live real-world explanation panel, and validate browser-generated outputs with canonical CLI introspection.
 - [x] P19S02f5 — align preset grouping/copy to observed outcomes by clarifying stress presets as frequently parse-breaking, tightening severity wording, and re-validating taxonomy against browser-generated artifacts.
 - [x] P19S02f6 — apply bounded corruption-demo dashboard layout parity pass (two-column desktop workflow/context split, denser spacing, responsive containment safeguards) without changing corruption semantics.
+- [x] P19S02f7 — add archive-layout + corruption-overlay visualization in corruption demo using introspection-derived layout segments and mutation-range overlays, with right-column legend placement and minimal-DOM rendering.

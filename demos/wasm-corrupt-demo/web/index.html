@@ -68,6 +68,20 @@
           </section>
 
           <section class="card">
+            <h2>Archive layout + corruption overlay</h2>
+            <p class="muted">
+              Layout is drawn from archive introspection offsets; corruption overlay uses actual applied mutation ranges.
+            </p>
+            <div id="layoutBar" class="layout-bar" aria-label="Archive layout visualization"></div>
+            <div class="layout-legend">
+              <span><i class="swatch payload"></i>Payload</span>
+              <span><i class="swatch metadata"></i>Metadata / index</span>
+              <span><i class="swatch tail"></i>Tail / footer</span>
+              <span><i class="swatch corruption"></i>Corruption</span>
+            </div>
+          </section>
+
+          <section class="card">
             <h2>Impact summary</h2>
             <p class="muted">Uses local Rust/WASM archive inspection to compare before vs after corruption.</p>
             <pre id="impactSummary">Load an archive to view impact summary.</pre>

@@ -1556,3 +1556,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Reworked `demos/wasm-corrupt-demo` page into a denser two-column dashboard layout on desktop with workflow/content grouping parity and mobile single-column fallback.
 - Added grid containment safeguards (`min-width: 0`) and spacing/padding refinements while preserving existing JS wiring and corruption behavior semantics.
 - Validation: `node --check demos/wasm-corrupt-demo/web/main.js`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`.
+
+## 2026-04-06 — P19S02f7
+- Added archive layout visualization + corruption overlay in `demos/wasm-corrupt-demo` right column, with legend and normalized horizontal mapping.
+- Extended Rust/WASM demo outputs:
+  - `inspect_archive` now returns introspection-derived `layout_segments`.
+  - `corrupt_archive` now returns applied `corruption_ranges` (including merged multi-region random-flip ranges).
+- Kept rendering lightweight (absolute-positioned segment/overlay elements; no per-byte rendering/animation).
+- Validation: `node --check demos/wasm-corrupt-demo/web/main.js`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`; `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`.

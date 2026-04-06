@@ -1069,3 +1069,25 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - browser screenshot tooling is unavailable in this execution environment; screenshot artifact capture remains external.
 - Next:
   - optional parity polish packet for visual token-level matching against introspection dashboard if requested.
+
+## 2026-04-06 — Active Step Update (P19S02f7)
+
+- Completed: Phase 19 Step 02 fix 7 (`P19S02f7`).
+- Added right-column archive layout visualization in `demos/wasm-corrupt-demo` with deterministic normalized mapping and minimal DOM rendering:
+  - payload segments derived from decoded index extent offsets
+  - metadata/index segments derived from footer component offsets
+  - tail/footer segment derived from archive footer span.
+- Added corruption overlay rendering aligned to the same normalized coordinate system:
+  - overlays are driven by actual applied mutation ranges returned from Rust/WASM
+  - random-flip overlays support multiple regions via deterministic merged byte-range output.
+- Added explicit legend for payload / metadata-index / tail-footer / corruption.
+- Validation:
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Constraints/gotchas:
+  - `wasm-pack` is not installed in this environment, so `demos/wasm-corrupt-demo/build-dist.sh` and real-browser packet verification could not be completed here.
+  - browser screenshot tooling remains unavailable in this environment.
+- Next:
+  - run packet-required real-browser verification for visualization alignment/performance/layout-regression checks in an environment with `wasm-pack` and browser runtime support.
