@@ -1564,3 +1564,11 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `corrupt_archive` now returns applied `corruption_ranges` (including merged multi-region random-flip ranges).
 - Kept rendering lightweight (absolute-positioned segment/overlay elements; no per-byte rendering/animation).
 - Validation: `node --check demos/wasm-corrupt-demo/web/main.js`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`; `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`.
+
+## 2026-04-06 — P18S09f3
+- Added archive health banner to readonly introspection demo (`VALID` / `DEGRADED` / `DAMAGED`) driven by summary truth (`extents_valid`, `strict_extraction_supported`).
+- Removed hidden corruption gating for damaged archives by forcing impact view on and disabling hide-toggle in damaged mode.
+- Auto-populated entries on load, sorted impacted entries first, and auto-selected first impacted entry for damaged archives with immediate detail/extent/preview rendering.
+- Moved entry-contextual fetch errors into entry panel with selected-path context.
+- Removed left-panel fixed-height dead space by switching to dynamic flex growth for results panel/list.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

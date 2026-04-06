@@ -2318,3 +2318,23 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `demos/wasm-corrupt-demo/web/{index.html,main.js,styles.css}`
   - `demos/wasm-corrupt-demo/README.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-06 — P18S09f3 introspection corruption-first UX alignment lock
+
+- Decision:
+  - Make corruption state explicit at first glance by adding an archive health banner (`VALID` / `DEGRADED` / `DAMAGED`) derived strictly from summary truth (`extents_valid`, `strict_extraction_supported`).
+  - Remove hidden corruption gating for damaged archives by forcing impact view on and disabling user hide-toggle in that state.
+  - On load, auto-populate entry list via bounded empty-query search and sort impacted entries first to avoid requiring an initial Find action.
+  - For damaged archives, auto-select first impacted entry and render detail/extent/preview immediately.
+  - Move entry-fetch failure context into entry panel with selected path context for operator clarity.
+  - Replace fixed-height left-panel sizing with flexible growth to remove dead space.
+- Alternatives considered:
+  1. Keep current explicit Find-first workflow and propagation toggle behavior.
+  2. Add a larger multi-pane redesign with new navigation flows.
+- Rationale:
+  - Packet requires corruption-first visibility and removal of hidden interaction gates without introducing heavyweight UI changes.
+  - Bounded state-driven adjustments preserve existing architecture while improving immediate damaged-archive comprehension.
+- Blast radius:
+  - `demos/wasm-readonly-demo/web/{index.html,main.js,styles.css}`
+  - `demos/wasm-readonly-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

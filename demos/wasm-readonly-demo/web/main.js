@@ -4,6 +4,7 @@ const browseBtn = document.getElementById("browse");
 const unloadBtn = document.getElementById("unload");
 const themeToggleBtn = document.getElementById("theme-toggle");
 const headerStatusEl = document.getElementById("header-status");
+const healthBannerEl = document.getElementById("archive-health-banner");
 const summaryEl = document.getElementById("summary");
 const queryEl = document.getElementById("query");
 const resultsEl = document.getElementById("results");
@@ -11,6 +12,7 @@ const entryEl = document.getElementById("entry");
 const extentEl = document.getElementById("extent-visualization");
 const previewEl = document.getElementById("entry-preview");
 const propagationToggleEl = document.getElementById("propagation-toggle");
+const impactModeIndicatorEl = document.getElementById("impact-mode-indicator");
 const propagationSummaryEl = document.getElementById("propagation-summary");
 const propagationDetailEl = document.getElementById("propagation-detail");
 const errorEl = document.getElementById("error");
@@ -39,6 +41,7 @@ let activeWorkerStatusStage = null;
 let currentArchiveName = null;
 let propagationState = {
   enabled: false,
+  forcedVisible: false,
   impactedByPath: new Map(),
   noImpactMessage: "Propagation view is disabled.",
 };
@@ -129,7 +132,11 @@ function setControlsBusy(isBusy) {
   unloadBtn.disabled = isBusy || !bytes;
   searchBtn.disabled = isBusy;
   queryEl.disabled = isBusy || !bytes;
-  propagationToggleEl.disabled = isBusy || !bytes;
+  if (isBusy) {
+    propagationToggleEl.disabled = true;
+  } else {
+    updateImpactControls();
+  }
   updateSearchBusyState();
 }
 
@@ -166,6 +173,60 @@ function renderResultsMessage(message) {
   resultsEl.appendChild(item);
 }
 
+function deriveArchiveHealth(summary) {
+  if (!summary) {
+    return { level: "valid", label: "VALID" };
+  }
+  if (summary.extents_valid === false) {
+    return { level: "damaged", label: "DAMAGED" };
+  }
+  if (summary.strict_extraction_supported === false) {
+    return { level: "degraded", label: "DEGRADED" };
+  }
+  return { level: "valid", label: "VALID" };
+}
+
+function renderArchiveHealth(summary) {
+  const health = deriveArchiveHealth(summary);
+  healthBannerEl.classList.remove("health-valid", "health-degraded", "health-damaged");
+  healthBannerEl.classList.add(`health-${health.level}`);
+  healthBannerEl.textContent = `Archive health: ${health.label}`;
+  return health;
+}
+
+function updateImpactControls() {
+  if (!bytes) {
+    propagationToggleEl.checked = false;
+    propagationToggleEl.disabled = true;
+    impactModeIndicatorEl.textContent = "Impact view optional for this archive.";
+    return;
+  }
+
+  if (propagationState.forcedVisible) {
+    propagationToggleEl.checked = true;
+    propagationToggleEl.disabled = true;
+    impactModeIndicatorEl.textContent = "Impact view is always on for damaged archives.";
+    return;
+  }
+
+  propagationToggleEl.checked = propagationState.enabled;
+  propagationToggleEl.disabled = false;
+  impactModeIndicatorEl.textContent = "Impact view optional for this archive.";
+}
+
+function sortMatchesImpactedFirst(matches) {
+  const ranked = [...matches];
+  ranked.sort((a, b) => {
+    const aImpacted = propagationState.impactedByPath.has(a.path) ? 1 : 0;
+    const bImpacted = propagationState.impactedByPath.has(b.path) ? 1 : 0;
+    if (aImpacted !== bImpacted) {
+      return bImpacted - aImpacted;
+    }
+    return a.path.localeCompare(b.path);
+  });
+  return ranked;
+}
+
 async function resetDemoState(options = {}) {
   const { clearFileInput = false, resetWorker = true } = options;
 
@@ -182,6 +243,9 @@ async function resetDemoState(options = {}) {
   latestMatches = [];
   queryEl.value = "";
   propagationToggleEl.checked = false;
+  healthBannerEl.classList.remove("health-valid", "health-degraded", "health-damaged");
+  healthBannerEl.classList.add("health-valid");
+  healthBannerEl.textContent = "Archive health: VALID";
 
   summaryEl.textContent = NO_FILE_MESSAGE;
   renderResultsMessage(NO_FILE_MESSAGE);
@@ -192,9 +256,11 @@ async function resetDemoState(options = {}) {
   propagationDetailEl.textContent = "Enable propagation view to inspect impact details.";
   propagationState = {
     enabled: false,
+    forcedVisible: false,
     impactedByPath: new Map(),
     noImpactMessage: "No impacted entries detected from current corruption inputs.",
   };
+  updateImpactControls();
 
   if (clearFileInput) {
     fileEl.value = "";
@@ -353,7 +419,7 @@ function renderPreview(preview) {
 }
 
 function renderSearchResults(resultPayload) {
-  const matches = resultPayload?.matches ?? [];
+  const matches = sortMatchesImpactedFirst(resultPayload?.matches ?? []);
   latestMatches = matches;
   resultsEl.innerHTML = "";
 
@@ -389,17 +455,7 @@ function renderSearchResults(resultPayload) {
         return;
       }
       try {
-        await runWorking("Loading entry detail...", async () => {
-          const { detail } = await requestWorker("entry", { path: match.path });
-          const { preview } = await requestWorker("entryPreview", { path: match.path });
-          selectedPath = match.path;
-          entryEl.textContent = render(detail);
-          renderExtentVisualization(detail, preview);
-          renderPreview(preview);
-          renderPropagationDetail(selectedPath);
-          renderSearchResults({ matches: latestMatches, truncated: resultPayload?.truncated, total_matches: resultPayload?.total_matches });
-          setUiState("success", "Ready");
-        });
+        await selectEntry(match.path, resultPayload);
       } catch (_error) {
         // setError already handled in runWorking
       }
@@ -408,6 +464,28 @@ function renderSearchResults(resultPayload) {
     item.appendChild(button);
     resultsEl.appendChild(item);
   }
+}
+
+async function selectEntry(path, resultPayload = null) {
+  await runWorking("Loading entry detail...", async () => {
+    selectedPath = path;
+    try {
+      const { detail } = await requestWorker("entry", { path });
+      const { preview } = await requestWorker("entryPreview", { path });
+      entryEl.textContent = render(detail);
+      renderExtentVisualization(detail, preview);
+      renderPreview(preview);
+      clearError();
+    } catch (error) {
+      const message = `Entry detail unavailable for ${path}: ${String(error)}`;
+      entryEl.textContent = message;
+      renderEmptyExtentState(`Extent visualization unavailable for ${path}.`);
+      renderEmptyPreviewState(`Preview unavailable for ${path}.`);
+    }
+    renderPropagationDetail(selectedPath);
+    renderSearchResults(resultPayload ?? { matches: latestMatches });
+    setUiState("success", "Ready");
+  });
 }
 
 function renderPropagationSummary() {
@@ -491,9 +569,23 @@ async function loadArchive(file) {
       bytes = nextBytes;
       currentArchiveName = file.name;
       summaryEl.textContent = render(summary);
-      renderResultsMessage(SEARCH_PROMPT_MESSAGE);
+      const health = renderArchiveHealth(summary);
+      propagationState.forcedVisible = health.level === "damaged";
+      propagationState.enabled = propagationState.forcedVisible;
+      updateImpactControls();
+
+      const { report } = await requestWorker("propagation");
+      propagationState.noImpactMessage = report.no_impact_message;
+      propagationState.impactedByPath = new Map(report.impacted_entries.map((item) => [item.path, item]));
+
+      const { matches } = await requestWorker("search", { query: "" });
+      renderSearchResults(matches);
       renderPropagationSummary();
       renderPropagationDetail(selectedPath);
+
+      if (propagationState.forcedVisible && report.impacted_entries.length > 0) {
+        await selectEntry(report.impacted_entries[0].path, matches);
+      }
       setUiState("success", "Ready");
     });
   } catch (_error) {
@@ -603,6 +695,10 @@ searchBtn.addEventListener("click", async () => {
 });
 
 propagationToggleEl.addEventListener("change", async () => {
+  if (propagationState.forcedVisible) {
+    propagationToggleEl.checked = true;
+    return;
+  }
   propagationState.enabled = propagationToggleEl.checked;
   try {
     await refreshPropagationState();
@@ -612,10 +708,7 @@ propagationToggleEl.addEventListener("change", async () => {
     const { matches } = await requestWorker("search", { query: queryEl.value });
     renderSearchResults(matches);
     if (selectedPath) {
-      const { detail } = await requestWorker("entry", { path: selectedPath });
-      const { preview } = await requestWorker("entryPreview", { path: selectedPath });
-      renderExtentVisualization(detail, preview);
-      renderPreview(preview);
+      await selectEntry(selectedPath, matches);
     }
     setUiState("success", "Ready");
   } catch (_error) {

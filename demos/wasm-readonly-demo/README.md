@@ -60,7 +60,8 @@ Any static host works (nginx, GitHub Pages, Netlify, S3 static hosting, etc.) as
 - Find now performs deferred stage prep when needed: `Preparing search state...` → `Searching...` → `Rendering results...` → `Ready`.
 - The demo tracks explicit operation states (`idle`, `working`, `success`, `error`) and surfaces active work through the progress overlay stage text.
 - Use **Unload archive** to fully reset archive summary, search query/results, selected entry, extent view, propagation state, and status/error surfaces to the empty first-load state.
-- The entries/results pane does not pre-populate on archive load; the demo stays responsive and prompts the user to run **Find** explicitly.
+- The entries/results pane auto-populates on archive load using the bounded empty-query search path; impacted entries are sorted first.
+- For damaged archives, impact view is forced on and cannot be hidden; the first impacted entry is auto-selected for immediate detail/extent/preview visibility.
 - Find results are browser-bounded; when matches exceed the limit, the UI explicitly reports truncation (`Showing first N of M matches`) and asks the user to refine the query.
 - Entry extent visualization now shows a deterministic data-vs-metadata split:
   - data segment = extent payload bytes
@@ -73,24 +74,25 @@ Any static host works (nginx, GitHub Pages, Netlify, S3 static hosting, etc.) as
 
 1. Choose a local `.crs` file from the file picker **or drag/drop it into the drop zone**.
 2. Confirm archive summary JSON appears.
-3. Enter a substring query and click **Find**.
-4. Click a result to view entry detail JSON and the extent visualization panel.
-5. Enable **Show impact** to load propagation impact data.
-6. Confirm impacted entries are labeled in search results and propagation detail appears for impacted selections.
-7. Toggle **Show impact** off/on and confirm summary/detail/highlights update deterministically.
-8. Select different results repeatedly; detail + extent view should update deterministically with no stale highlight.
-9. Coherence checks:
+3. Confirm entries appear immediately after load (no required initial Find click).
+4. For damaged archives, confirm impact view is on by default and first impacted entry is auto-selected.
+5. Enter a substring query and click **Find** for filtered browsing.
+6. Click a result to view entry detail JSON and the extent visualization panel.
+7. Confirm impacted entries are labeled in search results and propagation detail appears for impacted selections.
+8. For non-damaged archives, toggle **Show impact** off/on and confirm summary/detail/highlights update deterministically.
+9. Select different results repeatedly; detail + extent view should update deterministically with no stale highlight.
+10. Coherence checks:
    - invalid archive load clears prior summary/results/entry/extent state and shows an explicit error
    - empty search results render an explicit no-match message
    - propagation detail remains explicit for disabled, no-selection, and no-impact states
    - progress overlay appears during long operations and clears on both success and error
-10. Runtime error check:
+11. Runtime error check:
    - if wasm runtime initialization fails, an explicit error appears (no silent no-op UI)
-11. Visual checks:
+12. Visual checks:
    - selected vs impacted vs normal result states are immediately distinguishable
    - extent legend and extent segment rows clearly map state to color (including data-vs-derived-metadata split)
    - first-load/no-data views look intentional, not empty placeholders
-12. Preview checks:
+13. Preview checks:
    - select a text entry and confirm preview renders UTF-8 text in monospace with scroll
    - select a binary entry and confirm classification message appears
    - confirm preview never exceeds 5 KiB and clears on unload/reset

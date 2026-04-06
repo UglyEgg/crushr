@@ -368,3 +368,4 @@ Latest priority doctrine
 - [x] P19S02f5 — align preset grouping/copy to observed outcomes by clarifying stress presets as frequently parse-breaking, tightening severity wording, and re-validating taxonomy against browser-generated artifacts.
 - [x] P19S02f6 — apply bounded corruption-demo dashboard layout parity pass (two-column desktop workflow/context split, denser spacing, responsive containment safeguards) without changing corruption semantics.
 - [x] P19S02f7 — add archive-layout + corruption-overlay visualization in corruption demo using introspection-derived layout segments and mutation-range overlays, with right-column legend placement and minimal-DOM rendering.
+- [x] P18S09f3 — align introspection demo corruption-first UX (health banner, forced impact visibility on damaged archives, auto-populated/sorted entries, first-impacted auto-selection, contextual entry errors, and left-panel dynamic-height layout fix).

@@ -793,3 +793,27 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`
 - Constraints:
   - `wasm-pack` missing in this environment, so `build-dist.sh` and real-browser packet verification were not executable here.
+
+## 2026-04-06 — Handoff update (P18S09f3 complete)
+
+- Introspection demo corruption-first UX alignment implemented in `demos/wasm-readonly-demo/web`.
+- Added top-level archive health banner with strict state mapping:
+  - `DAMAGED` when `extents_valid == false`
+  - `DEGRADED` when `extents_valid == true` and `strict_extraction_supported == false`
+  - `VALID` otherwise.
+- Damaged-archive gating changes:
+  - impact view is forced on
+  - impact toggle is disabled with status indicator text explaining forced mode.
+- Load behavior changes:
+  - entries now auto-populate on load (bounded empty-query search)
+  - impacted entries sort first
+  - first impacted entry auto-selects for damaged archives and immediately renders detail/extent/preview.
+- Entry-contextual failures now render in entry detail panel with path context.
+- Left-panel layout no longer uses fixed-height dead-space behavior; results panel grows dynamically.
+- Validation run:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraints:
+  - `wasm-pack` missing in this environment, so `build-dist.sh` and real-browser screenshot/interaction verification were not executable here.

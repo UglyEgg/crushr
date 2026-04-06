@@ -1091,3 +1091,28 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - browser screenshot tooling remains unavailable in this environment.
 - Next:
   - run packet-required real-browser verification for visualization alignment/performance/layout-regression checks in an environment with `wasm-pack` and browser runtime support.
+
+## 2026-04-06 — Active Step Update (P18S09f3)
+
+- Completed: Phase 18 Step 09 fix 3 (`P18S09f3`).
+- Applied corruption-first UX alignment in `demos/wasm-readonly-demo`:
+  - added top-level archive health banner (`VALID` / `DEGRADED` / `DAMAGED`) derived from summary fields (`extents_valid`, `strict_extraction_supported`)
+  - removed hidden corruption gating for damaged archives by forcing impact view on and disabling the toggle in that state.
+- Added immediate visibility behaviors on load:
+  - auto-populate entries without requiring initial Find
+  - sort entries with impacted first, then normal path-order
+  - when archive is damaged and impacted entries exist, auto-select first impacted entry and render detail/extent/preview immediately.
+- Added entry-contextual error handling:
+  - entry/payload fetch errors now render in entry panel with file path context instead of only global error surface.
+- Fixed left-panel layout dead-space behavior:
+  - replaced fixed-height left-column grid sizing with flexible column growth (`panel-results` and `#results` now expand/shrink dynamically).
+- Validation:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraints/gotchas:
+  - `wasm-pack` is unavailable in this environment, so `demos/wasm-readonly-demo/build-dist.sh` and browser verification could not be executed here.
+  - browser screenshot tooling remains unavailable in this environment.
+- Next:
+  - run packet-required real-browser checks for health-banner states, damaged-load auto-selection, and no-overflow/no-horizontal-scroll behavior.
