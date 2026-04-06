@@ -2207,3 +2207,134 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
 - Blast radius:
   - `demos/wasm-corrupt-demo/{Cargo.toml,Cargo.lock,README.md,build-dist.sh,src/lib.rs,web/index.html,web/main.js,web/styles.css}`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-04 — P19S02f2 corruption preset semantics correction lock
+
+- Decision:
+  - Replace off0-biased corruption defaults in the WASM corruption demo with bounded deterministic presets intended for resilience demonstration.
+  - Separate high-destruction actions into an explicitly labeled **Structural destruction / kill-shot** preset group that is not the default demonstration path.
+  - Keep deterministic output naming, but include preset identity slug so downloaded artifacts reflect intent-level preset choice.
+- Alternatives considered:
+  1. Keep existing raw mode controls and only change default input values.
+  2. Remove destructive modes entirely.
+- Rationale:
+  - Packet scope requires honest demo semantics: meaningful degradations and propagation outcomes should be easy to demonstrate without defaulting to immediate container invalidation.
+  - Explicit kill-shot grouping preserves educational value while preventing misleading “normal mode” behavior.
+- Blast radius:
+  - `demos/wasm-corrupt-demo/web/{index.html,main.js}`
+  - `demos/wasm-corrupt-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-05 — P19S02f3 preset spread tuning + random-window control lock
+
+- Decision:
+  - Keep normal demo path biased toward inspectable degraded outcomes by constraining demo defaults to bounded overwrite presets.
+  - Move `scattered random damage` into structural-destruction bucket after repeated structure-invalidation outcomes in validation runs.
+  - Add bounded random-flip window controls in WASM corruption config (`random_flip_offset`, `random_flip_span`) so random mode can be explicitly scoped instead of full-archive by default.
+- Alternatives considered:
+  1. Keep random-scatter in demo defaults with reduced flip count only.
+  2. Remove random mode entirely.
+- Rationale:
+  - Packet acceptance requires normal demo flow to avoid frequent immediate container invalidation.
+  - Retaining random mode remains useful, but it should be explicitly classified as higher-risk/structural-destruction in operator-facing preset flow.
+- Blast radius:
+  - `demos/wasm-corrupt-demo/src/lib.rs`
+  - `demos/wasm-corrupt-demo/web/{index.html,main.js}`
+  - `demos/wasm-corrupt-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-05 — P19S02f4 Phase-2 harness mapping + explanation-panel lock
+
+- Decision:
+  - Define browser corruption presets as direct Phase-2-semantic mappings (`type`, `target`, `magnitude`) instead of ad-hoc labels.
+  - Present presets in three explicit tiers:
+    1. representative corruption presets (default)
+    2. structural stress presets
+    3. catastrophic / kill-shot modes
+  - Add a dynamic explanatory panel that updates per selected preset with concise real-world emulation intent and honest severity framing.
+- Alternatives considered:
+  1. Keep existing preset names and add only a doc mapping table.
+  2. Keep two-tier grouping and treat stress + catastrophic as one bucket.
+- Rationale:
+  - Packet requires default path semantics to be representative and traceable to locked Phase 2 corruption taxonomy.
+  - Explicit stress/catastrophic separation prevents structural-kill outcomes from masquerading as normal representative demos.
+  - Live explanation text reduces user ambiguity about “real-world emulation” vs deliberate structural destruction tests.
+- Blast radius:
+  - `demos/wasm-corrupt-demo/web/{index.html,main.js}`
+  - `demos/wasm-corrupt-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-05 — P19S02f5 observed-outcome classification wording lock
+
+- Decision:
+  - Keep current Phase-2 preset implementation and adjust **classification wording** where observed behavior shows stronger failure tendency than previous copy implied.
+  - Preserve representative default presets (inspectable/degraded in observed run) and explicitly label structural-stress presets as frequently parse-breaking.
+  - Strengthen catastrophic option labels with explicit `Catastrophic:` prefix in UI list text.
+- Alternatives considered:
+  1. Move all stress presets to catastrophic.
+  2. Add new corruption implementation variants to create softer stress outcomes.
+- Rationale:
+  - Packet scope is truth-in-labeling, not new corruption implementation.
+  - Observed behavior showed representative presets behaving as intended and stress presets frequently triggering structural parse diagnostics; copy needed to reflect that plainly.
+- Blast radius:
+  - `demos/wasm-corrupt-demo/web/{index.html,main.js}`
+  - `demos/wasm-corrupt-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-06 — P19S02f6 corruption-demo dashboard layout parity lock
+
+- Decision:
+  - Apply a bounded visual/layout-only parity pass to `demos/wasm-corrupt-demo` so workflow controls and contextual explanation are presented in a clearer dashboard split on desktop.
+  - Keep corruption implementation semantics, preset taxonomy, and JS behavior wiring unchanged.
+  - Add explicit responsive containment guards to prevent horizontal overflow in two-column states.
+- Alternatives considered:
+  1. Keep existing single-column stack and only reduce spacing tokens.
+  2. Perform a broader visual redesign including new components/interaction changes.
+- Rationale:
+  - Packet scope requires improved workflow readability and dashboard parity without introducing behavior drift.
+  - Structural grouping + containment fixes provide clarity while preserving existing logic contracts.
+- Blast radius:
+  - `demos/wasm-corrupt-demo/web/{index.html,styles.css}`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-06 — P19S02f7 archive-layout + corruption-overlay visualization lock
+
+- Decision:
+  - Add a lightweight right-column layout bar visualization in `demos/wasm-corrupt-demo` that uses actual archive-introspection offsets and actual mutation ranges.
+  - Source layout segments from Rust/WASM inspection output, with deterministic segment kinds:
+    - `payload` from merged IDX extent offsets
+    - `metadata` from DCT/IDX/LDG footer-referenced component spans
+    - `tail` from FTR4 footer span.
+  - Source corruption overlays from Rust/WASM corruption-result ranges (`corruption_ranges`) and render overlays in the same normalized coordinate system as the layout bar.
+  - Keep rendering minimal-DOM (absolute-positioned segments/overlays), no per-byte visualization, no heavy animation.
+- Alternatives considered:
+  1. Approximate layout from heuristic byte percentages in JS.
+  2. Render per-byte/pixel visualization for higher visual detail.
+- Rationale:
+  - Packet requires truthful, introspection-derived mapping and explicit corruption alignment without introducing heavyweight rendering.
+  - Deterministic merged ranges preserve clarity for scattered corruption while keeping DOM/render cost bounded.
+- Blast radius:
+  - `demos/wasm-corrupt-demo/src/lib.rs`
+  - `demos/wasm-corrupt-demo/web/{index.html,main.js,styles.css}`
+  - `demos/wasm-corrupt-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-06 — P18S09f3 introspection corruption-first UX alignment lock
+
+- Decision:
+  - Make corruption state explicit at first glance by adding an archive health banner (`VALID` / `DEGRADED` / `DAMAGED`) derived strictly from summary truth (`extents_valid`, `strict_extraction_supported`).
+  - Remove hidden corruption gating for damaged archives by forcing impact view on and disabling user hide-toggle in that state.
+  - On load, auto-populate entry list via bounded empty-query search and sort impacted entries first to avoid requiring an initial Find action.
+  - For damaged archives, auto-select first impacted entry and render detail/extent/preview immediately.
+  - Move entry-fetch failure context into entry panel with selected path context for operator clarity.
+  - Replace fixed-height left-panel sizing with flexible growth to remove dead space.
+- Alternatives considered:
+  1. Keep current explicit Find-first workflow and propagation toggle behavior.
+  2. Add a larger multi-pane redesign with new navigation flows.
+- Rationale:
+  - Packet requires corruption-first visibility and removal of hidden interaction gates without introducing heavyweight UI changes.
+  - Bounded state-driven adjustments preserve existing architecture while improving immediate damaged-archive comprehension.
+- Blast radius:
+  - `demos/wasm-readonly-demo/web/{index.html,main.js,styles.css}`
+  - `demos/wasm-readonly-demo/README.md`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

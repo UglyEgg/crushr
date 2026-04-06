@@ -1518,3 +1518,57 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
 - Added deterministic corrupted download naming with `corrupted` + mode + seed marker and linked handoff path to introspection demo.
 - Validation: `cargo fmt --all`; `node --check demos/wasm-corrupt-demo/web/main.js`; `rustup target add wasm32-unknown-unknown`; `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.
 - Real-browser verification remains external in this environment due unavailable browser tooling.
+
+## 2026-04-04 — P19S02f2
+- Corrected corruption-demo default semantics so off0-heavy destructive paths are no longer the default demonstration flow.
+- Added bounded deterministic preset grouping in UI:
+  - demo corruption presets (scattered random, bounded middle/tail/header overwrite, bounded middle remove)
+  - structural destruction / kill-shot presets (truncate-at-0, remove-from-start)
+- Added honest per-preset user descriptions and explicit category marker text in the controls panel.
+- Updated corrupted download filename to include preset identity slug in addition to mode + seed markers.
+- Added README semantics audit section documenting representative vs destructive behavior and explicit kill-shot classification.
+- Validation: `node --check demos/wasm-corrupt-demo/web/main.js`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`; `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`; `cd demos/wasm-corrupt-demo && ./build-dist.sh`; `cargo run -p crushr --bin crushr -- pack /tmp/crushr-demo-input-big -o /tmp/sample-big.crs`; Node/WASM preset-generation script; `target/debug/crushr info` + `target/debug/crushr info --propagation` across generated preset outputs.
+- Real interactive browser verification remains external due unavailable browser automation/screenshot tooling in this environment.
+
+## 2026-04-05 — P19S02f3
+- Tuned preset parameters and grouping so default demo path now favors inspectable degraded outcomes with propagation visibility.
+- Added random-flip window bounds in WASM corruption config (`random_flip_offset`, `random_flip_span`) and included window metadata in deterministic filename details for random-flip output.
+- Moved `scattered random damage` out of the default demo group into structural-destruction because it frequently produced index/footer invalidation on compressed archives.
+- Reclassified/remodeled kill-shot group to include random-scatter, tail-structure overwrite, truncate-at-0, remove-from-start, and remove-middle-window.
+- Validation: `node --check demos/wasm-corrupt-demo/web/main.js`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`; `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`; WASM-generated preset outputs validated with `target/debug/crushr info` and `target/debug/crushr info --propagation`.
+- Browser automation attempt was made via Playwright but failed in this container due missing runtime shared library `libatk-1.0.so.0`.
+
+## 2026-04-05 — P19S02f4
+- Reworked corruption demo preset taxonomy to direct Phase 2 harness semantics (type + target + magnitude) and replaced ad-hoc preset naming with traceable mapped presets.
+- Added three explicit preset tiers in UI: representative defaults, structural stress, and catastrophic/kill-shot.
+- Added dynamic **What this emulates** panel that updates per selected preset with concise real-world intent and severity-aware language.
+- Tuned representative presets to payload-focused bounded corruption so default path stays inspectable while still showing degradation (`strict_extraction_supported false`).
+- Verified browser-generated outputs from actual UI flow (served demo + browser automation selecting presets and downloading outputs), then validated with canonical `crushr info` / `crushr info --propagation`.
+
+## 2026-04-05 — P19S02f5
+- Performed observed-outcome classification audit for current presets using browser-generated artifacts and canonical CLI introspection.
+- Updated stress/catastrophic naming/copy to better match observed severity:
+  - stress presets now explicitly described as frequently parse-breaking
+  - catastrophic selector labels now explicitly prefixed (`Catastrophic: ...`)
+- Kept representative presets as default flow after observed inspectable/degraded behavior confirmation.
+
+## 2026-04-06 — P19S02f6
+- Reworked `demos/wasm-corrupt-demo` page into a denser two-column dashboard layout on desktop with workflow/content grouping parity and mobile single-column fallback.
+- Added grid containment safeguards (`min-width: 0`) and spacing/padding refinements while preserving existing JS wiring and corruption behavior semantics.
+- Validation: `node --check demos/wasm-corrupt-demo/web/main.js`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`.
+
+## 2026-04-06 — P19S02f7
+- Added archive layout visualization + corruption overlay in `demos/wasm-corrupt-demo` right column, with legend and normalized horizontal mapping.
+- Extended Rust/WASM demo outputs:
+  - `inspect_archive` now returns introspection-derived `layout_segments`.
+  - `corrupt_archive` now returns applied `corruption_ranges` (including merged multi-region random-flip ranges).
+- Kept rendering lightweight (absolute-positioned segment/overlay elements; no per-byte rendering/animation).
+- Validation: `node --check demos/wasm-corrupt-demo/web/main.js`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`; `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`.
+
+## 2026-04-06 — P18S09f3
+- Added archive health banner to readonly introspection demo (`VALID` / `DEGRADED` / `DAMAGED`) driven by summary truth (`extents_valid`, `strict_extraction_supported`).
+- Removed hidden corruption gating for damaged archives by forcing impact view on and disabling hide-toggle in damaged mode.
+- Auto-populated entries on load, sorted impacted entries first, and auto-selected first impacted entry for damaged archives with immediate detail/extent/preview rendering.
+- Moved entry-contextual fetch errors into entry panel with selected-path context.
+- Removed left-panel fixed-height dead space by switching to dynamic flex growth for results panel/list.
+- Validation: `node --check demos/wasm-readonly-demo/web/main.js`; `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`; `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`.

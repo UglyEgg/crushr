@@ -19,20 +19,35 @@ body {
 }
 
 .container {
-  max-width: 880px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 16px;
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 h1, h2 { margin: 0 0 8px 0; }
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 44%) minmax(0, 56%);
+  gap: 10px;
+  min-width: 0;
+}
+
+.left-column,
+.right-column {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
 
 .card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 14px;
+  padding: 12px;
+  min-width: 0;
 }
 
 .drop-zone.dragging {
@@ -68,13 +83,6 @@ label select {
   padding: 6px;
 }
 
-.mode-controls {
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  padding: 8px;
-  margin-bottom: 10px;
-}
-
 pre {
   background: #0d1430;
   border: 1px solid var(--border);
@@ -91,3 +99,63 @@ pre {
 .error { color: var(--danger); }
 
 input[type="file"] { display: none; }
+
+.layout-bar {
+  position: relative;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #0d1430;
+  overflow: hidden;
+}
+
+.layout-segment,
+.layout-overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.layout-segment.payload { background: #3457a5; }
+.layout-segment.metadata { background: #4f3f8f; }
+.layout-segment.tail { background: #2f6d6c; }
+
+.layout-overlay {
+  background: rgba(255, 90, 96, 0.86);
+  border-left: 1px solid rgba(255, 194, 196, 0.9);
+  border-right: 1px solid rgba(255, 194, 196, 0.9);
+}
+
+.layout-legend {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.layout-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.swatch.payload { background: #3457a5; }
+.swatch.metadata { background: #4f3f8f; }
+.swatch.tail { background: #2f6d6c; }
+.swatch.corruption { background: rgba(255, 90, 96, 0.86); }
+
+@media (max-width: 940px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -6,16 +6,17 @@ const dropZone = document.getElementById("dropZone");
 const fileInput = document.getElementById("fileInput");
 const fileSummary = document.getElementById("fileSummary");
 const modeSelect = document.getElementById("modeSelect");
+const modeDescription = document.getElementById("modeDescription");
 const applyBtn = document.getElementById("applyBtn");
 const statusEl = document.getElementById("status");
 const errorEl = document.getElementById("error");
 const impactSummaryEl = document.getElementById("impactSummary");
 const downloadLink = document.getElementById("downloadLink");
 
-const randomControls = document.getElementById("randomControls");
-const overwriteControls = document.getElementById("overwriteControls");
-const truncateControls = document.getElementById("truncateControls");
-const removeControls = document.getElementById("removeControls");
+const presetDetails = document.getElementById("presetDetails");
+const explanationSummary = document.getElementById("explanationSummary");
+const explanationList = document.getElementById("explanationList");
+const layoutBar = document.getElementById("layoutBar");
 
 let sourceName = "";
 let sourceBytes = null;
@@ -46,38 +47,233 @@ function clearDownload() {
   downloadLink.removeAttribute("download");
 }
 
-function parseIntSafe(value, fallback = 0) {
-  const parsed = Number.parseInt(String(value), 10);
-  return Number.isFinite(parsed) ? parsed : fallback;
+function buildRanges(bytesLength) {
+  const headerEnd = Math.min(bytesLength, 512);
+  const tailStart = Math.max(0, bytesLength - 1024);
+  const indexStart = Math.max(headerEnd, bytesLength - 768);
+  const indexEnd = Math.max(indexStart + 1, bytesLength - 192);
+  const payloadStart = Math.min(bytesLength - 1, Math.max(headerEnd, 512));
+  const payloadEnd = Math.max(payloadStart + 1, tailStart);
+  return {
+    header: { start: 0, end: Math.max(1, headerEnd) },
+    index: { start: indexStart, end: Math.max(indexStart + 1, indexEnd) },
+    payload: { start: payloadStart, end: Math.max(payloadStart + 1, payloadEnd) },
+    tail: { start: Math.max(0, tailStart), end: Math.max(tailStart + 1, bytesLength) },
+  };
+}
+
+function boundedOffset(range, len) {
+  const maxOffset = Math.max(range.start, range.end - len);
+  return Math.min(maxOffset, range.start + Math.floor((range.end - range.start - len) / 2));
+}
+
+function magnitudeBytes(bytesLength, magnitude) {
+  if (magnitude === "1B") return 1;
+  if (magnitude === "256B") return Math.min(256, Math.max(16, Math.floor(bytesLength / 64)));
+  return Math.min(4096, Math.max(512, Math.floor(bytesLength / 3)));
+}
+
+const PRESETS = {
+  "p2-rep-payload-bitflip-1b": {
+    tier: "representative",
+    harnessType: "bit_flip",
+    harnessTarget: "payload",
+    harnessMagnitude: "1B",
+    description: "Phase 2 mapping: payload bit flip at 1B magnitude.",
+    explanation: [
+      "Emulates a small number of random bit errors in stored or transferred data.",
+      "Usually keeps container structure readable while making some payload verification fail.",
+    ],
+    configFor(bytes) {
+      const windowStart = Math.min(bytes.length - 1, Math.max(128, Math.floor(bytes.length * 0.25)));
+      const windowSpan = Math.max(64, Math.floor(bytes.length * 0.15));
+      return {
+        mode: "random_flip",
+        seed: 1337,
+        flip_count: 1,
+        random_flip_offset: windowStart,
+        random_flip_span: Math.min(windowSpan, Math.max(1, bytes.length - windowStart - 2048)),
+      };
+    },
+    fileTag: "p2-bit_flip-payload-1b-representative",
+  },
+  "p2-rep-payload-overwrite-1b": {
+    tier: "representative",
+    harnessType: "byte_overwrite",
+    harnessTarget: "payload",
+    harnessMagnitude: "1B",
+    description: "Phase 2 mapping: payload byte overwrite at 1B magnitude.",
+    explanation: [
+      "Emulates a tiny wrong-byte write inside payload data.",
+      "Often keeps index/footer intact but can invalidate one entry's integrity.",
+    ],
+    configFor(bytes) {
+      const range = buildRanges(bytes.length).payload;
+      return {
+        mode: "overwrite",
+        overwrite_offset: boundedOffset(range, 1),
+        overwrite_len: 1,
+        overwrite_value: 0xa5,
+      };
+    },
+    fileTag: "p2-byte_overwrite-payload-1b-representative",
+  },
+  "p2-rep-payload-zerofill-256b": {
+    tier: "representative",
+    harnessType: "zero_fill",
+    harnessTarget: "payload",
+    harnessMagnitude: "256B",
+    description: "Phase 2 mapping: payload zero-fill at 256B magnitude.",
+    explanation: [
+      "Emulates a bounded damaged payload span (for example sector-level data loss).",
+      "Intended to show degraded payload truth while preserving archive inspectability.",
+    ],
+    configFor(bytes) {
+      const range = buildRanges(bytes.length).payload;
+      const len = Math.min(magnitudeBytes(bytes.length, "256B"), Math.max(1, range.end - range.start));
+      return {
+        mode: "overwrite",
+        overwrite_offset: boundedOffset(range, len),
+        overwrite_len: len,
+        overwrite_value: 0x00,
+      };
+    },
+    fileTag: "p2-zero_fill-payload-256b-representative",
+  },
+  "p2-stress-index-overwrite-1b": {
+    tier: "stress",
+    harnessType: "byte_overwrite",
+    harnessTarget: "index",
+    harnessMagnitude: "1B",
+    description: "Phase 2 mapping: index byte overwrite at 1B magnitude (structural stress; often parse-breaking).",
+    explanation: [
+      "Emulates a small metadata/index corruption event.",
+      "This frequently triggers tail/index parse failures and should not be treated as representative damage.",
+    ],
+    configFor(bytes) {
+      const range = buildRanges(bytes.length).index;
+      return { mode: "overwrite", overwrite_offset: range.start, overwrite_len: 1, overwrite_value: 0x5a };
+    },
+    fileTag: "p2-byte_overwrite-index-1b-stress",
+  },
+  "p2-stress-tail-bitflip-1b": {
+    tier: "stress",
+    harnessType: "bit_flip",
+    harnessTarget: "tail",
+    harnessMagnitude: "1B",
+    description: "Phase 2 mapping: tail bit flip at 1B magnitude (structural stress; often parse-breaking).",
+    explanation: [
+      "Emulates subtle tail-region corruption where footer/index references live.",
+      "Often produces immediate structure diagnostics or parse failures depending on the exact tail byte hit.",
+    ],
+    configFor(bytes) {
+      const range = buildRanges(bytes.length).tail;
+      return {
+        mode: "random_flip",
+        seed: 2600,
+        flip_count: 1,
+        random_flip_offset: range.start,
+        random_flip_span: Math.max(1, range.end - range.start),
+      };
+    },
+    fileTag: "p2-bit_flip-tail-1b-stress",
+  },
+  "p2-stress-index-zerofill-256b": {
+    tier: "stress",
+    harnessType: "zero_fill",
+    harnessTarget: "index",
+    harnessMagnitude: "256B",
+    description: "Phase 2 mapping: index zero-fill at 256B magnitude (high structural stress).",
+    explanation: [
+      "Emulates heavier index metadata damage than single-byte stress.",
+      "In observed runs this frequently invalidates structural interpretation (parse-breaking behavior is common).",
+    ],
+    configFor(bytes) {
+      const range = buildRanges(bytes.length).index;
+      const len = Math.min(magnitudeBytes(bytes.length, "256B"), Math.max(1, range.end - range.start));
+      return { mode: "overwrite", overwrite_offset: range.start, overwrite_len: len, overwrite_value: 0x00 };
+    },
+    fileTag: "p2-zero_fill-index-256b-stress",
+  },
+  "p2-cat-truncation-tail-4kb": {
+    tier: "catastrophic",
+    harnessType: "truncation",
+    harnessTarget: "tail",
+    harnessMagnitude: "4KB",
+    description: "Phase 2 mapping: truncation at 4KB magnitude (catastrophic).",
+    explanation: [
+      "Emulates severe trailing data loss (cut archive / incomplete write).",
+      "This is expected to invalidate container structure in many cases.",
+    ],
+    configFor(bytes) {
+      const cut = Math.max(0, bytes.length - magnitudeBytes(bytes.length, "4KB"));
+      return { mode: "truncate", truncate_offset: cut };
+    },
+    fileTag: "p2-truncation-tail-4kb-catastrophic",
+  },
+  "p2-cat-tail-damage-4kb": {
+    tier: "catastrophic",
+    harnessType: "tail_damage",
+    harnessTarget: "tail",
+    harnessMagnitude: "4KB",
+    description: "Phase 2 mapping: tail damage at 4KB magnitude (catastrophic).",
+    explanation: [
+      "Emulates aggressive damage to tail structures (footer/index/tail frame zone).",
+      "Primarily a container-failure boundary demonstration, not a representative corruption case.",
+    ],
+    configFor(bytes) {
+      const range = buildRanges(bytes.length).tail;
+      const len = Math.min(magnitudeBytes(bytes.length, "4KB"), Math.max(1, range.end - range.start));
+      const offset = Math.max(range.start, range.end - len);
+      return { mode: "overwrite", overwrite_offset: offset, overwrite_len: len, overwrite_value: 0xff };
+    },
+    fileTag: "p2-tail_damage-tail-4kb-catastrophic",
+  },
+  "p2-cat-header-zerofill-4kb": {
+    tier: "catastrophic",
+    harnessType: "zero_fill",
+    harnessTarget: "header",
+    harnessMagnitude: "4KB",
+    description: "Phase 2 mapping: header zero-fill at 4KB magnitude (catastrophic).",
+    explanation: [
+      "Emulates major corruption at archive start / header region.",
+      "Likely to destroy structural openability and should be treated as a kill-shot case.",
+    ],
+    configFor(bytes) {
+      const len = Math.min(4096, bytes.length);
+      return { mode: "overwrite", overwrite_offset: 0, overwrite_len: len, overwrite_value: 0x00 };
+    },
+    fileTag: "p2-zero_fill-header-4kb-catastrophic",
+  },
+};
+
+function getSelectedPreset() {
+  return PRESETS[modeSelect.value] ?? PRESETS["p2-rep-payload-bitflip-1b"];
 }
 
 function updateModeControls() {
-  const mode = modeSelect.value;
-  randomControls.hidden = mode !== "random_flip";
-  overwriteControls.hidden = mode !== "overwrite";
-  truncateControls.hidden = mode !== "truncate";
-  removeControls.hidden = mode !== "remove";
+  const preset = getSelectedPreset();
+  modeDescription.textContent = preset.description;
+  const tierLabel =
+    preset.tier === "representative"
+      ? "Representative corruption preset"
+      : preset.tier === "stress"
+        ? "Structural stress preset"
+        : "Catastrophic / kill-shot preset";
+  presetDetails.textContent =
+    `Tier: ${tierLabel} • Phase 2 mapping: type=${preset.harnessType}, target=${preset.harnessTarget}, magnitude=${preset.harnessMagnitude}`;
+  explanationSummary.textContent = `${tierLabel}. This preset emulates ${preset.harnessType} on ${preset.harnessTarget} at ${preset.harnessMagnitude}.`;
+  explanationList.innerHTML = "";
+  for (const line of preset.explanation) {
+    const li = document.createElement("li");
+    li.textContent = line;
+    explanationList.appendChild(li);
+  }
 }
 
-function buildConfig() {
-  const mode = modeSelect.value;
-  const config = { mode };
-
-  if (mode === "random_flip") {
-    config.seed = parseIntSafe(document.getElementById("seedInput").value, 12345);
-    config.flip_count = parseIntSafe(document.getElementById("flipCountInput").value, 64);
-  } else if (mode === "overwrite") {
-    config.overwrite_offset = parseIntSafe(document.getElementById("overwriteOffsetInput").value, 0);
-    config.overwrite_len = parseIntSafe(document.getElementById("overwriteLenInput").value, 1);
-    config.overwrite_value = parseIntSafe(document.getElementById("overwriteValueInput").value, 0);
-  } else if (mode === "truncate") {
-    config.truncate_offset = parseIntSafe(document.getElementById("truncateOffsetInput").value, 0);
-  } else if (mode === "remove") {
-    config.remove_offset = parseIntSafe(document.getElementById("removeOffsetInput").value, 0);
-    config.remove_len = parseIntSafe(document.getElementById("removeLenInput").value, 1);
-  }
-
-  return config;
+function buildConfig(sourceBytesValue) {
+  const preset = getSelectedPreset();
+  return preset.configFor(sourceBytesValue);
 }
 
 function modeLabel(mode) {
@@ -98,20 +294,111 @@ function toDisplay(summary) {
   ].join("\n");
 }
 
-function buildDownloadName(originalName, mode, config, seedApplied) {
+function normalizeRanges(ranges, totalBytes) {
+  if (!Array.isArray(ranges) || totalBytes <= 0) return [];
+  const normalized = [];
+  for (const range of ranges) {
+    const start = Number(range?.start ?? 0);
+    const end = Number(range?.end ?? 0);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+    const safeStart = Math.max(0, Math.min(totalBytes, Math.floor(start)));
+    const safeEnd = Math.max(0, Math.min(totalBytes, Math.ceil(end)));
+    if (safeEnd > safeStart) {
+      normalized.push({ start: safeStart, end: safeEnd });
+    }
+  }
+  normalized.sort((a, b) => a.start - b.start || a.end - b.end);
+  return normalized;
+}
+
+function normalizeLayoutSegments(segments, totalBytes) {
+  if (!Array.isArray(segments) || totalBytes <= 0) return [];
+  const normalized = [];
+  for (const segment of segments) {
+    const kind = typeof segment?.kind === "string" ? segment.kind : "metadata";
+    const start = Number(segment?.start ?? 0);
+    const end = Number(segment?.end ?? 0);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+    const safeStart = Math.max(0, Math.min(totalBytes, Math.floor(start)));
+    const safeEnd = Math.max(0, Math.min(totalBytes, Math.ceil(end)));
+    if (safeEnd > safeStart) {
+      normalized.push({ kind, start: safeStart, end: safeEnd });
+    }
+  }
+  normalized.sort((a, b) => a.start - b.start || a.end - b.end);
+  return normalized;
+}
+
+function mergeRanges(ranges) {
+  if (ranges.length === 0) return [];
+  const merged = [ranges[0]];
+  for (let i = 1; i < ranges.length; i += 1) {
+    const current = ranges[i];
+    const last = merged[merged.length - 1];
+    if (current.start <= last.end) {
+      last.end = Math.max(last.end, current.end);
+    } else {
+      merged.push({ ...current });
+    }
+  }
+  return merged;
+}
+
+function rangeToStyle(start, end, totalBytes) {
+  const left = (start / totalBytes) * 100;
+  const width = Math.max(((end - start) / totalBytes) * 100, 0.2);
+  return { left: `${left}%`, width: `${width}%` };
+}
+
+function renderLayout(inspection, overlayRanges) {
+  layoutBar.innerHTML = "";
+  if (!inspection || !inspection.total_bytes || !Array.isArray(inspection.layout_segments)) {
+    return;
+  }
+
+  const totalBytes = inspection.total_bytes;
+  const layoutRanges = normalizeLayoutSegments(inspection.layout_segments, totalBytes);
+  for (const segment of layoutRanges) {
+    const div = document.createElement("div");
+    div.className = `layout-segment ${segment.kind}`;
+    const style = rangeToStyle(segment.start, segment.end, totalBytes);
+    div.style.left = style.left;
+    div.style.width = style.width;
+    div.title = `${segment.kind}: ${segment.start}..${segment.end}`;
+    layoutBar.appendChild(div);
+  }
+
+  const overlays = mergeRanges(normalizeRanges(overlayRanges, totalBytes));
+  for (const range of overlays) {
+    const div = document.createElement("div");
+    div.className = "layout-overlay";
+    const style = rangeToStyle(range.start, range.end, totalBytes);
+    div.style.left = style.left;
+    div.style.width = style.width;
+    div.title = `corruption: ${range.start}..${range.end}`;
+    layoutBar.appendChild(div);
+  }
+}
+
+function buildDownloadName(originalName, mode, config, seedApplied, presetKey) {
   const base = originalName.toLowerCase().endsWith(".crs")
     ? originalName.slice(0, -4)
     : originalName;
   const modePart = modeLabel(mode);
+  const presetPart = PRESETS[presetKey]?.fileTag ?? presetKey;
   const seedPart = seedApplied == null ? "seedna" : `seed${seedApplied}`;
 
   const details = [];
-  if (mode === "random_flip") details.push(`count${config.flip_count}`);
+  if (mode === "random_flip") {
+    details.push(`count${config.flip_count}`);
+    if (config.random_flip_offset != null) details.push(`off${config.random_flip_offset}`);
+    if (config.random_flip_span != null) details.push(`span${config.random_flip_span}`);
+  }
   if (mode === "overwrite") details.push(`off${config.overwrite_offset}`, `len${config.overwrite_len}`);
   if (mode === "truncate") details.push(`off${config.truncate_offset}`);
   if (mode === "remove") details.push(`off${config.remove_offset}`, `len${config.remove_len}`);
 
-  return `${base}.corrupted-${modePart}-${seedPart}-${details.join("-")}.crs`;
+  return `${base}.corrupted-${presetPart}-${modePart}-${seedPart}-${details.join("-")}.crs`;
 }
 
 function toByteArray(value) {
@@ -130,6 +417,7 @@ async function loadArchive(file) {
   clearDownload();
   applyBtn.disabled = true;
   setStatus("loading archive...");
+  renderLayout(null, []);
 
   if (!file.name.toLowerCase().endsWith(".crs")) {
     showError("Only .crs files are supported in this corruption demo.");
@@ -159,6 +447,7 @@ async function loadArchive(file) {
       "----------------",
       "Not generated yet.",
     ].join("\n");
+    renderLayout(summary, []);
 
     applyBtn.disabled = false;
     setStatus("ready");
@@ -179,7 +468,8 @@ async function applyCorruption() {
   applyBtn.disabled = true;
   setStatus("applying corruption...");
 
-  const config = buildConfig();
+  const presetKey = modeSelect.value;
+  const config = buildConfig(sourceBytes);
   try {
     const result = corrupt_archive(sourceBytes, config);
     const corruptedBytes = toByteArray(result.archive_bytes);
@@ -212,11 +502,12 @@ async function applyCorruption() {
       "----------------",
       toDisplay(afterSummary),
     ].join("\n");
+    renderLayout(sourceInspection, result.corruption_ranges);
 
     const blob = new Blob([corruptedBytes], { type: "application/octet-stream" });
     downloadUrl = URL.createObjectURL(blob);
     downloadLink.href = downloadUrl;
-    downloadLink.download = buildDownloadName(sourceName, config.mode, config, result.seed_applied);
+    downloadLink.download = buildDownloadName(sourceName, config.mode, config, result.seed_applied, presetKey);
     downloadLink.hidden = false;
 
     setStatus("ready for download");

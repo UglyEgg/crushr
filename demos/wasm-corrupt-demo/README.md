@@ -23,16 +23,48 @@ python3 -m http.server 8080
 
 Open `http://127.0.0.1:8080`.
 
-## Corruption modes
+## Semantics audit (P19S02f2)
 
-- random byte flip (seed + count)
-- range overwrite (offset + length + byte value)
-- truncation (cut at offset)
-- block removal simulation (remove byte range)
+Prior defaults were skewed toward structural kill-shots (`off0` overwrite/remove and truncate-at-0), which made the default demo path look like immediate container assassination.
+
+- **Representative/acceptable:** small payload-focused corruption (`1B`/`256B`) that remains structurally inspectable.
+- **Overly destructive by default:** overwrite/remove presets anchored at offset 0.
+- **Misleading for resilience demo defaults:** truncation defaulting to offset 0.
+- **Structural kill-shots:** truncate-at-0 and remove-from-start actions.
+
+## Corruption preset groups
+
+Preset naming/grouping now maps directly to the Phase 2 harness dimensions:
+
+- **type:** `bit_flip`, `byte_overwrite`, `zero_fill`, `truncation`, `tail_damage`
+- **target:** `header`, `index`, `payload`, `tail`
+- **magnitude:** `1B`, `256B`, `4KB`
+
+### Representative corruption presets (default group)
+
+- payload bit flip (1B)
+- payload byte overwrite (1B)
+- payload zero-fill (256B)
+
+### Structural stress presets
+
+- index byte overwrite (1B)
+- tail bit flip (1B)
+- index zero-fill (256B)
+
+Observed tendency in browser-generated checks: these stress presets frequently trigger index/tail parse diagnostics and are not part of the representative resilience path.
+
+### Catastrophic / kill-shot modes
+
+- truncation at tail boundary (4KB)
+- tail damage wipe (4KB)
+- header destruction zero-fill (4KB)
 
 ## Notes
 
 - Processing is local-only in browser/WASM (no upload).
 - Corruption is deterministic for the same selected mode + parameters.
-- Download names include `corrupted`, mode marker, and seed marker (`seed<value>` or `seedna`).
+- Download names include preset identity + mode marker + seed marker (`seed<value>` or `seedna`).
+- The **What this emulates** panel updates per preset with plain-language explanation of real-world intent and severity.
+- The right-column visualization bar uses introspection-derived archive offsets (payload extents, metadata/index regions, tail/footer) and overlays actual applied corruption ranges.
 - Use the introspection demo to inspect the corrupted archive behavior.

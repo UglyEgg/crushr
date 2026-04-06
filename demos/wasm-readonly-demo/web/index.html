@@ -21,6 +21,9 @@
         </div>
         <p id="header-status" class="hero-status" aria-live="polite"></p>
       </header>
+      <section id="archive-health-banner" class="health-banner health-valid" aria-live="polite">
+        Archive health: VALID
+      </section>
 
       <div class="dashboard-grid" aria-label="Introspection dashboard">
         <aside class="left-column" aria-label="Navigation and selection">
@@ -66,6 +69,7 @@
               <input id="propagation-toggle" type="checkbox" />
               Show impact
             </label>
+            <p id="impact-mode-indicator" class="muted">Impact view optional for this archive.</p>
             <p id="propagation-summary" class="muted">Propagation view is disabled.</p>
             <pre id="propagation-detail"></pre>
           </section>

@@ -13,64 +13,81 @@
         Corruption simulation only: deterministic + bounded mutations, local browser processing only, and no file uploads or retention.
       </p>
 
-      <section id="dropZone" class="card drop-zone">
-        <p>Drop a <code>.crs</code> file here or choose one below.</p>
-        <label class="btn">Choose .crs<input id="fileInput" type="file" accept=".crs" /></label>
-        <p id="fileSummary" class="muted">No archive loaded.</p>
-      </section>
+      <div class="dashboard-grid">
+        <section class="left-column">
+          <section id="dropZone" class="card drop-zone">
+            <p>Drop a <code>.crs</code> file here or choose one below.</p>
+            <label class="btn">Choose .crs<input id="fileInput" type="file" accept=".crs" /></label>
+            <p id="fileSummary" class="muted">No archive loaded.</p>
+          </section>
 
-      <section class="card">
-        <h2>Corruption controls</h2>
-        <label>Mode
-          <select id="modeSelect">
-            <option value="random_flip">Random byte flip (seeded)</option>
-            <option value="overwrite">Range overwrite</option>
-            <option value="truncate">Truncate archive</option>
-            <option value="remove">Block removal simulation (byte range remove)</option>
-          </select>
-        </label>
+          <section class="card">
+            <h2>Corruption controls</h2>
+            <label>Preset
+              <select id="modeSelect">
+                <optgroup label="Representative corruption presets (default)">
+                  <option value="p2-rep-payload-bitflip-1b">Payload bit flip (1B)</option>
+                  <option value="p2-rep-payload-overwrite-1b">Payload byte overwrite (1B)</option>
+                  <option value="p2-rep-payload-zerofill-256b">Payload zero-fill (256B)</option>
+                </optgroup>
+                <optgroup label="Structural stress presets">
+                  <option value="p2-stress-index-overwrite-1b">Stress: index byte overwrite (1B)</option>
+                  <option value="p2-stress-tail-bitflip-1b">Stress: tail bit flip (1B)</option>
+                  <option value="p2-stress-index-zerofill-256b">Stress: index zero-fill (256B)</option>
+                </optgroup>
+                <optgroup label="Catastrophic / kill-shot modes">
+                  <option value="p2-cat-truncation-tail-4kb">Catastrophic: truncation at tail boundary (4KB)</option>
+                  <option value="p2-cat-tail-damage-4kb">Catastrophic: tail damage wipe (4KB)</option>
+                  <option value="p2-cat-header-zerofill-4kb">Catastrophic: header destruction zero-fill (4KB)</option>
+                </optgroup>
+              </select>
+            </label>
+            <p id="modeDescription" class="muted"></p>
+            <p id="presetDetails" class="muted"></p>
 
-        <div id="randomControls" class="mode-controls">
-          <label>Seed <input id="seedInput" type="number" min="0" step="1" value="12345" /></label>
-          <label>Flip count <input id="flipCountInput" type="number" min="1" max="250000" value="64" /></label>
-        </div>
+            <button id="applyBtn" class="btn" disabled>Apply corruption</button>
+            <p id="status" class="muted">Status: idle</p>
+            <p id="error" class="error" hidden></p>
+          </section>
 
-        <div id="overwriteControls" class="mode-controls" hidden>
-          <label>Offset <input id="overwriteOffsetInput" type="number" min="0" step="1" value="0" /></label>
-          <label>Length <input id="overwriteLenInput" type="number" min="1" step="1" value="128" /></label>
-          <label>Byte value
-            <input id="overwriteValueInput" type="number" min="0" max="255" step="1" value="0" />
-          </label>
-        </div>
+          <section class="card">
+            <h2>Download and inspect</h2>
+            <a id="downloadLink" class="btn" hidden>Download corrupted archive</a>
+            <p class="muted">
+              Next step: load the downloaded file in the WASM introspection demo to inspect corruption propagation.
+            </p>
+            <a class="btn secondary" href="../wasm-readonly-demo/dist/index.html" target="_blank" rel="noopener">Open introspection demo</a>
+          </section>
+        </section>
 
-        <div id="truncateControls" class="mode-controls" hidden>
-          <label>Cut at offset <input id="truncateOffsetInput" type="number" min="0" step="1" value="0" /></label>
-        </div>
+        <section class="right-column">
+          <section class="card">
+            <h2>What this emulates</h2>
+            <p id="explanationSummary" class="muted"></p>
+            <ul id="explanationList"></ul>
+          </section>
 
-        <div id="removeControls" class="mode-controls" hidden>
-          <label>Offset <input id="removeOffsetInput" type="number" min="0" step="1" value="0" /></label>
-          <label>Length <input id="removeLenInput" type="number" min="1" step="1" value="64" /></label>
-        </div>
+          <section class="card">
+            <h2>Archive layout + corruption overlay</h2>
+            <p class="muted">
+              Layout is drawn from archive introspection offsets; corruption overlay uses actual applied mutation ranges.
+            </p>
+            <div id="layoutBar" class="layout-bar" aria-label="Archive layout visualization"></div>
+            <div class="layout-legend">
+              <span><i class="swatch payload"></i>Payload</span>
+              <span><i class="swatch metadata"></i>Metadata / index</span>
+              <span><i class="swatch tail"></i>Tail / footer</span>
+              <span><i class="swatch corruption"></i>Corruption</span>
+            </div>
+          </section>
 
-        <button id="applyBtn" class="btn" disabled>Apply corruption</button>
-        <p id="status" class="muted">Status: idle</p>
-        <p id="error" class="error" hidden></p>
-      </section>
-
-      <section class="card">
-        <h2>Impact summary</h2>
-        <p class="muted">Uses local Rust/WASM archive inspection to compare before vs after corruption.</p>
-        <pre id="impactSummary">Load an archive to view impact summary.</pre>
-      </section>
-
-      <section class="card">
-        <h2>Download and inspect</h2>
-        <a id="downloadLink" class="btn" hidden>Download corrupted archive</a>
-        <p class="muted">
-          Next step: load the downloaded file in the WASM introspection demo to inspect corruption propagation.
-        </p>
-        <a class="btn secondary" href="../wasm-readonly-demo/dist/index.html" target="_blank" rel="noopener">Open introspection demo</a>
-      </section>
+          <section class="card">
+            <h2>Impact summary</h2>
+            <p class="muted">Uses local Rust/WASM archive inspection to compare before vs after corruption.</p>
+            <pre id="impactSummary">Load an archive to view impact summary.</pre>
+          </section>
+        </section>
+      </div>
     </main>
     <script type="module" src="./main.js"></script>
   </body>

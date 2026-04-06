@@ -33,6 +33,8 @@ struct CorruptionConfig {
     mode: CorruptionMode,
     seed: Option<u64>,
     flip_count: Option<usize>,
+    random_flip_offset: Option<usize>,
+    random_flip_span: Option<usize>,
     overwrite_offset: Option<usize>,
     overwrite_len: Option<usize>,
     overwrite_value: Option<u8>,
@@ -47,6 +49,7 @@ struct CorruptionResult {
     mode_slug: &'static str,
     seed_applied: Option<u64>,
     operation_summary: String,
+    corruption_ranges: Vec<ByteRange>,
 }
 
 #[derive(Serialize)]
@@ -57,6 +60,20 @@ struct ArchiveInspection {
     total_blocks: usize,
     extents_valid: bool,
     strict_extraction_supported: bool,
+    layout_segments: Vec<LayoutSegment>,
+}
+
+#[derive(Serialize, Clone)]
+struct ByteRange {
+    start: u64,
+    end: u64,
+}
+
+#[derive(Serialize, Clone)]
+struct LayoutSegment {
+    kind: &'static str,
+    start: u64,
+    end: u64,
 }
 
 #[derive(Clone)]
@@ -136,6 +153,7 @@ fn inspect_archive_impl(archive_bytes: &[u8]) -> Result<ArchiveInspection> {
     let extents_valid = verify_block_payloads_clean_v1(&reader, opened.tail.footer.blocks_end_offset)
         .context("verify block payloads")?;
     let blocks = scan_blocks_v1(&reader, opened.tail.footer.blocks_end_offset).context("scan blocks")?;
+    let layout_segments = build_layout_segments(&index, &opened);
 
     Ok(ArchiveInspection {
         total_bytes: archive_bytes.len(),
@@ -144,6 +162,7 @@ fn inspect_archive_impl(archive_bytes: &[u8]) -> Result<ArchiveInspection> {
         total_blocks: blocks.len(),
         extents_valid,
         strict_extraction_supported: extents_valid,
+        layout_segments,
     })
 }
 
@@ -156,19 +175,33 @@ fn corrupt_archive_impl(mut archive_bytes: Vec<u8>, config: CorruptionConfig) ->
         CorruptionMode::RandomFlip => {
             let seed = config.seed.context("seed is required for random flip")?;
             let flip_count = config.flip_count.unwrap_or(1).clamp(1, MAX_FLIP_COUNT);
+            let random_start = config.random_flip_offset.unwrap_or(0).min(archive_bytes.len().saturating_sub(1));
+            let span_default = archive_bytes.len().saturating_sub(random_start);
+            let random_span = config.random_flip_span.unwrap_or(span_default).max(1);
+            let random_end = random_start.saturating_add(random_span).min(archive_bytes.len());
+
+            if random_start >= random_end {
+                bail!("random flip window is outside archive bounds")
+            }
             let mut rng = DeterministicRng::new(seed);
+            let mut flipped_positions = Vec::with_capacity(flip_count);
 
             for _ in 0..flip_count {
-                let index = (rng.next_u64() as usize) % archive_bytes.len();
+                let index = random_start + ((rng.next_u64() as usize) % (random_end - random_start));
                 let bit = (rng.next_u64() % 8) as u8;
                 archive_bytes[index] ^= 1u8 << bit;
+                flipped_positions.push(index as u64);
             }
 
             Ok(CorruptionResult {
                 archive_bytes,
                 mode_slug: "randflip",
                 seed_applied: Some(seed),
-                operation_summary: format!("flipped {flip_count} bytes deterministically"),
+                operation_summary: format!(
+                    "flipped {flip_count} bytes deterministically in window {random_start}..{}",
+                    random_end
+                ),
+                corruption_ranges: merge_single_point_ranges(&flipped_positions),
             })
         }
         CorruptionMode::Overwrite => {
@@ -187,9 +220,14 @@ fn corrupt_archive_impl(mut archive_bytes: Vec<u8>, config: CorruptionConfig) ->
                 mode_slug: "overwrite",
                 seed_applied: None,
                 operation_summary: format!("overwrote bytes {offset}..{} with 0x{value:02x}", end),
+                corruption_ranges: vec![ByteRange {
+                    start: offset as u64,
+                    end: end as u64,
+                }],
             })
         }
         CorruptionMode::Truncate => {
+            let original_len = archive_bytes.len();
             let cut = config
                 .truncate_offset
                 .context("truncate_offset is required for truncate mode")?
@@ -201,6 +239,10 @@ fn corrupt_archive_impl(mut archive_bytes: Vec<u8>, config: CorruptionConfig) ->
                 mode_slug: "truncate",
                 seed_applied: None,
                 operation_summary: format!("truncated archive to {cut} bytes"),
+                corruption_ranges: vec![ByteRange {
+                    start: cut as u64,
+                    end: original_len as u64,
+                }],
             })
         }
         CorruptionMode::Remove => {
@@ -222,9 +264,154 @@ fn corrupt_archive_impl(mut archive_bytes: Vec<u8>, config: CorruptionConfig) ->
                 mode_slug: "remove",
                 seed_applied: None,
                 operation_summary: format!("removed byte range {offset}..{}", end),
+                corruption_ranges: vec![ByteRange {
+                    start: offset as u64,
+                    end: end as u64,
+                }],
             })
         }
     }
+}
+
+fn merge_single_point_ranges(points: &[u64]) -> Vec<ByteRange> {
+    if points.is_empty() {
+        return Vec::new();
+    }
+
+    let mut sorted = points.to_vec();
+    sorted.sort_unstable();
+    sorted.dedup();
+
+    let mut out = Vec::new();
+    let mut range_start = sorted[0];
+    let mut range_end = sorted[0].saturating_add(1);
+
+    for point in &sorted[1..] {
+        let point_start = *point;
+        let point_end = point_start.saturating_add(1);
+        if point_start <= range_end {
+            range_end = range_end.max(point_end);
+            continue;
+        }
+        out.push(ByteRange {
+            start: range_start,
+            end: range_end,
+        });
+        range_start = point_start;
+        range_end = point_end;
+    }
+
+    out.push(ByteRange {
+        start: range_start,
+        end: range_end,
+    });
+    out
+}
+
+fn build_layout_segments(
+    index: &format::Index,
+    opened: &crushr_core::open::OpenArchiveV1,
+) -> Vec<LayoutSegment> {
+    let mut payload_ranges = Vec::new();
+    for entry in &index.entries {
+        for ex in &entry.extents {
+            let start = ex.offset;
+            let end = ex.offset.saturating_add(ex.len);
+            if end > start {
+                payload_ranges.push(ByteRange { start, end });
+            }
+        }
+    }
+
+    if payload_ranges.is_empty() && opened.tail.footer.blocks_end_offset > 0 {
+        payload_ranges.push(ByteRange {
+            start: 0,
+            end: opened.tail.footer.blocks_end_offset,
+        });
+    }
+
+    let mut metadata_ranges = Vec::new();
+    if opened.tail.footer.dct_len > 0 {
+        metadata_ranges.push(ByteRange {
+            start: opened.tail.footer.dct_offset,
+            end: opened
+                .tail
+                .footer
+                .dct_offset
+                .saturating_add(opened.tail.footer.dct_len),
+        });
+    }
+    metadata_ranges.push(ByteRange {
+        start: opened.tail.footer.index_offset,
+        end: opened
+            .tail
+            .footer
+            .index_offset
+            .saturating_add(opened.tail.footer.index_len),
+    });
+    if opened.tail.footer.ledger_len > 0 {
+        metadata_ranges.push(ByteRange {
+            start: opened.tail.footer.ledger_offset,
+            end: opened
+                .tail
+                .footer
+                .ledger_offset
+                .saturating_add(opened.tail.footer.ledger_len),
+        });
+    }
+
+    let payload_ranges = merge_ranges(payload_ranges);
+    let metadata_ranges = merge_ranges(metadata_ranges);
+    let tail_range = ByteRange {
+        start: opened.footer_offset,
+        end: opened.archive_len,
+    };
+
+    let mut segments = Vec::new();
+    for range in payload_ranges {
+        segments.push(LayoutSegment {
+            kind: "payload",
+            start: range.start,
+            end: range.end,
+        });
+    }
+    for range in metadata_ranges {
+        segments.push(LayoutSegment {
+            kind: "metadata",
+            start: range.start,
+            end: range.end,
+        });
+    }
+    if tail_range.end > tail_range.start {
+        segments.push(LayoutSegment {
+            kind: "tail",
+            start: tail_range.start,
+            end: tail_range.end,
+        });
+    }
+
+    segments.sort_by(|a, b| a.start.cmp(&b.start).then(a.end.cmp(&b.end)));
+    segments
+}
+
+fn merge_ranges(mut ranges: Vec<ByteRange>) -> Vec<ByteRange> {
+    if ranges.is_empty() {
+        return ranges;
+    }
+    ranges.sort_by(|a, b| a.start.cmp(&b.start).then(a.end.cmp(&b.end)));
+
+    let mut out = Vec::new();
+    let mut current = ranges[0].clone();
+    for range in ranges.into_iter().skip(1) {
+        if range.start <= current.end {
+            current.end = current.end.max(range.end);
+            continue;
+        }
+        out.push(current);
+        current = range;
+    }
+    out.push(current);
+    out
 }
 
 #[cfg(test)]
@@ -242,6 +429,8 @@ mod tests {
             seed: Some(42),
             flip_count: Some(8),
             overwrite_offset: None,
+            random_flip_offset: None,
+            random_flip_span: None,
             overwrite_len: None,
             overwrite_value: None,
             truncate_offset: None,
@@ -256,6 +445,8 @@ mod tests {
             seed: Some(42),
             flip_count: Some(8),
             overwrite_offset: None,
+            random_flip_offset: None,
+            random_flip_span: None,
             overwrite_len: None,
             overwrite_value: None,
             truncate_offset: None,
@@ -274,6 +465,8 @@ mod tests {
             seed: None,
             flip_count: None,
             overwrite_offset: None,
+            random_flip_offset: None,
+            random_flip_span: None,
             overwrite_len: None,
             overwrite_value: None,
             truncate_offset: None,

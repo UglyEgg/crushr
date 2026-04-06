@@ -666,3 +666,154 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
 - Constraints:
   - browser automation/screenshot tooling unavailable in this environment; packet-required real-browser verification remains external.
+
+## 2026-04-04 — Handoff update (P19S02f2 complete)
+
+- Corruption demo semantics were corrected to avoid off0 kill-shot defaults in the normal demo flow.
+- UI now presents two explicit preset groups:
+  - **Demo corruption presets** (bounded deterministic patterns)
+  - **Structural destruction / kill-shot modes** (explicitly labeled destructive actions)
+- Demo presets currently wired:
+  - scattered random damage
+  - bounded middle overwrite
+  - bounded tail damage
+  - bounded header damage
+  - bounded middle remove window
+- Kill-shot presets currently wired:
+  - truncate at offset 0
+  - remove from offset 0
+- Per-preset description text is now explicit/honest about expected damage shape and destructive likelihood.
+- Download naming now includes preset slug + mode + seed marker (`seed<value>` or `seedna`) for clearer artifact identity.
+- Validation run:
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+  - `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cd demos/wasm-corrupt-demo && ./build-dist.sh`
+  - `cargo run -p crushr --bin crushr -- pack /tmp/crushr-demo-input-big -o /tmp/sample-big.crs`
+  - Node/WASM generation of each preset output, then `target/debug/crushr info` + `target/debug/crushr info --propagation` on outputs.
+- Verification outcome snapshot:
+  - demo presets now include inspectable/degraded outcomes (for example bounded header/middle overwrite on a multi-file archive remained structurally inspectable with propagation impacts)
+  - kill-shot presets remain clearly destructive (`archive too short to contain FTR4`, parse failures)
+- Constraint:
+  - browser automation/screenshot tooling remains unavailable in this environment; external manual browser click-through verification is still required for final UI-interaction evidence.
+
+## 2026-04-05 — Handoff update (P19S02f3 complete)
+
+- Follow-up preset tuning completed for P19S02:
+  - demo defaults now focus on bounded overwrite presets that remain inspectable in validation runs
+  - high-failure presets moved into structural-destruction group
+- Added random-flip windowing support in WASM config:
+  - `random_flip_offset`
+  - `random_flip_span`
+  - random mode now flips inside a deterministic bounded window instead of always full-archive range.
+- UI preset grouping now:
+  - **Demo corruption presets:** bounded middle overwrite, bounded payload overwrite, bounded header damage
+  - **Structural destruction / kill-shot modes:** scattered random damage, tail structure damage, truncate-at-0, remove-from-start, remove-middle-window
+- Canonical CLI follow-up summary from generated outputs:
+  - all demo presets: `crushr info` succeeded and `info --propagation` showed `corrupted structures none` with impacted-entry activation
+  - structural-destruction presets: expected parse/short-archive failures (`footer_hash mismatch`, `IDX bad magic`, `archive too short`)
+- Browser verification note:
+  - attempted real browser automation with Playwright after building `dist/`
+  - Chromium launch failed in container due missing system library: `libatk-1.0.so.0`
+  - manual external browser verification is still required in a runtime with browser deps installed.
+
+## 2026-04-05 — Handoff update (P19S02f4 complete)
+
+- Completed Phase-2-semantic preset rework for `demos/wasm-corrupt-demo`.
+- Presets now map directly to harness dimensions:
+  - `type`: bit_flip / byte_overwrite / zero_fill / truncation / tail_damage
+  - `target`: header / index / payload / tail
+  - `magnitude`: 1B / 256B / 4KB
+- UI grouping now has 3 tiers:
+  - representative corruption presets (default)
+  - structural stress presets
+  - catastrophic / kill-shot modes
+- Added dynamic **What this emulates** panel:
+  - summary + bullet list updates with selected preset
+  - language is severity-aware and explicit for catastrophic modes.
+- Browser-generated verification was executed in this environment:
+  - installed missing Chromium runtime libraries
+  - served `demos/wasm-corrupt-demo/dist`
+  - automated browser flow selected each preset and downloaded archives from actual UI download link
+  - validated downloads with canonical `crushr info` and `crushr info --propagation`
+- Key outcome:
+  - representative presets are structurally inspectable with `strict_extraction_supported false`
+  - stress/catastrophic presets show expected structural diagnostics/failures.
+
+## 2026-04-05 — Handoff update (P19S02f5 complete)
+
+- Performed classification truth-alignment pass (no new corruption mode logic):
+  - representative group kept as default path
+  - structural stress labels updated to explicitly state frequent parse-breaking tendency
+  - catastrophic labels made more explicit in selector text (`Catastrophic: ...`)
+- Browser-generated evidence used for this pass:
+  - source archive: `/tmp/p19-medium.crs`
+  - generated outputs: `/tmp/browser-p19-medium/*.crs`
+  - canonical checks: `target/debug/crushr info` + `target/debug/crushr info --propagation`
+- Observed grouping fit:
+  - representative presets: inspectable + degraded (`corrupted structures none`, strict unsupported)
+  - stress presets: frequent tail-frame parse failure diagnostics
+  - catastrophic presets: hard structural invalidation outcomes
+
+## 2026-04-06 — Handoff update (P19S02f6 complete)
+
+- Completed bounded layout-parity pass for `demos/wasm-corrupt-demo` UI.
+- Structural changes only (no corruption-mode semantic change):
+  - desktop now uses a two-column dashboard split
+    - left: archive load + preset/action + download/inspect flow
+    - right: contextual/explanatory panels (`What this emulates`, impact summary)
+  - spacing/padding tightened for denser workflow feel.
+- CSS responsiveness/containment:
+  - new dashboard grid wrappers with mobile collapse to one column
+  - `min-width: 0` containment guards to avoid grid overflow.
+- Validation run:
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+- Constraint:
+  - browser screenshot tooling is unavailable in this environment; screenshot capture remains external.
+
+## 2026-04-06 — Handoff update (P19S02f7 complete)
+
+- Added archive-layout + corruption-overlay visualization to corruption demo right column.
+- Rust/WASM output additions:
+  - `inspect_archive` now includes `layout_segments` with deterministic `kind/start/end` records.
+  - `corrupt_archive` now includes `corruption_ranges` for applied mutation spans (random-flip outputs merged into deterministic contiguous ranges).
+- Layout semantics:
+  - payload = merged index extent ranges (offset/len)
+  - metadata = DCT/IDX/LDG spans from footer offsets
+  - tail = footer (`FTR4`) span
+- UI behavior:
+  - normalized horizontal layout bar (not per-byte rendering)
+  - corruption overlay rendered on the same coordinate system
+  - legend for payload / metadata-index / tail-footer / corruption.
+- Validation run:
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-corrupt-demo/Cargo.toml --target wasm32-unknown-unknown`
+- Constraints:
+  - `wasm-pack` missing in this environment, so `build-dist.sh` and real-browser packet verification were not executable here.
+
+## 2026-04-06 — Handoff update (P18S09f3 complete)
+
+- Introspection demo corruption-first UX alignment implemented in `demos/wasm-readonly-demo/web`.
+- Added top-level archive health banner with strict state mapping:
+  - `DAMAGED` when `extents_valid == false`
+  - `DEGRADED` when `extents_valid == true` and `strict_extraction_supported == false`
+  - `VALID` otherwise.
+- Damaged-archive gating changes:
+  - impact view is forced on
+  - impact toggle is disabled with status indicator text explaining forced mode.
+- Load behavior changes:
+  - entries now auto-populate on load (bounded empty-query search)
+  - impacted entries sort first
+  - first impacted entry auto-selects for damaged archives and immediately renders detail/extent/preview.
+- Entry-contextual failures now render in entry detail panel with path context.
+- Left-panel layout no longer uses fixed-height dead-space behavior; results panel grows dynamically.
+- Validation run:
+  - `node --check demos/wasm-readonly-demo/web/main.js`
+  - `rustup target add wasm32-unknown-unknown`
+  - `cargo check --manifest-path demos/wasm-readonly-demo/Cargo.toml --target wasm32-unknown-unknown`
+  - `cargo test -p crushr --test cli_contract_surface --test cli_presentation_contract`
+- Constraints:
+  - `wasm-pack` missing in this environment, so `build-dist.sh` and real-browser screenshot/interaction verification were not executable here.
