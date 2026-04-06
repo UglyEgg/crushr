@@ -754,3 +754,20 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - representative presets: inspectable + degraded (`corrupted structures none`, strict unsupported)
   - stress presets: frequent tail-frame parse failure diagnostics
   - catastrophic presets: hard structural invalidation outcomes
+
+## 2026-04-06 — Handoff update (P19S02f6 complete)
+
+- Completed bounded layout-parity pass for `demos/wasm-corrupt-demo` UI.
+- Structural changes only (no corruption-mode semantic change):
+  - desktop now uses a two-column dashboard split
+    - left: archive load + preset/action + download/inspect flow
+    - right: contextual/explanatory panels (`What this emulates`, impact summary)
+  - spacing/padding tightened for denser workflow feel.
+- CSS responsiveness/containment:
+  - new dashboard grid wrappers with mobile collapse to one column
+  - `min-width: 0` containment guards to avoid grid overflow.
+- Validation run:
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+- Constraint:
+  - browser screenshot tooling is unavailable in this environment; screenshot capture remains external.

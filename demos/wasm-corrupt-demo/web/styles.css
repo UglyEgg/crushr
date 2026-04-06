@@ -19,20 +19,35 @@ body {
 }
 
 .container {
-  max-width: 880px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 16px;
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 h1, h2 { margin: 0 0 8px 0; }
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 44%) minmax(0, 56%);
+  gap: 10px;
+  min-width: 0;
+}
+
+.left-column,
+.right-column {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
 
 .card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 14px;
+  padding: 12px;
+  min-width: 0;
 }
 
 .drop-zone.dragging {
@@ -68,13 +83,6 @@ label select {
   padding: 6px;
 }
 
-.mode-controls {
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  padding: 8px;
-  margin-bottom: 10px;
-}
-
 pre {
   background: #0d1430;
   border: 1px solid var(--border);
@@ -91,3 +99,9 @@ pre {
 .error { color: var(--danger); }
 
 input[type="file"] { display: none; }
+
+@media (max-width: 940px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

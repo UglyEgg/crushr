@@ -2280,3 +2280,19 @@ LOCKED for Phase 16 dictionary evaluation unless replaced by a newer explicit de
   - `demos/wasm-corrupt-demo/web/{index.html,main.js}`
   - `demos/wasm-corrupt-demo/README.md`
   - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`
+
+## 2026-04-06 — P19S02f6 corruption-demo dashboard layout parity lock
+
+- Decision:
+  - Apply a bounded visual/layout-only parity pass to `demos/wasm-corrupt-demo` so workflow controls and contextual explanation are presented in a clearer dashboard split on desktop.
+  - Keep corruption implementation semantics, preset taxonomy, and JS behavior wiring unchanged.
+  - Add explicit responsive containment guards to prevent horizontal overflow in two-column states.
+- Alternatives considered:
+  1. Keep existing single-column stack and only reduce spacing tokens.
+  2. Perform a broader visual redesign including new components/interaction changes.
+- Rationale:
+  - Packet scope requires improved workflow readability and dashboard parity without introducing behavior drift.
+  - Structural grouping + containment fixes provide clarity while preserving existing logic contracts.
+- Blast radius:
+  - `demos/wasm-corrupt-demo/web/{index.html,styles.css}`
+  - `.ai/{STATUS.md,PHASE_PLAN.md,DECISION_LOG.md,HANDOFF.md,CHANGELOG.md}`

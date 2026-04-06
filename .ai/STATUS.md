@@ -1049,3 +1049,23 @@ Expand archive introspection so container truth, entry truth, and structural vis
   - this environment required re-installing browser/runtime dependencies to run browser verification (`wasm-pack`, Chromium runtime libs, Playwright).
 - Next:
   - optional follow-up to add automated multi-corpus browser outcome matrix so tier classification can be reported with stability percentages.
+
+## 2026-04-06 — Active Step Update (P19S02f6)
+
+- Completed: Phase 19 Step 02 fix 6 (`P19S02f6`).
+- Applied bounded dashboard-layout parity pass for `demos/wasm-corrupt-demo` web UI without changing corruption semantics or JS behavior wiring.
+- Layout updates:
+  - converted the page body into a two-column dashboard on desktop (`left`: workflow controls + actions, `right`: explanatory/context panels)
+  - reduced card spacing/padding for denser operator workflow
+  - preserved existing IDs/control semantics and existing preset explanation + impact summary content.
+- CSS hardening:
+  - introduced explicit grid wrappers (`dashboard-grid`, `left-column`, `right-column`)
+  - added responsive single-column fallback and `min-width: 0` containment guards to avoid horizontal overflow.
+- Validation:
+  - `node --check demos/wasm-corrupt-demo/web/main.js`
+  - `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`
+- Constraints/gotchas:
+  - `PROJECT_STATE.md` remains referenced by bootstrap docs but is absent at repository root.
+  - browser screenshot tooling is unavailable in this execution environment; screenshot artifact capture remains external.
+- Next:
+  - optional parity polish packet for visual token-level matching against introspection dashboard if requested.

@@ -1551,3 +1551,8 @@ SPDX-FileCopyrightText: 2026 Richard Majewski
   - stress presets now explicitly described as frequently parse-breaking
   - catastrophic selector labels now explicitly prefixed (`Catastrophic: ...`)
 - Kept representative presets as default flow after observed inspectable/degraded behavior confirmation.
+
+## 2026-04-06 — P19S02f6
+- Reworked `demos/wasm-corrupt-demo` page into a denser two-column dashboard layout on desktop with workflow/content grouping parity and mobile single-column fallback.
+- Added grid containment safeguards (`min-width: 0`) and spacing/padding refinements while preserving existing JS wiring and corruption behavior semantics.
+- Validation: `node --check demos/wasm-corrupt-demo/web/main.js`; `cargo test --manifest-path demos/wasm-corrupt-demo/Cargo.toml`.
